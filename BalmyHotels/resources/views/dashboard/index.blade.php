@@ -33,7 +33,7 @@
             </div>
         </div>
         <div class="text-end">
-            <div class="fw-semibold text-muted small">{{ now()->format('d F Y, l') }}</div>
+            <div class="fw-semibold text-muted small">{{ now()->locale('tr')->translatedFormat('d F Y, l') }}</div>
             <div id="clock" class="h5 fw-bold mb-0 text-dark" style="letter-spacing:2px"></div>
         </div>
     </div>
