@@ -6,6 +6,11 @@ use App\Http\Controllers\Controller;
 use App\Models\Branch;
 use App\Models\FoodLabel;
 use Illuminate\Http\Request;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
+use PhpOffice\PhpSpreadsheet\Style\Fill;
+use PhpOffice\PhpSpreadsheet\Style\Alignment;
+use PhpOffice\PhpSpreadsheet\Style\Border;
 
 class FoodLabelController extends BaseModuleController
 {
@@ -13,7 +18,7 @@ class FoodLabelController extends BaseModuleController
     {
         $this->requirePermission(
             'food_labels',
-            ['index'],
+            ['index', 'export'],
             ['printSingle'],
             ['create', 'store', 'printBulk'],
             ['edit', 'update'],
@@ -46,7 +51,7 @@ class FoodLabelController extends BaseModuleController
             $query->where('is_active', $request->is_active === '1');
         }
 
-        $labels   = $query->get();
+        $labels   = $query->paginate(60)->withQueryString();
         $branches = Branch::whereIn('id', $branchIds)->orderBy('name')->get();
         $page_title = 'Yemek İsimlik';
 
@@ -171,6 +176,157 @@ class FoodLabelController extends BaseModuleController
             ->get();
 
         return view('modules.food_labels.print', compact('labels'));
+    }
+
+    // -----------------------------------------------------------------------
+    /** Excel'e aktar (mevcut filtreler uygulanır) */
+    public function export(Request $request)
+    {
+        $user      = auth()->user();
+        $branchIds = $user->visibleBranchIds();
+
+        $query = FoodLabel::with('branch')
+            ->where(fn($q) => $q->whereNull('branch_id')->orWhereIn('branch_id', $branchIds))
+            ->orderBy('sort_order')
+            ->orderBy('created_at', 'desc');
+
+        if ($request->filled('category')) {
+            $query->where('category', $request->category);
+        }
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->whereRaw("JSON_EXTRACT(name, '$.tr') LIKE ?", ["%$search%"])
+                  ->orWhereRaw("JSON_EXTRACT(name, '$.en') LIKE ?", ["%$search%"]);
+            });
+        }
+        if ($request->filled('is_active')) {
+            $query->where('is_active', $request->is_active === '1');
+        }
+
+        $labels   = $query->get();
+        $allergens = FoodLabel::ALLERGENS;
+        $categories = FoodLabel::CATEGORIES;
+
+        $spreadsheet = new Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->setTitle('Yemek İsimlikler');
+
+        // ── Başlıklar ──
+        $headers = [
+            'A' => 'ID',
+            'B' => 'TR İsim',
+            'C' => 'EN İsim',
+            'D' => 'DE İsim',
+            'E' => 'RU İsim',
+            'F' => 'Kategori',
+            'G' => 'Kalori (kcal)',
+            'H' => 'Vegan',
+            'I' => 'Vejetaryen',
+            'J' => 'Helal',
+            'K' => 'Allerjenler (TR)',
+            'L' => 'Allerjenler (EN)',
+            'M' => 'Allerjenler (DE)',
+            'N' => 'Allerjenler (RU)',
+            'O' => 'İçindekiler (TR)',
+            'P' => 'İçindekiler (EN)',
+            'Q' => 'İçindekiler (DE)',
+            'R' => 'İçindekiler (RU)',
+            'S' => 'Şube',
+            'T' => 'Aktif',
+        ];
+
+        foreach ($headers as $col => $title) {
+            $sheet->setCellValue($col . '1', $title);
+        }
+
+        // Header stili
+        $headerRange = 'A1:T1';
+        $sheet->getStyle($headerRange)->applyFromArray([
+            'font' => ['bold' => true, 'color' => ['argb' => 'FFFFFFFF']],
+            'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['argb' => 'FF2d6a4f']],
+            'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER, 'vertical' => Alignment::VERTICAL_CENTER],
+            'borders' => ['allBorders' => ['borderStyle' => Border::BORDER_THIN, 'color' => ['argb' => 'FF52b788']]],
+        ]);
+        $sheet->getRowDimension(1)->setRowHeight(18);
+
+        // ── Veri satırları ──
+        $row = 2;
+        foreach ($labels as $label) {
+            $labelAllergens = $label->allergens ?? [];
+
+            $allergenTr = collect($labelAllergens)->map(fn($k) => $allergens[$k]['label']    ?? '')->filter()->implode(', ');
+            $allergenEn = collect($labelAllergens)->map(fn($k) => $allergens[$k]['label_en'] ?? '')->filter()->implode(', ');
+            $allergenDe = collect($labelAllergens)->map(fn($k) => $allergens[$k]['label_de'] ?? '')->filter()->implode(', ');
+            $allergenRu = collect($labelAllergens)->map(fn($k) => $allergens[$k]['label_ru'] ?? '')->filter()->implode(', ');
+
+            // ingredients: cast 'array' döner, fallback olarak raw JSON decode
+            $rawIng = $label->ingredients;
+            if (is_string($rawIng)) {
+                $rawIng = json_decode($rawIng, true) ?? [];
+            }
+            if (!is_array($rawIng)) {
+                $rawIng = [];
+            }
+
+            $sheet->setCellValue('A' . $row, $label->id);
+            $sheet->setCellValue('B' . $row, $label->getName('tr'));
+            $sheet->setCellValue('C' . $row, $label->getName('en'));
+            $sheet->setCellValue('D' . $row, $label->getName('de'));
+            $sheet->setCellValue('E' . $row, $label->getName('ru'));
+            $sheet->setCellValue('F' . $row, $categories[$label->category ?? ''] ?? ($label->category ?? ''));
+            $sheet->setCellValue('G' . $row, $label->calories);
+            $sheet->setCellValue('H' . $row, $label->is_vegan  ? 'Evet' : 'Hayır');
+            $sheet->setCellValue('I' . $row, $label->is_vegetarian ? 'Evet' : 'Hayır');
+            $sheet->setCellValue('J' . $row, $label->is_halal  ? 'Evet' : 'Hayır');
+            $sheet->setCellValue('K' . $row, $allergenTr ?: 'Yok');
+            $sheet->setCellValue('L' . $row, $allergenEn ?: 'None');
+            $sheet->setCellValue('M' . $row, $allergenDe ?: 'Keine');
+            $sheet->setCellValue('N' . $row, $allergenRu ?: 'Нет');
+            $sheet->setCellValue('O' . $row, implode(', ', $rawIng['tr'] ?? []));
+            $sheet->setCellValue('P' . $row, implode(', ', $rawIng['en'] ?? []));
+            $sheet->setCellValue('Q' . $row, implode(', ', $rawIng['de'] ?? []));
+            $sheet->setCellValue('R' . $row, implode(', ', $rawIng['ru'] ?? []));
+            $sheet->setCellValue('S' . $row, $label->branch?->name ?? 'Genel');
+            $sheet->setCellValue('T' . $row, $label->is_active ? 'Aktif' : 'Pasif');
+
+            // Zebra satır
+            if ($row % 2 === 0) {
+                $sheet->getStyle('A' . $row . ':T' . $row)->getFill()
+                    ->setFillType(Fill::FILL_SOLID)
+                    ->getStartColor()->setARGB('FFF0F4F0');
+            }
+
+            $row++;
+        }
+
+        // Sütun genişlikleri
+        $colWidths = ['A'=>6,'B'=>22,'C'=>22,'D'=>22,'E'=>22,'F'=>14,'G'=>12,'H'=>8,'I'=>10,'J'=>7,'K'=>30,'L'=>30,'M'=>30,'N'=>30,'O'=>35,'P'=>35,'Q'=>35,'R'=>35,'S'=>16,'T'=>8];
+        foreach ($colWidths as $col => $w) {
+            $sheet->getColumnDimension($col)->setWidth($w);
+        }
+
+        // Tüm veri border
+        if ($row > 2) {
+            $sheet->getStyle('A2:T' . ($row - 1))->applyFromArray([
+                'borders' => ['allBorders' => ['borderStyle' => Border::BORDER_THIN, 'color' => ['argb' => 'FFD8E4DC']]],
+            ]);
+        }
+
+        // Üstü dondur
+        $sheet->freezePane('A2');
+
+        // İndir
+        $filename = 'yemek-isimlikler-' . now()->format('Y-m-d') . '.xlsx';
+
+        $writer = new Xlsx($spreadsheet);
+
+        return response()->streamDownload(function () use ($writer) {
+            $writer->save('php://output');
+        }, $filename, [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'Cache-Control' => 'max-age=0',
+        ]);
     }
 
     // -----------------------------------------------------------------------

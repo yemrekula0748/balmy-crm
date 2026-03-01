@@ -24,6 +24,7 @@ use App\Http\Controllers\QrMenuPublicController;
 use App\Http\Controllers\Modules\SurveyController;
 use App\Http\Controllers\SurveyPublicController;
 use App\Http\Controllers\Modules\FoodLabelController;
+use App\Http\Controllers\FoodLabelPublicController;
 use App\Http\Controllers\StaffSurveyPublicController;
 use App\Http\Controllers\Modules\StaffSurveyController;
 use App\Http\Controllers\Modules\RoleController;
@@ -63,6 +64,13 @@ Route::get('/anket/{slug}/{lang}/tesekkurler',     [SurveyPublicController::clas
 | Personel Anket — Public (auth gerekmez)
 |--------------------------------------------------------------------------
 */
+/*
+|--------------------------------------------------------------------------
+| Yemek İsimlik — Public (auth gerekmez)
+|--------------------------------------------------------------------------
+*/
+Route::get('/yemek/{token}', [FoodLabelPublicController::class, 'show'])->name('food-labels.public');
+
 Route::get('/personel-anketi/{slug}',            [StaffSurveyPublicController::class, 'form'])->name('staff-surveys.public.form');
 Route::post('/personel-anketi/{slug}',           [StaffSurveyPublicController::class, 'submit'])->name('staff-surveys.public.submit');
 Route::get('/personel-anketi/{slug}/tesekkurler',[StaffSurveyPublicController::class, 'thankyou'])->name('staff-surveys.public.thankyou');
@@ -331,6 +339,7 @@ Route::middleware('auth')->group(function () {
     */
     Route::prefix('yemek-isimlikler')->name('food-labels.')->group(function () {
         Route::get('/',                     [FoodLabelController::class, 'index'])->name('index');
+        Route::get('/export',               [FoodLabelController::class, 'export'])->name('export');
         Route::get('/ekle',                 [FoodLabelController::class, 'create'])->name('create');
         Route::post('/ekle',                [FoodLabelController::class, 'store'])->name('store');
         Route::post('/yazdir',              [FoodLabelController::class, 'printBulk'])->name('print-bulk');

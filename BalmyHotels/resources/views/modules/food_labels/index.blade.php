@@ -62,24 +62,34 @@
     {{-- Başlık + Yeni + Çoklu Yazdır --}}
     <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
         <div>
-            <span class="text-muted small">{{ $labels->count() }} isimlik bulundu</span>
+            <span class="text-muted small">{{ $labels->total() }} isimlik bulundu
+                @if($labels->hasPages())<span class="text-muted">&nbsp;·&nbsp;Sayfa {{ $labels->currentPage() }}/{{ $labels->lastPage() }}</span>@endif
+            </span>
         </div>
         <div class="d-flex gap-2 flex-wrap">
             <button type="button" class="btn btn-sm btn-outline-secondary" id="selectAllBtn" onclick="toggleSelectAll()">
                 <i class="fas fa-check-square me-1"></i>Tümünü Seç
+            </button>
+            <button type="button" class="btn btn-sm btn-outline-warning" id="clearSelBtn"
+                    onclick="clearSelection()" style="display:none" title="Tüm sayfalardan seçimi temizle">
+                <i class="fas fa-times me-1"></i>Seçimi Temizle
             </button>
             <button type="button" class="btn btn-sm btn-success" id="printSelectedBtn"
                     onclick="printSelected()" style="display:none">
                 <i class="fas fa-print me-1"></i>Seçilenleri Yazdır
                 <span class="badge bg-white text-success ms-1" id="selectedCount">0</span>
             </button>
+            <a href="{{ route('food-labels.export', request()->only(['search','category','is_active'])) }}"
+               class="btn btn-sm btn-outline-success">
+                <i class="fas fa-file-excel me-1"></i>Excel'e Aktar
+            </a>
             <a href="{{ route('food-labels.create') }}" class="btn btn-sm btn-primary">
                 <i class="fas fa-plus me-1"></i>Yeni İsimlik
             </a>
         </div>
     </div>
 
-    @if($labels->isEmpty())
+    @if($labels->getCollection()->isEmpty())
     <div class="card">
         <div class="card-body text-center py-5">
             <i class="fas fa-utensils fa-3x text-muted opacity-25 mb-3 d-block"></i>
@@ -93,7 +103,7 @@
 
     {{-- Kategori bazlı gruplama --}}
     @php
-        $grouped = $labels->groupBy('category');
+        $grouped = $labels->getCollection()->groupBy('category');
         $categoryOrder = array_keys(\App\Models\FoodLabel::CATEGORIES);
         $categorized = collect($categoryOrder)->mapWithKeys(fn($k) => [$k => $grouped->get($k, collect())])
             ->filter(fn($g) => $g->isNotEmpty())
@@ -120,7 +130,7 @@
                             <div class="flex-grow-1 me-2">
                                 <div class="d-flex align-items-center gap-2 mb-1">
                                     <input type="checkbox" class="label-checkbox form-check-input"
-                                           value="{{ $label->id }}" onchange="updatePrintBtn()">
+                                           value="{{ $label->id }}" onchange="onCheckboxChange(this)">
                                     <h6 class="fw-bold mb-0">{{ $label->getName() }}</h6>
                                 </div>
                                 @if($name_en = $label->getName('en'))
@@ -166,6 +176,12 @@
 
                         {{-- Butonlar --}}
                         <div class="d-flex gap-1 mt-2 pt-2 border-top">
+                            <button type="button" class="btn btn-xs btn-outline-success flex-grow-1"
+                                    style="font-size:11px;padding:2px 6px"
+                                    onclick="showQr('{{ $label->publicUrl() }}', '{{ addslashes($label->getName()) }}')"
+                                    title="QR Kodu Göster">
+                                <i class="fas fa-qrcode me-1"></i>QR
+                            </button>
                             <a href="{{ route('food-labels.print-single', $label) }}" target="_blank"
                                class="btn btn-xs btn-outline-secondary flex-grow-1" style="font-size:11px;padding:2px 6px">
                                 <i class="fas fa-print me-1"></i>Yazdır
@@ -191,6 +207,14 @@
     @endif
     @endforeach
 
+    {{-- Sayfalama --}}
+    @if($labels->hasPages())
+    <div class="d-flex justify-content-center align-items-center gap-3 mt-4">
+        <div class="text-muted small">{{ $labels->firstItem() }}–{{ $labels->lastItem() }} / {{ $labels->total() }}</div>
+        {{ $labels->links('pagination::bootstrap-5') }}
+    </div>
+    @endif
+
     {{-- Gizli form: çoklu yazdır --}}
     <form id="bulkPrintForm" action="{{ route('food-labels.print-bulk') }}" method="POST" target="_blank">
         @csrf
@@ -199,34 +223,127 @@
 
     @endif
 
+{{-- QR Modal --}}
+<div class="modal fade" id="qrModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered" style="max-width:360px">
+        <div class="modal-content">
+            <div class="modal-header border-0 pb-0">
+                <h6 class="modal-title fw-bold" id="qrModalTitle">QR Kod</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body text-center px-4 pb-3">
+                <p class="text-muted small mb-3" id="qrModalSubtitle"></p>
+                <div id="qrCodeCanvas" class="d-flex justify-content-center mb-3"></div>
+                <div class="d-flex gap-2">
+                    <a id="qrPublicLink" href="#" target="_blank"
+                       class="btn btn-sm btn-outline-primary flex-grow-1">
+                        <i class="fas fa-external-link-alt me-1"></i>Sayfaı Aç
+                    </a>
+                    <button type="button" class="btn btn-sm btn-outline-secondary"
+                            onclick="downloadQr()">
+                        <i class="fas fa-download me-1"></i>PNG
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 </div>
 @endsection
 
 @push('scripts')
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script>
-let allSelected = false;
+// ---- localStorage selection (sayfalar arası kalıcı seçim) ----
+const LS_KEY = 'foodlabel_selected_v2';
+
+function getSelected() {
+    try { return new Set(JSON.parse(localStorage.getItem(LS_KEY) || '[]')); }
+    catch(e) { return new Set(); }
+}
+function saveSelected(set) {
+    localStorage.setItem(LS_KEY, JSON.stringify([...set]));
+}
+function clearSelection() {
+    localStorage.removeItem(LS_KEY);
+    document.querySelectorAll('.label-checkbox').forEach(cb => cb.checked = false);
+    refreshUI();
+}
+
+function onCheckboxChange(cb) {
+    const sel = getSelected();
+    cb.checked ? sel.add(cb.value) : sel.delete(cb.value);
+    saveSelected(sel);
+    refreshUI();
+}
 
 function toggleSelectAll() {
-    allSelected = !allSelected;
-    document.querySelectorAll('.label-checkbox').forEach(cb => cb.checked = allSelected);
-    document.getElementById('selectAllBtn').innerHTML = allSelected
-        ? '<i class="fas fa-square me-1"></i>Seçimi Kaldır'
-        : '<i class="fas fa-check-square me-1"></i>Tümünü Seç';
-    updatePrintBtn();
+    const cbs  = document.querySelectorAll('.label-checkbox');
+    const sel  = getSelected();
+    const allPageChecked = [...cbs].every(cb => cb.checked);
+    cbs.forEach(cb => {
+        cb.checked = !allPageChecked;
+        cb.checked ? sel.add(cb.value) : sel.delete(cb.value);
+    });
+    saveSelected(sel);
+    refreshUI();
 }
 
-function updatePrintBtn() {
-    const count = document.querySelectorAll('.label-checkbox:checked').length;
-    const btn   = document.getElementById('printSelectedBtn');
+function refreshUI() {
+    const sel   = getSelected();
+    const count = sel.size;
     document.getElementById('selectedCount').textContent = count;
-    btn.style.display = count > 0 ? 'inline-flex' : 'none';
+    document.getElementById('printSelectedBtn').style.display = count > 0 ? 'inline-flex' : 'none';
+    document.getElementById('clearSelBtn').style.display     = count > 0 ? 'inline-flex' : 'none';
+    const allPageChecked = [...document.querySelectorAll('.label-checkbox')].every(cb => cb.checked);
+    document.getElementById('selectAllBtn').innerHTML = allPageChecked
+        ? '<i class="fas fa-square me-1"></i>Sayfayı Kaldır'
+        : '<i class="fas fa-check-square me-1"></i>Tümünü Seç';
 }
+
+// Sayfa yüklenince önceki seçimleri geri yükle
+document.addEventListener('DOMContentLoaded', function() {
+    const sel = getSelected();
+    document.querySelectorAll('.label-checkbox').forEach(cb => {
+        if (sel.has(cb.value)) cb.checked = true;
+    });
+    refreshUI();
+});
 
 function printSelected() {
-    const ids    = [...document.querySelectorAll('.label-checkbox:checked')].map(cb => cb.value);
+    const ids    = [...getSelected()];
+    if (ids.length === 0) return;
     const inputs = document.getElementById('bulkPrintInputs');
     inputs.innerHTML = ids.map(id => `<input type="hidden" name="ids[]" value="${id}">`).join('');
     document.getElementById('bulkPrintForm').submit();
+}
+
+// ---- QR ----
+let qrInstance  = null;
+let currentQrUrl = '';
+
+function showQr(url, name) {
+    currentQrUrl = url;
+    document.getElementById('qrModalTitle').textContent = name;
+    document.getElementById('qrModalSubtitle').textContent = url;
+    document.getElementById('qrPublicLink').href = url;
+    const container = document.getElementById('qrCodeCanvas');
+    container.innerHTML = '';
+    qrInstance = new QRCode(container, {
+        text: url, width: 220, height: 220,
+        colorDark: '#1b2d24', colorLight: '#ffffff',
+        correctLevel: QRCode.CorrectLevel.H
+    });
+    new bootstrap.Modal(document.getElementById('qrModal')).show();
+}
+function downloadQr() {
+    const canvas = document.querySelector('#qrCodeCanvas canvas');
+    if (!canvas) return;
+    const link = document.createElement('a');
+    link.download = 'qr-yemek.png';
+    link.href = canvas.toDataURL('image/png');
+    link.click();
 }
 </script>
 @endpush
