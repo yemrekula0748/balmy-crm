@@ -224,7 +224,7 @@
                                         <span class="text-muted">-</span>
                                     @endif
                                 </td>
-                                <td>{{ $log->branch->name ?? '-' }}</td>
+                                <td>{{ $log->branch?->name ?? '-' }}</td>
                                 <td>
                                     @if($log->type === 'giris')
                                         <span class="badge badge-success light">
@@ -275,6 +275,7 @@
 @endsection
 
 @push('scripts')
+<script src="{{ asset('vendor/sweetalert2/dist/sweetalert2.min.js') }}"></script>
 <script>
 document.querySelectorAll('.btn-sil').forEach(btn => {
     btn.addEventListener('click', function () {

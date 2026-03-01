@@ -100,7 +100,20 @@ class DoorLogController extends BaseModuleController
             'notes'     => 'nullable|string|max:255',
         ]);
 
-        $user = User::findOrFail($request->user_id);
+        $user    = User::findOrFail($request->user_id);
+        $lastLog = $this->lastLog($user->id);
+
+        if ($request->type === 'giris' && $lastLog?->type === 'giris') {
+            return back()->withInput()->withErrors([
+                'user_id' => "{$user->name} zaten içeride — çıkış yapmadan tekrar giriş kaydedilemez.",
+            ]);
+        }
+
+        if ($request->type === 'cikis' && ($lastLog === null || $lastLog->type === 'cikis')) {
+            return back()->withInput()->withErrors([
+                'user_id' => "{$user->name} şu an içeride değil — önce giriş kaydı gereklidir.",
+            ]);
+        }
 
         DoorLog::create([
             'user_id'   => $user->id,
@@ -114,7 +127,7 @@ class DoorLogController extends BaseModuleController
     }
 
     /**
-     * Hızlı kayıt: Anlık giriş veya çıkış (AJAX veya form POST)
+     * Hızlı kayıt: Anlık giriş veya çıkış
      */
     public function quick(Request $request)
     {
@@ -123,7 +136,20 @@ class DoorLogController extends BaseModuleController
             'type'    => 'required|in:giris,cikis',
         ]);
 
-        $user = User::findOrFail($request->user_id);
+        $user    = User::findOrFail($request->user_id);
+        $lastLog = $this->lastLog($user->id);
+
+        if ($request->type === 'giris' && $lastLog?->type === 'giris') {
+            return redirect()->back()->with('error',
+                "{$user->name} zaten içeride — çıkış yapmadan tekrar giriş kaydedilemez."
+            );
+        }
+
+        if ($request->type === 'cikis' && ($lastLog === null || $lastLog->type === 'cikis')) {
+            return redirect()->back()->with('error',
+                "{$user->name} şu an içeride değil — önce giriş kaydı gereklidir."
+            );
+        }
 
         DoorLog::create([
             'user_id'   => $user->id,
@@ -136,6 +162,17 @@ class DoorLogController extends BaseModuleController
         $label = $request->type === 'giris' ? 'Giriş' : 'Çıkış';
 
         return redirect()->back()->with('success', "{$user->name} için {$label} kaydedildi.");
+    }
+
+    /**
+     * Kullanıcının en son kapı kaydını döndürür.
+     */
+    private function lastLog(int $userId): ?DoorLog
+    {
+        return DoorLog::where('user_id', $userId)
+            ->orderBy('logged_at', 'desc')
+            ->orderBy('id', 'desc')
+            ->first();
     }
 
     public function destroy(DoorLog $doorLog)
