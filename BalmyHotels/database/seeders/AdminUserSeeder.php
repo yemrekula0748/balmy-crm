@@ -6,13 +6,14 @@ use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
 use App\Models\User;
+use App\Models\UserRole;
 use Illuminate\Support\Facades\Hash;
 
 class AdminUserSeeder extends Seeder
 {
     public function run(): void
     {
-        User::updateOrCreate(
+        $user = User::updateOrCreate(
             ['email' => 'admin@balmy.com'],
             [
                 'name'       => 'Super Admin',
@@ -20,6 +21,11 @@ class AdminUserSeeder extends Seeder
                 'role'       => 'super_admin',
                 'is_active'  => true,
             ]
+        );
+
+        // user_roles pivot tablosuna da ekle (rol kontrolü buradan yapılıyor)
+        UserRole::updateOrCreate(
+            ['user_id' => $user->id, 'role_name' => 'super_admin']
         );
     }
 }
