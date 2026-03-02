@@ -55,11 +55,11 @@
         .a4-page:last-child { page-break-after: auto; }
 
         /* =====================================================
-           LABEL KARTI — YATAY 90mm × 55mm
+           LABEL KARTI — 138mm × 95mm  (sayfa başına 4 kart, 2×2)
            ===================================================== */
         .label-card {
-            width: 90mm;
-            height: 55mm;
+            width: 138mm;
+            height: 95mm;
             border: 0.5pt solid #d1d5db;
             border-radius: 2.5mm;
             overflow: hidden;
@@ -70,7 +70,7 @@
 
         /* Üst renk bandı */
         .label-top {
-            height: 6mm;
+            height: 9mm;
             display: flex;
             align-items: center;
             justify-content: space-between;
@@ -79,7 +79,7 @@
         }
 
         .label-top .cat-name {
-            font-size: 5pt;
+            font-size: 7pt;
             font-weight: 700;
             letter-spacing: 0.5px;
             text-transform: uppercase;
@@ -87,7 +87,7 @@
         }
 
         .label-top .diet-badges { display: flex; gap: 1mm; align-items: center; }
-        .diet-badge { font-size: 7pt; line-height: 1; }
+        .diet-badge { font-size: 10pt; line-height: 1; }
 
         .diet-pills { display: flex; flex-wrap: wrap; gap: 0.8mm; }
         .diet-pill {
@@ -98,7 +98,7 @@
             border: 0.4pt solid #86efac;
             border-radius: 1.5mm;
             padding: 0.3mm 1.2mm;
-            font-size: 4pt;
+            font-size: 6pt;
             font-weight: 700;
             color: #166534;
             white-space: nowrap;
@@ -120,22 +120,22 @@
 
         .label-left {
             flex: 1;
-            padding: 2mm 2mm 1.5mm 2.5mm;
+            padding: 3mm 3mm 2mm 3.5mm;
             overflow: hidden;
             display: flex;
             flex-direction: column;
-            gap: 0.8mm;
+            gap: 1.2mm;
             min-height: 0;
         }
 
         .name-tr {
-            font-size: 8pt;
+            font-size: 15pt;
             font-weight: 800;
             color: #1a1a2e;
             line-height: 1.2;
         }
 
-        .name-other { font-size: 5pt; color: #4b5563; line-height: 1.35; }
+        .name-other { font-size: 10pt; color: #4b5563; line-height: 1.35; }
         .name-other span { display: block; }
 
         .cal-pill {
@@ -145,23 +145,23 @@
             background: #fff8e1;
             border: 0.5pt solid #f9a825;
             border-radius: 1.5mm;
-            padding: 0.4mm 1.5mm;
-            font-size: 5pt;
+            padding: 0.6mm 2mm;
+            font-size: 7.5pt;
             font-weight: 700;
             color: #b45309;
         }
 
         .ing-title {
-            font-size: 3.8pt;
+            font-size: 5.5pt;
             font-weight: 700;
             color: #9ca3af;
             text-transform: uppercase;
             letter-spacing: 0.3px;
-            margin-bottom: 0.3mm;
+            margin-bottom: 0.5mm;
         }
 
         .ing-text {
-            font-size: 3.6pt;
+            font-size: 5.5pt;
             color: #6b7280;
             line-height: 1.45;
             overflow: hidden;
@@ -173,13 +173,13 @@
         }
         .ing-text .lang-row { display: flex; align-items: baseline; gap: 0.8mm; overflow: hidden; }
         .ing-text .lang-row span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; min-width: 0; }
-        .ing-text .lang-code { font-size: 3.2pt; font-weight: 800; color: #9ca3af; letter-spacing: 0.2px; min-width: 3.5mm; flex-shrink: 0; }
+        .ing-text .lang-code { font-size: 4.8pt; font-weight: 800; color: #9ca3af; letter-spacing: 0.2px; min-width: 5mm; flex-shrink: 0; }
 
         /* Sağ sütun: allerjen ızgarası */
         .label-right {
-            width: 30mm;
+            width: 46mm;
             flex-shrink: 0;
-            padding: 2mm 2mm 1.5mm 1.5mm;
+            padding: 3mm 3mm 2mm 2mm;
             border-left: 0.5pt solid #f3f4f6;
             display: flex;
             flex-direction: column;
@@ -187,7 +187,7 @@
         }
 
         .allergen-title {
-            font-size: 4pt;
+            font-size: 6pt;
             font-weight: 700;
             color: #9ca3af;
             text-transform: uppercase;
@@ -196,18 +196,18 @@
 
         .allergen-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(5.5mm, 1fr));
-            gap: 0.7mm;
+            grid-template-columns: repeat(auto-fill, minmax(8mm, 1fr));
+            gap: 1mm;
         }
 
         .allergen-box {
-            height: 6mm;
-            border-radius: 0.8mm;
+            height: 9mm;
+            border-radius: 1.2mm;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            font-size: 7pt;
+            font-size: 11pt;
             line-height: 1;
             border: 0.4pt solid;
         }
@@ -216,7 +216,7 @@
         .allergen-box.absent  { background: #f9fafb; border-color: #e5e7eb; opacity: 0.25; }
 
         .allergen-box .eu-num {
-            font-size: 3pt;
+            font-size: 4.5pt;
             font-weight: 700;
             color: #6b7280;
             line-height: 1;
@@ -227,8 +227,8 @@
 
         /* Alt şerit: allerjen refs + logo + QR */
         .label-bottom {
-            height: 14mm;
-            padding: 1.5mm 2mm 1.5mm 2.5mm;
+            height: 20mm;
+            padding: 2mm 3mm 2mm 3.5mm;
             flex-shrink: 0;
             display: flex;
             align-items: center;
@@ -237,25 +237,25 @@
             background: linear-gradient(135deg, #fdfcfb 0%, #f9f5f0 100%);
         }
 
-        .allergen-refs { font-size: 3.6pt; color: #9ca3af; line-height: 1.45; flex: 1; overflow: hidden; }
+        .allergen-refs { font-size: 5.5pt; color: #9ca3af; line-height: 1.45; flex: 1; overflow: hidden; }
         .allergen-refs .lang-row { display: flex; align-items: baseline; gap: 0.8mm; margin-bottom: 0.2mm; }
-        .allergen-refs .lang-code { font-size: 3.2pt; font-weight: 800; color: #6b7280; letter-spacing: 0.2px; min-width: 3.5mm; flex-shrink: 0; }
+        .allergen-refs .lang-code { font-size: 4.8pt; font-weight: 800; color: #6b7280; letter-spacing: 0.2px; min-width: 5mm; flex-shrink: 0; }
         .allergen-refs strong { color: #ef4444; font-weight: 600; }
 
         .bottom-right { display: flex; align-items: center; gap: 2mm; flex-shrink: 0; }
 
         .card-logo {
-            height: 8mm;
+            height: 12mm;
             width: auto;
             opacity: 0.6;
             flex-shrink: 0;
             filter: sepia(0.3) saturate(1.5);
         }
 
-        .qr-container { width: 11mm; height: 11mm; flex-shrink: 0; }
+        .qr-container { width: 16mm; height: 16mm; flex-shrink: 0; }
         .qr-container canvas, .qr-container img {
-            width: 11mm !important;
-            height: 11mm !important;
+            width: 16mm !important;
+            height: 16mm !important;
             display: block;
         }
 
@@ -307,6 +307,40 @@
                 overflow: hidden;
             }
 
+            /* İçindekiler başlığı */
+            .ing-title {
+                color: #111;
+                font-weight: 900;
+                font-size: 6pt;
+            }
+
+            /* İçindekiler satırları */
+            .ing-text {
+                color: #111;
+                font-weight: 700;
+                font-size: 6pt;
+            }
+
+            /* Dil kodu (TR / GB / DE / RU) */
+            .ing-text .lang-code {
+                color: #000;
+                font-weight: 900;
+                font-size: 5pt;
+            }
+
+            /* Allerjen alt-şerit metni */
+            .allergen-refs {
+                color: #333;
+                font-weight: 700;
+                font-size: 6pt;
+            }
+
+            .allergen-refs .lang-code {
+                color: #000;
+                font-weight: 900;
+                font-size: 5pt;
+            }
+
             @page {
                 size: A4 landscape;
                 margin: 0;
@@ -321,7 +355,7 @@
     <h5>🖨️ Yemek İsimlik Baskı Önizleme</h5>
     <div class="meta">
         {{ $labels->count() }} isimlik —
-        {{ ceil($labels->count() / 9) }} sayfa (yatay A4, sayfa başına 9 kart)
+        {{ ceil($labels->count() / 4) }} sayfa (yatay A4, sayfa başına 4 kart)
     </div>
     <button class="btn-print" onclick="window.print()">
         🖨️ Yazdır / PDF Kaydet
@@ -330,7 +364,7 @@
 </div>
 
 @php
-    $chunks = $labels->chunk(9);
+    $chunks = $labels->chunk(4);
 
     // Kategori renkleri
     $catColors = [

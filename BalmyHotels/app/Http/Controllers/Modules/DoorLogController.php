@@ -57,9 +57,26 @@ class DoorLogController extends BaseModuleController
             $statsQuery->where('branch_id', $request->branch_id);
         }
 
-        $totalGiris = (clone $statsQuery)->where('type', 'giris')->count();
-        $totalCikis = (clone $statsQuery)->where('type', 'cikis')->count();
+        $totalGiris     = (clone $statsQuery)->where('type', 'giris')->count();
+        $totalCikis     = (clone $statsQuery)->where('type', 'cikis')->count();
         $uniquePersonel = (clone $statsQuery)->distinct('user_id')->count('user_id');
+
+        // İçeride / Dışarıda: her kullanıcının son kaydına göre
+        $latestLogIds = DoorLog::selectRaw('MAX(id) as max_id')
+            ->groupBy('user_id')
+            ->pluck('max_id');
+
+        $latestLogs   = DoorLog::whereIn('id', $latestLogIds)
+            ->with(['user.branch', 'user.department'])
+            ->get();
+
+        $insideUsers  = $latestLogs->where('type', 'giris')
+            ->sortBy(fn ($l) => optional($l->user)->name)
+            ->values();
+
+        $outsideUsers = $latestLogs->where('type', 'cikis')
+            ->sortBy(fn ($l) => optional($l->user)->name)
+            ->values();
 
         // Filtrelerde kullanılacak veriler
         $branches = Branch::orderBy('name')->get();
@@ -74,6 +91,7 @@ class DoorLogController extends BaseModuleController
             'logs', 'branches', 'managers',
             'dateFrom', 'dateTo',
             'totalGiris', 'totalCikis', 'uniquePersonel',
+            'insideUsers', 'outsideUsers',
             'page_title'
         ));
     }

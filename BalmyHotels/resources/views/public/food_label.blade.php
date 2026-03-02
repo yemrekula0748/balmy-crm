@@ -107,7 +107,7 @@
             margin-bottom: 14px;
         }
         .meal-name {
-            font-size: 1.8rem;
+            font-size: 2rem;
             font-weight: 800;
             line-height: 1.2;
             margin-bottom: 10px;
@@ -227,6 +227,80 @@
             .nutrition-grid { grid-template-columns: repeat(2, 1fr); }
             .hero-head { padding: 22px 18px 18px; }
             .card-footer { padding: 12px 18px; }
+        }
+
+        @media print {
+            :root {
+                --primary: #1a4731;
+                --text: #000;
+                --muted: #333;
+                --bg: #f8f8f8;
+                --border: #bbb;
+            }
+            body { background: #fff; padding-bottom: 0; }
+            .top-bar { display: none; }
+            .hero { max-width: 100%; margin: 0; padding: 0; }
+            .hero-card { box-shadow: none; border: 1.5px solid #aaa; }
+
+            /* Yemek adı */
+            .meal-name { font-size: 1.8rem; font-weight: 900; }
+
+            /* Bölüm başlıkları */
+            .section-title {
+                font-size: .8rem;
+                font-weight: 900;
+                letter-spacing: .8px;
+                color: #000;
+            }
+
+            /* Açıklama / Malzeme metni */
+            .description-text {
+                font-size: 1rem;
+                font-weight: 700;
+                color: #000;
+                line-height: 1.6;
+            }
+
+            /* Malzeme etiketleri */
+            .ingredient-tag {
+                font-size: .88rem;
+                font-weight: 700;
+                color: #000;
+                border-color: #999;
+                background: #f0f0f0;
+            }
+
+            /* Allerjen kutusu */
+            .allergen-tag {
+                background: #fff3e0;
+                border-color: #e09000;
+            }
+            .allergen-langs .a-tr {
+                font-size: .88rem;
+                font-weight: 900;
+                color: #000;
+            }
+            .allergen-langs .a-row2 span {
+                font-size: .76rem;
+                font-weight: 700;
+                opacity: 1;
+                color: #222;
+            }
+            .allergen-eu {
+                opacity: .7;
+                font-weight: 800;
+            }
+
+            /* Besin değerleri */
+            .nutrition-item .val { font-size: 1.2rem; font-weight: 900; color: #000; }
+            .nutrition-item .unit { font-weight: 700; color: #333; }
+            .nutrition-item .lbl { font-size: .78rem; font-weight: 700; color: #000; }
+
+            /* Kategori rozeti */
+            .category-badge { font-weight: 800; }
+
+            /* Footer */
+            .card-footer { color: #444; font-weight: 600; }
         }
     </style>
 </head>

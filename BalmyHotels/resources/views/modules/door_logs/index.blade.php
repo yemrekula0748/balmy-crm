@@ -30,61 +30,142 @@
         </div>
     @endif
 
-    {{-- İSTATİSTİK KARTLARI --}}
+    {{-- İÇERİDE / DIŞARIDA TABLOSU --}}
     <div class="row mb-4">
-        <div class="col-xl-4 col-sm-6">
-            <div class="card" style="background:linear-gradient(to right, #037bb3, #045058);">
-                <div class="card-body p-4">
-                    <div class="media align-items-center">
-                        <div class="media-body me-3">
-                            <p class="fs-14 text-white mb-1 opacity-75">Toplam Giriş</p>
-                            <h2 class="text-white mb-0">{{ $totalGiris }}</h2>
+        {{-- İçeridekiler --}}
+        <div class="col-xl-6 col-12 mb-3 mb-xl-0">
+            <div class="card h-100 border-0 shadow-sm">
+                <div class="card-header d-flex align-items-center gap-2 py-3"
+                     style="background:linear-gradient(135deg,#1e7e34,#28a745);border-radius:.5rem .5rem 0 0;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none"
+                         stroke="#fff" stroke-width="2" viewBox="0 0 24 24">
+                        <path d="M15 3H19a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H15"/>
+                        <polyline points="10 17 15 12 10 7"/>
+                        <line x1="15" y1="12" x2="3" y2="12"/>
+                    </svg>
+                    <span class="text-white fw-semibold fs-6">
+                        İçeridekiler
+                        <span class="badge bg-white text-success ms-1">{{ $insideUsers->count() }}</span>
+                    </span>
+                </div>
+                <div class="card-body p-0">
+                    @if($insideUsers->isEmpty())
+                        <div class="text-center text-muted py-5">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="none"
+                                 stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" class="mb-2 opacity-50">
+                                <circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
+                            </svg>
+                            <p class="mb-0">Şu an içeride personel yok</p>
                         </div>
-                        <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" fill="none"
-                             stroke="rgba(255,255,255,0.7)" stroke-width="1.5"
-                             viewBox="0 0 24 24">
-                            <path d="M15 3H19a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H15"></path>
-                            <polyline points="10 17 15 12 10 7"></polyline>
-                            <line x1="15" y1="12" x2="3" y2="12"></line>
-                        </svg>
-                    </div>
+                    @else
+                        <div class="table-responsive" style="max-height:320px;overflow-y:auto;">
+                            <table class="table table-hover table-sm mb-0 align-middle">
+                                <thead class="table-light sticky-top">
+                                    <tr>
+                                        <th class="ps-3">Personel</th>
+                                        <th>Departman</th>
+                                        <th>Giriş Saati</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach($insideUsers as $log)
+                                    <tr>
+                                        <td class="ps-3">
+                                            <div class="d-flex align-items-center gap-2">
+                                                <span class="rounded-circle d-inline-flex align-items-center justify-content-center text-white fw-bold"
+                                                      style="width:30px;height:30px;font-size:12px;background:#28a745;flex-shrink:0;">
+                                                    {{ strtoupper(substr(optional($log->user)->name ?? '?', 0, 1)) }}
+                                                </span>
+                                                <div>
+                                                    <div class="fw-semibold" style="font-size:13px;">{{ optional($log->user)->name ?? '-' }}</div>
+                                                    <div class="text-muted" style="font-size:11px;">{{ optional($log->user->branch)->name ?? '-' }}</div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td style="font-size:13px;">{{ optional($log->user->department)->name ?? '-' }}</td>
+                                        <td>
+                                            <span class="badge badge-success light" style="font-size:11px;">
+                                                {{ \Carbon\Carbon::parse($log->logged_at)->format('H:i') }}
+                                            </span>
+                                            <div class="text-muted" style="font-size:10px;">
+                                                {{ \Carbon\Carbon::parse($log->logged_at)->format('d.m.Y') }}
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    @endif
                 </div>
             </div>
         </div>
-        <div class="col-xl-4 col-sm-6">
-            <div class="card" style="background:linear-gradient(to right, #f7971e, #ffd200);">
-                <div class="card-body p-4">
-                    <div class="media align-items-center">
-                        <div class="media-body me-3">
-                            <p class="fs-14 text-white mb-1 opacity-75">Toplam Çıkış</p>
-                            <h2 class="text-white mb-0">{{ $totalCikis }}</h2>
-                        </div>
-                        <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" fill="none"
-                             stroke="rgba(255,255,255,0.7)" stroke-width="1.5"
-                             viewBox="0 0 24 24">
-                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2H9"></path>
-                            <polyline points="16 17 21 12 16 7"></polyline>
-                            <line x1="21" y1="12" x2="9" y2="12"></line>
-                        </svg>
-                    </div>
+
+        {{-- Dışarıdakiler --}}
+        <div class="col-xl-6 col-12">
+            <div class="card h-100 border-0 shadow-sm">
+                <div class="card-header d-flex align-items-center gap-2 py-3"
+                     style="background:linear-gradient(135deg,#b02a37,#dc3545);border-radius:.5rem .5rem 0 0;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none"
+                         stroke="#fff" stroke-width="2" viewBox="0 0 24 24">
+                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2H9"/>
+                        <polyline points="16 17 21 12 16 7"/>
+                        <line x1="21" y1="12" x2="9" y2="12"/>
+                    </svg>
+                    <span class="text-white fw-semibold fs-6">
+                        Dışarıdakiler
+                        <span class="badge bg-white text-danger ms-1">{{ $outsideUsers->count() }}</span>
+                    </span>
                 </div>
-            </div>
-        </div>
-        <div class="col-xl-4 col-sm-6">
-            <div class="card" style="background:linear-gradient(to right, #c19b77, #8b6e52);">
-                <div class="card-body p-4">
-                    <div class="media align-items-center">
-                        <div class="media-body me-3">
-                            <p class="fs-14 text-white mb-1 opacity-75">Tekil Personel</p>
-                            <h2 class="text-white mb-0">{{ $uniquePersonel }}</h2>
+                <div class="card-body p-0">
+                    @if($outsideUsers->isEmpty())
+                        <div class="text-center text-muted py-5">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="none"
+                                 stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" class="mb-2 opacity-50">
+                                <circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
+                            </svg>
+                            <p class="mb-0">Kayıtlı çıkış yok</p>
                         </div>
-                        <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" fill="none"
-                             stroke="rgba(255,255,255,0.7)" stroke-width="1.5"
-                             viewBox="0 0 24 24">
-                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                            <circle cx="12" cy="7" r="4"></circle>
-                        </svg>
-                    </div>
+                    @else
+                        <div class="table-responsive" style="max-height:320px;overflow-y:auto;">
+                            <table class="table table-hover table-sm mb-0 align-middle">
+                                <thead class="table-light sticky-top">
+                                    <tr>
+                                        <th class="ps-3">Personel</th>
+                                        <th>Departman</th>
+                                        <th>Çıkış Saati</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach($outsideUsers as $log)
+                                    <tr>
+                                        <td class="ps-3">
+                                            <div class="d-flex align-items-center gap-2">
+                                                <span class="rounded-circle d-inline-flex align-items-center justify-content-center text-white fw-bold"
+                                                      style="width:30px;height:30px;font-size:12px;background:#dc3545;flex-shrink:0;">
+                                                    {{ strtoupper(substr(optional($log->user)->name ?? '?', 0, 1)) }}
+                                                </span>
+                                                <div>
+                                                    <div class="fw-semibold" style="font-size:13px;">{{ optional($log->user)->name ?? '-' }}</div>
+                                                    <div class="text-muted" style="font-size:11px;">{{ optional($log->user->branch)->name ?? '-' }}</div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td style="font-size:13px;">{{ optional($log->user->department)->name ?? '-' }}</td>
+                                        <td>
+                                            <span class="badge badge-danger light" style="font-size:11px;">
+                                                {{ \Carbon\Carbon::parse($log->logged_at)->format('H:i') }}
+                                            </span>
+                                            <div class="text-muted" style="font-size:10px;">
+                                                {{ \Carbon\Carbon::parse($log->logged_at)->format('d.m.Y') }}
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    @endif
                 </div>
             </div>
         </div>
