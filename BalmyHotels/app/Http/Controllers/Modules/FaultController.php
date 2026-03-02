@@ -21,7 +21,7 @@ class FaultController extends BaseModuleController
     {
         $this->requirePermission(
             'faults',
-            ['index', 'incoming', 'myReports', 'myDepartment', 'ajaxDepartments', 'ajaxLocations', 'ajaxAreas'],
+            ['index', 'incoming', 'myReports', 'myDepartment', 'ajaxDepartments', 'ajaxLocations', 'ajaxAreas', 'ajaxFaultTypes'],
             ['show'],
             ['create', 'store'],
             ['edit', 'update', 'updateStatus', 'addComment', 'assign'],
@@ -128,7 +128,14 @@ class FaultController extends BaseModuleController
         $user = auth()->user();
         abort_if(!in_array($request->branch_id, $user->visibleBranchIds()), 403);
 
-        $faultType = FaultType::findOrFail($request->fault_type_id);
+        $faultType = FaultType::with('departments')->findOrFail($request->fault_type_id);
+
+        // Arıza türünün seçilen departman tarafından kullanılabilir olduğunu doğrula
+        abort_if(
+            !$faultType->allowedForDepartment((int) $request->assigned_department_id),
+            403,
+            'Bu arıza türü seçilen departman için kullanılamaz.'
+        );
         $imagePath = null;
         if ($request->hasFile('image')) {
             $imagePath = $request->file('image')->store('faults', 'public');
@@ -384,5 +391,23 @@ class FaultController extends BaseModuleController
         $areas = FaultArea::where('fault_location_id', $request->location_id)
             ->where('is_active', true)->orderBy('name')->get(['id', 'name']);
         return response()->json($areas);
+    }
+
+    public function ajaxFaultTypes(Request $request)
+    {
+        $user      = auth()->user();
+        $branchIds = $user->visibleBranchIds();
+        $deptId    = (int) $request->department_id;
+
+        $types = FaultType::where('is_active', true)
+            ->where(fn($q) => $q->whereNull('branch_id')->orWhereIn('branch_id', $branchIds))
+            ->where(fn($q) => $q
+                ->whereDoesntHave('departments')
+                ->orWhereHas('departments', fn($dq) => $dq->where('departments.id', $deptId))
+            )
+            ->orderBy('name')
+            ->get(['id', 'name', 'completion_hours']);
+
+        return response()->json($types);
     }
 }

@@ -72,15 +72,12 @@
                             <div class="col-12">
                                 <label class="form-label fw-semibold">Arıza Türü <span class="text-danger">*</span></label>
                                 <select name="fault_type_id" id="typeSelect"
-                                        class="form-select @error('fault_type_id') is-invalid @enderror" required>
-                                    <option value="">Arıza türünü seçin...</option>
-                                    @foreach($faultTypes as $ft)
-                                        <option value="{{ $ft->id }}"
-                                                data-hours="{{ $ft->completion_hours }}"
-                                                @selected(old('fault_type_id') == $ft->id)>
-                                            {{ $ft->name }}
-                                        </option>
-                                    @endforeach
+                                        class="form-select @error('fault_type_id') is-invalid @enderror" required
+                                        @if(!old('assigned_department_id')) disabled @endif>
+                                    <option value="">
+                                        {{ old('assigned_department_id') ? 'Yükleniyor...' : 'Önce departman seçin...' }}
+                                    </option>
+                                    {{-- Validation hatasında eski seçilen değeri koru (JS ile yeniden yüklenecek) --}}
                                 </select>
                                 <div id="completionInfo" class="small text-muted mt-1" style="display:none">
                                     <i class="fas fa-clock me-1"></i>
@@ -197,6 +194,10 @@
                 .then(list => {
                     deptSel.innerHTML = '<option value="">Departman seçin...</option>';
                     list.forEach(d => deptSel.innerHTML += `<option value="${d.id}">${d.name}</option>`);
+                    // Şube değişince ariza türü listesini sıfırla
+                    typeSel.innerHTML = '<option value="">Önce departman seçin...</option>';
+                    typeSel.disabled = true;
+                    completionInfo.style.display = 'none';
                 });
 
             // Konumları güncelle
@@ -227,6 +228,38 @@
             completionInfo.style.display = 'none';
         }
     });
+
+    // Departman değişince arıza türlerini filtrele
+    const oldFaultTypeId = '{{ old('fault_type_id') }}';
+    function loadFaultTypes(deptId, selectedId) {
+        if (!deptId) {
+            typeSel.innerHTML = '<option value="">Önce departman seçin...</option>';
+            typeSel.disabled = true;
+            completionInfo.style.display = 'none';
+            return;
+        }
+        fetch(`/arizalar/ajax/ariza-turleri?department_id=${deptId}`)
+            .then(r => r.json())
+            .then(list => {
+                typeSel.innerHTML = '<option value="">Arıza türünü seçin...</option>';
+                list.forEach(t => {
+                    const opt = document.createElement('option');
+                    opt.value = t.id;
+                    opt.textContent = t.name;
+                    opt.dataset.hours = t.completion_hours;
+                    if (String(t.id) === String(selectedId)) opt.selected = true;
+                    typeSel.appendChild(opt);
+                });
+                typeSel.disabled = false;
+                // Seçili değer varsa saat bilgisini göster
+                if (typeSel.value) typeSel.dispatchEvent(new Event('change'));
+            });
+    }
+    deptSel.addEventListener('change', function () {
+        loadFaultTypes(this.value, '');
+    });
+    // Sayfa ilk yüklenince eski departman değeri varsa türleri yükle
+    if (deptSel.value) loadFaultTypes(deptSel.value, oldFaultTypeId);
 
     // Fotoğraf önizleme
     document.getElementById('imageInput').addEventListener('change', function () {

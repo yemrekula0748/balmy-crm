@@ -43,6 +43,38 @@
                                 @endforeach
                             </select>
                         </div>
+
+                        {{-- DEPARTMAN KİLITLENMEE --}}
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Hangi Departmanlar Kullanabilir?</label>
+                            <div class="small text-muted mb-2">
+                                <i class="fas fa-info-circle me-1"></i>
+                                Hiçbir departman seçilmezse <strong>tüm departmanlar</strong> bu arıza türünü girebilir.
+                            </div>
+                            @if($departments->isEmpty())
+                                <div class="alert alert-warning py-2 small mb-0">
+                                    Henüz hiç departman tanımlanmamış.
+                                </div>
+                            @else
+                                <div class="border rounded p-3" style="max-height:220px;overflow-y:auto;background:#f8f9fa">
+                                    @foreach($departments as $dept)
+                                        <div class="form-check mb-1">
+                                            <input class="form-check-input" type="checkbox"
+                                                   name="department_ids[]" value="{{ $dept->id }}"
+                                                   id="dept_{{ $dept->id }}"
+                                                   @checked(in_array($dept->id, old('department_ids', $selectedDepts)))>
+                                            <label class="form-check-label" for="dept_{{ $dept->id }}">
+                                                {{ $dept->name }}
+                                                @if($dept->branch)
+                                                    <span class="text-muted small">({{ $dept->branch->name }})</span>
+                                                @endif
+                                            </label>
+                                        </div>
+                                    @endforeach
+                                </div>
+                            @endif
+                        </div>
+
                         <div class="mb-4">
                             <div class="form-check form-switch">
                                 <input class="form-check-input" type="checkbox" name="is_active" value="1" id="isActive"
@@ -61,3 +93,31 @@
     </div>
 </div>
 @endsection
+
+@push('scripts')
+<script>
+(function () {
+    const branchSel   = document.getElementById('branchSelect');
+    const deptItems   = document.querySelectorAll('.dept-item');
+    const deptList    = document.getElementById('deptList');
+    const deptNoMatch = document.getElementById('deptNoMatch');
+    if (!branchSel || !deptItems.length) return;
+
+    function filterDepts() {
+        const bid = branchSel.value;
+        let visible = 0;
+        deptItems.forEach(item => {
+            const match = !bid || item.dataset.branch === bid;
+            item.style.display = match ? '' : 'none';
+            if (!match) item.querySelector('input').checked = false;
+            if (match) visible++;
+        });
+        if (deptList) deptList.style.display = visible ? '' : 'none';
+        if (deptNoMatch) deptNoMatch.classList.toggle('d-none', visible > 0 || !bid);
+    }
+
+    branchSel.addEventListener('change', filterDepts);
+    filterDepts();
+})();
+</script>
+@endpush
