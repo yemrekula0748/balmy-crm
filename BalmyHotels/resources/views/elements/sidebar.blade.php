@@ -74,6 +74,9 @@
                     @if($user->hasPermission('door_logs', 'create'))
                     <li><a href="{{ route('door-logs.create') }}">Manuel Kayıt Ekle</a></li>
                     @endif
+                    @if($user->hasPermission('door_log_reports', 'index'))
+                    <li><a href="{{ route('door-reports.index') }}">Çalışma Raporu</a></li>
+                    @endif
                 </ul>
             </li>
             @endif

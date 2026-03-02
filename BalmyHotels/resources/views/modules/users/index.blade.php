@@ -166,6 +166,7 @@
 @endsection
 
 @push('scripts')
+<script src="{{ asset('vendor/sweetalert2/dist/sweetalert2.min.js') }}"></script>
 <script>
 function confirmDelete(e) {
     e.preventDefault();

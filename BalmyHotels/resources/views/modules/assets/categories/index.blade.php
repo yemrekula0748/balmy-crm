@@ -78,6 +78,7 @@
 </div>
 
 @push('scripts')
+<script src="{{ asset('vendor/sweetalert2/dist/sweetalert2.min.js') }}"></script>
 <script>
 document.querySelectorAll('[data-delete]').forEach(form => {
     form.addEventListener('submit', function(e) {

@@ -136,6 +136,7 @@
 @endsection
 
 @push('scripts')
+<script src="{{ asset('vendor/sweetalert2/dist/sweetalert2.min.js') }}"></script>
 <script>
 document.querySelectorAll('.btn-sil').forEach(btn => {
     btn.addEventListener('click', function () {
