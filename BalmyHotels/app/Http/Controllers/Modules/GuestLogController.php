@@ -71,13 +71,40 @@ class GuestLogController extends BaseModuleController
             ->get();
 
         // Dışarıdakiler: şubenin dept_manager'larından şu an içeride olmayanlar
-        $deptManagers    = User::with('department')
+        $deptManagers  = User::with('department')
             ->where('role', 'dept_manager')
             ->where('is_active', true)
             ->whereIn('branch_id', $branchIds)
             ->orderBy('name')->get();
-        $insideHostIds   = $insideNow->pluck('host_user_id')->filter()->unique();
-        $outsideManagers = $deptManagers->whereNotIn('id', $insideHostIds)->values();
+        $insideHostIds = $insideNow->pluck('host_user_id')->filter()->unique();
+
+        // Kapı loglarından her müdürün binada olup olmadığını kontrol et
+        $mgrIds           = $deptManagers->pluck('id');
+        $latestDoorLogIds = \App\Models\DoorLog::whereIn('user_id', $mgrIds)
+            ->selectRaw('MAX(id) as max_id')
+            ->groupBy('user_id')
+            ->pluck('max_id');
+        $latestDoorLogs   = \App\Models\DoorLog::whereIn('id', $latestDoorLogIds)
+            ->get()
+            ->keyBy('user_id');
+
+        // Müzüzäıt: ziyaretçisi yok + binada (giris logu var veya hiç log yok ama is_active)
+        // Binada değil: son logu 'cikis'
+        // Aktif ziyaretçisi var: insideHostIds içinde
+        $freeManagers    = $deptManagers->filter(function ($mgr) use ($insideHostIds, $latestDoorLogs) {
+            if ($insideHostIds->contains($mgr->id)) return false; // ziyaretçisi var
+            $lastLog = $latestDoorLogs->get($mgr->id);
+            return !$lastLog || $lastLog->type === 'giris'; // binada veya hiç log yok
+        })->values();
+
+        $absentManagers  = $deptManagers->filter(function ($mgr) use ($insideHostIds, $latestDoorLogs) {
+            if ($insideHostIds->contains($mgr->id)) return false; // ziyaretçisi var (zaten içeridekiler'de)
+            $lastLog = $latestDoorLogs->get($mgr->id);
+            return $lastLog && $lastLog->type === 'cikis'; // binada değil
+        })->values();
+
+        // Eski değişken adını koruyarak view'e gönder
+        $outsideManagers = $freeManagers;
 
         $branches    = Branch::whereIn('id', $branchIds)->orderBy('name')->get();
         $departments = Department::orderBy('name')->get();
@@ -87,7 +114,7 @@ class GuestLogController extends BaseModuleController
             'logs', 'branches', 'departments',
             'dateFrom', 'dateTo',
             'totalToday', 'stillInside', 'leftCount',
-            'insideNow', 'outsideManagers',
+            'insideNow', 'outsideManagers', 'absentManagers',
             'page_title'
         ));
     }

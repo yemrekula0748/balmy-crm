@@ -60,7 +60,7 @@
                     @else
                         <div class="table-responsive" style="max-height:320px;overflow-y:auto;">
                             <table class="table table-hover table-sm mb-0 align-middle">
-                                <thead class="table-light sticky-top">
+                                <thead class="table-light" style="position:sticky;top:0;z-index:2;">
                                     <tr>
                                         <th class="ps-3">Personel</th>
                                         <th>Departman</th>
@@ -129,7 +129,7 @@
                     @else
                         <div class="table-responsive" style="max-height:320px;overflow-y:auto;">
                             <table class="table table-hover table-sm mb-0 align-middle">
-                                <thead class="table-light sticky-top">
+                                <thead class="table-light" style="position:sticky;top:0;z-index:2;">
                                     <tr>
                                         <th class="ps-3">Personel</th>
                                         <th>Departman</th>
@@ -187,7 +187,7 @@
             <form action="{{ route('door-logs.quick') }}" method="POST">
                 @csrf
                 <div class="row g-3 align-items-end">
-                    <div class="col-md-6">
+                    <div class="col-md-6" style="position:relative;z-index:10;">
                         <label class="form-label fw-semibold">Personel</label>
                         <select name="user_id" class="form-select" required>
                             <option value="">Personel seçin...</option>
@@ -200,14 +200,14 @@
                             @endforeach
                         </select>
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-3" style="position:relative;z-index:10;">
                         <label class="form-label fw-semibold">İşlem</label>
                         <select name="type" class="form-select" required>
                             <option value="giris">🟢 Giriş</option>
                             <option value="cikis">🔴 Çıkış</option>
                         </select>
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-3 d-flex align-items-end">
                         <button type="submit" class="btn btn-primary w-100">
                             Şimdi Kaydet
                         </button>
@@ -220,7 +220,9 @@
     {{-- KAYIT LİSTESİ --}}
     <div class="card">
         <div class="card-header d-flex justify-content-between align-items-center">
-            <h4 class="card-title mb-0">Kayıtlar</h4>
+            <h4 class="card-title mb-0">Kayıtlar
+                <small class="text-muted fw-normal" style="font-size:13px;">— kişi / gün bazında gruplu</small>
+            </h4>
             <a href="{{ route('door-logs.create') }}" class="btn btn-secondary btn-sm">
                 + Manuel Kayıt
             </a>
@@ -275,72 +277,142 @@
             </form>
 
             <div class="table-responsive">
-                <table class="table table-hover table-bordered align-middle">
-                    <thead class="table-light">
-                        <tr>
-                            <th>#</th>
-                            <th>Personel</th>
-                            <th>Departman</th>
-                            <th>Şube</th>
-                            <th>Tip</th>
-                            <th>Tarih & Saat</th>
-                            <th>Not</th>
-                            <th class="text-end">İşlem</th>
+                <table class="table table-hover align-middle" style="border-collapse:separate;border-spacing:0 4px;">
+                    <thead>
+                        <tr style="background:transparent;">
+                            <th class="border-0 ps-3" style="font-size:12px;color:#94a3b8;font-weight:600;text-transform:uppercase;letter-spacing:.5px;">Personel</th>
+                            <th class="border-0" style="font-size:12px;color:#94a3b8;font-weight:600;text-transform:uppercase;letter-spacing:.5px;">Departman</th>
+                            <th class="border-0" style="font-size:12px;color:#94a3b8;font-weight:600;text-transform:uppercase;letter-spacing:.5px;">Tarih</th>
+                            <th class="border-0" style="font-size:12px;color:#94a3b8;font-weight:600;text-transform:uppercase;letter-spacing:.5px;">Giriş Saatleri</th>
+                            <th class="border-0" style="font-size:12px;color:#94a3b8;font-weight:600;text-transform:uppercase;letter-spacing:.5px;">Çıkış Saatleri</th>
+                            <th class="border-0 text-center" style="font-size:12px;color:#94a3b8;font-weight:600;text-transform:uppercase;letter-spacing:.5px;">Log</th>
+                            <th class="border-0 text-end pe-3" style="font-size:12px;color:#94a3b8;font-weight:600;text-transform:uppercase;letter-spacing:.5px;">Detay</th>
                         </tr>
                     </thead>
                     <tbody>
-                        @forelse($logs as $log)
-                            <tr>
-                                <td class="text-muted small">{{ $log->id }}</td>
-                                <td>
-                                    <div class="fw-semibold">{{ $log->user->name ?? '-' }}</div>
-                                    <small class="text-muted">{{ $log->user->title ?? '' }}</small>
-                                </td>
-                                <td>
-                                    @if($log->user?->department)
-                                        <span class="badge" style="background-color: {{ $log->user->department->color }};">
-                                            {{ $log->user->department->name }}
+                        @forelse($logs as $group)
+                        @php $rowId = 'row-' . optional($group->user)->id . '-' . str_replace('-', '', $group->date); @endphp
+
+                        {{-- ANA SATIR --}}
+                        <tr style="background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.06);border-radius:10px;">
+                            <td class="ps-3" style="border-radius:10px 0 0 10px;">
+                                <div class="d-flex align-items-center gap-2">
+                                    <span class="rounded-circle d-inline-flex align-items-center justify-content-center text-white fw-bold flex-shrink-0"
+                                          style="width:36px;height:36px;font-size:13px;background:#4361ee;">
+                                        {{ strtoupper(substr(optional($group->user)->name ?? '?', 0, 1)) }}
+                                    </span>
+                                    <div>
+                                        <div class="fw-semibold" style="font-size:13px;color:#1e293b;">{{ optional($group->user)->name ?? '-' }}</div>
+                                        <div class="text-muted" style="font-size:11px;">{{ optional($group->branch)->name ?? optional(optional($group->user)->branch)->name ?? '-' }}</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                @if(optional($group->user)->department)
+                                    <span class="badge rounded-pill" style="background:{{ $group->user->department->color }};font-size:11px;">
+                                        {{ $group->user->department->name }}
+                                    </span>
+                                @else
+                                    <span class="text-muted" style="font-size:12px;">—</span>
+                                @endif
+                            </td>
+                            <td>
+                                <div class="fw-semibold" style="font-size:13px;color:#334155;">
+                                    {{ \Carbon\Carbon::parse($group->date)->locale('tr')->isoFormat('D MMMM YYYY') }}
+                                </div>
+                                <div style="font-size:11px;color:#94a3b8;">
+                                    {{ \Carbon\Carbon::parse($group->date)->locale('tr')->isoFormat('dddd') }}
+                                </div>
+                            </td>
+                            <td>
+                                <div class="d-flex flex-wrap gap-1">
+                                    @forelse($group->entries as $entry)
+                                        <span class="badge rounded-pill"
+                                              style="background:rgba(16,185,129,.12);color:#059669;font-size:11px;font-weight:600;padding:4px 8px;">
+                                            ↑ {{ \Carbon\Carbon::parse($entry->logged_at)->format('H:i') }}
                                         </span>
-                                    @else
-                                        <span class="text-muted">-</span>
-                                    @endif
-                                </td>
-                                <td>{{ $log->branch?->name ?? '-' }}</td>
-                                <td>
-                                    @if($log->type === 'giris')
-                                        <span class="badge badge-success light">
-                                            &#x2B24; Giriş
+                                    @empty
+                                        <span class="text-muted" style="font-size:12px;">—</span>
+                                    @endforelse
+                                </div>
+                            </td>
+                            <td>
+                                <div class="d-flex flex-wrap gap-1">
+                                    @forelse($group->exits as $exit)
+                                        <span class="badge rounded-pill"
+                                              style="background:rgba(249,115,22,.12);color:#ea580c;font-size:11px;font-weight:600;padding:4px 8px;">
+                                            ↓ {{ \Carbon\Carbon::parse($exit->logged_at)->format('H:i') }}
                                         </span>
-                                    @else
-                                        <span class="badge badge-danger light">
-                                            &#x2B24; Çıkış
-                                        </span>
-                                    @endif
-                                </td>
-                                <td>
-                                    <div>{{ $log->logged_at->format('d.m.Y') }}</div>
-                                    <small class="text-muted fw-bold">{{ $log->logged_at->format('H:i') }}</small>
-                                </td>
-                                <td>
-                                    <small class="text-muted">{{ $log->notes ?? '-' }}</small>
-                                </td>
-                                <td class="text-end">
-                                    <button type="button"
-                                            class="btn btn-danger btn-xs btn-sil"
-                                            data-id="{{ $log->id }}"
-                                            data-name="{{ $log->user->name ?? '' }}">
-                                        Sil
-                                    </button>
-                                    <form id="form-sil-{{ $log->id }}"
-                                          action="{{ route('door-logs.destroy', $log) }}"
-                                          method="POST" class="d-none">
-                                        @csrf @method('DELETE')
-                                    </form>
-                                </td>
-                            </tr>
+                                    @empty
+                                        <span class="text-muted" style="font-size:12px;">—</span>
+                                    @endforelse
+                                </div>
+                            </td>
+                            <td class="text-center">
+                                <span class="badge rounded-pill" style="background:#e2e8f0;color:#475569;font-size:11px;font-weight:700;">
+                                    {{ $group->all->count() }}
+                                </span>
+                            </td>
+                            <td class="text-end pe-3" style="border-radius:0 10px 10px 0;">
+                                <button class="btn btn-sm btn-outline-secondary toggler-btn"
+                                        style="font-size:11px;padding:3px 10px;border-radius:20px;"
+                                        data-target="{{ $rowId }}">
+                                    <span class="toggle-label">Detay</span>
+                                </button>
+                            </td>
+                        </tr>
+
+                        {{-- DETAY SATIRI (gizli) --}}
+                        <tr id="{{ $rowId }}" class="detail-row d-none">
+                            <td colspan="7" style="background:#f8fafc;padding:0;border-radius:0 0 10px 10px;">
+                                <div style="padding:12px 16px;">
+                                    <table class="table table-sm mb-0" style="font-size:12px;">
+                                        <thead>
+                                            <tr style="color:#94a3b8;">
+                                                <th class="border-0 ps-2" style="font-weight:600;">#</th>
+                                                <th class="border-0" style="font-weight:600;">Tip</th>
+                                                <th class="border-0" style="font-weight:600;">Saat</th>
+                                                <th class="border-0" style="font-weight:600;">Not</th>
+                                                <th class="border-0 text-end" style="font-weight:600;">Sil</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach($group->all as $log)
+                                            <tr>
+                                                <td class="ps-2 text-muted">{{ $log->id }}</td>
+                                                <td>
+                                                    @if($log->type === 'giris')
+                                                        <span style="color:#059669;font-weight:600;">↑ Giriş</span>
+                                                    @else
+                                                        <span style="color:#ea580c;font-weight:600;">↓ Çıkış</span>
+                                                    @endif
+                                                </td>
+                                                <td class="fw-semibold">{{ \Carbon\Carbon::parse($log->logged_at)->format('H:i') }}</td>
+                                                <td class="text-muted">{{ $log->notes ?? '—' }}</td>
+                                                <td class="text-end">
+                                                    <button type="button"
+                                                            class="btn btn-danger btn-xs btn-sil"
+                                                            data-id="{{ $log->id }}"
+                                                            data-name="{{ optional($log->user)->name ?? '' }}">
+                                                        Sil
+                                                    </button>
+                                                    <form id="form-sil-{{ $log->id }}"
+                                                          action="{{ route('door-logs.destroy', $log) }}"
+                                                          method="POST" class="d-none">
+                                                        @csrf @method('DELETE')
+                                                    </form>
+                                                </td>
+                                            </tr>
+                                            @endforeach
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </td>
+                        </tr>
+
                         @empty
                             <tr>
-                                <td colspan="8" class="text-center text-muted py-5">
+                                <td colspan="7" class="text-center text-muted py-5">
                                     Bu tarih aralığında kayıt bulunamadı.
                                 </td>
                             </tr>
@@ -358,6 +430,21 @@
 @push('scripts')
 <script src="{{ asset('vendor/sweetalert2/dist/sweetalert2.min.js') }}"></script>
 <script>
+// Detay satırı aç/kapat
+document.querySelectorAll('.toggler-btn').forEach(btn => {
+    btn.addEventListener('click', function () {
+        const id  = this.dataset.target;
+        const row = document.getElementById(id);
+        if (!row) return;
+        const isOpen = !row.classList.contains('d-none');
+        row.classList.toggle('d-none', isOpen);
+        this.querySelector('.toggle-label').textContent = isOpen ? 'Detay' : 'Kapat';
+        this.classList.toggle('btn-outline-secondary', isOpen);
+        this.classList.toggle('btn-secondary', !isOpen);
+    });
+});
+
+// Silme onayı
 document.querySelectorAll('.btn-sil').forEach(btn => {
     btn.addEventListener('click', function () {
         const id   = this.dataset.id;

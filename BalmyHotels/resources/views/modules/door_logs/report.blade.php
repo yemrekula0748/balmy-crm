@@ -84,27 +84,94 @@
 
     {{-- ÖZET KARTLAR --}}
     <div class="row mb-4">
-        @php
-            $summaryCards = [
-                ['label' => 'Aktif Personel',    'value' => $data['summary']['total_users'],   'icon' => 'fa-users',       'grad' => 'linear-gradient(135deg,#3a0ca3,#4361ee)'],
-                ['label' => 'Toplam Giriş',       'value' => $data['summary']['total_entries'], 'icon' => 'fa-sign-in-alt', 'grad' => 'linear-gradient(135deg,#1e7e34,#28a745)'],
-                ['label' => 'Toplam Çıkış',       'value' => $data['summary']['total_exits'],  'icon' => 'fa-sign-out-alt','grad' => 'linear-gradient(135deg,#b02a37,#dc3545)'],
-                ['label' => 'Toplam Çalışma (sa.)','value' => $data['summary']['total_hours'], 'icon' => 'fa-clock',       'grad' => 'linear-gradient(135deg,#b45309,#f59e0b)'],
-            ];
-        @endphp
-        @foreach($summaryCards as $card)
+        {{-- Aktif Personel --}}
         <div class="col-xl-3 col-sm-6 mb-3">
-            <div class="card border-0 text-white h-100" style="background:{{ $card['grad'] }}">
-                <div class="card-body d-flex align-items-center justify-content-between p-4">
-                    <div>
-                        <p class="mb-1 opacity-75" style="font-size:13px;">{{ $card['label'] }}</p>
-                        <h2 class="mb-0 fw-bold">{{ $card['value'] }}</h2>
+            <div class="card border-0 h-100" style="border-radius:16px;box-shadow:0 2px 16px rgba(67,97,238,.12);">
+                <div class="card-body p-4">
+                    <div class="d-flex align-items-center justify-content-between mb-3">
+                        <div class="rounded-3 d-flex align-items-center justify-content-center"
+                             style="width:50px;height:50px;background:rgba(67,97,238,.12);">
+                            <i class="fas fa-users" style="font-size:20px;color:#4361ee;"></i>
+                        </div>
+                        <span class="badge rounded-pill" style="background:rgba(67,97,238,.1);color:#4361ee;font-size:11px;font-weight:600;">
+                            {{ $filters['dateFrom'] === $filters['dateTo'] ? 'Bugün' : 'Dönem' }}
+                        </span>
                     </div>
-                    <i class="fas {{ $card['icon'] }} fa-2x opacity-50"></i>
+                    <div style="font-size:32px;font-weight:900;color:#1e293b;line-height:1;">
+                        {{ $data['summary']['total_users'] }}
+                    </div>
+                    <div style="font-size:13px;color:#64748b;margin-top:4px;font-weight:500;">Aktif Personel</div>
+                    <div style="height:3px;border-radius:2px;background:linear-gradient(90deg,#4361ee,#7c98ff);margin-top:16px;"></div>
                 </div>
             </div>
         </div>
-        @endforeach
+
+        {{-- Toplam Giriş --}}
+        <div class="col-xl-3 col-sm-6 mb-3">
+            <div class="card border-0 h-100" style="border-radius:16px;box-shadow:0 2px 16px rgba(16,185,129,.12);">
+                <div class="card-body p-4">
+                    <div class="d-flex align-items-center justify-content-between mb-3">
+                        <div class="rounded-3 d-flex align-items-center justify-content-center"
+                             style="width:50px;height:50px;background:rgba(16,185,129,.12);">
+                            <i class="fas fa-sign-in-alt" style="font-size:20px;color:#10b981;"></i>
+                        </div>
+                        <span class="badge rounded-pill" style="background:rgba(16,185,129,.1);color:#10b981;font-size:11px;font-weight:600;">
+                            Giriş
+                        </span>
+                    </div>
+                    <div style="font-size:32px;font-weight:900;color:#1e293b;line-height:1;">
+                        {{ $data['summary']['total_entries'] }}
+                    </div>
+                    <div style="font-size:13px;color:#64748b;margin-top:4px;font-weight:500;">Toplam Giriş</div>
+                    <div style="height:3px;border-radius:2px;background:linear-gradient(90deg,#10b981,#6ee7b7);margin-top:16px;"></div>
+                </div>
+            </div>
+        </div>
+
+        {{-- Toplam Çıkış --}}
+        <div class="col-xl-3 col-sm-6 mb-3">
+            <div class="card border-0 h-100" style="border-radius:16px;box-shadow:0 2px 16px rgba(249,115,22,.12);">
+                <div class="card-body p-4">
+                    <div class="d-flex align-items-center justify-content-between mb-3">
+                        <div class="rounded-3 d-flex align-items-center justify-content-center"
+                             style="width:50px;height:50px;background:rgba(249,115,22,.12);">
+                            <i class="fas fa-sign-out-alt" style="font-size:20px;color:#f97316;"></i>
+                        </div>
+                        <span class="badge rounded-pill" style="background:rgba(249,115,22,.1);color:#f97316;font-size:11px;font-weight:600;">
+                            Çıkış
+                        </span>
+                    </div>
+                    <div style="font-size:32px;font-weight:900;color:#1e293b;line-height:1;">
+                        {{ $data['summary']['total_exits'] }}
+                    </div>
+                    <div style="font-size:13px;color:#64748b;margin-top:4px;font-weight:500;">Toplam Çıkış</div>
+                    <div style="height:3px;border-radius:2px;background:linear-gradient(90deg,#f97316,#fdba74);margin-top:16px;"></div>
+                </div>
+            </div>
+        </div>
+
+        {{-- Toplam Çalışma --}}
+        <div class="col-xl-3 col-sm-6 mb-3">
+            <div class="card border-0 h-100" style="border-radius:16px;box-shadow:0 2px 16px rgba(139,92,246,.12);">
+                <div class="card-body p-4">
+                    <div class="d-flex align-items-center justify-content-between mb-3">
+                        <div class="rounded-3 d-flex align-items-center justify-content-center"
+                             style="width:50px;height:50px;background:rgba(139,92,246,.12);">
+                            <i class="fas fa-clock" style="font-size:20px;color:#8b5cf6;"></i>
+                        </div>
+                        <span class="badge rounded-pill" style="background:rgba(139,92,246,.1);color:#8b5cf6;font-size:11px;font-weight:600;">
+                            Saat
+                        </span>
+                    </div>
+                    <div style="font-size:32px;font-weight:900;color:#1e293b;line-height:1;">
+                        {{ $data['summary']['total_hours'] }}
+                        <span style="font-size:16px;font-weight:600;color:#64748b;">sa.</span>
+                    </div>
+                    <div style="font-size:13px;color:#64748b;margin-top:4px;font-weight:500;">Toplam Çalışma</div>
+                    <div style="height:3px;border-radius:2px;background:linear-gradient(90deg,#8b5cf6,#c4b5fd);margin-top:16px;"></div>
+                </div>
+            </div>
+        </div>
     </div>
 
     {{-- GRAFİKLER --}}

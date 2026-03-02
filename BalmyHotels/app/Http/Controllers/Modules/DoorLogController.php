@@ -29,12 +29,12 @@ class DoorLogController extends BaseModuleController
         $dateFrom = $request->input('date_from', today()->format('Y-m-d'));
         $dateTo   = $request->input('date_to', today()->format('Y-m-d'));
 
-        $query = DoorLog::with(['user.branch', 'user.department'])
+        $query = DoorLog::with(['user.branch', 'user.department', 'branch'])
             ->whereBetween('logged_at', [
                 $dateFrom . ' 00:00:00',
                 $dateTo   . ' 23:59:59',
             ])
-            ->orderBy('logged_at', 'desc');
+            ->orderBy('logged_at', 'asc');
 
         if ($request->filled('branch_id')) {
             $query->where('branch_id', $request->branch_id);
@@ -46,20 +46,40 @@ class DoorLogController extends BaseModuleController
             $query->where('type', $request->type);
         }
 
-        $logs = $query->paginate(30)->withQueryString();
+        // Kullanıcı + gün bazında gruplama
+        $allLogs = $query->get();
 
-        // İstatistik (aynı filtreli)
-        $statsQuery = DoorLog::whereBetween('logged_at', [
-            $dateFrom . ' 00:00:00',
-            $dateTo   . ' 23:59:59',
-        ]);
-        if ($request->filled('branch_id')) {
-            $statsQuery->where('branch_id', $request->branch_id);
-        }
+        $groupedLogs = $allLogs
+            ->groupBy(fn ($log) => $log->user_id . '|' . \Carbon\Carbon::parse($log->logged_at)->format('Y-m-d'))
+            ->map(function ($dayLogs) {
+                $first = $dayLogs->first();
+                return (object) [
+                    'user'    => $first->user,
+                    'branch'  => $first->branch,
+                    'date'    => \Carbon\Carbon::parse($first->logged_at)->format('Y-m-d'),
+                    'entries' => $dayLogs->where('type', 'giris')->sortBy('logged_at')->values(),
+                    'exits'   => $dayLogs->where('type', 'cikis')->sortBy('logged_at')->values(),
+                    'all'     => $dayLogs->sortBy('logged_at')->values(),
+                ];
+            })
+            ->sortByDesc('date')
+            ->values();
 
-        $totalGiris     = (clone $statsQuery)->where('type', 'giris')->count();
-        $totalCikis     = (clone $statsQuery)->where('type', 'cikis')->count();
-        $uniquePersonel = (clone $statsQuery)->distinct('user_id')->count('user_id');
+        // Manuel sayfalama
+        $perPage     = 25;
+        $currentPage = (int) $request->input('page', 1);
+        $logs = new \Illuminate\Pagination\LengthAwarePaginator(
+            $groupedLogs->forPage($currentPage, $perPage),
+            $groupedLogs->count(),
+            $perPage,
+            $currentPage,
+            ['path' => $request->url(), 'query' => $request->query()]
+        );
+
+        // İstatistikler artık allLogs'tan
+        $totalGiris     = $allLogs->where('type', 'giris')->count();
+        $totalCikis     = $allLogs->where('type', 'cikis')->count();
+        $uniquePersonel = $allLogs->unique('user_id')->count();
 
         // İçeride / Dışarıda: her kullanıcının son kaydına göre
         $latestLogIds = DoorLog::selectRaw('MAX(id) as max_id')
@@ -79,11 +99,21 @@ class DoorLogController extends BaseModuleController
             ->values();
 
         // Filtrelerde kullanılacak veriler
-        $branches = Branch::orderBy('name')->get();
-        $managers = User::whereIn('role', ['dept_manager', 'branch_manager', 'super_admin'])
-                        ->where('is_active', true)
-                        ->orderBy('name')
-                        ->get();
+        $authUser  = auth()->user();
+        $branchIds = $authUser->visibleBranchIds();
+        $branches  = $authUser->isSuperAdmin()
+            ? Branch::orderBy('name')->get()
+            : Branch::whereIn('id', $branchIds)->orderBy('name')->get();
+
+        // Hızlı kayıt dropdown: yalnızca aynı şube(ler)deki personel
+        $managersQuery = User::with('department', 'branch')
+            ->whereIn('role', ['dept_manager', 'branch_manager', 'super_admin'])
+            ->where('is_active', true)
+            ->orderBy('name');
+        if (!$authUser->isSuperAdmin()) {
+            $managersQuery->whereIn('branch_id', $branchIds);
+        }
+        $managers = $managersQuery->get();
 
         $page_title = 'Kapı Giriş/Çıkış';
 
@@ -98,11 +128,20 @@ class DoorLogController extends BaseModuleController
 
     public function create()
     {
-        $branches = Branch::orderBy('name')->get();
-        $managers = User::whereIn('role', ['dept_manager', 'branch_manager', 'super_admin'])
-                        ->where('is_active', true)
-                        ->orderBy('name')
-                        ->get();
+        $authUser  = auth()->user();
+        $branchIds = $authUser->visibleBranchIds();
+        $branches  = $authUser->isSuperAdmin()
+            ? Branch::orderBy('name')->get()
+            : Branch::whereIn('id', $branchIds)->orderBy('name')->get();
+
+        $managersQuery = User::with('department', 'branch')
+            ->whereIn('role', ['dept_manager', 'branch_manager', 'super_admin'])
+            ->where('is_active', true)
+            ->orderBy('name');
+        if (!$authUser->isSuperAdmin()) {
+            $managersQuery->whereIn('branch_id', $branchIds);
+        }
+        $managers = $managersQuery->get();
 
         $page_title = 'Manuel Giriş/Çıkış Kaydı';
 
@@ -119,6 +158,13 @@ class DoorLogController extends BaseModuleController
         ]);
 
         $user    = User::findOrFail($request->user_id);
+
+        if (!$this->canManageUser($user)) {
+            return back()->withInput()->withErrors([
+                'user_id' => "{$user->name} farklı bir şubeye ait — kayıt yetkisi yok.",
+            ]);
+        }
+
         $lastLog = $this->lastLog($user->id);
 
         if ($request->type === 'giris' && $lastLog?->type === 'giris') {
@@ -154,7 +200,14 @@ class DoorLogController extends BaseModuleController
             'type'    => 'required|in:giris,cikis',
         ]);
 
-        $user    = User::findOrFail($request->user_id);
+        $user = User::findOrFail($request->user_id);
+
+        if (!$this->canManageUser($user)) {
+            return redirect()->back()->with('error',
+                "{$user->name} farklı bir şubeye ait — kayıt yetkisi yok."
+            );
+        }
+
         $lastLog = $this->lastLog($user->id);
 
         if ($request->type === 'giris' && $lastLog?->type === 'giris') {
@@ -180,6 +233,17 @@ class DoorLogController extends BaseModuleController
         $label = $request->type === 'giris' ? 'Giriş' : 'Çıkış';
 
         return redirect()->back()->with('success', "{$user->name} için {$label} kaydedildi.");
+    }
+
+    /**
+     * Giriş yapan kullanıcının hedef personeli yönetme yetkisi var mı?
+     * super_admin herkesi yönetebilir; diğerleri yalnızca kendi şubesini.
+     */
+    private function canManageUser(User $target): bool
+    {
+        $authUser = auth()->user();
+        if ($authUser->isSuperAdmin()) return true;
+        return in_array($target->branch_id, $authUser->visibleBranchIds(), true);
     }
 
     /**
