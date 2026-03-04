@@ -197,7 +197,7 @@
                                 <label class="form-label fw-semibold">Yeni Durum</label>
                                 <div class="d-flex flex-column gap-2">
                                     @foreach(\App\Models\Fault::STATUSES as $val => $label)
-                                        @if($val !== $fault->status)
+                                        @if($val !== $fault->status && $val !== 'resolved')
                                             <div class="form-check">
                                                 <input class="form-check-input" type="radio" name="status"
                                                        id="status_{{ $val }}" value="{{ $val }}"

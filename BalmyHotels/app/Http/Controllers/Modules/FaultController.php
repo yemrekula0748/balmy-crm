@@ -27,6 +27,7 @@ class FaultController extends BaseModuleController
             ['edit', 'update', 'updateStatus', 'addComment', 'assign'],
             ['destroy']
         );
+        $this->middleware('perm:fault_stats,index')->only(['stats']);
     }
 
 
@@ -198,18 +199,34 @@ class FaultController extends BaseModuleController
         $deptId = $user->department_id;
         abort_if(!$deptId, 403, 'Departmanınız tanımlı değil.');
 
+        $dept = Department::find($deptId);
+        $base = Fault::where('assigned_department_id', $deptId);
+
+        $stats = [
+            'total'       => (clone $base)->count(),
+            'open'        => (clone $base)->where('status', 'open')->count(),
+            'in_progress' => (clone $base)->where('status', 'in_progress')->count(),
+            'closed'      => (clone $base)->whereIn('status', ['resolved', 'closed'])->count(),
+            'avg_hours'   => round((clone $base)->whereNotNull('resolved_at')->get()
+                ->avg(fn($f) => $f->created_at->diffInHours($f->resolved_at)) ?? 0, 1),
+        ];
+
         $query = Fault::with(['reporter', 'branch', 'faultType', 'faultLocation', 'faultArea'])
             ->where('assigned_department_id', $deptId)
             ->orderByRaw("CASE status WHEN 'open' THEN 0 WHEN 'in_progress' THEN 1 WHEN 'resolved' THEN 2 ELSE 3 END")
             ->orderBy('created_at', 'desc');
 
-        if ($request->filled('status')) $query->where('status', $request->status);
+        if ($request->filled('status'))  $query->where('status', $request->status);
+        if ($request->filled('search')) {
+            $s = $request->search;
+            $query->where(fn($q) => $q->where('title', 'like', "%$s%")->orWhere('description', 'like', "%$s%"));
+        }
 
         $faults    = $query->paginate(20)->withQueryString();
         $canUpdate = $user->isSuperAdmin() || $user->isBranchManager() || $user->isDeptManager();
         $page_title = 'Gelen Arızalar';
 
-        return view('modules.faults.incoming', compact('faults', 'canUpdate', 'page_title'));
+        return view('modules.faults.incoming', compact('faults', 'canUpdate', 'dept', 'stats', 'page_title'));
     }
 
     /* ---------------------------------------------------------------
@@ -308,7 +325,7 @@ class FaultController extends BaseModuleController
     public function updateStatus(Request $request, Fault $fault)
     {
         $request->validate([
-            'status' => 'required|in:open,in_progress,resolved,closed',
+            'status' => 'required|in:open,in_progress,closed',
             'note'   => 'required|string|max:1000',
         ]);
 
@@ -409,5 +426,137 @@ class FaultController extends BaseModuleController
             ->get(['id', 'name', 'completion_hours']);
 
         return response()->json($types);
+    }
+
+    /* ---------------------------------------------------------------
+     | İSTATİSTİKLER — Scoreboard
+     --------------------------------------------------------------- */
+    public function stats(Request $request)
+    {
+        $user      = auth()->user();
+        $branchIds = $user->visibleBranchIds();
+        $period    = $request->input('period', '90');
+
+        $query = Fault::with(['faultType', 'faultLocation', 'faultArea', 'department', 'branch'])
+            ->whereIn('branch_id', $branchIds);
+        if ($period !== 'all') {
+            $query->where('created_at', '>=', now()->subDays((int) $period));
+        }
+        $allFaults = $query->get();
+
+        // Özet
+        $resolvedFaults = $allFaults->filter(fn($f) => $f->resolved_at);
+        $slaOnTime = $resolvedFaults->filter(function ($f) {
+            return $f->created_at->diffInHours($f->resolved_at) <= ($f->faultType?->completion_hours ?? 24);
+        })->count();
+
+        $summary = [
+            'total'       => $allFaults->count(),
+            'open'        => $allFaults->where('status', 'open')->count(),
+            'in_progress' => $allFaults->where('status', 'in_progress')->count(),
+            'closed'      => $allFaults->whereIn('status', ['resolved', 'closed'])->count(),
+            'avg_hours'   => $resolvedFaults->count() > 0
+                ? round($resolvedFaults->avg(fn($f) => $f->created_at->diffInHours($f->resolved_at)), 1)
+                : null,
+            'sla_pct'     => $resolvedFaults->count() > 0
+                ? round($slaOnTime / $resolvedFaults->count() * 100)
+                : null,
+        ];
+
+        // Departman Scoreboard
+        $deptScoreboard = $allFaults->groupBy('assigned_department_id')
+            ->map(function ($faults) {
+                $dept     = $faults->first()->department;
+                $resolved = $faults->filter(fn($f) => $f->resolved_at);
+                $avgH     = $resolved->count() > 0
+                    ? round($resolved->avg(fn($f) => $f->created_at->diffInHours($f->resolved_at)), 1)
+                    : null;
+                $onTime = $resolved->filter(function ($f) {
+                    return $f->created_at->diffInHours($f->resolved_at) <= ($f->faultType?->completion_hours ?? 24);
+                })->count();
+                return [
+                    'dept'        => $dept,
+                    'total'       => $faults->count(),
+                    'open'        => $faults->where('status', 'open')->count(),
+                    'in_progress' => $faults->where('status', 'in_progress')->count(),
+                    'closed'      => $faults->whereIn('status', ['resolved', 'closed'])->count(),
+                    'avg_hours'   => $avgH,
+                    'sla_pct'     => $resolved->count() > 0 ? round($onTime / $resolved->count() * 100) : null,
+                    'sla_count'   => $resolved->count(),
+                ];
+            })->sortByDesc('total')->values();
+
+        // Arıza Türü Performansı
+        $typeStats = $allFaults->groupBy('fault_type_id')
+            ->map(function ($faults) {
+                $ft       = $faults->first()->faultType;
+                $target   = $ft?->completion_hours ?? 24;
+                $resolved = $faults->filter(fn($f) => $f->resolved_at);
+                $avgH     = $resolved->count() > 0
+                    ? round($resolved->avg(fn($f) => $f->created_at->diffInHours($f->resolved_at)), 1)
+                    : null;
+                $onTime = $resolved->filter(fn($f) => $f->created_at->diffInHours($f->resolved_at) <= $target)->count();
+                return [
+                    'type_name'    => $ft?->name ?? '—',
+                    'target_hours' => $target,
+                    'total'        => $faults->count(),
+                    'open'         => $faults->where('status', 'open')->count(),
+                    'avg_hours'    => $avgH,
+                    'sla_pct'      => $resolved->count() > 0 ? round($onTime / $resolved->count() * 100) : null,
+                    'sla_count'    => $resolved->count(),
+                ];
+            })->sortByDesc('total')->values();
+
+        // Konum Bazında
+        $locationStats = $allFaults->groupBy('fault_location_id')
+            ->map(function ($faults) {
+                $loc = $faults->first()->faultLocation;
+                return [
+                    'name'  => $loc?->name ?? 'Belirtilmemiş',
+                    'total' => $faults->count(),
+                    'open'  => $faults->where('status', 'open')->count(),
+                ];
+            })->sortByDesc('total')->take(10)->values();
+
+        // Alan Top 10
+        $areaStats = $allFaults->filter(fn($f) => $f->fault_area_id)
+            ->groupBy('fault_area_id')
+            ->map(function ($faults) {
+                return [
+                    'area_name' => $faults->first()->faultArea?->name ?? '—',
+                    'loc_name'  => $faults->first()->faultLocation?->name ?? '—',
+                    'total'     => $faults->count(),
+                    'open'      => $faults->where('status', 'open')->count(),
+                ];
+            })->sortByDesc('total')->take(10)->values();
+
+        // Aylık Trend
+        $monthlyTrend = $allFaults
+            ->groupBy(fn($f) => $f->created_at->format('Y-m'))
+            ->map(fn($g, $m) => [
+                'month'  => $m,
+                'total'  => $g->count(),
+                'closed' => $g->whereIn('status', ['resolved', 'closed'])->count(),
+            ])
+            ->sortKeys()->values();
+
+        // Şube Karşılaştırma (sadece super_admin)
+        $branchStats = $user->isSuperAdmin()
+            ? $allFaults->groupBy('branch_id')->map(function ($faults) {
+                return [
+                    'name'  => $faults->first()->branch?->name ?? '—',
+                    'total' => $faults->count(),
+                    'open'  => $faults->where('status', 'open')->count(),
+                    'closed'=> $faults->whereIn('status', ['resolved', 'closed'])->count(),
+                ];
+            })->sortByDesc('total')->values()
+            : null;
+
+        $page_title = 'Arıza İstatistikleri';
+        return view('modules.faults.stats', compact(
+            'summary', 'deptScoreboard', 'typeStats',
+            'locationStats', 'areaStats', 'monthlyTrend', 'branchStats',
+            'period', 'page_title'
+        ));
     }
 }

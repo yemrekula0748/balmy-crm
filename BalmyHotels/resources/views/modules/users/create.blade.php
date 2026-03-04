@@ -135,11 +135,12 @@
                             {{-- Departman --}}
                             <div class="col-md-4 mb-4">
                                 <label class="form-label">Departman</label>
-                                <select name="department_id"
+                                <select name="department_id" id="department_id"
                                     class="form-select @error('department_id') is-invalid @enderror">
                                     <option value="">— Seçiniz —</option>
                                     @foreach($departments as $d)
-                                        <option value="{{ $d->id }}" @selected(old('department_id') == $d->id)>{{ $d->name }}</option>
+                                        <option value="{{ $d->id }}" data-branch="{{ $d->branch_id }}"
+                                            @selected(old('department_id') == $d->id)>{{ $d->name }}</option>
                                     @endforeach
                                 </select>
                                 @error('department_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
@@ -225,6 +226,37 @@
 
 @push('scripts')
 <script>
+// Departman Şube Filtresi
+(function () {
+    const allDepts = @json($departments->map(fn($d) => ['id' => $d->id, 'name' => $d->name, 'branch_id' => $d->branch_id]));
+    const branchSel = document.getElementById('branch_id');
+    const deptSel   = document.getElementById('department_id');
+    const oldDept   = '{{ old('department_id') }}';
+    if (!branchSel || !deptSel) return;
+
+    function rebuildDepts(branchId, selectedId) {
+        const filtered = branchId ? allDepts.filter(d => String(d.branch_id) === String(branchId)) : allDepts;
+        deptSel.innerHTML = '<option value="">— Seçiniz —</option>';
+        filtered.forEach(d => {
+            const opt = document.createElement('option');
+            opt.value = d.id;
+            opt.textContent = d.name;
+            if (String(d.id) === String(selectedId)) opt.selected = true;
+            deptSel.appendChild(opt);
+        });
+        if (!filtered.length) {
+            deptSel.innerHTML = '<option value="">Bu Şubeye ait departman yok</option>';
+        }
+    }
+
+    branchSel.addEventListener('change', function () {
+        rebuildDepts(this.value, '');
+    });
+
+    // Sayfa yüklenince mevcut Şubeye göre filtrele
+    rebuildDepts(branchSel.value, oldDept);
+})();
+
 function toggleRole(card) {
     card.classList.toggle('selected');
     const cb = card.querySelector('input[type=checkbox]');

@@ -43,6 +43,7 @@ class RolePermission extends Model
             'faults'         => 'Arızalar',
             'fault_types'    => 'Arıza Tipleri',
             'fault_locations'=> 'Arıza Konumları',
+            'fault_stats'    => 'Arıza İstatistikleri',
         ],
         'Demirbaş' => [
             'assets'         => 'Demirbaş Envanter',
@@ -54,6 +55,12 @@ class RolePermission extends Model
             'surveys'        => 'Misafir Anket',
             'food_labels'    => 'Yemek İsimlik',
             'staff_surveys'  => 'Personel Anket',
+        ],
+        'Doküman' => [
+            'contract_compare' => 'Sözleşme Karşılaştırma',
+        ],
+        'Sürdürülebilirlik' => [
+            'carbon_footprint' => 'Karbon Ayak İzi Raporları',
         ],
     ];
 

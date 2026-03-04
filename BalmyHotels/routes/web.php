@@ -28,7 +28,9 @@ use App\Http\Controllers\Modules\FoodLabelController;
 use App\Http\Controllers\FoodLabelPublicController;
 use App\Http\Controllers\StaffSurveyPublicController;
 use App\Http\Controllers\Modules\StaffSurveyController;
+use App\Http\Controllers\Modules\ContractComparisonController;
 use App\Http\Controllers\Modules\RoleController;
+use App\Http\Controllers\Modules\CarbonFootprintController;
 
 /*
 |--------------------------------------------------------------------------
@@ -253,6 +255,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/gelen',                     [FaultController::class, 'incoming'])->name('incoming');
         Route::get('/bildirdiklerim',            [FaultController::class, 'myReports'])->name('my-reports');
         Route::get('/departmanim',               [FaultController::class, 'myDepartment'])->name('my-department');
+        Route::get('/istatistikler',              [FaultController::class, 'stats'])->name('stats');
 
         // AJAX cascading dropdown
         Route::get('/ajax/departmanlar',         [FaultController::class, 'ajaxDepartments'])->name('ajax.departments');
@@ -399,6 +402,37 @@ Route::middleware('auth')->group(function () {
         Route::get('/{qrmenu}/kategori/{category}/urun/{item}/duzenle', [QrMenuCategoryController::class, 'editItem'])->name('item.edit');
         Route::put('/{qrmenu}/kategori/{category}/urun/{item}', [QrMenuCategoryController::class, 'updateItem'])->name('item.update');
         Route::delete('/{qrmenu}/kategori/{category}/urun/{item}', [QrMenuCategoryController::class, 'destroyItem'])->name('item.destroy');
+    });
+
+    /*
+    |--------------------------------------------------------------------------
+    | Sözleşme Karşılaştırma
+    |--------------------------------------------------------------------------
+    */
+    Route::prefix('sozlesme-karsilastirma')->name('contracts.')->group(function () {
+        Route::get('/',            [ContractComparisonController::class, 'index'])->name('index');
+        Route::get('/yeni',        [ContractComparisonController::class, 'create'])->name('create');
+        Route::post('/karsilastir',[ContractComparisonController::class, 'compare'])->name('compare');
+        Route::get('/{contract}',  [ContractComparisonController::class, 'show'])->name('show');
+        Route::delete('/{contract}',[ContractComparisonController::class, 'destroy'])->name('destroy');
+    });
+
+    /*
+    |--------------------------------------------------------------------------
+    | Karbon Ayak İzi Modülü
+    |--------------------------------------------------------------------------
+    */
+    Route::prefix('karbon-ayak-izi')->name('carbon.')->group(function () {
+        Route::get('/',                        [CarbonFootprintController::class, 'index'])->name('index');
+        Route::get('/yeni',                    [CarbonFootprintController::class, 'create'])->name('create');
+        Route::post('/yeni',                   [CarbonFootprintController::class, 'store'])->name('store');
+        Route::get('/emisyon-faktoru',         [CarbonFootprintController::class, 'emissionFactor'])->name('emission-factor');
+        Route::get('/{carbon}',                [CarbonFootprintController::class, 'show'])->name('show');
+        Route::get('/{carbon}/duzenle',        [CarbonFootprintController::class, 'edit'])->name('edit');
+        Route::put('/{carbon}',                [CarbonFootprintController::class, 'update'])->name('update');
+        Route::post('/{carbon}/finalize',      [CarbonFootprintController::class, 'finalize'])->name('finalize');
+        Route::get('/{carbon}/pdf',            [CarbonFootprintController::class, 'pdf'])->name('pdf');
+        Route::delete('/{carbon}',             [CarbonFootprintController::class, 'destroy'])->name('destroy');
     });
 
     /*

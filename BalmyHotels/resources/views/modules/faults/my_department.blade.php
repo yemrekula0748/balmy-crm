@@ -29,7 +29,6 @@
         $cards = [
             ['label'=>'Açık',       'key'=>'open',        'color'=>'danger',  'icon'=>'fa-exclamation-circle'],
             ['label'=>'Devam Eden', 'key'=>'in_progress',  'color'=>'warning', 'icon'=>'fa-tools'],
-            ['label'=>'Çözüldü',    'key'=>'resolved',     'color'=>'info',    'icon'=>'fa-check'],
             ['label'=>'Kapalı',     'key'=>'closed',       'color'=>'success', 'icon'=>'fa-check-double'],
         ];
         @endphp
@@ -46,10 +45,10 @@
         @endforeach
     </div>
 
-    <div class="row g-3">
+    <div class="row g-3 align-items-start">
         {{-- Arıza Türü Performans --}}
         <div class="col-lg-7">
-            <div class="card h-100">
+            <div class="card">
                 <div class="card-header">
                     <h5 class="card-title mb-0"><i class="fas fa-tachometer-alt me-2 text-primary"></i>Arıza Türü Performansı</h5>
                 </div>
@@ -115,7 +114,9 @@
                     <h5 class="card-title mb-0"><i class="fas fa-calendar-alt me-2 text-primary"></i>Aylık Eğilim (Son 6 Ay)</h5>
                 </div>
                 <div class="card-body">
-                    <canvas id="monthlyChart" height="150"></canvas>
+                    <div style="position:relative;height:200px">
+                        <canvas id="monthlyChart"></canvas>
+                    </div>
                 </div>
             </div>
 
@@ -165,6 +166,7 @@
         },
         options: {
             responsive: true,
+            maintainAspectRatio: false,
             plugins: { legend: { display: false } },
             scales: {
                 y: { beginAtZero: true, ticks: { stepSize: 1 } }
