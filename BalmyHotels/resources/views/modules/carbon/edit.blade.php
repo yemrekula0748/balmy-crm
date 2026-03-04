@@ -162,6 +162,7 @@
                                 <div class="col-md-4">
                                     <label class="form-label small fw-semibold mb-1">{{ $catDef['label'] }}</label>
                                     <span class="ef-tag d-block">EF: {{ $catDef['ef'] }} kgCO₂e/{{ $catDef['unit'] }}</span>
+                                    @if(!empty($catDef['help']))<div class="text-muted mt-1" style="font-size:.7rem;line-height:1.4">{{ $catDef['help'] }}</div>@endif
                                 </div>
                                 <div class="col-md-3">
                                     <label class="form-label small mb-1">Miktar ({{ $catDef['unit'] }})</label>
@@ -186,7 +187,10 @@
 
                 {{-- SCOPE 2 --}}
                 <div class="scope-section scope-2">
-                    <div class="scope-header">🔌 Scope 2 — Dolaylı Enerji Emisyonları</div>
+                    <div class="scope-header">
+                        🔌 Scope 2 — Dolaylı Enerji Emisyonları
+                        <span style="font-size:.72rem;font-weight:400;margin-left:auto;opacity:.8">ISO 14064-1 §8.3 Market-Based: I-REC / YEK-G / GoO sertifikalı veya tesis içi GES için EF=0 kullanın</span>
+                    </div>
                     <div class="p-3">
                         @foreach($categories['scope2'] as $catKey => $catDef)
                         @php $existing = $existingEntries->get($catKey); @endphp
@@ -200,6 +204,7 @@
                                 <div class="col-md-4">
                                     <label class="form-label small fw-semibold mb-1">{{ $catDef['label'] }}</label>
                                     <span class="ef-tag d-block">EF: {{ $catDef['ef'] }} kgCO₂e/{{ $catDef['unit'] }}</span>
+                                    @if(!empty($catDef['help']))<div class="text-muted mt-1" style="font-size:.7rem;line-height:1.4">{{ $catDef['help'] }}</div>@endif
                                 </div>
                                 <div class="col-md-3">
                                     <label class="form-label small mb-1">Miktar ({{ $catDef['unit'] }})</label>
@@ -236,6 +241,7 @@
                                 <div class="col-md-4">
                                     <label class="form-label small fw-semibold mb-1">{{ $catDef['label'] }}</label>
                                     <span class="ef-tag d-block">EF: {{ $catDef['ef'] }} kgCO₂e/{{ $catDef['unit'] }}</span>
+                                    @if(!empty($catDef['help']))<div class="text-muted mt-1" style="font-size:.7rem;line-height:1.4">{{ $catDef['help'] }}</div>@endif
                                 </div>
                                 <div class="col-md-3">
                                     <label class="form-label small mb-1">Miktar ({{ $catDef['unit'] }})</label>
@@ -275,24 +281,38 @@
                 <h6 class="mb-0 fw-bold"><span class="badge bg-info text-dark me-2">4</span> Standartlar & Notlar</h6>
             </div>
             <div class="card-body">
+                <div class="alert alert-info py-2 px-3 mb-3" style="font-size:.82rem">
+                    <i class="fas fa-question-circle text-primary me-1"></i>
+                    <strong>Bu seçim ne işe yarar?</strong> Raporun hangi metodoloji ve çerçeveler kapsamında hazırlandığını belirtir. Seçilenler; denetçilere, bankalara ve yeşil sertifika kurumlarına sunulan resmi raporda yer alır.
+                </div>
                 <div class="d-flex flex-wrap gap-2 mb-3">
-                    @foreach($standards as $key => $label)
+                    @php $defaultStandards = old('standards_applied', $carbon->standards_applied ?? ['ISO 14064-1', 'GHG_Protocol', 'HCMI']); @endphp
+                    @foreach($standards as $key => $stdLabel)
                     <div class="std-checkbox">
                         <input type="checkbox" name="standards_applied[]" value="{{ $key }}"
                                id="std_{{ $key }}" class="d-none"
-                               @checked(in_array($key, old('standards_applied', $carbon->standards_applied ?? [])))>
-                        <label for="std_{{ $key }}">{{ $key }}</label>
+                               @checked(in_array($key, $defaultStandards))>
+                        <label for="std_{{ $key }}" title="{{ $stdLabel }}">{{ $key }}</label>
                     </div>
+                    @endforeach
+                </div>
+                <div class="mb-3" style="font-size:.78rem">
+                    @foreach($standards as $key => $stdLabel)
+                    <span id="std-desc-{{ $key }}" class="std-desc text-muted @if(!in_array($key, $defaultStandards)) d-none @endif me-3">✓ {{ $stdLabel }}</span>
                     @endforeach
                 </div>
                 <div class="row g-3">
                     <div class="col-md-6">
-                        <label class="form-label fw-semibold">Metodoloji Notları</label>
-                        <textarea name="methodology_notes" class="form-control" rows="3">{{ old('methodology_notes', $carbon->methodology_notes) }}</textarea>
+                        <label class="form-label fw-semibold">Metodoloji Notları & Varsayımlar</label>
+                        <textarea name="methodology_notes" class="form-control" rows="4"
+                                  placeholder="Örnek notlar:&#10;- Doğalgaz sayıcı okuması alınamadı, fatura verisi kullanıldı&#10;- Servis aracı km kaydı tutulmadığından tahmini güzergâh mesafesi kullanıldı">{{ old('methodology_notes', $carbon->methodology_notes) }}</textarea>
+                        <div class="form-text">Veri eksikliği, tahmin yöntemi veya birşey kesin bilinmiyorsa burada açıklayın. Denetim sırasında bu notlar röportaj sorularını yanıtlar.</div>
                     </div>
                     <div class="col-md-6">
-                        <label class="form-label fw-semibold">İyileştirme Önerileri</label>
-                        <textarea name="improvement_notes" class="form-control" rows="3">{{ old('improvement_notes', $carbon->improvement_notes) }}</textarea>
+                        <label class="form-label fw-semibold">İyileştirme Önerileri & Hedefler</label>
+                        <textarea name="improvement_notes" class="form-control" rows="4"
+                                  placeholder="Bir sonraki dönem için alınan veya planlanan aksiyonlar...">{{ old('improvement_notes', $carbon->improvement_notes) }}</textarea>
+                        <div class="form-text">Denetim raporunda “iyileştirme planı” olarak görünür.</div>
                     </div>
                 </div>
             </div>
@@ -331,6 +351,16 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     document.querySelectorAll('.qty-input').forEach(inp => inp.addEventListener('input', recalcAll));
     recalcAll();
+
+    // Standart açıklama toggle
+    function updateStdDescs() {
+        document.querySelectorAll('.std-checkbox input').forEach(cb => {
+            const desc = document.getElementById('std-desc-' + cb.value);
+            if (desc) desc.classList.toggle('d-none', !cb.checked);
+        });
+    }
+    document.querySelectorAll('.std-checkbox input').forEach(cb => cb.addEventListener('change', updateStdDescs));
+    updateStdDescs();
 });
 </script>
 @endpush

@@ -113,40 +113,45 @@
                 </h6>
             </div>
             <div class="card-body">
+                <div class="alert alert-secondary py-2 px-3 mb-3" style="font-size:.8rem">
+                    <i class="fas fa-info-circle text-primary me-1"></i>
+                    Bu veriler emisyon <strong>yoğunluk metriklerini</strong> hesaplamak için kullanılır. Örnek: <strong>kgCO₂e / oda-gece</strong> = Toplam CO₂e ÷ Oda-Gece Sayısı. Bu metrikler HCMI, CSRD ve GRI 305 raporlamalarının temelidir.
+                </div>
                 <div class="row g-3">
                     <div class="col-md-3">
                         <label class="form-label fw-semibold">Toplam Misafir Sayısı <span class="text-danger">*</span></label>
                         <input type="number" name="total_guests" class="form-control" value="{{ old('total_guests',0) }}" min="0" required>
-                        <div class="form-text">Dönemde konaklayan toplam kişi</div>
+                        <div class="form-text"><strong>Neden?</strong> Misafir başına CO₂e hesabı için gereklidir.<br>Formül: Toplam CO₂e ÷ Misafir = kgCO₂e/misafir (GRI 305)</div>
                     </div>
                     <div class="col-md-3">
                         <label class="form-label fw-semibold">Oda-Gece Sayısı <span class="text-danger">*</span></label>
                         <input type="number" name="occupied_rooms" class="form-control" value="{{ old('occupied_rooms',0) }}" min="0" required>
-                        <div class="form-text">sold room nights</div>
+                        <div class="form-text"><strong>Neden?</strong> HCMI'nın ana performans metriği.<br>Formül: Toplam CO₂e ÷ Oda-Gece = kgCO₂e/oda-gece</div>
                     </div>
                     <div class="col-md-3">
                         <label class="form-label fw-semibold">Toplam Oda Kapasitesi</label>
                         <input type="number" name="total_rooms" class="form-control" value="{{ old('total_rooms',0) }}" min="0">
-                        <div class="form-text">Toplam mevcut oda sayısı</div>
+                        <div class="form-text"><strong>Neden?</strong> Doluluk oranı (%) hesabı için.<br>Formül: Oda-Gece ÷ (Oda Sayısı × Gün) × 100</div>
                     </div>
                     <div class="col-md-3">
                         <label class="form-label fw-semibold">Personel Sayısı</label>
                         <input type="number" name="staff_count" class="form-control" value="{{ old('staff_count',0) }}" min="0">
+                        <div class="form-text"><strong>Neden?</strong> Çalışan başına emisyon yoğunluğu.<br>Formül: Toplam CO₂e ÷ Personel (CSRD/ESRS)</div>
                     </div>
                     <div class="col-md-4">
                         <label class="form-label fw-semibold">Toplam Alan (m²)</label>
                         <input type="number" name="total_area_sqm" class="form-control" value="{{ old('total_area_sqm',0) }}" min="0" step="0.01">
-                        <div class="form-text">Kapalı alan toplamı</div>
+                        <div class="form-text"><strong>Neden?</strong> Alan başına enerji yoğunluğu (EU Taxonomy / ISO 50001).<br>Formül: Toplam CO₂e ÷ m² = kgCO₂e/m²</div>
                     </div>
                     <div class="col-md-4">
                         <label class="form-label fw-semibold">Yenilenebilir Enerji Oranı (%)</label>
                         <input type="number" name="renewable_energy_pct" class="form-control" value="{{ old('renewable_energy_pct',0) }}" min="0" max="100" step="0.1">
-                        <div class="form-text">ISO 14001 / EU Taxonomy</div>
+                        <div class="form-text"><strong>Neden?</strong> ISO 14001 ve EU Taxonomy yeşil sınıflandırması gerektirir.<br>Hesap: Yenilenebilir kWh ÷ Toplam kWh × 100</div>
                     </div>
                     <div class="col-md-4">
                         <label class="form-label fw-semibold">Atık Geri Dönüşüm Oranı (%)</label>
                         <input type="number" name="waste_recycling_rate" class="form-control" value="{{ old('waste_recycling_rate',0) }}" min="0" max="100" step="0.1">
-                        <div class="form-text">SDG 12 / GRI 306</div>
+                        <div class="form-text"><strong>Neden?</strong> SDG 12 (Sorumlu Tüketim) ve GRI 306 raporlaması için.<br>Hesap: Geri Dönüşüm kg ÷ Toplam Atık kg × 100</div>
                     </div>
                 </div>
             </div>
@@ -156,22 +161,20 @@
              BÖLÜM 3: EMİSYON VERİLERİ — SCOPE 1 / 2 / 3
         ============================================================ --}}
         <div class="card shadow-sm mb-4">
-            <div class="card-header py-3 d-flex align-items-center justify-content-between">
+            <div class="card-header py-3">
                 <h6 class="mb-0 fw-bold">
                     <span class="badge bg-danger me-2">3</span>
                     Emisyon Verileri — GHG Protocol Scope 1 / 2 / 3
                 </h6>
-                <button type="button" class="btn btn-outline-secondary btn-sm" onclick="addEntryFromTemplate()">
-                    <i class="fas fa-magic me-1"></i> Şablondan Doldur
-                </button>
             </div>
             <div class="card-body">
 
                 <div class="alert alert-info mb-4 py-2 px-3" style="font-size:.85rem">
                     <strong>📋 Bilgi:</strong>
-                    <strong>Scope 1</strong> = Tesiste doğrudan yakılan yakıtlar, soğutucu gaz kaçakları.
-                    <strong>Scope 2</strong> = Satın alınan elektrik/ısı/soğutma.
-                    <strong>Scope 3</strong> = Değer zinciri: su, atık, gıda, ulaşım, tedarik.
+                    <strong>Scope 1</strong> = Tesiste doğrudan yakılan yakıtlar (doğal gaz, <strong>LNG</strong>, fuel oil, LPG), soğutucu gaz kaçakları.
+                    <strong>Scope 2</strong> = Satın alınan elektrik/ısı/soğutma — <em>Location-Based</em> (şebeke EF) veya <em>Market-Based</em> (I-REC / YEK-G / GoO sertifikalı ya da tesis içi GES, EF=0).
+                    <strong>Scope 3</strong> = Değer zinciri: su, atık, gıda tüketimi (et/tavuk/balık/süt/bitkisel), çamaşırhane, ulaşım, tedarik.
+                    <br><span class="text-muted">Kullanmadığınız kalemler için <strong>0</strong> giriniz.</span>
                 </div>
 
                 {{-- SCOPE 1 --}}
@@ -193,6 +196,7 @@
                                     <div class="col-md-4">
                                         <label class="form-label small fw-semibold mb-1">{{ $catDef['label'] }}</label>
                                         <span class="ef-tag d-block">EF: {{ $catDef['ef'] }} kgCO₂e/{{ $catDef['unit'] }} — {{ $catDef['ef_source'] }}</span>
+                                        @if(!empty($catDef['help']))<div class="text-muted mt-1" style="font-size:.7rem;line-height:1.4">{{ $catDef['help'] }}</div>@endif
                                     </div>
                                     <div class="col-md-3">
                                         <label class="form-label small mb-1">Miktar ({{ $catDef['unit'] }}) <span class="text-danger">*</span></label>
@@ -221,6 +225,7 @@
                     <div class="scope-header">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z"/><circle cx="12" cy="10" r="3"/></svg>
                         Scope 2 — Dolaylı Enerji Emisyonları (elektrik, merkezi ısıtma/soğutma)
+                        <span style="font-size:.72rem;font-weight:400;margin-left:auto;opacity:.8">ISO 14064-1 §8.3: Şebeke (Location-Based) veya Sertifikalı Yenilenebilir / GES (Market-Based, EF=0) seçilebilir</span>
                     </div>
                     <div class="p-3">
                         <div id="scope2-entries">
@@ -235,6 +240,7 @@
                                     <div class="col-md-4">
                                         <label class="form-label small fw-semibold mb-1">{{ $catDef['label'] }}</label>
                                         <span class="ef-tag d-block">EF: {{ $catDef['ef'] }} kgCO₂e/{{ $catDef['unit'] }} — {{ $catDef['ef_source'] }}</span>
+                                        @if(!empty($catDef['help']))<div class="text-muted mt-1" style="font-size:.7rem;line-height:1.4">{{ $catDef['help'] }}</div>@endif
                                     </div>
                                     <div class="col-md-3">
                                         <label class="form-label small mb-1">Miktar ({{ $catDef['unit'] }}) <span class="text-danger">*</span></label>
@@ -277,6 +283,7 @@
                                     <div class="col-md-4">
                                         <label class="form-label small fw-semibold mb-1">{{ $catDef['label'] }}</label>
                                         <span class="ef-tag d-block">EF: {{ $catDef['ef'] }} kgCO₂e/{{ $catDef['unit'] }} — {{ $catDef['ef_source'] }}</span>
+                                        @if(!empty($catDef['help']))<div class="text-muted mt-1" style="font-size:.7rem;line-height:1.4">{{ $catDef['help'] }}</div>@endif
                                     </div>
                                     <div class="col-md-3">
                                         <label class="form-label small mb-1">Miktar ({{ $catDef['unit'] }}) <span class="text-danger">*</span></label>
@@ -338,27 +345,39 @@
                 </h6>
             </div>
             <div class="card-body">
+                <div class="alert alert-info py-2 px-3 mb-3" style="font-size:.82rem">
+                    <i class="fas fa-question-circle text-primary me-1"></i>
+                    <strong>Bu seçim ne işe yarar?</strong> Raporunuzun hangi uluslararası metodoloji ve çerçeveler kapsamında hazırlandığını belirtir. Seçtiğiniz standartlar; denetçilere, bankalara ve yeşil sertifika kurumlarına (LEED, Green Key vb.) sunulan resmi raporunuza dahil edilir. <strong>ISO 14064-1 ve GHG Protocol</strong> tüm raporlar için önerilir.
+                </div>
                 <label class="form-label fw-semibold mb-2">Uygulanan Standartlar</label>
                 <div class="d-flex flex-wrap gap-2 mb-3">
-                    @foreach($standards as $key => $label)
+                    @php $defaultStandards = old('standards_applied', ['ISO 14064-1', 'GHG_Protocol', 'HCMI']); @endphp
+                    @foreach($standards as $key => $stdLabel)
                     <div class="std-checkbox">
                         <input type="checkbox" name="standards_applied[]" value="{{ $key }}"
                                id="std_{{ $key }}" class="d-none"
-                               @checked(in_array($key, old('standards_applied', [])))>
-                        <label for="std_{{ $key }}">{{ $key }}</label>
+                               @checked(in_array($key, $defaultStandards))>
+                        <label for="std_{{ $key }}" title="{{ $stdLabel }}">{{ $key }}</label>
                     </div>
+                    @endforeach
+                </div>
+                <div class="mb-3" style="font-size:.78rem">
+                    @foreach($standards as $key => $stdLabel)
+                    <span id="std-desc-{{ $key }}" class="std-desc text-muted d-none me-3">✓ {{ $stdLabel }}</span>
                     @endforeach
                 </div>
                 <div class="row g-3 mt-1">
                     <div class="col-md-6">
-                        <label class="form-label fw-semibold">Metodoloji Notları</label>
-                        <textarea name="methodology_notes" class="form-control" rows="3"
-                                  placeholder="Kullanılan hesaplama yöntemi, veri kaynakları, varsayımlar...">{{ old('methodology_notes') }}</textarea>
+                        <label class="form-label fw-semibold">Metodoloji Notları & Varsayımlar</label>
+                        <textarea name="methodology_notes" class="form-control" rows="4"
+                                  placeholder="Örnek notlar:&#10;- Doğalgaz sayıcı okuması alınamadı, fatura verisi kullanıldı&#10;- Sobanın günde ortalama 8 saat çalıştığı varsayıldı&#10;- Servis aracı km kaydı tutulmadığından tahmini güzergâh mesafesi kullanıldı">{{ old('methodology_notes') }}</textarea>
+                        <div class="form-text">Veri eksikliği, tahmin yöntemi veya birşey kesin bilinmiyorsa burada açıklayın. Denetim sırasında bu notlar röportaj sorularını yanıtlar.</div>
                     </div>
                     <div class="col-md-6">
-                        <label class="form-label fw-semibold">İyileştirme Önerileri</label>
-                        <textarea name="improvement_notes" class="form-control" rows="3"
-                                  placeholder="Bir sonraki dönem için hedefler, alınan/planlanan aksiyonlar...">{{ old('improvement_notes') }}</textarea>
+                        <label class="form-label fw-semibold">İyileştirme Önerileri & Hedefler</label>
+                        <textarea name="improvement_notes" class="form-control" rows="4"
+                                  placeholder="Örnek:&#10;- Bir sonraki dönem kâğıt geri dönüşümü başlatılacak&#10;- 2027 sonuna kadar çatıya GES kurulması planlanıyor&#10;- LED dönüşümü ile Scope 2 emisyonunun %15 düşürülmesi hedefleniyor">{{ old('improvement_notes') }}</textarea>
+                        <div class="form-text">Bir sonraki dönem için alınan veya planlanan aksiyonlar. Denetim raporunda “iyileştirme planı” olarak görünür.</div>
                     </div>
                 </div>
             </div>
@@ -415,12 +434,17 @@ document.addEventListener('DOMContentLoaded', function() {
 
     recalcAll();
 
-    // Std checkbox toggle
-    document.querySelectorAll('.std-checkbox input').forEach(cb => {
-        cb.addEventListener('change', function() {
-            // visual handled by CSS :checked + label
+    // Std checkbox toggle + açıklama gösterimi
+    function updateStdDescs() {
+        document.querySelectorAll('.std-checkbox input').forEach(cb => {
+            const desc = document.getElementById('std-desc-' + cb.value);
+            if (desc) desc.classList.toggle('d-none', !cb.checked);
         });
+    }
+    document.querySelectorAll('.std-checkbox input').forEach(cb => {
+        cb.addEventListener('change', updateStdDescs);
     });
+    updateStdDescs();
 });
 </script>
 @endpush
