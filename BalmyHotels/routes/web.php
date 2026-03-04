@@ -29,6 +29,8 @@ use App\Http\Controllers\FoodLabelPublicController;
 use App\Http\Controllers\StaffSurveyPublicController;
 use App\Http\Controllers\Modules\StaffSurveyController;
 use App\Http\Controllers\Modules\ContractComparisonController;
+use App\Http\Controllers\Modules\PdfConverterController;
+use App\Http\Controllers\Modules\PdfMergerController;
 use App\Http\Controllers\Modules\RoleController;
 use App\Http\Controllers\Modules\CarbonFootprintController;
 
@@ -433,6 +435,26 @@ Route::middleware('auth')->group(function () {
         Route::post('/{carbon}/finalize',      [CarbonFootprintController::class, 'finalize'])->name('finalize');
         Route::get('/{carbon}/pdf',            [CarbonFootprintController::class, 'pdf'])->name('pdf');
         Route::delete('/{carbon}',             [CarbonFootprintController::class, 'destroy'])->name('destroy');
+    });
+
+    /*
+    |--------------------------------------------------------------------------
+    | PDF Word Çevirici
+    |--------------------------------------------------------------------------
+    */
+    Route::prefix('pdf-donusturme')->name('pdf-converter.')->group(function () {
+        Route::get('/',        [PdfConverterController::class, 'index'])->name('index');
+        Route::post('/cevir',  [PdfConverterController::class, 'convert'])->name('convert');
+    });
+
+    /*
+    |--------------------------------------------------------------------------
+    | PDF Birleştirici
+    |--------------------------------------------------------------------------
+    */
+    Route::prefix('pdf-birlestirme')->name('pdf-merger.')->group(function () {
+        Route::get('/',       [PdfMergerController::class, 'index'])->name('index');
+        Route::post('/birlestir', [PdfMergerController::class, 'merge'])->name('merge');
     });
 
     /*

@@ -19,6 +19,13 @@ return [
     'name' => env('APP_NAME', 'Koki Laravel'),
 
     /*
+     | LibreOffice executable path (PDF → Word konversiyonu için)
+     | Windows: C:\Program Files\LibreOffice\program\soffice.exe
+     | Linux:   /usr/bin/soffice
+     */
+    'libreoffice_path' => env('LIBREOFFICE_PATH', 'C:\\Program Files\\LibreOffice\\program\\soffice.exe'),
+
+    /*
     |--------------------------------------------------------------------------
     | Application Environment
     |--------------------------------------------------------------------------

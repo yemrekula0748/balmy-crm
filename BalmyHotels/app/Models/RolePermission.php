@@ -56,8 +56,10 @@ class RolePermission extends Model
             'food_labels'    => 'Yemek İsimlik',
             'staff_surveys'  => 'Personel Anket',
         ],
-        'Doküman' => [
+        'Araçlar' => [
             'contract_compare' => 'Sözleşme Karşılaştırma',
+            'pdf_converter'    => 'PDF Word Çevirici',
+            'pdf_merger'       => 'PDF Birleştirici',
         ],
         'Sürdürülebilirlik' => [
             'carbon_footprint' => 'Karbon Ayak İzi Raporları',

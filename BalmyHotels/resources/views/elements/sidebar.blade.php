@@ -314,21 +314,34 @@
             </li>
             @endif
 
-            {{-- SÖZLEŞME KARŞILAŞTIRMA --}}
-            @if($user->hasPermission('contract_compare', 'index'))
-            <li @class(['mm-active' => request()->is('sozlesme-karsilastirma*')])>
-                <a href="{{ route('contracts.index') }}" class="ai-icon">
+            {{-- ARAÇLAR (Tools) --}}
+            @if($user->hasPermission('contract_compare', 'index') || $user->hasPermission('pdf_converter', 'index') || $user->hasPermission('pdf_merger', 'index'))
+            <li @class(['mm-active' => request()->is('sozlesme-karsilastirma*') || request()->is('pdf-donusturme*') || request()->is('pdf-birlestirme*')])>
+                <a class="has-arrow ai-icon" href="javascript:void()" aria-expanded="false">
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
                          fill="none" stroke="currentColor" stroke-width="2"
                          stroke-linecap="round" stroke-linejoin="round" style="min-width:20px">
-                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                        <polyline points="14 2 14 8 20 8"></polyline>
-                        <line x1="16" y1="13" x2="8" y2="13"></line>
-                        <line x1="16" y1="17" x2="8" y2="17"></line>
-                        <polyline points="10 9 9 9 8 9"></polyline>
+                        <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path>
                     </svg>
-                    <span class="nav-text">Sözleşme Karşılaştırma</span>
+                    <span class="nav-text">Araçlar</span>
                 </a>
+                <ul aria-expanded="false">
+                    @if($user->hasPermission('contract_compare', 'index'))
+                    <li @class(['mm-active' => request()->is('sozlesme-karsilastirma*')])>
+                        <a href="{{ route('contracts.index') }}">Sözleşme Karşılaştırma</a>
+                    </li>
+                    @endif
+                    @if($user->hasPermission('pdf_converter', 'index'))
+                    <li @class(['mm-active' => request()->is('pdf-donusturme*')])>
+                        <a href="{{ route('pdf-converter.index') }}">PDF → Word Çevirici</a>
+                    </li>
+                    @endif
+                    @if($user->hasPermission('pdf_merger', 'index'))
+                    <li @class(['mm-active' => request()->is('pdf-birlestirme*')])>
+                        <a href="{{ route('pdf-merger.index') }}">PDF Birleştirici</a>
+                    </li>
+                    @endif
+                </ul>
             </li>
             @endif
 
