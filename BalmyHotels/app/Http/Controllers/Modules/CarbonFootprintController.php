@@ -280,13 +280,33 @@ class CarbonFootprintController extends BaseModuleController
         $standards     = CarbonFootprintReport::STANDARDS;
         $generatedAt   = now()->format('d.m.Y H:i');
 
+        // Logo base64
+        $logoFile   = public_path('images/logo.png');
+        $logoBase64 = file_exists($logoFile)
+            ? 'data:image/png;base64,' . base64_encode(file_get_contents($logoFile))
+            : null;
+
+        // DomPDF font dizinlerini hazırla
+        $fontDir   = base_path('vendor/dompdf/dompdf/lib/fonts');
+        $fontCache = storage_path('fonts');
+        if (!is_dir($fontCache)) {
+            mkdir($fontCache, 0755, true);
+        }
+
         $pdf = Pdf::loadView('modules.carbon.pdf', compact(
             'carbon', 'scope1Entries', 'scope2Entries', 'scope3Entries',
             'scope1Total', 'scope2Total', 'scope3Total',
-            'categories', 'standards', 'generatedAt'
+            'categories', 'standards', 'generatedAt', 'logoBase64'
         ))
         ->setPaper('a4', 'portrait')
-        ->setOption(['defaultFont' => 'DejaVu Sans', 'isHtml5ParserEnabled' => true, 'isRemoteEnabled' => true]);
+        ->setOption([
+            'defaultFont'            => 'dejavu sans',
+            'isHtml5ParserEnabled'   => true,
+            'isRemoteEnabled'        => true,
+            'enable_font_subsetting' => true,
+            'fontDir'                => $fontDir,
+            'fontCache'              => $fontCache,
+        ]);
 
         $filename = 'karbon-raporu-' . $carbon->id . '-' . now()->format('Ymd') . '.pdf';
 

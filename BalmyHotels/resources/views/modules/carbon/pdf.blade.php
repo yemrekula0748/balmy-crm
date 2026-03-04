@@ -9,7 +9,8 @@
 body { font-family: DejaVu Sans, Arial, sans-serif; font-size:9pt; color:#2c3e50; background:#fff; }
 
 /* KAPAK SAYFASI */
-.cover-page { page-break-after:always; position:relative; }
+.cover-page { page-break-after:always; position:relative; height:841pt; }
+.cover-bottom { position:absolute; bottom:0; left:0; right:0; }
 .cover-header { background:linear-gradient(135deg, #1a3c2e 0%, #27ae60 60%, #2ecc71 100%); padding:50px 45px 35px; }
 .cover-logo-area { display:table; width:100%; margin-bottom:30px; }
 .cover-logo-left { display:table-cell; vertical-align:middle; }
@@ -21,11 +22,23 @@ body { font-family: DejaVu Sans, Arial, sans-serif; font-size:9pt; color:#2c3e50
 .report-main-title { font-size:26pt; font-weight:bold; color:#1a3c2e; line-height:1.2; margin-bottom:8px; }
 .report-subtitle { font-size:12pt; color:#555; margin-bottom:20px; }
 .cover-divider { height:4px; background:linear-gradient(90deg,#27ae60,#2ecc71,#f39c12); border-radius:2px; margin:20px 0; }
-.cover-meta-grid { display:table; width:100%; margin-top:20px; }
-.cover-meta-cell { display:table-cell; width:33%; vertical-align:top; padding:0 10px 0 0; }
-.cover-meta-cell:first-child { padding-left:0; }
-.cover-meta-label { font-size:7pt; text-transform:uppercase; letter-spacing:1px; color:#888; margin-bottom:3px; }
-.cover-meta-value { font-size:10pt; font-weight:bold; color:#1a3c2e; }
+/* META INFO TABLE */
+.meta-info-table { width:100%; border-collapse:collapse; margin-top:22px; }
+.mni-cell { padding:16px 18px; border:1px solid #c8e6d4; vertical-align:top; }
+.mni-cell.period { border-left:4px solid #2980b9; width:29%; }
+.mni-cell.branch { border-left:4px solid #8e44ad; width:25%; }
+.mni-cell.status { border-left:4px solid #27ae60; width:20%; }
+.mni-cell.emission { border:1px solid #1a3c2e; border-left:4px solid #f39c12; background:#1a3c2e; width:26%; text-align:center; }
+.mni-label { font-size:6.5pt; text-transform:uppercase; letter-spacing:1.2px; color:#888; margin-bottom:6px; font-weight:bold; }
+.mni-label-light { font-size:6.5pt; text-transform:uppercase; letter-spacing:1.2px; color:rgba(255,255,255,0.6); margin-bottom:6px; font-weight:bold; }
+.mni-value { font-size:11pt; font-weight:bold; color:#1a3c2e; line-height:1.3; }
+.mni-sub { font-size:8.5pt; color:#777; margin-top:3px; }
+.mni-value-hero { font-size:22pt; font-weight:900; color:#f1c40f; margin-top:6px; line-height:1; }
+.mni-unit-hero { font-size:9pt; color:rgba(255,255,255,0.75); margin-top:4px; font-weight:bold; letter-spacing:0.5px; }
+.mni-status-badge { display:inline-block; padding:4px 12px; font-size:9.5pt; font-weight:900; letter-spacing:0.5px; border-radius:3px; }
+.mni-status-final { background:#d4efdf; color:#1a6b3c; }
+.mni-status-draft { background:#fef9e7; color:#b7770d; }
+.mni-status-verified { background:#d5eaff; color:#1a4a8a; }
 
 /* STANDART ROZETLER */
 .standards-strip { background:#f8fffe; border:1px solid #d4efdf; padding:15px 45px; border-radius:0; }
@@ -129,6 +142,16 @@ body { font-family: DejaVu Sans, Arial, sans-serif; font-size:9pt; color:#2c3e50
 </style>
 </head>
 <body>
+@php
+    $trAylar = [
+        'January'=>'Ocak','February'=>'Şubat','March'=>'Mart',
+        'April'=>'Nisan','May'=>'Mayıs','June'=>'Haziran',
+        'July'=>'Temmuz','August'=>'Ağustos','September'=>'Eylül',
+        'October'=>'Ekim','November'=>'Kasım','December'=>'Aralık',
+    ];
+    $formatTr = fn($d) => $d->format('d') . ' ' . ($trAylar[$d->format('F')] ?? $d->format('F')) . ' ' . $d->format('Y');
+    // $logoBase64 controller'dan geliyor
+@endphp
 
 <!-- ================================================================
      KAPAK SAYFASI
@@ -138,8 +161,12 @@ body { font-family: DejaVu Sans, Arial, sans-serif; font-size:9pt; color:#2c3e50
     <div class="cover-header">
         <div class="cover-logo-area">
             <div class="cover-logo-left">
+                @if($logoBase64)
+                <img src="{{ $logoBase64 }}" alt="Balmy Hotels" style="max-height:80px;max-width:240px;display:block;">
+                @else
                 <div class="hotel-name">BALMY HOTELS</div>
-                <div class="hotel-sub">Sürdürülebilirlik & Çevre Yönetimi</div>
+                @endif
+                <div class="hotel-sub">Sürdürülebilirlik &amp; Çevre Yönetimi</div>
             </div>
             <div class="cover-logo-right">
                 <span class="report-type-badge">
@@ -165,56 +192,63 @@ body { font-family: DejaVu Sans, Arial, sans-serif; font-size:9pt; color:#2c3e50
         <div class="report-subtitle">{{ $carbon->title }}</div>
         <div class="cover-divider"></div>
 
-        <div class="cover-meta-grid">
-            <div class="cover-meta-cell">
-                <div class="cover-meta-label">Raporlama Dönemi</div>
-                <div class="cover-meta-value">{{ $carbon->period_start->format('d M Y') }}</div>
-                <div style="font-size:8pt;color:#888;">— {{ $carbon->period_end->format('d M Y') }}</div>
-            </div>
-            <div class="cover-meta-cell">
-                <div class="cover-meta-label">Şube / Tesis</div>
-                <div class="cover-meta-value">{{ $carbon->branch?->name ?? 'Tüm Otel' }}</div>
-            </div>
-            <div class="cover-meta-cell">
-                <div class="cover-meta-label">Rapor Durumu</div>
-                <div class="cover-meta-value" style="color:{{ $carbon->status === 'final' || $carbon->status === 'verified' ? '#27ae60' : '#e67e22' }}">
-                    {{ strtoupper(match($carbon->status) { 'draft' => 'TASLAK', 'final' => 'FİNAL', 'verified' => 'DOĞRULANMIŞ', default => $carbon->status }) }}
-                </div>
-            </div>
-            <div class="cover-meta-cell" style="width:auto">
-                <div class="cover-meta-label">Toplam Emisyon</div>
-                <div class="cover-meta-value" style="color:#c0392b;font-size:14pt;">{{ number_format($carbon->total_co2_total/1000, 3) }} tCO₂e</div>
-            </div>
-        </div>
+        <table class="meta-info-table" cellspacing="0" cellpadding="0">
+            <tr>
+                <td class="mni-cell period">
+                    <div class="mni-label">Raporlama D&ouml;nemi</div>
+                    <div class="mni-value">{{ $formatTr($carbon->period_start) }}</div>
+                    <div class="mni-sub">&mdash;&nbsp;{{ $formatTr($carbon->period_end) }}</div>
+                </td>
+                <td class="mni-cell branch">
+                    <div class="mni-label">&Scaron;ube / Tesis</div>
+                    <div class="mni-value">{{ $carbon->branch?->name ?? 'T&uuml;m Otel' }}</div>
+                </td>
+                <td class="mni-cell status">
+                    <div class="mni-label">Rapor Durumu</div>
+                    <div style="margin-top:8px;">
+                        <span class="mni-status-badge {{ $carbon->status === 'final' ? 'mni-status-final' : ($carbon->status === 'verified' ? 'mni-status-verified' : 'mni-status-draft') }}">
+                            {{ strtoupper(match($carbon->status) { 'draft' => 'TASLAK', 'final' => 'FİNAL', 'verified' => 'DOĞRULANMIŞ', default => $carbon->status }) }}
+                        </span>
+                    </div>
+                </td>
+                <td class="mni-cell emission">
+                    <div class="mni-label-light">Toplam Emisyon</div>
+                    <div class="mni-value-hero">{{ number_format($carbon->total_co2_total/1000, 3) }}</div>
+                    <div class="mni-unit-hero">tCO&#8322;e</div>
+                </td>
+            </tr>
+        </table>
     </div>
 
-    {{-- Standartlar Şeridi --}}
-    @if($carbon->standards_applied && count($carbon->standards_applied))
-    <div class="standards-strip">
-        <div style="font-size:7pt;color:#888;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">Uygulanan Standartlar & Çerçeveler</div>
-        <div class="std-table">
-            @foreach(array_chunk($carbon->standards_applied, 6) as $chunk)
-            <div>
-                @foreach($chunk as $s)
-                <span class="std-badge-pdf">✓ {{ $s }}</span>&nbsp;
+    <div class="cover-bottom">
+        {{-- Standartlar Şeridi --}}
+        @if($carbon->standards_applied && count($carbon->standards_applied))
+        <div class="standards-strip">
+            <div style="font-size:7pt;color:#888;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">Uygulanan Standartlar &amp; Çerçeveler</div>
+            <div class="std-table">
+                @foreach(array_chunk($carbon->standards_applied, 6) as $chunk)
+                <div>
+                    @foreach($chunk as $s)
+                    <span class="std-badge-pdf">✓ {{ $s }}</span>&nbsp;
+                    @endforeach
+                </div>
                 @endforeach
             </div>
-            @endforeach
         </div>
-    </div>
-    @endif
+        @endif
 
-    <div style="padding:20px 45px 10px; border-top:1px solid #ecf0f1; margin-top:auto;">
-        <div style="display:table;width:100%;">
-            <div style="display:table-cell;font-size:7.5pt;color:#888;">
-                Hazırlayan: <strong>{{ $carbon->user->name ?? '—' }}</strong> &nbsp;|&nbsp;
-                Hazırlanma Tarihi: <strong>{{ $generatedAt }}</strong>
-                @if($carbon->finalized_at)
-                &nbsp;|&nbsp; Finalize: <strong>{{ $carbon->finalized_at->format('d.m.Y') }}</strong>
-                @endif
-            </div>
-            <div style="display:table-cell;text-align:right;font-size:7pt;color:#aaa;">
-                GHG Protocol · ISO 14064-1:2018 · HCMI
+        <div style="padding:14px 45px 14px; border-top:1px solid #ecf0f1;">
+            <div style="display:table;width:100%;">
+                <div style="display:table-cell;font-size:7.5pt;color:#888;">
+                    Hazırlayan: <strong>{{ $carbon->user->name ?? '—' }}</strong> &nbsp;|&nbsp;
+                    Hazırlanma Tarihi: <strong>{{ $generatedAt }}</strong>
+                    @if($carbon->finalized_at)
+                    &nbsp;|&nbsp; Finalize: <strong>{{ $carbon->finalized_at->format('d.m.Y') }}</strong>
+                    @endif
+                </div>
+                <div style="display:table-cell;text-align:right;font-size:7pt;color:#aaa;">
+                    GHG Protocol · ISO 14064-1:2018 · HCMI
+                </div>
             </div>
         </div>
     </div>
