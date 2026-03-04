@@ -286,7 +286,7 @@ class CarbonFootprintController extends BaseModuleController
             'categories', 'standards', 'generatedAt'
         ))
         ->setPaper('a4', 'portrait')
-        ->setOption(['defaultFont' => 'sans-serif', 'isHtml5ParserEnabled' => true, 'isRemoteEnabled' => true]);
+        ->setOption(['defaultFont' => 'DejaVu Sans', 'isHtml5ParserEnabled' => true, 'isRemoteEnabled' => true]);
 
         $filename = 'karbon-raporu-' . $carbon->id . '-' . now()->format('Ymd') . '.pdf';
 

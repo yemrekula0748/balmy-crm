@@ -2,7 +2,8 @@
 <html lang="tr">
 <head>
 <meta charset="UTF-8">
-<title>{{ $carbon->title }} — Karbon Ayak İzi Raporu</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <title>{{ $carbon->title }} — Karbon Ayak İzi Raporu</title>
 <style>
 * { margin:0; padding:0; box-sizing:border-box; }
 body { font-family: DejaVu Sans, Arial, sans-serif; font-size:9pt; color:#2c3e50; background:#fff; }

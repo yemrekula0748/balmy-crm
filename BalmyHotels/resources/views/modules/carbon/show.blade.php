@@ -82,105 +82,272 @@
     {{-- ============================================================
          ÜST METRİK KARTLARI
     ============================================================ --}}
+    @php
+        $metTotal      = max(1, $carbon->total_co2_total);
+        $metPct1       = round($carbon->total_co2_scope1 / $metTotal * 100, 1);
+        $metPct2       = round($carbon->total_co2_scope2 / $metTotal * 100, 1);
+        $metPct3       = round($carbon->total_co2_scope3 / $metTotal * 100, 1);
+        $metRatingLabels = ['A+'=>'Mükemmel','A'=>'Çok İyi','B'=>'İyi','C'=>'Ortalama','D'=>'Zayıf','E'=>'Yetersiz'];
+        $metRatingScale  = ['A+'=>'#1a6b3c','A'=>'#27ae60','B'=>'#f39c12','C'=>'#e67e22','D'=>'#e74c3c','E'=>'#8e44ad'];
+        $avgSector     = 30; // kg/oda-gece sektör ortalaması
+        $perRoomMet    = $carbon->co2_per_room_night;
+        $vsSector      = $perRoomMet > 0 ? round(($perRoomMet - $avgSector) / $avgSector * 100, 1) : null;
+        $rnColor       = $perRoomMet > 0 ? ($perRoomMet < 15 ? '#27ae60' : ($perRoomMet < 40 ? '#e67e22' : '#e74c3c')) : '#3498db';
+    @endphp
     <div class="row g-3 mb-4">
-        {{-- Toplam CO2 --}}
+
+        {{-- Kart 1: Toplam CO2 --}}
         <div class="col-md-3">
-            <div class="card h-100 shadow-sm">
-                <div class="metric-card" style="background:linear-gradient(135deg,#e74c3c,#c0392b);color:#fff">
-                    <div class="metric-value">{{ number_format($carbon->total_co2_total/1000, 2) }}</div>
-                    <div class="metric-label">tCO₂e Toplam Emisyon</div>
-                    <div style="font-size:.75rem;opacity:.85;margin-top:4px">{{ number_format($carbon->total_co2_total, 0) }} kgCO₂e</div>
+            <div class="card h-100 shadow-sm border-0" style="border-top:4px solid #e74c3c!important;">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <div>
+                            <div class="fw-semibold text-uppercase" style="font-size:.68rem;color:#999;letter-spacing:.06em">Toplam Karbon Ayak İzi</div>
+                            <div class="text-muted" style="font-size:.7rem">Scope 1 + 2 + 3</div>
+                        </div>
+                        <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0" style="width:38px;height:38px;background:#fdecea;">
+                            <i class="fas fa-smog" style="color:#e74c3c;font-size:.95rem"></i>
+                        </div>
+                    </div>
+                    <div style="line-height:1.05">
+                        <span style="font-size:2.1rem;font-weight:800;color:#2c3e50">{{ number_format($carbon->total_co2_total/1000, 2) }}</span>
+                        <span class="text-muted ms-1" style="font-size:.9rem">tCO₂e</span>
+                    </div>
+                    <div class="text-muted mt-1" style="font-size:.73rem">{{ number_format($carbon->total_co2_total, 0) }} kgCO₂e toplam</div>
+                    <div class="mt-3">
+                        <div class="d-flex justify-content-between mb-1" style="font-size:.67rem;color:#bbb">
+                            <span><span style="color:#e74c3c">●</span> S1 {{ $metPct1 }}%</span>
+                            <span><span style="color:#f39c12">●</span> S2 {{ $metPct2 }}%</span>
+                            <span><span style="color:#27ae60">●</span> S3 {{ $metPct3 }}%</span>
+                        </div>
+                        <div style="height:7px;border-radius:99px;overflow:hidden;display:flex;background:#f0f0f0">
+                            @if($metPct1 > 0)<div style="width:{{ $metPct1 }}%;background:#e74c3c"></div>@endif
+                            @if($metPct2 > 0)<div style="width:{{ $metPct2 }}%;background:#f39c12"></div>@endif
+                            @if($metPct3 > 0)<div style="width:{{ $metPct3 }}%;background:#27ae60"></div>@endif
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
-        {{-- Per Room Night --}}
+
+        {{-- Kart 2: kgCO₂e / Oda-Gece --}}
         <div class="col-md-3">
-            <div class="card h-100 shadow-sm">
-                <div class="metric-card" style="background:linear-gradient(135deg,#e67e22,#d35400);color:#fff">
-                    <div class="metric-value">{{ number_format($carbon->co2_per_room_night, 2) }}</div>
-                    <div class="metric-label">kgCO₂e / Oda-Gece</div>
-                    <div style="font-size:.75rem;opacity:.85;margin-top:4px">HCMI Referans Metriği</div>
-                </div>
-            </div>
-        </div>
-        {{-- Per Guest --}}
-        <div class="col-md-3">
-            <div class="card h-100 shadow-sm">
-                <div class="metric-card" style="background:linear-gradient(135deg,#3498db,#2980b9);color:#fff">
-                    <div class="metric-value">{{ number_format($carbon->co2_per_guest, 2) }}</div>
-                    <div class="metric-label">kgCO₂e / Misafir</div>
-                    <div style="font-size:.75rem;opacity:.85;margin-top:4px">{{ $carbon->total_guests }} misafir</div>
-                </div>
-            </div>
-        </div>
-        {{-- HCMI Score --}}
-        <div class="col-md-3">
-            <div class="card h-100 shadow-sm">
-                <div class="card-body d-flex align-items-center justify-content-center flex-column gap-2">
-                    @if($carbon->hcmi_rating)
-                        <div class="hcmi-gauge" style="border-color:{{ $carbon->rating_color }};color:{{ $carbon->rating_color }};background:{{ $carbon->rating_color }}18">
-                            <div style="font-size:1.8rem;line-height:1">{{ $carbon->hcmi_rating }}</div>
-                            <div style="font-size:.7rem;font-weight:400">{{ number_format($carbon->hcmi_score, 0) }}p</div>
+            <div class="card h-100 shadow-sm border-0" style="border-top:4px solid {{ $rnColor }}!important;">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <div>
+                            <div class="fw-semibold text-uppercase" style="font-size:.68rem;color:#999;letter-spacing:.06em">Oda-Gece Başına</div>
+                            <div class="text-muted" style="font-size:.7rem">HCMI Ana Metriği</div>
                         </div>
-                        <div class="text-center">
-                            <div class="fw-bold" style="color:{{ $carbon->rating_color }}">HCMI Rating</div>
-                            <div class="text-muted small">Hotel Carbon Measurement Initiative</div>
+                        <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0" style="width:38px;height:38px;background:{{ $rnColor }}18;">
+                            <i class="fas fa-bed" style="color:{{ $rnColor }};font-size:.95rem"></i>
                         </div>
-                    @else
-                        <div class="text-muted text-center">
-                            <i class="fas fa-chart-pie fa-2x mb-2"></i><br>
-                            Oda-gece verisi girince hesaplanır
-                        </div>
+                    </div>
+                    <div style="line-height:1.05">
+                        <span style="font-size:2.1rem;font-weight:800;color:{{ $rnColor }}">{{ number_format($perRoomMet, 2) }}</span>
+                        <span class="text-muted ms-1" style="font-size:.9rem">kgCO₂e</span>
+                    </div>
+                    <div class="text-muted mt-1" style="font-size:.73rem">{{ number_format($carbon->occupied_rooms) }} satılan oda-gece</div>
+                    @if($vsSector !== null)
+                    <div class="mt-3 p-2 rounded d-flex align-items-center gap-1" style="background:{{ $perRoomMet < $avgSector ? '#e8f5e9' : '#fdecea' }};font-size:.72rem">
+                        <i class="fas fa-arrow-{{ $perRoomMet < $avgSector ? 'down' : 'up' }}" style="color:{{ $perRoomMet < $avgSector ? '#1a6b3c' : '#c0392b' }}"></i>
+                        <span>Sektör ort. ({{ $avgSector }} kg): <strong style="color:{{ $perRoomMet < $avgSector ? '#1a6b3c' : '#c0392b' }}">{{ $perRoomMet < $avgSector ? '-' : '+' }}{{ abs($vsSector) }}%</strong></span>
+                    </div>
                     @endif
                 </div>
             </div>
         </div>
+
+        {{-- Kart 3: kgCO₂e / Misafir --}}
+        <div class="col-md-3">
+            <div class="card h-100 shadow-sm border-0" style="border-top:4px solid #3498db!important;">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <div>
+                            <div class="fw-semibold text-uppercase" style="font-size:.68rem;color:#999;letter-spacing:.06em">Misafir Başına</div>
+                            <div class="text-muted" style="font-size:.7rem">GRI 305 / CSRD</div>
+                        </div>
+                        <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0" style="width:38px;height:38px;background:#e8f4fd;">
+                            <i class="fas fa-user" style="color:#3498db;font-size:.95rem"></i>
+                        </div>
+                    </div>
+                    <div style="line-height:1.05">
+                        <span style="font-size:2.1rem;font-weight:800;color:#2980b9">{{ number_format($carbon->co2_per_guest, 2) }}</span>
+                        <span class="text-muted ms-1" style="font-size:.9rem">kgCO₂e</span>
+                    </div>
+                    <div class="text-muted mt-1" style="font-size:.73rem">{{ number_format($carbon->total_guests) }} misafir</div>
+                    <div class="mt-3 d-flex gap-2" style="font-size:.72rem">
+                        <div class="p-2 rounded flex-fill text-center" style="background:#f0f8ff;border:1px solid #c5e3f7">
+                            <div class="text-muted">m²</div>
+                            <div class="fw-bold" style="color:#2980b9">{{ number_format($carbon->co2_per_sqm, 2) }} kg</div>
+                        </div>
+                        <div class="p-2 rounded flex-fill text-center" style="background:#f0f8ff;border:1px solid #c5e3f7">
+                            <div class="text-muted">Personel</div>
+                            <div class="fw-bold" style="color:#2980b9">{{ number_format($carbon->co2_per_staff, 2) }} kg</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {{-- Kart 4: HCMI Rating — Tam Skala (A+ → E) --}}
+        <div class="col-md-3">
+            <div class="card h-100 shadow-sm border-0" style="border-top:4px solid {{ $carbon->rating_color ?? '#888' }}!important;">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <div>
+                            <div class="fw-semibold text-uppercase" style="font-size:.68rem;color:#999;letter-spacing:.06em">HCMI Performans</div>
+                            <div class="text-muted" style="font-size:.7rem">Hotel Carbon Measurement</div>
+                        </div>
+                        @if($carbon->hcmi_rating)
+                        <div class="fw-bold rounded d-flex align-items-center justify-content-center flex-shrink-0"
+                             style="width:38px;height:38px;background:{{ $carbon->rating_color }}20;color:{{ $carbon->rating_color }};font-size:1.25rem;border:2px solid {{ $carbon->rating_color }}">
+                            {{ $carbon->hcmi_rating }}
+                        </div>
+                        @endif
+                    </div>
+                    @if($carbon->hcmi_rating)
+                    {{-- Tam performans skalası: A+ → E --}}
+                    <div class="d-flex gap-1 mb-1">
+                        @foreach($metRatingScale as $rl => $rc)
+                        @php $isCur = ($carbon->hcmi_rating === $rl); @endphp
+                        <div class="flex-fill text-center rounded fw-bold"
+                             style="padding:4px 2px;background:{{ $isCur ? $rc : '#f5f5f5' }};color:{{ $isCur ? '#fff' : '#bbb' }};font-size:.75rem;border:1.5px solid {{ $isCur ? $rc : '#e9ecef' }};{{ $isCur ? 'box-shadow:0 2px 5px '.$rc.'44' : '' }}">
+                            {{ $rl }}
+                        </div>
+                        @endforeach
+                    </div>
+                    <div class="d-flex justify-content-between px-1 mb-2" style="font-size:.6rem;color:#ccc">
+                        <span>En İyi</span><span>En Kötü</span>
+                    </div>
+                    <div class="text-center">
+                        <div class="fw-bold" style="color:{{ $carbon->rating_color }};font-size:.95rem">{{ $metRatingLabels[$carbon->hcmi_rating] ?? '' }}</div>
+                        <div class="text-muted" style="font-size:.7rem">Skor: {{ number_format($carbon->hcmi_score, 0) }}/100 &nbsp;·&nbsp; {{ number_format($perRoomMet, 1) }} kg/oda-gece</div>
+                    </div>
+                    @else
+                    <div class="text-muted text-center pt-2">
+                        <i class="fas fa-calculator fa-2x mb-2 d-block"></i>
+                        <span style="font-size:.82rem">Oda-gece verisi girilince hesaplanır</span>
+                    </div>
+                    @endif
+                </div>
+            </div>
+        </div>
+
     </div>
 
     {{-- ============================================================
          SCOPE DAĞILIMI
     ============================================================ --}}
+    @php
+        $sdTotal  = max(1, $carbon->total_co2_total);
+        $pct1     = round($carbon->total_co2_scope1 / $sdTotal * 100, 1);
+        $pct2     = round($carbon->total_co2_scope2 / $sdTotal * 100, 1);
+        $pct3     = round($carbon->total_co2_scope3 / $sdTotal * 100, 1);
+
+        // En yüksek kategori her scope için
+        $allCatsDefs  = \App\Models\CarbonFootprintReport::CATEGORIES;
+        $top1    = $scope1Entries->where('co2_kg', '>', 0)->sortByDesc('co2_kg')->first();
+        $top2    = $scope2Entries->where('co2_kg', '>', 0)->sortByDesc('co2_kg')->first();
+        $top3e   = $scope3Entries->where('co2_kg', '>', 0)->sortByDesc('co2_kg');
+        $top3a   = $top3e->first();
+        $top3b   = $top3e->skip(1)->first();
+
+        $top1Label = $top1 ? ($allCatsDefs['scope1'][$top1->category]['label'] ?? $top1->category) : null;
+        $top2Label = $top2 ? ($allCatsDefs['scope2'][$top2->category]['label'] ?? $top2->category) : null;
+        $top3aLabel = $top3a ? ($allCatsDefs['scope3'][$top3a->category]['label'] ?? $top3a->category) : null;
+        $top3bLabel = $top3b ? ($allCatsDefs['scope3'][$top3b->category]['label'] ?? $top3b->category) : null;
+    @endphp
     <div class="row g-3 mb-4">
         <div class="col-md-8">
             <div class="card shadow-sm h-100">
-                <div class="card-header py-3">
+                <div class="card-header py-2 d-flex align-items-center gap-2">
                     <h6 class="mb-0 fw-bold">GHG Protocol — Scope Dağılımı</h6>
+                    <span class="text-muted ms-auto" style="font-size:.75rem">Toplam: {{ number_format($carbon->total_co2_total/1000, 2) }} tCO₂e</span>
                 </div>
                 <div class="card-body">
-                    @php
-                        $total = max(1, $carbon->total_co2_total);
-                        $pct1  = round($carbon->total_co2_scope1 / $total * 100, 1);
-                        $pct2  = round($carbon->total_co2_scope2 / $total * 100, 1);
-                        $pct3  = round($carbon->total_co2_scope3 / $total * 100, 1);
-                    @endphp
-                    <div class="scope-bar-wrap mb-3" style="height:32px;">
-                        @if($pct1 > 0) <div class="scope-bar-1" style="width:{{ $pct1 }}%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:.8rem;font-weight:700">{{ $pct1 }}%</div> @endif
-                        @if($pct2 > 0) <div class="scope-bar-2" style="width:{{ $pct2 }}%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:.8rem;font-weight:700">{{ $pct2 }}%</div> @endif
-                        @if($pct3 > 0) <div class="scope-bar-3" style="width:{{ $pct3 }}%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:.8rem;font-weight:700">{{ $pct3 }}%</div> @endif
+                    {{-- Stacked bar --}}
+                    <div class="mb-1" style="font-size:.72rem;color:#aaa">
+                        Emisyon dağılımı (Scope 1 + 2 + 3 = %100)
+                    </div>
+                    <div class="scope-bar-wrap mb-1" style="height:28px;border-radius:6px;">
+                        @if($pct1 > 0)<div class="scope-bar-1" style="width:{{ $pct1 }}%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:.8rem;font-weight:700">{{ $pct1 > 6 ? $pct1.'%' : '' }}</div>@endif
+                        @if($pct2 > 0)<div class="scope-bar-2" style="width:{{ $pct2 }}%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:.8rem;font-weight:700">{{ $pct2 > 6 ? $pct2.'%' : '' }}</div>@endif
+                        @if($pct3 > 0)<div class="scope-bar-3" style="width:{{ $pct3 }}%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:.8rem;font-weight:700">{{ $pct3 > 6 ? $pct3.'%' : '' }}</div>@endif
+                    </div>
+                    <div class="d-flex gap-3 mb-3" style="font-size:.72rem;color:#888">
+                        <span><span style="color:#e74c3c">■</span> Scope 1 — {{ $pct1 }}%</span>
+                        <span><span style="color:#f39c12">■</span> Scope 2 — {{ $pct2 }}%</span>
+                        <span><span style="color:#27ae60">■</span> Scope 3 — {{ $pct3 }}%</span>
                     </div>
                     <div class="row g-3">
+                        {{-- Scope 1 --}}
                         <div class="col-md-4">
-                            <div class="p-3 rounded" style="background:#ffeaea;border-left:4px solid #e74c3c">
-                                <div class="fw-bold text-danger">Scope 1 — Doğrudan</div>
-                                <div class="fs-5 fw-bold">{{ number_format($carbon->total_co2_scope1/1000, 3) }} tCO₂e</div>
-                                <div class="text-muted small">{{ number_format($carbon->total_co2_scope1, 1) }} kg | %{{ $pct1 }}</div>
-                                <div class="text-muted" style="font-size:.72rem;margin-top:4px">Yakıt + Soğutucu gazlar</div>
+                            <div class="p-3 rounded h-100" style="background:#ffeaea;border-left:4px solid #e74c3c">
+                                <div class="d-flex justify-content-between align-items-start mb-1">
+                                    <div class="fw-bold text-danger" style="font-size:.85rem">Scope 1 — Doğrudan</div>
+                                    <span class="badge" style="background:#e74c3c;font-size:.7rem">{{ $pct1 }}%</span>
+                                </div>
+                                <div class="fw-bold" style="font-size:1.25rem;color:#c0392b">{{ number_format($carbon->total_co2_scope1/1000, 3) }} <span style="font-size:.8rem;font-weight:400">tCO₂e</span></div>
+                                <div class="text-muted" style="font-size:.72rem">{{ number_format($carbon->total_co2_scope1, 0) }} kgCO₂e</div>
+                                <hr class="my-2">
+                                <div style="font-size:.72rem;color:#888">
+                                    <i class="fas fa-fire-alt me-1" style="color:#e74c3c"></i>Yakıt yanması & soğutucu gaz kaçakları
+                                </div>
+                                @if($top1)
+                                <div class="mt-2 p-1 rounded" style="background:#fff0f0;font-size:.71rem">
+                                    <span class="text-danger fw-semibold">↑ En yüksek:</span>
+                                    {{ Str::limit($top1Label, 28) }}<br>
+                                    <span class="fw-bold">{{ number_format($top1->co2_kg, 1) }} kg</span>
+                                </div>
+                                @endif
                             </div>
                         </div>
+                        {{-- Scope 2 --}}
                         <div class="col-md-4">
-                            <div class="p-3 rounded" style="background:#fff8e1;border-left:4px solid #f39c12">
-                                <div class="fw-bold" style="color:#b7770d">Scope 2 — Enerji</div>
-                                <div class="fs-5 fw-bold">{{ number_format($carbon->total_co2_scope2/1000, 3) }} tCO₂e</div>
-                                <div class="text-muted small">{{ number_format($carbon->total_co2_scope2, 1) }} kg | %{{ $pct2 }}</div>
-                                <div class="text-muted" style="font-size:.72rem;margin-top:4px">Satın alınan elektrik/ısı</div>
+                            <div class="p-3 rounded h-100" style="background:#fff8e1;border-left:4px solid #f39c12">
+                                <div class="d-flex justify-content-between align-items-start mb-1">
+                                    <div class="fw-bold" style="color:#b7770d;font-size:.85rem">Scope 2 — Enerji</div>
+                                    <span class="badge" style="background:#f39c12;font-size:.7rem">{{ $pct2 }}%</span>
+                                </div>
+                                <div class="fw-bold" style="font-size:1.25rem;color:#b7770d">{{ number_format($carbon->total_co2_scope2/1000, 3) }} <span style="font-size:.8rem;font-weight:400">tCO₂e</span></div>
+                                <div class="text-muted" style="font-size:.72rem">{{ number_format($carbon->total_co2_scope2, 0) }} kgCO₂e</div>
+                                <hr class="my-2">
+                                <div style="font-size:.72rem;color:#888">
+                                    <i class="fas fa-bolt me-1" style="color:#f39c12"></i>Satın alınan elektrik & ısı/soğutma
+                                </div>
+                                @if($top2)
+                                <div class="mt-2 p-1 rounded" style="background:#fffbf0;font-size:.71rem">
+                                    <span style="color:#b7770d" class="fw-semibold">↑ En yüksek:</span>
+                                    {{ Str::limit($top2Label, 28) }}<br>
+                                    <span class="fw-bold">{{ number_format($top2->co2_kg, 1) }} kg</span>
+                                </div>
+                                @endif
                             </div>
                         </div>
+                        {{-- Scope 3 --}}
                         <div class="col-md-4">
-                            <div class="p-3 rounded" style="background:#e8f5e9;border-left:4px solid #27ae60">
-                                <div class="fw-bold text-success">Scope 3 — Değer Zinciri</div>
-                                <div class="fs-5 fw-bold">{{ number_format($carbon->total_co2_scope3/1000, 3) }} tCO₂e</div>
-                                <div class="text-muted small">{{ number_format($carbon->total_co2_scope3, 1) }} kg | %{{ $pct3 }}</div>
-                                <div class="text-muted" style="font-size:.72rem;margin-top:4px">Su, atık, gıda, ulaşım</div>
+                            <div class="p-3 rounded h-100" style="background:#e8f5e9;border-left:4px solid #27ae60">
+                                <div class="d-flex justify-content-between align-items-start mb-1">
+                                    <div class="fw-bold text-success" style="font-size:.85rem">Scope 3 — Değer Zinciri</div>
+                                    <span class="badge" style="background:#27ae60;font-size:.7rem">{{ $pct3 }}%</span>
+                                </div>
+                                <div class="fw-bold" style="font-size:1.25rem;color:#1a6b3c">{{ number_format($carbon->total_co2_scope3/1000, 3) }} <span style="font-size:.8rem;font-weight:400">tCO₂e</span></div>
+                                <div class="text-muted" style="font-size:.72rem">{{ number_format($carbon->total_co2_scope3, 0) }} kgCO₂e</div>
+                                <hr class="my-2">
+                                <div style="font-size:.72rem;color:#888">
+                                    <i class="fas fa-recycle me-1" style="color:#27ae60"></i>Su, atık, gıda, ulaşım, tedarik
+                                </div>
+                                @if($top3a)
+                                <div class="mt-2 p-1 rounded" style="background:#f0fff4;font-size:.71rem">
+                                    <span class="text-success fw-semibold">↑ En yüksek:</span>
+                                    {{ Str::limit($top3aLabel, 28) }} — <span class="fw-bold">{{ number_format($top3a->co2_kg, 1) }} kg</span>
+                                    @if($top3b)
+                                    <br><span class="text-success fw-semibold">↑ 2. sıra:</span>
+                                    {{ Str::limit($top3bLabel, 28) }} — <span class="fw-bold">{{ number_format($top3b->co2_kg, 1) }} kg</span>
+                                    @endif
+                                </div>
+                                @endif
                             </div>
                         </div>
                     </div>
@@ -191,46 +358,136 @@
         {{-- Yoğunluk Metrikleri --}}
         <div class="col-md-4">
             <div class="card shadow-sm h-100">
-                <div class="card-header py-3">
+                <div class="card-header py-2">
                     <h6 class="mb-0 fw-bold">Yoğunluk Metrikleri</h6>
                 </div>
-                <div class="card-body">
-                    <table class="table table-sm">
+                <div class="card-body p-0">
+                    <table class="table table-sm mb-0">
                         <tbody>
                             <tr>
-                                <td class="text-muted small">Oda-Gece Başına</td>
-                                <td class="fw-bold text-end">{{ number_format($carbon->co2_per_room_night, 3) }} kg</td>
+                                <td class="text-muted small ps-3">kgCO₂e / Oda-Gece</td>
+                                <td class="fw-bold text-end pe-3" style="color:{{ $rnColor }}">{{ number_format($carbon->co2_per_room_night, 2) }}</td>
                             </tr>
                             <tr>
-                                <td class="text-muted small">Misafir Başına</td>
-                                <td class="fw-bold text-end">{{ number_format($carbon->co2_per_guest, 3) }} kg</td>
+                                <td class="text-muted small ps-3">kgCO₂e / Misafir</td>
+                                <td class="fw-bold text-end pe-3">{{ number_format($carbon->co2_per_guest, 2) }}</td>
                             </tr>
                             <tr>
-                                <td class="text-muted small">m² Başına</td>
-                                <td class="fw-bold text-end">{{ number_format($carbon->co2_per_sqm, 3) }} kg</td>
+                                <td class="text-muted small ps-3">kgCO₂e / m²</td>
+                                <td class="fw-bold text-end pe-3">{{ number_format($carbon->co2_per_sqm, 3) }}</td>
                             </tr>
                             <tr>
-                                <td class="text-muted small">Personel Başına</td>
-                                <td class="fw-bold text-end">{{ number_format($carbon->co2_per_staff, 3) }} kg</td>
+                                <td class="text-muted small ps-3">kgCO₂e / Personel</td>
+                                <td class="fw-bold text-end pe-3">{{ number_format($carbon->co2_per_staff, 2) }}</td>
                             </tr>
                             <tr class="table-light">
-                                <td class="text-muted small">Su Yoğunluğu</td>
-                                <td class="fw-bold text-end">{{ number_format($carbon->water_intensity, 3) }} m³/oda</td>
+                                <td class="text-muted small ps-3">Su (m³/oda-gece)</td>
+                                <td class="fw-bold text-end pe-3">{{ number_format($carbon->water_intensity, 3) }}</td>
                             </tr>
                             <tr>
-                                <td class="text-muted small">Yenilenebilir Enerji</td>
-                                <td class="fw-bold text-end text-success">%{{ number_format($carbon->renewable_energy_pct, 1) }}</td>
+                                <td class="text-muted small ps-3">Yenilenebilir Enerji</td>
+                                <td class="fw-bold text-end pe-3 text-success">%{{ number_format($carbon->renewable_energy_pct, 1) }}</td>
                             </tr>
                             <tr>
-                                <td class="text-muted small">Atık Geri Dönüşüm</td>
-                                <td class="fw-bold text-end">%{{ number_format($carbon->waste_recycling_rate, 1) }}</td>
+                                <td class="text-muted small ps-3">Atık Geri Dönüşüm</td>
+                                <td class="fw-bold text-end pe-3">%{{ number_format($carbon->waste_recycling_rate, 1) }}</td>
                             </tr>
                         </tbody>
                     </table>
+                    {{-- Kısa benchmark referansı --}}
+                    <div class="px-3 py-2" style="background:#f8f9fa;border-top:1px solid #eee;font-size:.72rem;color:#888">
+                        <strong>Sektör Referansları (HCMI 2023):</strong><br>
+                        A+ ≤5 kg &nbsp;·&nbsp; A 5–15 &nbsp;·&nbsp; B 15–25 &nbsp;·&nbsp; C 25–40 &nbsp;·&nbsp; D 40–60 &nbsp;·&nbsp; E >60
+                    </div>
                 </div>
             </div>
         </div>
     </div>
+
+    {{-- ============================================================
+         DİNAMİK AKSİYON ÖNERİLERİ
+    ============================================================ --}}
+    @php
+        // En yüksek emisyon yaratan 5 kalem
+        $dynRecommendations = [
+            'energy_gas'              => ['icon'=>'fas fa-fire',            'color'=>'#e74c3c', 'oneri'=>'Doğal gaz tüketimi en büyük Scope 1 kaynağınız. Gaz sayaç okumalarını aylık takip edin, HVAC bakım sıklığını artırın ve bölgesel ısı geri kazanım sistemleri değerlendirin.'],
+            'energy_lng'              => ['icon'=>'fas fa-fire-alt',         'color'=>'#e74c3c', 'oneri'=>'LNG tüketimini azaltmak için operasyonel saatleri optimize edin. Mümkünse ısı pompası veya biyokütle ile kısmen ikame edilebilir.'],
+            'energy_fuel_oil'         => ['icon'=>'fas fa-oil-can',          'color'=>'#c0392b', 'oneri'=>'Fuel oil yüksek emisyon faktörlü bir yakıttır. Doğal gaz veya LNG\'ye geçiş %25–40 azaltım sağlayabilir. Acil öneri: kazanlarda yakma optimizasyonu ve yıllık baca analizi.'],
+            'energy_lpg'              => ['icon'=>'fas fa-fire',             'color'=>'#e67e22', 'oneri'=>'LPG tüketimi düşük ama takip edilmeli. Menu/mutfak ekipmanlarında enerji verimli cihazlara geçiş değerlendirilebilir.'],
+            'energy_coal'             => ['icon'=>'fas fa-industry',         'color'=>'#8e44ad', 'oneri'=>'Kömür kullanımı en yüksek emisyon faktörlü yakıttır. AB Taksonomi ve CSRD uyumu için kömür transitize planı hazırlanması kritik önem taşır.'],
+            'energy_electricity'      => ['icon'=>'fas fa-bolt',             'color'=>'#f39c12', 'oneri'=>'Elektrik tüketimi en büyük Scope 2 kaynağınız. LED aydınlatmaya geçiş, enerji yönetim sistemi (BMS/EMS) kurulumu ve boş odalar için akıllı termostata öncelik verin.'],
+            'energy_electricity_re'   => ['icon'=>'fas fa-leaf',             'color'=>'#27ae60', 'oneri'=>'Düşük EF\'li yenilenebilir elektrik kullanıyorsunuz, iyi! I-REC veya YEK-G sertifikasıyla Market-Based sıfır EF bildirilebilir.'],
+            'refrigerant_r410a'       => ['icon'=>'fas fa-snowflake',        'color'=>'#3498db', 'oneri'=>'R-410A yüksek GWP\'li soğutucu gazdır (GWP=2088). Bakım kayıtları ile kaçak tespiti yapın. Yenileme döneminde R-32 veya R-454B\'ye (düşük GWP) geçiş planlayın.'],
+            'refrigerant_r32'         => ['icon'=>'fas fa-snowflake',        'color'=>'#3498db', 'oneri'=>'R-32 görece düşük GWP\'lidir (GWP=675). Kaçak kontrol sıklığını yılda 2 kez yapın, kayıpları kayıt altına alın.'],
+            'refrigerant_r134a'       => ['icon'=>'fas fa-snowflake',        'color'=>'#2980b9', 'oneri'=>'R-134a (GWP=1430) yüksek etkilidir. Kaçak tespiti için electronic leak detector kullanın, bakım sırasında gaz geri kazanımı zorunlu tutun.'],
+            'food_beef'               => ['icon'=>'fas fa-drumstick-bite',   'color'=>'#c0392b', 'oneri'=>'Sığır eti en yüksek emisyon faktörlü gıdadır (27 kgCO₂e/kg). Menüde bitki bazlı ve balık alternatifleri artırın. %20 sığır eti azaltımı Scope 3 gıda emisyonlarını önemli ölçüde düşürür.'],
+            'food_dairy'              => ['icon'=>'fas fa-cheese',           'color'=>'#e67e22', 'oneri'=>'Süt ürünleri de yüksek emisyon taşır. Yerel/organik tedarikçilere geçiş ve porsiyon optimizasyonu değerlendirin.'],
+            'waste_general'           => ['icon'=>'fas fa-trash',            'color'=>'#8e44ad', 'oneri'=>'Genel atık miktarı yüksek. Katı atık azaltma planı oluşturun: organik atık kompostlama, gıda artığı yönetimi ve tedarikçilerle ambalaj azaltımı anlaşmaları yapın.'],
+            'water_municipal'         => ['icon'=>'fas fa-tint',             'color'=>'#3498db', 'oneri'=>'Su tüketiminiz yüksek. Akıllı sulama sistemleri, düşük debili musluklar ve duş başlıkları kurulumu ile %20–30 tasarruf sağlanabilir. Yağmur suyu toplama sistemleri değerlendirilebilir.'],
+            'transport_staff'         => ['icon'=>'fas fa-bus',              'color'=>'#2c3e50', 'oneri'=>'Personel ulaşımı için servis güzergahlarını optimize edin. Elektrikli veya hibrit araç filosu oluşturun, toplu taşıma teşvik programı başlatın.'],
+            'business_travel_air'     => ['icon'=>'fas fa-plane',            'color'=>'#8e44ad', 'oneri'=>'İş amaçlı uçuş emisyonları yüksek. Video konferans alternatiflerini teşvik edin, kısa mesafe uçuşları tren ile ikame edin, gerekli uçuşlarda karbon dengeleme (offsetting) programına katılın.'],
+            'district_heating'        => ['icon'=>'fas fa-thermometer-half', 'color'=>'#e74c3c', 'oneri'=>'Bölgesel ısıtma emisyonları bölgenin enerji karmasına bağlıdır. EF\'yi belediyeden/TETAŞ\'tan güncel olarak talep edin; yenilenebilir kaynaklı bölgesel ısıtma sistemine geçiş planı isteyin.'],
+            'laundry_external'        => ['icon'=>'fas fa-tshirt',           'color'=>'#7f8c8d', 'oneri'=>'Dış çamaşırhane emisyonları Scope 3\'ün önemli bir parçası olabilir. Yeşil sertifikalı çamaşırhane tedarikçileri değerlendirin ya da yenilenebilir enerji kullanan tesis içi laundry yatırımı yapın.'],
+            'procurement_linen'       => ['icon'=>'fas fa-bed',              'color'=>'#7f8c8d', 'oneri'=>'Çarşaf/tekstil tedarikinde organik pamuk veya geri dönüştürülmüş elyaf kullanan tedarikçilere geçiş Scope 3\'ü azaltır. Uzun ömürlü ve onarılabilir ürün politikası benimseyin.'],
+        ];
+        $allEntries     = $carbon->entries->where('co2_kg', '>', 0)->sortByDesc('co2_kg')->take(5);
+        $hasDynRecs     = $allEntries->count() > 0;
+    @endphp
+    @if($hasDynRecs)
+    <div class="card shadow-sm mb-4" style="border-left:4px solid #e67e22">
+        <div class="card-header py-2 d-flex align-items-center gap-2" style="background:#fff8f0">
+            <i class="fas fa-lightbulb" style="color:#e67e22"></i>
+            <h6 class="mb-0 fw-bold" style="color:#7d4e00">Yüksek Emisyon Kaynakları & Aksiyon Önerileri</h6>
+            <span class="ms-auto badge bg-warning text-dark" style="font-size:.72rem">Otomatik — Verilerinize Göre</span>
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                @php $recCounter = 0; @endphp
+                @foreach($allEntries as $recEntry)
+                @php
+                    $scopeKey = 'scope'.$recEntry->scope;
+                    $recLabel = $allCatsDefs[$scopeKey][$recEntry->category]['label'] ?? $recEntry->category;
+                    $recDef   = $dynRecommendations[$recEntry->category] ?? null;
+                    $recBadgeColors = [1=>'#e74c3c', 2=>'#f39c12', 3=>'#27ae60'];
+                    $recBadgeColor  = $recBadgeColors[$recEntry->scope] ?? '#888';
+                    $recCounter++;
+                @endphp
+                <div class="col-md-6 col-lg-4">
+                    <div class="p-3 rounded h-100" style="background:#fffdf8;border:1px solid #f0e0c0;border-left:3px solid {{ $recBadgeColor }}">
+                        <div class="d-flex align-items-start gap-2 mb-2">
+                            <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0"
+                                 style="width:30px;height:30px;background:{{ $recBadgeColor }}18;font-size:.75rem;font-weight:800;color:{{ $recBadgeColor }}">
+                                {{ $recCounter }}
+                            </div>
+                            <div>
+                                <div class="fw-semibold" style="font-size:.83rem;color:#2c3e50">{{ $recLabel }}</div>
+                                <div style="font-size:.7rem">
+                                    <span class="badge" style="background:{{ $recBadgeColor }};font-size:.65rem">S{{ $recEntry->scope }}</span>
+                                    <span class="text-muted ms-1">{{ number_format($recEntry->co2_kg, 1) }} kgCO₂e</span>
+                                    <span class="text-muted">&nbsp;·&nbsp; {{ number_format($recEntry->co2_kg / $sdTotal * 100, 1) }}% toplam</span>
+                                </div>
+                            </div>
+                        </div>
+                        @if($recDef)
+                        <div style="font-size:.78rem;color:#555;line-height:1.45">
+                            <i class="{{ $recDef['icon'] }} me-1" style="color:{{ $recDef['color'] }}"></i>{{ $recDef['oneri'] }}
+                        </div>
+                        @else
+                        <div style="font-size:.78rem;color:#888">
+                            Bu kategori için tüketimi düşürmeye yönelik iyileştirme planı hazırlanmalıdır.
+                        </div>
+                        @endif
+                    </div>
+                </div>
+                @endforeach
+            </div>
+            <div class="mt-3 text-muted" style="font-size:.72rem">
+                <i class="fas fa-info-circle me-1"></i>
+                Öneriler verilerinizdeki en yüksek emisyon kaynaklı kategorilere göre otomatik oluşturulmuştur ({{ $allEntries->count() }} kategori, toplam emisyonun {{ number_format($allEntries->sum('co2_kg') / $sdTotal * 100, 0) }}%).
+            </div>
+        </div>
+    </div>
+    @endif
 
     {{-- ============================================================
          HESAPLAMA METODOLOJİSİ — DENETİM PANELİ
