@@ -459,6 +459,18 @@ Route::middleware('auth')->group(function () {
 
     /*
     |--------------------------------------------------------------------------
+    | Raporlar — TripAdvisor
+    |--------------------------------------------------------------------------
+    */
+    Route::prefix('raporlar')->name('reports.')->group(function () {
+        Route::get('/tripadvisor', [\App\Http\Controllers\Modules\TripAdvisorReportController::class, 'index'])->name('tripadvisor');
+        Route::post('/tripadvisor/snapshot', [\App\Http\Controllers\Modules\TripAdvisorReportController::class, 'snapshot'])->name('tripadvisor.snapshot');
+        Route::get('/google', [\App\Http\Controllers\Modules\GoogleReportController::class, 'index'])->name('google');
+        Route::post('/google/snapshot', [\App\Http\Controllers\Modules\GoogleReportController::class, 'snapshot'])->name('google.snapshot');
+    });
+
+    /*
+    |--------------------------------------------------------------------------
     | Rol & Yetki Yönetimi (sadece super_admin)
     |--------------------------------------------------------------------------
     */

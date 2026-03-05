@@ -345,6 +345,36 @@
             </li>
             @endif
 
+            {{-- RAPORLAR --}}
+            @if($user->hasPermission('tripadvisor_report', 'index') || $user->hasPermission('google_report', 'index'))
+            <li @class(['mm-active' => request()->is('raporlar*')])>
+                <a class="has-arrow ai-icon" href="javascript:void()" aria-expanded="false">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
+                         fill="none" stroke="currentColor" stroke-width="2"
+                         stroke-linecap="round" stroke-linejoin="round" style="min-width:20px">
+                        <path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/>
+                    </svg>
+                    <span class="nav-text">Raporlar</span>
+                </a>
+                <ul aria-expanded="false">
+                    @if($user->hasPermission('tripadvisor_report', 'index'))
+                    <li @class(['mm-active' => request()->is('raporlar/tripadvisor*')])>
+                        <a href="{{ route('reports.tripadvisor') }}">
+                            <i class="fas fa-star me-1" style="color:#00aa6c"></i> TripAdvisor Puanları
+                        </a>
+                    </li>
+                    @endif
+                    @if($user->hasPermission('google_report', 'index'))
+                    <li @class(['mm-active' => request()->is('raporlar/google*')])>
+                        <a href="{{ route('reports.google') }}">
+                            <i class="fab fa-google me-1" style="color:#4285F4"></i> Google Puanları
+                        </a>
+                    </li>
+                    @endif
+                </ul>
+            </li>
+            @endif
+
             {{-- YETKİ YÖNETİMİ — sadece super_admin --}}
             @if($user->isSuperAdmin())
             <li @class(['mm-active' => request()->is('roller*')])>

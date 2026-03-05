@@ -64,6 +64,10 @@ class RolePermission extends Model
         'Sürdürülebilirlik' => [
             'carbon_footprint' => 'Karbon Ayak İzi Raporları',
         ],
+        'Raporlar' => [
+            'tripadvisor_report' => 'TripAdvisor Puanları',
+            'google_report'      => 'Google Puanları',
+        ],
     ];
 
     /** Düz module_key => Ad listesi döner */
