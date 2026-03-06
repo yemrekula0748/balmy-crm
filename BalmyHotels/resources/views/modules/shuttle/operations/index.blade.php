@@ -185,20 +185,20 @@
                 <div class="table-responsive">
                     <table class="table table-hover align-middle mb-0" style="font-size:.875rem">
                         <thead>
-                            <tr style="background:linear-gradient(135deg,#1e2d3d,#2c3e50)">
-                                <th class="ps-4 py-3 text-white fw-semibold border-0" style="white-space:nowrap">Vardiya</th>
-                                <th class="py-3 text-white fw-semibold border-0">Araç</th>
-                                <th class="py-3 text-white fw-semibold border-0">Güzergah</th>
-                                <th class="py-3 text-white fw-semibold border-0 text-center">
+                            <tr>
+                                <th class="ps-4 py-3 fw-semibold border-0" style="background:#1e2d3d;color:#fff;white-space:nowrap">Vardiya</th>
+                                <th class="py-3 fw-semibold border-0" style="background:#1e2d3d;color:#fff">Araç</th>
+                                <th class="py-3 fw-semibold border-0" style="background:#1e2d3d;color:#fff">Güzergah</th>
+                                <th class="py-3 fw-semibold border-0 text-center" style="background:#1e2d3d;color:#fff">
                                     <span style="color:#93b8e8">↑</span> Geliş
                                 </th>
-                                <th class="py-3 text-white fw-semibold border-0 text-center">
+                                <th class="py-3 fw-semibold border-0 text-center" style="background:#1e2d3d;color:#fff">
                                     <span style="color:#7ec8a0">↓</span> Dönüş
                                 </th>
-                                <th class="py-3 text-white fw-semibold border-0 text-center">Doluluk</th>
-                                <th class="py-3 text-white fw-semibold border-0">Not</th>
-                                <th class="py-3 text-white fw-semibold border-0">Ekleyen</th>
-                                <th class="pe-4 py-3 text-white fw-semibold border-0 text-end">İşlem</th>
+                                <th class="py-3 fw-semibold border-0 text-center" style="background:#1e2d3d;color:#fff">Doluluk</th>
+                                <th class="py-3 fw-semibold border-0" style="background:#1e2d3d;color:#fff">Not</th>
+                                <th class="py-3 fw-semibold border-0" style="background:#1e2d3d;color:#fff">Ekleyen</th>
+                                <th class="pe-4 py-3 fw-semibold border-0 text-end" style="background:#1e2d3d;color:#fff">İşlem</th>
                             </tr>
                         </thead>
                         <tbody>
