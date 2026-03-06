@@ -12,7 +12,10 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule): void
     {
-        // $schedule->command('inspire')->hourly();
+        // Her gece 06:00'da TripAdvisor puanlarını kaydet
+        $schedule->command('tripadvisor:snapshot')->dailyAt('06:00');
+        // Her gece 06:10'da Google puanlarını kaydet
+        $schedule->command('google:snapshot')->dailyAt('06:10');
     }
 
     /**

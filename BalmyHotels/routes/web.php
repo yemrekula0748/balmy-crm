@@ -33,6 +33,10 @@ use App\Http\Controllers\Modules\PdfConverterController;
 use App\Http\Controllers\Modules\PdfMergerController;
 use App\Http\Controllers\Modules\RoleController;
 use App\Http\Controllers\Modules\CarbonFootprintController;
+use App\Http\Controllers\Modules\ShuttleRouteController;
+use App\Http\Controllers\Modules\ShuttleVehicleController;
+use App\Http\Controllers\Modules\ShuttleOperationController;
+use App\Http\Controllers\Modules\ShuttleReportController;
 
 /*
 |--------------------------------------------------------------------------
@@ -455,6 +459,63 @@ Route::middleware('auth')->group(function () {
     Route::prefix('pdf-birlestirme')->name('pdf-merger.')->group(function () {
         Route::get('/',       [PdfMergerController::class, 'index'])->name('index');
         Route::post('/birlestir', [PdfMergerController::class, 'merge'])->name('merge');
+    });
+
+    /*
+    |--------------------------------------------------------------------------
+    | Raporlar — TripAdvisor
+    |--------------------------------------------------------------------------
+    */
+    Route::prefix('raporlar')->name('reports.')->group(function () {
+        Route::get('/tripadvisor', [\App\Http\Controllers\Modules\TripAdvisorReportController::class, 'index'])->name('tripadvisor');
+        Route::post('/tripadvisor/snapshot', [\App\Http\Controllers\Modules\TripAdvisorReportController::class, 'snapshot'])->name('tripadvisor.snapshot');
+        Route::get('/google', [\App\Http\Controllers\Modules\GoogleReportController::class, 'index'])->name('google');
+        Route::post('/google/snapshot', [\App\Http\Controllers\Modules\GoogleReportController::class, 'snapshot'])->name('google.snapshot');
+    });
+
+    /*
+    |--------------------------------------------------------------------------
+    | Servis Takip Modülü
+    |--------------------------------------------------------------------------
+    */
+    Route::prefix('servis-takip')->name('shuttle.')->group(function () {
+
+        // Güzergah tanımları
+        Route::prefix('guzergahlar')->name('routes.')->group(function () {
+            Route::get('/',             [ShuttleRouteController::class, 'index'])->name('index');
+            Route::get('/ekle',         [ShuttleRouteController::class, 'create'])->name('create');
+            Route::post('/',            [ShuttleRouteController::class, 'store'])->name('store');
+            Route::get('/{route}/duzenle', [ShuttleRouteController::class, 'edit'])->name('edit');
+            Route::put('/{route}',      [ShuttleRouteController::class, 'update'])->name('update');
+            Route::delete('/{route}',   [ShuttleRouteController::class, 'destroy'])->name('destroy');
+        });
+
+        // Araçlar
+        Route::prefix('araclar')->name('vehicles.')->group(function () {
+            Route::get('/',              [ShuttleVehicleController::class, 'index'])->name('index');
+            Route::get('/ekle',          [ShuttleVehicleController::class, 'create'])->name('create');
+            Route::post('/',             [ShuttleVehicleController::class, 'store'])->name('store');
+            Route::get('/{vehicle}/duzenle', [ShuttleVehicleController::class, 'edit'])->name('edit');
+            Route::put('/{vehicle}',     [ShuttleVehicleController::class, 'update'])->name('update');
+            Route::delete('/{vehicle}',  [ShuttleVehicleController::class, 'destroy'])->name('destroy');
+        });
+
+        // Operasyon
+        Route::prefix('operasyon')->name('operations.')->group(function () {
+            Route::get('/',                     [ShuttleOperationController::class, 'index'])->name('index');
+            Route::post('/',                    [ShuttleOperationController::class, 'store'])->name('store');
+            Route::get('/{operation}/duzenle',      [ShuttleOperationController::class, 'edit'])->name('edit');
+            Route::put('/{operation}',               [ShuttleOperationController::class, 'update'])->name('update');
+            Route::patch('/{operation}/donus',       [ShuttleOperationController::class, 'departure'])->name('departure');
+            Route::delete('/{operation}',            [ShuttleOperationController::class, 'destroy'])->name('destroy');
+        });
+
+        // Raporlar
+        Route::prefix('raporlar')->name('reports.')->group(function () {
+            Route::get('/',    [ShuttleReportController::class, 'index'])->name('index');
+            Route::get('/pdf', [ShuttleReportController::class, 'pdf'])->name('pdf');
+        });
+
     });
 
     /*

@@ -382,6 +382,16 @@
     letter-spacing: .5px;
 }
 
+/* ─── TripAdvisor Kart ─── */
+.ta-card {
+    border-left: 4px solid #00aa6c !important;
+    transition: box-shadow .15s ease, transform .15s ease;
+}
+.ta-card:hover {
+    box-shadow: 0 6px 20px rgba(0,170,108,.15) !important;
+    transform: translateY(-2px);
+}
+
 /* ─── Quick Buttons ─── */
 .quick-btn {
     display: inline-flex;
