@@ -375,6 +375,43 @@
             </li>
             @endif
 
+            {{-- SERVİS TAKİP --}}
+            @if($user->hasPermission('shuttle_routes','index') || $user->hasPermission('shuttle_vehicles','index') || $user->hasPermission('shuttle_operations','index') || $user->hasPermission('shuttle_reports','index'))
+            <li @class(['mm-active' => request()->is('servis-takip*')])>
+                <a class="has-arrow ai-icon" href="javascript:void()" aria-expanded="false">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
+                         fill="none" stroke="currentColor" stroke-width="2"
+                         stroke-linecap="round" stroke-linejoin="round" style="min-width:20px">
+                        <circle cx="12" cy="12" r="10"/>
+                        <polyline points="12 6 12 12 16 14"/>
+                    </svg>
+                    <span class="nav-text">Servis Takip</span>
+                </a>
+                <ul aria-expanded="false">
+                    @if($user->hasPermission('shuttle_operations','index'))
+                    <li @class(['mm-active' => request()->is('servis-takip/operasyon*')])>
+                        <a href="{{ route('shuttle.operations.index') }}">Günlük Operasyon</a>
+                    </li>
+                    @endif
+                    @if($user->hasPermission('shuttle_reports','index'))
+                    <li @class(['mm-active' => request()->is('servis-takip/raporlar*')])>
+                        <a href="{{ route('shuttle.reports.index') }}">Servis Raporları</a>
+                    </li>
+                    @endif
+                    @if($user->hasPermission('shuttle_routes','index'))
+                    <li @class(['mm-active' => request()->is('servis-takip/guzergahlar*')])>
+                        <a href="{{ route('shuttle.routes.index') }}">Güzergah Tanımları</a>
+                    </li>
+                    @endif
+                    @if($user->hasPermission('shuttle_vehicles','index'))
+                    <li @class(['mm-active' => request()->is('servis-takip/araclar*')])>
+                        <a href="{{ route('shuttle.vehicles.index') }}">Servis Araçları</a>
+                    </li>
+                    @endif
+                </ul>
+            </li>
+            @endif
+
             {{-- YETKİ YÖNETİMİ — sadece super_admin --}}
             @if($user->isSuperAdmin())
             <li @class(['mm-active' => request()->is('roller*')])>
