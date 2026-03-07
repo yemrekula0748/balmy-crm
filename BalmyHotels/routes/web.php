@@ -38,6 +38,9 @@ use App\Http\Controllers\Modules\ShuttleRouteController;
 use App\Http\Controllers\Modules\ShuttleVehicleController;
 use App\Http\Controllers\Modules\ShuttleOperationController;
 use App\Http\Controllers\Modules\ShuttleReportController;
+use App\Http\Controllers\Modules\RestaurantController;
+use App\Http\Controllers\Modules\OrderController;
+use App\Http\Controllers\Modules\OrderReportController;
 
 /*
 |--------------------------------------------------------------------------
@@ -536,6 +539,48 @@ Route::middleware('auth')->group(function () {
             Route::get('/pdf', [ShuttleReportController::class, 'pdf'])->name('pdf');
         });
 
+    });
+
+    /*
+    |--------------------------------------------------------------------------
+    | Sipariş Modülü (Garson)
+    |--------------------------------------------------------------------------
+    */
+    Route::prefix('siparisler')->name('orders.')->group(function () {
+
+        // Ana sayfa: restoran + masa seçimi
+        Route::get('/',                              [OrderController::class, 'take'])->name('take');
+
+        // Masayı aç
+        Route::post('/masa-ac/{table}',              [OrderController::class, 'openTable'])->name('open-table');
+
+        // Aktif seans sayfası
+        Route::get('/seans/{session}',               [OrderController::class, 'session'])->name('session');
+
+        // Sipariş kaydet
+        Route::post('/seans/{session}/siparis',      [OrderController::class, 'storeOrder'])->name('store-order');
+
+        // Sipariş kalemi sil
+        Route::delete('/seans/{session}/kalem/{item}', [OrderController::class, 'destroyOrderItem'])->name('destroy-item');
+
+        // Masayı kapat
+        Route::post('/seans/{session}/kapat',        [OrderController::class, 'closeTable'])->name('close-table');
+
+        // Raporlar
+        Route::get('/raporlar',                      [OrderReportController::class, 'index'])->name('report');
+
+        // Restoran tanımları
+        Route::prefix('restoranlar')->name('restaurants.')->group(function () {
+            Route::get('/',                                               [RestaurantController::class, 'index'])->name('index');
+            Route::get('/ekle',                                           [RestaurantController::class, 'create'])->name('create');
+            Route::post('/ekle',                                          [RestaurantController::class, 'store'])->name('store');
+            Route::get('/{restaurant}',                                   [RestaurantController::class, 'show'])->name('show');
+            Route::get('/{restaurant}/duzenle',                           [RestaurantController::class, 'edit'])->name('edit');
+            Route::put('/{restaurant}',                                   [RestaurantController::class, 'update'])->name('update');
+            Route::delete('/{restaurant}',                                [RestaurantController::class, 'destroy'])->name('destroy');
+            Route::post('/{restaurant}/masalar',                          [RestaurantController::class, 'storeTable'])->name('tables.store');
+            Route::delete('/{restaurant}/masalar/{table}',                [RestaurantController::class, 'destroyTable'])->name('tables.destroy');
+        });
     });
 
     /*

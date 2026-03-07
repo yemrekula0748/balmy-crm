@@ -434,6 +434,40 @@
             </li>
             @endif
 
+            {{-- SİPARİŞ MODÜLÜ --}}
+            @if($user->hasPermission('orders','index') || $user->hasPermission('restaurant_settings','index') || $user->hasPermission('order_reports','index'))
+            <li @class(['mm-active' => request()->is('siparisler*')])>
+                <a class="has-arrow ai-icon" href="javascript:void()" aria-expanded="false">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
+                         fill="none" stroke="currentColor" stroke-width="2"
+                         stroke-linecap="round" stroke-linejoin="round" style="min-width:20px">
+                        <path d="M9 2H5a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V9l-5-7z"/>
+                        <polyline points="9 2 9 9 16 9"/>
+                        <line x1="12" y1="13" x2="12" y2="17"/>
+                        <line x1="10" y1="15" x2="14" y2="15"/>
+                    </svg>
+                    <span class="nav-text">Sipariş</span>
+                </a>
+                <ul aria-expanded="false">
+                    @if($user->hasPermission('orders','index'))
+                    <li @class(['mm-active' => request()->is('siparisler') && !request()->is('siparisler/raporlar*') && !request()->is('siparisler/restoranlar*')])>
+                        <a href="{{ route('orders.take') }}">Sipariş Al</a>
+                    </li>
+                    @endif
+                    @if($user->hasPermission('order_reports','index'))
+                    <li @class(['mm-active' => request()->is('siparisler/raporlar*')])>
+                        <a href="{{ route('orders.report') }}">Sipariş Raporları</a>
+                    </li>
+                    @endif
+                    @if($user->hasPermission('restaurant_settings','index'))
+                    <li @class(['mm-active' => request()->is('siparisler/restoranlar*')])>
+                        <a href="{{ route('orders.restaurants.index') }}">Restoran Tanımları</a>
+                    </li>
+                    @endif
+                </ul>
+            </li>
+            @endif
+
             {{-- YETKİ YÖNETİMİ — sadece super_admin --}}
             @if($user->isSuperAdmin())
             <li @class(['mm-active' => request()->is('roller*')])>

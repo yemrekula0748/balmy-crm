@@ -75,6 +75,11 @@ class RolePermission extends Model
             'shuttle_operations' => 'Servis Operasyonu',
             'shuttle_reports'    => 'Servis Raporları',
         ],
+        'Sipariş Modülü' => [
+            'restaurant_settings' => 'Restoran & Masa Tanımları',
+            'orders'              => 'Sipariş Al',
+            'order_reports'       => 'Sipariş Raporları',
+        ],
     ];
 
     /** Düz module_key => Ad listesi döner */
