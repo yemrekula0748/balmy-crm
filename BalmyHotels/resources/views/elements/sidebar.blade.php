@@ -229,6 +229,28 @@
             </li>
             @endif
 
+            {{-- YEMEK KÜTÜPHANESİ --}}
+            @if($user->hasPermission('food_library', 'index'))
+            <li @class(['mm-active' => request()->is('yemek-kutuphane*')])>
+                <a class="has-arrow ai-icon" href="javascript:void()" aria-expanded="false">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
+                         fill="none" stroke="currentColor" stroke-width="2"
+                         stroke-linecap="round" stroke-linejoin="round" style="min-width:20px">
+                        <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path>
+                        <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path>
+                    </svg>
+                    <span class="nav-text">Yemek Kütüphanesi</span>
+                </a>
+                <ul aria-expanded="false">
+                    <li><a href="{{ route('food-library.index') }}">Kategoriler</a></li>
+                    <li><a href="{{ route('food-library.products') }}">Ürünler</a></li>
+                    @if($user->hasPermission('food_library', 'create'))
+                    <li><a href="{{ route('food-library.product.create') }}">Yeni Ürün Ekle</a></li>
+                    @endif
+                </ul>
+            </li>
+            @endif
+
             {{-- MİSAFİR ANKET --}}
             @if($user->hasPermission('surveys', 'index'))
             <li @class(['mm-active' => request()->is('anketler*')])>

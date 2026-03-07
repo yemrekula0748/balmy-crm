@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Modules;
 
 use App\Http\Controllers\Controller;
+use App\Models\FoodProduct;
 use App\Models\QrMenu;
 use App\Models\QrMenuCategory;
 use App\Models\QrMenuItem;
@@ -213,4 +214,38 @@ class QrMenuCategoryController extends BaseModuleController
         return redirect()->route('qrmenus.show', $qrmenu)
             ->with('success', 'Ürün silindi.');
     }
-}
+
+    /* ═══════════════════════════════════════
+     |  KÜTÜPHANEDEN ÜRÜN EKLE
+     ═══════════════════════════════════════ */
+
+    /**
+     * Kütüphanedeki bir ürünü seçili kategoriye ekle.
+     * Ürün verilerini kategoriye kopyalar + food_product_id referansını saklar.
+     * Fiyat override isteğe bağlı girilebilir.
+     */
+    public function addFromLibrary(Request $request, QrMenu $qrmenu, QrMenuCategory $category)
+    {
+        $request->validate([
+            'food_product_id' => 'required|exists:food_products,id',
+            'price_override'  => 'nullable|numeric|min:0',
+        ]);
+
+        $product = FoodProduct::findOrFail($request->food_product_id);
+
+        $category->items()->create([
+            'food_product_id' => $product->id,
+            'title'           => $product->title,
+            'description'     => $product->description,
+            'price'           => $product->price,
+            'price_override'  => $request->price_override,
+            'image'           => $product->image,
+            'badges'          => $product->badges,
+            'is_active'       => true,
+            'is_featured'     => false,
+            'sort_order'      => $category->items()->count(),
+        ]);
+
+        return redirect()->route('qrmenus.show', $qrmenu)
+            ->with('success', '«'.$product->getTitle('tr').'» menüye eklendi.');
+    }}

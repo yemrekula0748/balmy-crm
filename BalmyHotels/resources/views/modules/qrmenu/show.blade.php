@@ -58,6 +58,13 @@
                            class="btn btn-outline-success btn-sm py-0 px-2" title="Ürün ekle">
                             <i class="fa fa-plus"></i> Ürün
                         </a>
+                        @if(auth()->user()->hasPermission('food_library', 'index'))
+                        <button type="button" class="btn btn-outline-primary btn-sm py-0 px-2"
+                                title="Kütüphaneden ekle"
+                                data-bs-toggle="modal" data-bs-target="#libraryModal-{{ $category->id }}">
+                            <i class="fa fa-book"></i> Kütüphane
+                        </button>
+                        @endif
                         <a href="{{ route('qrmenus.category.edit', [$menu, $category]) }}"
                            class="btn btn-outline-warning btn-sm py-0 px-2">
                             <i class="fa fa-edit"></i>
@@ -236,6 +243,75 @@
     </div>
 </div>
 
+{{-- Yemek Kütüphanesi Modalleri --}}
+@if(auth()->user()->hasPermission('food_library', 'index'))
+@foreach($menu->categories as $category)
+<div class="modal fade" id="libraryModal-{{ $category->id }}" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+        <div class="modal-content border-0" style="border-radius:12px">
+            <div class="modal-header border-0 px-4 py-3" style="background:linear-gradient(135deg,#1e2d3d,#2c3e50)">
+                <h6 class="modal-title text-white fw-semibold mb-0">
+                    <i class="fa fa-book me-2"></i>Kütüphaneden Ürün Ekle —
+                    <span class="opacity-75">{{ $category->getTitle() }}</span>
+                </h6>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4">
+                {{-- Filtreler --}}
+                <div class="d-flex gap-2 mb-3 flex-wrap align-items-center">
+                    <select class="form-select form-select-sm lib-cat-filter" data-modal="{{ $category->id }}" style="max-width:200px">
+                        <option value="">— Tüm Kategoriler —</option>
+                    </select>
+                    <input type="text" class="form-control form-control-sm lib-search" data-modal="{{ $category->id }}"
+                           placeholder="Ürün ara..." style="max-width:220px">
+                    <button type="button" class="btn btn-sm btn-secondary lib-fetch-btn" data-modal="{{ $category->id }}"
+                            data-branch="{{ $menu->branch_id }}">
+                        <i class="fa fa-search me-1"></i> Filtrele
+                    </button>
+                </div>
+
+                {{-- Ürün Grid --}}
+                <div class="row g-3 lib-products-grid" id="libGrid-{{ $category->id }}">
+                    <div class="col-12 text-center text-muted py-4 lib-placeholder">
+                        <i class="fa fa-book-open fa-2x opacity-25 mb-2 d-block"></i>
+                        Filtreleme yapın veya modal açıldığında ürünler yüklenir.
+                    </div>
+                </div>
+            </div>
+
+            {{-- Seçilen ürünü onayla --}}
+            <div class="modal-footer border-0 p-4 pt-0">
+                <form id="libForm-{{ $category->id }}" method="POST"
+                      action="{{ route('qrmenus.category.addFromLibrary', [$menu, $category]) }}">
+                    @csrf
+                    <input type="hidden" name="food_product_id" class="lib-selected-id">
+                    <div class="d-flex gap-2 align-items-end flex-wrap">
+                        <div>
+                            <label class="form-label small fw-semibold mb-1">Seçilen Ürün</label>
+                            <input type="text" class="form-control form-control-sm lib-selected-name"
+                                   readonly placeholder="(ürün seçilmedi)" style="min-width:160px">
+                        </div>
+                        <div>
+                            <label class="form-label small fw-semibold mb-1">Fiyat Geçersizme (₺)</label>
+                            <input type="number" name="price_override" class="form-control form-control-sm"
+                                   placeholder="Boş bırakılırsa kütüphane fiyatı" step="0.01" min="0" style="max-width:200px">
+                        </div>
+                        <button type="submit" class="btn btn-sm fw-semibold px-3 mb-0"
+                                style="background:linear-gradient(135deg,#1e2d3d,#2c3e50);color:#fff;border-radius:7px"
+                                onclick="return document.querySelector('#libForm-{{ $category->id }} .lib-selected-id').value !== ''
+                                         || (alert('Lütfen bir ürün seçin.'), false)">
+                            <i class="fa fa-plus me-1"></i> Menüye Ekle
+                        </button>
+                        <button type="button" class="btn btn-sm btn-light" data-bs-dismiss="modal">İptal</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+@endforeach
+@endif
+
 @push('scripts')
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script>
@@ -258,6 +334,114 @@
         a.download = '{{ $menu->name }}-qr.png';
         a.click();
     };
+})();
+</script>
+
+<script>
+// Yemek Kütüphanesi Modal JS
+(function() {
+    const apiBase = '{{ route('food-library.api.products') }}';
+
+    function loadLibraryProducts(modalId, branchId, categoryId, search) {
+        const grid = document.getElementById('libGrid-' + modalId);
+        grid.innerHTML = '<div class="col-12 text-center py-4"><div class="spinner-border spinner-border-sm"></div></div>';
+
+        let url = apiBase + '?branch_id=' + (branchId || '');
+        if (categoryId) url += '&category_id=' + categoryId;
+        if (search)     url += '&search=' + encodeURIComponent(search);
+
+        fetch(url).then(r => r.json()).then(data => {
+            if (!data.products || data.products.length === 0) {
+                grid.innerHTML = '<div class="col-12 text-center text-muted py-4">Ürün bulunamadı.</div>';
+                return;
+            }
+
+            // Populate category filter
+            const catSel = document.querySelector('.lib-cat-filter[data-modal="' + modalId + '"]');
+            if (catSel && data.categories) {
+                const existing = [...catSel.options].map(o => o.value);
+                data.categories.forEach(cat => {
+                    if (!existing.includes(String(cat.id))) {
+                        const opt = document.createElement('option');
+                        opt.value = cat.id;
+                        opt.textContent = (cat.icon || '') + ' ' + (cat.title_tr || cat.title || '');
+                        catSel.appendChild(opt);
+                    }
+                });
+            }
+
+            grid.innerHTML = '';
+            data.products.forEach(p => {
+                const col = document.createElement('div');
+                col.className = 'col-xl-3 col-lg-4 col-md-6';
+                col.innerHTML = `
+                    <div class="card h-100 border-0 shadow-sm lib-product-card" style="border-radius:10px;cursor:pointer;transition:box-shadow .15s"
+                         data-id="${p.id}" data-name="${p.title_tr || p.title || ''}" data-price="${p.price}">
+                        ${p.image_url ? `<div style="height:110px;overflow:hidden"><img src="${p.image_url}" style="width:100%;height:100%;object-fit:cover"></div>` : ''}
+                        <div class="card-body p-3">
+                            <div class="fw-semibold" style="font-size:.88rem">${p.title_tr || ''}</div>
+                            ${p.category_name ? `<span style="font-size:.7rem;background:#eef3fb;color:#2a5298;font-weight:600;padding:2px 7px;border-radius:10px">${p.category_name}</span>` : ''}
+                            <div class="fw-bold mt-1" style="color:#1e2d3d;font-size:.9rem">${parseFloat(p.price).toLocaleString('tr-TR',{minimumFractionDigits:2})} ₺</div>
+                        </div>
+                    </div>
+                `;
+
+                col.querySelector('.lib-product-card').addEventListener('click', function() {
+                    // Deselect all
+                    document.querySelectorAll('#libGrid-' + modalId + ' .lib-product-card').forEach(c => {
+                        c.style.outline = '';
+                        c.style.boxShadow = '';
+                    });
+                    // Select this
+                    this.style.outline = '2px solid #1e2d3d';
+                    this.style.boxShadow = '0 0 0 4px rgba(30,45,61,0.12)';
+
+                    const form = document.getElementById('libForm-' + modalId);
+                    form.querySelector('.lib-selected-id').value = this.dataset.id;
+                    form.querySelector('.lib-selected-name').value = this.dataset.name + ' — ' + parseFloat(this.dataset.price).toLocaleString('tr-TR',{minimumFractionDigits:2}) + ' ₺';
+                });
+
+                grid.appendChild(col);
+            });
+        }).catch(() => {
+            grid.innerHTML = '<div class="col-12 text-center text-danger py-4">Ürünler yüklenemedi.</div>';
+        });
+    }
+
+    // Per-modal init
+    document.querySelectorAll('[id^="libraryModal-"]').forEach(modal => {
+        const modalId = modal.id.replace('libraryModal-', '');
+        const branchId = '{{ $menu->branch_id }}';
+
+        // Load on first open
+        modal.addEventListener('show.bs.modal', function() {
+            if (!this._libLoaded) {
+                loadLibraryProducts(modalId, branchId, '', '');
+                this._libLoaded = true;
+            }
+        });
+
+        // Filter button
+        const fetchBtn = document.querySelector('.lib-fetch-btn[data-modal="' + modalId + '"]');
+        if (fetchBtn) {
+            fetchBtn.addEventListener('click', function() {
+                const cat   = document.querySelector('.lib-cat-filter[data-modal="' + modalId + '"]').value;
+                const srch  = document.querySelector('.lib-search[data-modal="'     + modalId + '"]').value;
+                loadLibraryProducts(modalId, branchId, cat, srch);
+            });
+        }
+
+        // Search enter key
+        const searchInput = document.querySelector('.lib-search[data-modal="' + modalId + '"]');
+        if (searchInput) {
+            searchInput.addEventListener('keydown', e => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    document.querySelector('.lib-fetch-btn[data-modal="' + modalId + '"]')?.click();
+                }
+            });
+        }
+    });
 })();
 </script>
 @endpush

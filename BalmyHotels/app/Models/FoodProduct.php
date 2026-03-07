@@ -4,34 +4,27 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
-class QrMenuItem extends Model
+class FoodProduct extends Model
 {
-    /** Aktif fiyat: override varsa onu kullan, yoksa library fiyatı */
-    public function effectivePrice(): ?float
-    {
-        return $this->price_override ?? $this->price;
-    }
-
     protected $fillable = [
-        'category_id', 'food_product_id',
-        'title', 'description', 'price', 'price_override', 'image',
-        'is_active', 'is_featured', 'badges', 'sort_order',
+        'branch_id', 'food_category_id',
+        'title', 'description', 'price',
+        'image', 'badges', 'options',
+        'is_active', 'sort_order',
     ];
 
     protected $casts = [
-        'title'          => 'array',
-        'description'    => 'array',
-        'badges'         => 'array',
-        'is_active'      => 'boolean',
-        'is_featured'    => 'boolean',
-        'price'          => 'float',
-        'price_override' => 'float',
+        'title'       => 'array',
+        'description' => 'array',
+        'badges'      => 'array',
+        'options'     => 'array',
+        'is_active'   => 'boolean',
+        'price'       => 'float',
     ];
 
-    /**
-     * Yaygın rozet/etiket seçenekleri
-     */
+    /** Rozet seçenekleri — QrMenuItem ile aynı */
     const BADGE_OPTIONS = [
         'Vegan', 'Vejeteryan', 'Glutensiz', 'Laktozsuz',
         'Acılı', 'Önerilen', 'Yeni', 'Popüler',
@@ -48,14 +41,27 @@ class QrMenuItem extends Model
         'Popüler'    => '#9b2226',
     ];
 
-    public function category(): BelongsTo
+    /** Dinamik opsiyon tipleri */
+    const OPTION_TYPES = [
+        'text'   => 'Metin',
+        'number' => 'Sayı',
+        'tags'   => 'Etiket listesi',
+    ];
+
+    public function branch(): BelongsTo
     {
-        return $this->belongsTo(QrMenuCategory::class, 'category_id');
+        return $this->belongsTo(Branch::class);
     }
 
-    public function foodProduct(): BelongsTo
+    public function foodCategory(): BelongsTo
     {
-        return $this->belongsTo(FoodProduct::class, 'food_product_id');
+        return $this->belongsTo(FoodCategory::class);
+    }
+
+    /** Bu üründen türetilen menü kalemleri */
+    public function menuItems(): HasMany
+    {
+        return $this->hasMany(QrMenuItem::class, 'food_product_id');
     }
 
     public function getTitle(string $lang = 'tr'): string
@@ -72,8 +78,7 @@ class QrMenuItem extends Model
 
     public function formattedPrice(?string $symbol = '₺'): string
     {
-        $p = $this->effectivePrice();
-        if ($p === null) return '';
-        return $symbol . ' ' . number_format($p, 2);
+        if ($this->price === null) return '';
+        return $symbol . ' ' . number_format($this->price, 2);
     }
 }

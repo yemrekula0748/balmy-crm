@@ -21,6 +21,7 @@ use App\Http\Controllers\Modules\AssetController;
 use App\Http\Controllers\Modules\AssetExitController;
 use App\Http\Controllers\Modules\QrMenuController;
 use App\Http\Controllers\Modules\QrMenuCategoryController;
+use App\Http\Controllers\Modules\FoodLibraryController;
 use App\Http\Controllers\QrMenuPublicController;
 use App\Http\Controllers\Modules\SurveyController;
 use App\Http\Controllers\SurveyPublicController;
@@ -408,6 +409,25 @@ Route::middleware('auth')->group(function () {
         Route::get('/{qrmenu}/kategori/{category}/urun/{item}/duzenle', [QrMenuCategoryController::class, 'editItem'])->name('item.edit');
         Route::put('/{qrmenu}/kategori/{category}/urun/{item}', [QrMenuCategoryController::class, 'updateItem'])->name('item.update');
         Route::delete('/{qrmenu}/kategori/{category}/urun/{item}', [QrMenuCategoryController::class, 'destroyItem'])->name('item.destroy');
+        // Kütüphaneden Ürün Ekle
+        Route::post('/{qrmenu}/kategoriler/{category}/kutuphane', [QrMenuCategoryController::class, 'addFromLibrary'])->name('category.addFromLibrary');
+    });
+
+    // Yemek Kütüphanesi
+    Route::prefix('yemek-kutuphane')->name('food-library.')->group(function () {
+        Route::get('/', [FoodLibraryController::class, 'index'])->name('index');
+        Route::get('/kategoriler/ekle', [FoodLibraryController::class, 'createCategory'])->name('categories.create');
+        Route::post('/kategoriler', [FoodLibraryController::class, 'storeCategory'])->name('categories.store');
+        Route::get('/kategoriler/{category}/duzenle', [FoodLibraryController::class, 'editCategory'])->name('categories.edit');
+        Route::put('/kategoriler/{category}', [FoodLibraryController::class, 'updateCategory'])->name('categories.update');
+        Route::delete('/kategoriler/{category}', [FoodLibraryController::class, 'destroyCategory'])->name('categories.destroy');
+        Route::get('/urunler', [FoodLibraryController::class, 'products'])->name('products');
+        Route::get('/urunler/ekle', [FoodLibraryController::class, 'createProduct'])->name('product.create');
+        Route::post('/urunler', [FoodLibraryController::class, 'storeProduct'])->name('product.store');
+        Route::get('/urunler/{product}/duzenle', [FoodLibraryController::class, 'editProduct'])->name('product.edit');
+        Route::put('/urunler/{product}', [FoodLibraryController::class, 'updateProduct'])->name('product.update');
+        Route::delete('/urunler/{product}', [FoodLibraryController::class, 'destroyProduct'])->name('product.destroy');
+        Route::get('/api/urunler', [FoodLibraryController::class, 'apiProducts'])->name('api.products');
     });
 
     /*
