@@ -52,7 +52,10 @@ class ProfileController extends Controller
             if ($user->avatar && Storage::disk('public')->exists($user->avatar)) {
                 Storage::disk('public')->delete($user->avatar);
             }
-            $data['avatar'] = $request->file('avatar')->store('avatars', 'public');
+            $path = $request->file('avatar')->store('avatars', 'public');
+            // Hosting'de Nginx'in okuyabilmesi için 0644 izni zorla
+            @chmod(storage_path('app/public/' . $path), 0644);
+            $data['avatar'] = $path;
         }
 
         if ($request->filled('password')) {

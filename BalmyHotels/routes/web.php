@@ -61,6 +61,24 @@ use App\Http\Controllers\ProfileController;
 Route::middleware('auth')->group(function () {
     Route::get('/profil',  [ProfileController::class, 'index'])->name('profile.index');
     Route::post('/profil', [ProfileController::class, 'update'])->name('profile.update');
+
+    // Sunucudaki mevcut storage dosyalarının izinlerini düz (0644) yap — bir kez çalıştırılır
+    Route::get('/storage-fix-permissions', function () {
+        $dir = storage_path('app/public');
+        $fixed = 0;
+        foreach (new RecursiveIteratorIterator(new RecursiveDirectoryIterator($dir, FilesystemIterator::SKIP_DOTS)) as $file) {
+            if ($file->isFile()) {
+                @chmod($file->getPathname(), 0644);
+                $fixed++;
+            }
+        }
+        foreach (new RecursiveIteratorIterator(new RecursiveDirectoryIterator($dir, FilesystemIterator::SKIP_DOTS), RecursiveIteratorIterator::SELF_FIRST) as $item) {
+            if ($item->isDir()) {
+                @chmod($item->getPathname(), 0755);
+            }
+        }
+        return response("Tamam: {$fixed} dosya 0644, klasörler 0755 yapıldı.");
+    })->middleware('auth');
 });
 
 /*
