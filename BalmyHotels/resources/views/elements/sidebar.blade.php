@@ -435,7 +435,7 @@
             @endif
 
             {{-- SİPARİŞ MODÜLÜ --}}
-            @if($user->hasPermission('orders','index') || $user->hasPermission('restaurant_settings','index') || $user->hasPermission('order_reports','index'))
+            @if($user->hasPermission('orders','index') || $user->hasPermission('restaurant_settings','index') || $user->hasPermission('order_reports','index') || $user->hasPermission('order_analytics','index'))
             <li @class(['mm-active' => request()->is('siparisler*')])>
                 <a class="has-arrow ai-icon" href="javascript:void()" aria-expanded="false">
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
@@ -450,13 +450,18 @@
                 </a>
                 <ul aria-expanded="false">
                     @if($user->hasPermission('orders','index'))
-                    <li @class(['mm-active' => request()->is('siparisler') && !request()->is('siparisler/raporlar*') && !request()->is('siparisler/restoranlar*')])>
+                    <li @class(['mm-active' => request()->is('siparisler') && !request()->is('siparisler/raporlar*') && !request()->is('siparisler/restoranlar*') && !request()->is('siparisler/analiz*')])>
                         <a href="{{ route('orders.take') }}">Sipariş Al</a>
                     </li>
                     @endif
                     @if($user->hasPermission('order_reports','index'))
                     <li @class(['mm-active' => request()->is('siparisler/raporlar*')])>
                         <a href="{{ route('orders.report') }}">Sipariş Raporları</a>
+                    </li>
+                    @endif
+                    @if($user->hasPermission('order_analytics','index'))
+                    <li @class(['mm-active' => request()->is('siparisler/analiz*')])>
+                        <a href="{{ route('orders.analytics') }}">Sipariş Analizi</a>
                     </li>
                     @endif
                     @if($user->hasPermission('restaurant_settings','index'))

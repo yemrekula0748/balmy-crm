@@ -79,6 +79,7 @@ class RolePermission extends Model
             'restaurant_settings' => 'Restoran & Masa Tanımları',
             'orders'              => 'Sipariş Al',
             'order_reports'       => 'Sipariş Raporları',
+            'order_analytics'    => 'Sipariş Analizi',
         ],
     ];
 

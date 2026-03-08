@@ -41,6 +41,7 @@ use App\Http\Controllers\Modules\ShuttleReportController;
 use App\Http\Controllers\Modules\RestaurantController;
 use App\Http\Controllers\Modules\OrderController;
 use App\Http\Controllers\Modules\OrderReportController;
+use App\Http\Controllers\Modules\OrderAnalyticsController;
 
 /*
 |--------------------------------------------------------------------------
@@ -568,6 +569,9 @@ Route::middleware('auth')->group(function () {
 
         // Raporlar
         Route::get('/raporlar',                      [OrderReportController::class, 'index'])->name('report');
+
+        // Analiz
+        Route::get('/analiz',                        [OrderAnalyticsController::class, 'index'])->name('analytics');
 
         // Restoran tanımları
         Route::prefix('restoranlar')->name('restaurants.')->group(function () {
