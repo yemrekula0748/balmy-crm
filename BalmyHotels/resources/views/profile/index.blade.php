@@ -32,7 +32,7 @@
                 <div class="card-body text-center pt-4 pb-4">
                     <div class="profile-photo position-relative d-inline-block mb-3">
                         <img id="avatar-preview"
-                             src="{{ $user->avatar ? asset('storage/'.$user->avatar) : asset('images/profile/default.png') }}"
+                             src="{{ $user->avatar ? asset($user->avatar) : asset('images/profile/12.png') }}"
                              class="rounded-circle"
                              style="width:110px;height:110px;object-fit:cover;border:3px solid var(--primary);"
                              alt="{{ $user->name }}">
@@ -67,7 +67,7 @@
                             <label class="form-label fw-semibold">Profil Fotoğrafı</label>
                             <div class="d-flex align-items-center gap-3">
                                 <img id="avatar-preview-form"
-                                     src="{{ $user->avatar ? asset('storage/'.$user->avatar) : asset('images/profile/default.png') }}"
+                                     src="{{ $user->avatar ? asset($user->avatar) : asset('images/profile/12.png') }}"
                                      class="rounded-circle"
                                      style="width:70px;height:70px;object-fit:cover;border:2px solid #dee2e6;"
                                      alt="">

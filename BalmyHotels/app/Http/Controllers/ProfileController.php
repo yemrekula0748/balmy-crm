@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rules\Password;
 
 class ProfileController extends Controller
@@ -48,14 +47,22 @@ class ProfileController extends Controller
         $data = ['phone' => $request->phone];
 
         if ($request->hasFile('avatar')) {
-            // Eski avatarı sil
-            if ($user->avatar && Storage::disk('public')->exists($user->avatar)) {
-                Storage::disk('public')->delete($user->avatar);
+            // Eski avatarı sil (public/uploads/avatars/)
+            if ($user->avatar) {
+                $oldPath = public_path($user->avatar);
+                if (file_exists($oldPath)) {
+                    @unlink($oldPath);
+                }
             }
-            $path = $request->file('avatar')->store('avatars', 'public');
-            // Hosting'de Nginx'in okuyabilmesi için 0644 izni zorla
-            @chmod(storage_path('app/public/' . $path), 0644);
-            $data['avatar'] = $path;
+            // Doğrudan public/ altına kaydet — symlink gerekmez
+            $dir      = public_path('uploads/avatars');
+            if (!is_dir($dir)) {
+                mkdir($dir, 0755, true);
+            }
+            $filename = uniqid('av_', true) . '.' . $request->file('avatar')->getClientOriginalExtension();
+            $request->file('avatar')->move($dir, $filename);
+            @chmod($dir . '/' . $filename, 0644);
+            $data['avatar'] = 'uploads/avatars/' . $filename;
         }
 
         if ($request->filled('password')) {

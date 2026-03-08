@@ -674,7 +674,7 @@
                                 <small>Hoş Geldiniz</small>
                                 <span>{{ Auth::user()->name ?? '' }}</span>
                             </div>
-                            @php $avatarSrc = Auth::user()->avatar ? asset('storage/'.Auth::user()->avatar) : asset('images/profile/12.png'); @endphp
+                            @php $avatarSrc = Auth::user()->avatar ? asset(Auth::user()->avatar) : asset('images/profile/12.png'); @endphp
                             <img src="{{ $avatarSrc }}" width="36" height="36" style="border-radius:50%;object-fit:cover;" alt="">
                         </a>
                         <div class="dropdown-menu dropdown-menu-end">
