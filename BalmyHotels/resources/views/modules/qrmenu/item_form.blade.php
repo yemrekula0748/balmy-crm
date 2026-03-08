@@ -192,7 +192,7 @@
                     <div class="card-body">
                         @if($isEdit && $item->image)
                             <div class="mb-3 text-center">
-                                <img src="{{ asset('storage/'.$item->image) }}" alt="görsel"
+                                <img src="{{ asset('uploads/'.$item->image) }}" alt="görsel"
                                      class="rounded" style="max-height:140px;object-fit:cover">
                             </div>
                         @endif

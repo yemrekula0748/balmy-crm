@@ -68,7 +68,7 @@
                 {{-- Logo --}}
                 <div class="col-auto">
                     @if($menu->logo)
-                        <img src="{{ asset('storage/'.$menu->logo) }}" alt="logo" class="rounded" style="width:56px;height:56px;object-fit:cover">
+                        <img src="{{ asset('uploads/'.$menu->logo) }}" alt="logo" class="rounded" style="width:56px;height:56px;object-fit:cover">
                     @else
                         <div class="rounded d-flex align-items-center justify-content-center text-white fw-bold fs-4"
                              style="width:56px;height:56px;background:#c19b77">

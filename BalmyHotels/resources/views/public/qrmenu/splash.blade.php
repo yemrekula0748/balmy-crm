@@ -39,7 +39,7 @@
             background-size: cover;
             background-position: center;
             @if($menu->cover_image)
-            background-image: url('{{ asset('storage/'.$menu->cover_image) }}');
+            background-image: url('{{ asset('uploads/'.$menu->cover_image) }}');
             @endif
             filter: brightness(.35) saturate(.8);
         }
@@ -195,7 +195,7 @@
     <div class="splash-card">
         <div class="logo-wrap">
             @if($menu->logo)
-                <img src="{{ asset('storage/'.$menu->logo) }}" alt="logo" class="logo-img">
+                <img src="{{ asset('uploads/'.$menu->logo) }}" alt="logo" class="logo-img">
             @else
                 <div class="logo-placeholder">{{ strtoupper(substr($menu->name, 0, 1)) }}</div>
             @endif

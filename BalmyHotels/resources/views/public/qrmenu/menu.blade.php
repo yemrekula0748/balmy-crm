@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="{{ $lang }}">
 <head>
     <meta charset="UTF-8">
@@ -51,7 +51,7 @@
             position: absolute; inset: 0;
             background-size: cover; background-position: center;
             @if($menu->cover_image)
-            background-image: url('{{ asset('storage/'.$menu->cover_image) }}');
+            background-image: url('{{ asset('uploads/'.$menu->cover_image) }}');
             @else
             background: linear-gradient(145deg, #0d1117 0%, #1c2a40 45%, {{ $menu->theme_color ?? '#c4a35a' }}33 100%);
             @endif
@@ -88,7 +88,7 @@
             letter-spacing: .14em; text-transform: uppercase; margin-top: .2rem;
         }
 
-        /* ---- DİL ÇUBUĞU ---- */
+        /* ---- D�L �UBU�U ---- */
         .lang-bar {
             position: fixed; top: calc(env(safe-area-inset-top,0px) + .7rem); right: .85rem;
             z-index: 300; display: flex; gap: .35rem;
@@ -106,7 +106,7 @@
         }
         .lang-bar a.active, .lang-bar a:hover { background: var(--accent); border-color: var(--accent); color: #fff; }
 
-        /* ---- KATEGORİ ÇUBUĞU ---- */
+        /* ---- KATEGOR� �UBU�U ---- */
         .cat-bar {
             position: sticky; top: 0; z-index: 100;
             background: rgba(13,17,23,.9);
@@ -145,7 +145,7 @@
         .section-line { flex: 1; height: 1px; background: linear-gradient(to right, var(--border2), transparent); }
         .section-desc { font-size: .74rem; color: var(--text-sub); margin-bottom: .9rem; line-height: 1.55; }
 
-        /* ---- ÖNE ÇIKANLAR ---- */
+        /* ---- �NE �IKANLAR ---- */
         .featured-scroll {
             display: flex; gap: .75rem; overflow-x: auto; padding-bottom: .6rem;
             scrollbar-width: none; -webkit-overflow-scrolling: touch;
@@ -174,7 +174,7 @@
         .feat-desc { font-size: .67rem; color: var(--text-sub); margin-top: .18rem; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
         .feat-price { font-family: var(--serif); font-size: .92rem; font-weight: 600; color: var(--accent); margin-top: .4rem; }
 
-        /* ---- ÜRÜN GRİD ---- */
+        /* ---- �R�N GR�D ---- */
         .items-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: .7rem; padding-bottom: 1.4rem; }
         .items-grid > .item-card:only-child { grid-column: 1 / -1; max-width: 52%; }
 
@@ -272,12 +272,12 @@
 
 @php
 $_i18n = [
-    'tr' => ['product_info'=>'Ürün Bilgileri','tax_note'=>'KDV dahil','featured'=>'Öne Çıkanlar','recommended'=>'Önerilen','digital_menu'=>'Dijital Menü'],
+    'tr' => ['product_info'=>'�r�n Bilgileri','tax_note'=>'KDV dahil','featured'=>'�ne ��kanlar','recommended'=>'�nerilen','digital_menu'=>'Dijital Men�'],
     'en' => ['product_info'=>'Product Info','tax_note'=>'Tax included','featured'=>'Featured','recommended'=>'Recommended','digital_menu'=>'Digital Menu'],
     'de' => ['product_info'=>'Produktinfo','tax_note'=>'Inkl. MwSt.','featured'=>'Highlights','recommended'=>'Empfohlen','digital_menu'=>'Digitale Karte'],
-    'ru' => ['product_info'=>'О продукте','tax_note'=>'Включая НДС','featured'=>'Рекомендуем','recommended'=>'Рекомендуется','digital_menu'=>'Цифровое меню'],
-    'ar' => ['product_info'=>'معلومات المنتج','tax_note'=>'شامل الضريبة','featured'=>'المميزة','recommended'=>'موصى به','digital_menu'=>'قائمة رقمية'],
-    'fr' => ['product_info'=>'Info produit','tax_note'=>'TVA incluse','featured'=>'En vedette','recommended'=>'Recommandé','digital_menu'=>'Menu numérique'],
+    'ru' => ['product_info'=>'? ????????','tax_note'=>'??????? ???','featured'=>'???????????','recommended'=>'?????????????','digital_menu'=>'???????? ????'],
+    'ar' => ['product_info'=>'??????? ??????','tax_note'=>'???? ???????','featured'=>'???????','recommended'=>'???? ??','digital_menu'=>'????? ?????'],
+    'fr' => ['product_info'=>'Info produit','tax_note'=>'TVA incluse','featured'=>'En vedette','recommended'=>'Recommand�','digital_menu'=>'Menu num�rique'],
 ];
 $_t = $_i18n[$lang] ?? $_i18n['tr'];
 @endphp
@@ -298,7 +298,7 @@ $_t = $_i18n[$lang] ?? $_i18n['tr'];
     <div class="hdr-overlay"></div>
     <div class="hdr-content">
         @if($menu->logo)
-            <img src="{{ asset('storage/'.$menu->logo) }}" alt="" class="hdr-logo">
+            <img src="{{ asset('uploads/'.$menu->logo) }}" alt="" class="hdr-logo">
         @else
             <div class="hdr-logo-placeholder">{{ strtoupper(substr($menu->name,0,1)) }}</div>
         @endif
@@ -335,9 +335,9 @@ $_t = $_i18n[$lang] ?? $_i18n['tr'];
             <div class="feat-card" onclick="openSheet({{ $fitem->id }})">
                 <div class="feat-badge">{{ $_t['recommended'] }}</div>
                 @if($fitem->image)
-                    <img src="{{ asset('storage/'.$fitem->image) }}" alt="{{ $fitem->getTitle($lang) }}" class="feat-img">
+                    <img src="{{ asset('uploads/'.$fitem->image) }}" alt="{{ $fitem->getTitle($lang) }}" class="feat-img">
                 @else
-                    <div class="feat-no-img">🍽</div>
+                    <div class="feat-no-img">??</div>
                 @endif
                 <div class="feat-body">
                     <div class="feat-name">{{ $fitem->getTitle($lang) }}</div>
@@ -375,9 +375,9 @@ $_t = $_i18n[$lang] ?? $_i18n['tr'];
             <div class="item-card" onclick="openSheet({{ $item->id }})">
                 <div class="ic-img-wrap">
                     @if($item->image)
-                        <img src="{{ asset('storage/'.$item->image) }}" alt="{{ $item->getTitle($lang) }}">
+                        <img src="{{ asset('uploads/'.$item->image) }}" alt="{{ $item->getTitle($lang) }}">
                     @else
-                        <div class="ic-no-img">🍽</div>
+                        <div class="ic-no-img">??</div>
                     @endif
                     <div class="ic-wave"></div>
                     @if($hasOpts)
@@ -408,7 +408,7 @@ $_t = $_i18n[$lang] ?? $_i18n['tr'];
 </div>
 @endforeach
 
-<div class="menu-footer">{{ $menu->getTitle($lang) }} &nbsp;·&nbsp; {{ $_t['digital_menu'] }}</div>
+<div class="menu-footer">{{ $menu->getTitle($lang) }} &nbsp;�&nbsp; {{ $_t['digital_menu'] }}</div>
 
 {{-- DETAY BOTTOM SHEET --}}
 <div class="sheet-backdrop" id="sheetBackdrop" onclick="closeSheet(event)">
@@ -419,7 +419,7 @@ $_t = $_i18n[$lang] ?? $_i18n['tr'];
             <img id="sheetImg" src="" alt="">
             <div class="sheet-img-overlay"></div>
         </div>
-        <div id="sheetNoImg" class="sheet-no-img">🍽</div>
+        <div id="sheetNoImg" class="sheet-no-img">??</div>
         <div class="sheet-body">
             <div id="sheetBadges" class="sheet-badges"></div>
             <div id="sheetTitle" class="sheet-title"></div>
@@ -445,7 +445,7 @@ foreach ($categories as $_cat) {
             'title'       => $_it->getTitle($lang),
             'description' => $_it->getDescription($lang),
             'price'       => $_it->effectivePrice() ? $_it->formattedPrice($menu->currency_symbol) : null,
-            'image'       => $_it->image ? asset('storage/'.$_it->image) : null,
+            'image'       => $_it->image ? asset('uploads/'.$_it->image) : null,
             'badges'      => $_it->badges ?? [],
             'options'     => $_it->foodProduct?->options ?? [],
         ];

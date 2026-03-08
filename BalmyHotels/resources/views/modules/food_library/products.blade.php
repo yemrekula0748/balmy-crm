@@ -102,7 +102,7 @@
                     {{-- Ürün Resmi --}}
                     @if($product->image && file_exists(storage_path('app/public/'.$product->image)))
                         <div style="height:160px;overflow:hidden;background:#f4f6f9">
-                            <img src="{{ asset('storage/'.$product->image) }}" alt="{{ $product->getTitle('tr') }}"
+                            <img src="{{ asset('uploads/'.$product->image) }}" alt="{{ $product->getTitle('tr') }}"
                                  style="width:100%;height:100%;object-fit:cover">
                         </div>
                     @else

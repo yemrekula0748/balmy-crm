@@ -93,7 +93,7 @@
                                          data-price="{{ $item->effectivePrice() ?? 0 }}">
                                         {{-- Görsel --}}
                                         @if($item->image)
-                                        <img src="{{ asset('storage/'.$item->image) }}" alt=""
+                                        <img src="{{ asset('uploads/'.$item->image) }}" alt=""
                                              class="rounded" style="width:56px;height:56px;object-fit:cover;flex-shrink:0">
                                         @else
                                         <div class="rounded d-flex align-items-center justify-content-center text-white"

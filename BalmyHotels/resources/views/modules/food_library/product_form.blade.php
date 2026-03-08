@@ -214,7 +214,7 @@
                         <h6 class="fw-bold text-dark mb-3">Ürün Görseli</h6>
                         @if(isset($product) && $product->image)
                         <div class="mb-3">
-                            <img src="{{ asset('storage/'.$product->image) }}" alt="" id="imagePreview"
+                            <img src="{{ asset('uploads/'.$product->image) }}" alt="" id="imagePreview"
                                  style="max-height:160px;border-radius:8px;object-fit:cover;border:2px solid #eee">
                         </div>
                         @else

@@ -85,7 +85,7 @@
                     <div class="list-group-item py-2">
                         <div class="d-flex align-items-center gap-2">
                             @if($item->image)
-                                <img src="{{ asset('storage/'.$item->image) }}" alt=""
+                                <img src="{{ asset('uploads/'.$item->image) }}" alt=""
                                      class="rounded" style="width:44px;height:44px;object-fit:cover">
                             @else
                                 <div class="rounded d-flex align-items-center justify-content-center"
@@ -165,7 +165,7 @@
             <div class="card mb-4">
                 <div class="card-body text-center">
                     @if($menu->logo)
-                        <img src="{{ asset('storage/'.$menu->logo) }}" alt="logo"
+                        <img src="{{ asset('uploads/'.$menu->logo) }}" alt="logo"
                              class="rounded-circle mb-3" style="width:72px;height:72px;object-fit:cover">
                     @else
                         <div class="rounded-circle d-flex align-items-center justify-content-center
