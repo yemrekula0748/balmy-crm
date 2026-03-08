@@ -76,10 +76,18 @@
                         <div class="flex-grow-1">
                             <div id="gpsStatus" class="fw-semibold">Konum alınıyor...</div>
                             <div id="gpsCoords" class="text-muted small">GPS izni bekleniyor</div>
+                            <div id="lastSaveTime" class="text-muted small"></div>
                         </div>
                         <div id="gpsBadge" class="badge bg-warning">Bekleniyor</div>
                     </div>
+                    <div class="card-footer py-1 px-3 bg-light border-top d-flex justify-content-between align-items-center" style="font-size:12px;">
+                        <span id="wakeLockStatus" class="text-muted">Wake Lock kontrol ediliyor...</span>
+                        <span class="text-muted">Ekranı <strong>kapatmayın</strong></span>
+                    </div>
                 </div>
+
+                {{-- Arka plan uyarısı --}}
+                <div id="pauseWarning" class="alert alert-warning py-2 small d-none mb-3"></div>
 
                 {{-- Görevi Bitir butonu --}}
                 <div class="d-grid">
@@ -104,6 +112,31 @@ let watchId = null;
 let lastSent = 0;
 const SEND_INTERVAL = 5000; // 5 saniyede bir gönder
 
+// ── Wake Lock: ekranın kilitlenmesini engelle ──────────────────────────────
+let wakeLock = null;
+
+async function requestWakeLock() {
+    if (!('wakeLock' in navigator)) return; // desteklenmiyor
+    try {
+        wakeLock = await navigator.wakeLock.request('screen');
+        document.getElementById('wakeLockStatus').textContent = '🔆 Ekran kilidi engellendi';
+        wakeLock.addEventListener('release', () => {
+            // Sekme tekrar görünür olunca yeniden iste
+            document.getElementById('wakeLockStatus').textContent = '⚠️ Ekran kilidi serbest bırakıldı';
+        });
+    } catch (e) {
+        document.getElementById('wakeLockStatus').textContent = '⚠️ Ekran kilidi alınamadı — ekranı kapatmayın';
+    }
+}
+
+async function reacquireWakeLock() {
+    if (!('wakeLock' in navigator)) return;
+    if (wakeLock === null || wakeLock.released) {
+        await requestWakeLock();
+    }
+}
+// ──────────────────────────────────────────────────────────────────────────
+
 function updateGpsUI(status, coordText, badgeClass, badgeText) {
     document.getElementById('gpsStatus').textContent = status;
     document.getElementById('gpsCoords').textContent = coordText;
@@ -127,7 +160,15 @@ function sendLocation(lat, lng) {
     }).then(r => r.json()).then(() => {
         locationCount++;
         document.getElementById('locationCount').textContent = locationCount + ' nokta';
+        document.getElementById('lastSaveTime').textContent = 'Son kayıt: ' + new Date().toLocaleTimeString('tr-TR');
     }).catch(() => {});
+}
+
+function stopTracking() {
+    if (watchId !== null) {
+        navigator.geolocation.clearWatch(watchId);
+        watchId = null;
+    }
 }
 
 function startTracking() {
@@ -136,14 +177,16 @@ function startTracking() {
         return;
     }
 
-    const opts = { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 };
+    stopTracking(); // önce varsa durdur
+
+    const opts = { enableHighAccuracy: true, timeout: 15000, maximumAge: 5000 };
 
     watchId = navigator.geolocation.watchPosition(
         pos => {
             const lat = pos.coords.latitude.toFixed(6);
             const lng = pos.coords.longitude.toFixed(6);
             updateGpsUI(
-                'Konum aktif — her 30 saniyede kaydediliyor',
+                'Konum aktif — 5 saniyede bir kaydediliyor',
                 `${lat}, ${lng} (±${Math.round(pos.coords.accuracy)}m)`,
                 'bg-success',
                 'Aktif'
@@ -154,20 +197,51 @@ function startTracking() {
             let msg = 'Konum alınamıyor';
             if (err.code === 1) msg = 'Konum izni reddedildi. Lütfen tarayıcı ayarlarından izin verin.';
             if (err.code === 2) msg = 'Konum servisi kullanılamıyor.';
-            if (err.code === 3) msg = 'Konum isteği zaman aşımına uğradı.';
+            if (err.code === 3) msg = 'Konum isteği zaman aşımına uğradı, yeniden deneniyor...';
             updateGpsUI(msg, '', 'bg-danger', 'Hata');
+            // Zaman aşımında otomatik yeniden başlat
+            if (err.code === 3) setTimeout(startTracking, 3000);
         },
         opts
     );
 }
 
-// Sayfa yüklenince izlemeyi başlat
+// ── Sekme görünürlük değişikliği ──────────────────────────────────────────
+let hiddenAt = null;
+
+document.addEventListener('visibilitychange', async () => {
+    if (document.hidden) {
+        // Arka plana geçti — ne zaman geçtiğini kaydet
+        hiddenAt = Date.now();
+        updateGpsUI('Sekme arka planda — takip duraklatıldı', 'Uygulamaya dönünce otomatik devam eder', 'bg-warning', 'Duraklatıldı');
+    } else {
+        // Tekrar öne geldi
+        const pausedFor = hiddenAt ? Math.round((Date.now() - hiddenAt) / 1000) : 0;
+        hiddenAt = null;
+
+        // Wake lock yeniden al
+        await reacquireWakeLock();
+
+        // Takibi yeniden başlat
+        lastSent = 0; // throttle sıfırla — hemen bir konum gönder
+        startTracking();
+
+        if (pausedFor > 5) {
+            const warn = document.getElementById('pauseWarning');
+            warn.textContent = `⚠️ Uygulama ${pausedFor} saniye arka plandaydı — bu süre kaydedilemedi. Lütfen ekranı kapatmayın.`;
+            warn.classList.remove('d-none');
+            setTimeout(() => warn.classList.add('d-none'), 8000);
+        }
+    }
+});
+// ──────────────────────────────────────────────────────────────────────────
+
+// Sayfa yüklenince başlat
+requestWakeLock();
 startTracking();
 
-// Sayfa kapatılırken izlemeyi durdur
-window.addEventListener('beforeunload', () => {
-    if (watchId !== null) navigator.geolocation.clearWatch(watchId);
-});
+// Sayfa kapatılırken durdur
+window.addEventListener('beforeunload', () => stopTracking());
 </script>
 
 <style>
