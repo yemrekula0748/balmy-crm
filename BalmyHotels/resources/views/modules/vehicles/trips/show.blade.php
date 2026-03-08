@@ -26,8 +26,7 @@
                     @else
                         <span class="badge bg-secondary">Tamamlandı</span>
                     @endif
-                </div>
-                <div class="card-body p-0">
+                </div>                <div class="card-body p-0">
                     <table class="table table-sm mb-0">
                         <tbody>
                             <tr><td class="text-muted ps-3" style="width:40%">Araç</td><td><strong>{{ $vehicleTrip->vehicle->plate }}</strong> — {{ $vehicleTrip->vehicle->brand }} {{ $vehicleTrip->vehicle->model }}</td></tr>
@@ -51,10 +50,18 @@
                 </div>
             </div>
 
+            {{-- Görevi Bitir butonu (sadece görev sahibine, aktifse) --}}
+            @if($vehicleTrip->status === 'active' && $vehicleTrip->user_id === Auth::id())
+            <div class="d-grid mt-3">
+                <a href="{{ route('vehicle-trips.complete', $vehicleTrip) }}" class="btn btn-danger btn-lg">
+                    <i class="fa fa-stop-circle me-2"></i>Görevi Bitir
+                </a>
+            </div>
+            @endif
+
             {{-- Fotoğraflar --}}
             <div class="card">
-                <div class="card-header"><h6 class="mb-0">KM Fotoğrafları</h6></div>
-                <div class="card-body">
+                <div class="card-header"><h6 class="mb-0">KM Fotoğrafları</h6></div>                <div class="card-body">
                     <div class="row g-2">
                         <div class="col-6">
                             <p class="text-muted small mb-1">Başlangıç</p>
