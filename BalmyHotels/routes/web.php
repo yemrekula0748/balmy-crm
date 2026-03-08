@@ -42,6 +42,7 @@ use App\Http\Controllers\Modules\RestaurantController;
 use App\Http\Controllers\Modules\OrderController;
 use App\Http\Controllers\Modules\OrderReportController;
 use App\Http\Controllers\Modules\OrderAnalyticsController;
+use App\Http\Controllers\Modules\OcrController;
 
 /*
 |--------------------------------------------------------------------------
@@ -483,6 +484,16 @@ Route::middleware('auth')->group(function () {
     Route::prefix('pdf-birlestirme')->name('pdf-merger.')->group(function () {
         Route::get('/',       [PdfMergerController::class, 'index'])->name('index');
         Route::post('/birlestir', [PdfMergerController::class, 'merge'])->name('merge');
+    });
+
+    /*
+    |--------------------------------------------------------------------------
+    | OCR — Yazıya Çevir
+    |--------------------------------------------------------------------------
+    */
+    Route::prefix('yaziya-cevir')->name('ocr.')->group(function () {
+        Route::get('/',      [OcrController::class, 'index'])->name('index');
+        Route::post('/cevir',[OcrController::class, 'extract'])->name('extract');
     });
 
     /*

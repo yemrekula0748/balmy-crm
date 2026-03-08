@@ -26,6 +26,21 @@ return [
     'libreoffice_path' => env('LIBREOFFICE_PATH', 'C:\\Program Files\\LibreOffice\\program\\soffice.exe'),
 
     /*
+     | Tesseract OCR executable path (Yazıya Çevir modülü için)
+     | Windows: C:\Program Files\Tesseract-OCR\tesseract.exe
+     | Linux:   /usr/bin/tesseract
+     */
+    'tesseract_path' => env('TESSERACT_PATH', 'C:\\Program Files\\Tesseract-OCR\\tesseract.exe'),
+
+    /*
+     | pdftoppm executable path (PDF → görüntü dönüşümü — OCR modülü, Poppler utils)
+     | Windows: https://github.com/oschwartz10612/poppler-windows/releases adresinden indirin
+     |          Örnek: C:\poppler\Library\bin\pdftoppm.exe
+     | Linux:   /usr/bin/pdftoppm  (apt install poppler-utils)
+     */
+    'pdftoppm_path' => env('PDFTOPPM_PATH', ''),
+
+    /*
     |--------------------------------------------------------------------------
     | Application Environment
     |--------------------------------------------------------------------------

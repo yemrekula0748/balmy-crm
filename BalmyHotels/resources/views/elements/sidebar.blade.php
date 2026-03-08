@@ -337,8 +337,8 @@
             @endif
 
             {{-- ARAÇLAR (Tools) --}}
-            @if($user->hasPermission('contract_compare', 'index') || $user->hasPermission('pdf_converter', 'index') || $user->hasPermission('pdf_merger', 'index'))
-            <li @class(['mm-active' => request()->is('sozlesme-karsilastirma*') || request()->is('pdf-donusturme*') || request()->is('pdf-birlestirme*')])>
+            @if($user->hasPermission('contract_compare', 'index') || $user->hasPermission('pdf_converter', 'index') || $user->hasPermission('pdf_merger', 'index') || $user->hasPermission('ocr', 'index'))
+            <li @class(['mm-active' => request()->is('sozlesme-karsilastirma*') || request()->is('pdf-donusturme*') || request()->is('pdf-birlestirme*') || request()->is('yaziya-cevir*')])>
                 <a class="has-arrow ai-icon" href="javascript:void()" aria-expanded="false">
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
                          fill="none" stroke="currentColor" stroke-width="2"
@@ -361,6 +361,11 @@
                     @if($user->hasPermission('pdf_merger', 'index'))
                     <li @class(['mm-active' => request()->is('pdf-birlestirme*')])>
                         <a href="{{ route('pdf-merger.index') }}">PDF Birleştirici</a>
+                    </li>
+                    @endif
+                    @if($user->hasPermission('ocr', 'index'))
+                    <li @class(['mm-active' => request()->is('yaziya-cevir*')])>
+                        <a href="{{ route('ocr.index') }}">Yazıya Çevir (OCR)</a>
                     </li>
                     @endif
                 </ul>

@@ -61,6 +61,7 @@ class RolePermission extends Model
             'contract_compare' => 'Sözleşme Karşılaştırma',
             'pdf_converter'    => 'PDF Word Çevirici',
             'pdf_merger'       => 'PDF Birleştirici',
+            'ocr'              => 'Yazıya Çevir (OCR)',
         ],
         'Sürdürülebilirlik' => [
             'carbon_footprint' => 'Karbon Ayak İzi Raporları',
