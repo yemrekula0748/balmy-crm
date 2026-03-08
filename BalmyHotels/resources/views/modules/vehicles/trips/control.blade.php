@@ -15,7 +15,7 @@
         </div>
     </div>
 
-    <div class="row g-4">
+    <div class="row g-3 align-items-start">
         {{-- Sol panel: aktif görevler --}}
         <div class="col-lg-4">
             {{-- Aktif Görevler --}}
@@ -47,7 +47,7 @@
                             </div>
                         </div>
                     </a>
-                    <div class="px-2 pb-1">
+                    <div class="list-group-item px-2 py-1 border-top-0">
                         <a href="{{ route('vehicle-trips.complete', $trip) }}" class="btn btn-danger btn-sm w-100">
                             <i class="fa fa-stop-circle me-1"></i>Görevi Bitir
                         </a>
