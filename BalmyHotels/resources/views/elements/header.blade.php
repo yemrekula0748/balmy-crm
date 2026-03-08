@@ -674,9 +674,15 @@
                                 <small>Hoş Geldiniz</small>
                                 <span>{{ Auth::user()->name ?? '' }}</span>
                             </div>
-                            <img src="{{ asset('images/profile/12.png')}}" width="20" alt="">
+                            @php $avatarSrc = Auth::user()->avatar ? asset('storage/'.Auth::user()->avatar) : asset('images/profile/12.png'); @endphp
+                            <img src="{{ $avatarSrc }}" width="36" height="36" style="border-radius:50%;object-fit:cover;" alt="">
                         </a>
                         <div class="dropdown-menu dropdown-menu-end">
+                            <a href="{{ route('profile.index') }}" class="dropdown-item ai-icon">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="text-primary" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                                <span class="ms-2">Profilim</span>
+                            </a>
+                            <div class="dropdown-divider"></div>
                             <form action="{{ route('logout') }}" method="POST" class="d-inline">
                                 @csrf
                                 <button type="submit" class="dropdown-item ai-icon">

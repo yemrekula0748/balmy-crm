@@ -56,6 +56,13 @@ Route::middleware('guest')->group(function () {
 
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout')->middleware('auth');
 
+// Profil
+use App\Http\Controllers\ProfileController;
+Route::middleware('auth')->group(function () {
+    Route::get('/profil',  [ProfileController::class, 'index'])->name('profile.index');
+    Route::post('/profil', [ProfileController::class, 'update'])->name('profile.update');
+});
+
 /*
 |--------------------------------------------------------------------------
 | QR Menü — Public (auth gerekmez)
