@@ -18,26 +18,7 @@
     <div class="row justify-content-center">
         <div class="col-lg-6 col-md-8">
 
-            {{-- Görev özeti --}}
-            <div class="card border-success mb-3">
-                <div class="card-header bg-success bg-opacity-10">
-                    <h6 class="mb-0 text-success fw-semibold">Görev #{{ $vehicleTrip->id }} — {{ $vehicleTrip->vehicle->plate }}</h6>
-                </div>
-                <div class="card-body py-2">
-                    <div class="row">
-                        <div class="col-6">
-                            <div class="text-muted small">Gidilen Yer</div>
-                            <div class="fw-semibold">{{ $vehicleTrip->destination }}</div>
-                        </div>
-                        <div class="col-6">
-                            <div class="text-muted small">Başlangıç KM</div>
-                            <div class="fw-semibold">{{ number_format($vehicleTrip->start_km) }} km</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="card shadow-sm">
+            <div class="card shadow-sm mb-3">
                 <div class="card-header bg-danger bg-opacity-10 border-danger">
                     <h5 class="card-title mb-0 text-danger">
                         <i class="fa fa-stop-circle me-2"></i>Dönüş Bilgilerini Girin
@@ -120,6 +101,26 @@
                     </form>
                 </div>
             </div>
+
+            {{-- Görev özeti --}}
+            <div class="card border-success mb-3">
+                <div class="card-header bg-success bg-opacity-10">
+                    <h6 class="mb-0 text-success fw-semibold">Görev #{{ $vehicleTrip->id }} — {{ $vehicleTrip->vehicle->plate }}</h6>
+                </div>
+                <div class="card-body py-2">
+                    <div class="row">
+                        <div class="col-6">
+                            <div class="text-muted small">Gidilen Yer</div>
+                            <div class="fw-semibold">{{ $vehicleTrip->destination }}</div>
+                        </div>
+                        <div class="col-6">
+                            <div class="text-muted small">Başlangıç KM</div>
+                            <div class="fw-semibold">{{ number_format($vehicleTrip->start_km) }} km</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
         </div>
     </div>
 </div>
