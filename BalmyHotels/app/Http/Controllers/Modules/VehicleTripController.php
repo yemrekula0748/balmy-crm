@@ -115,10 +115,17 @@ class VehicleTripController extends BaseModuleController
         return view('modules.vehicles.trips.my', compact('activeTrip'));
     }
 
+    /** Kullanıcının görevi bitirme yetkisi var mı? */
+    private function canComplete(VehicleTrip $vehicleTrip): bool
+    {
+        return $vehicleTrip->isActive() &&
+               ($vehicleTrip->user_id === Auth::id() || Auth::user()->hasPermission('vehicle_trip_control', 'index'));
+    }
+
     /** Görevi bitir formu (GET) */
     public function complete(VehicleTrip $vehicleTrip)
     {
-        abort_unless($vehicleTrip->user_id === Auth::id() && $vehicleTrip->isActive(), 403);
+        abort_unless($this->canComplete($vehicleTrip), 403);
         $vehicleTrip->load('vehicle');
         return view('modules.vehicles.trips.complete', compact('vehicleTrip'));
     }
@@ -126,7 +133,7 @@ class VehicleTripController extends BaseModuleController
     /** Görevi bitir (POST) */
     public function update(Request $request, VehicleTrip $vehicleTrip)
     {
-        abort_unless($vehicleTrip->user_id === Auth::id() && $vehicleTrip->isActive(), 403);
+        abort_unless($this->canComplete($vehicleTrip), 403);
 
         $data = $request->validate([
             'end_km'       => 'required|integer|min:' . $vehicleTrip->start_km,

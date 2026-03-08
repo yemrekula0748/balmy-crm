@@ -47,6 +47,11 @@
                             </div>
                         </div>
                     </a>
+                    <div class="px-2 pb-1">
+                        <a href="{{ route('vehicle-trips.complete', $trip) }}" class="btn btn-danger btn-sm w-100">
+                            <i class="fa fa-stop-circle me-1"></i>Görevi Bitir
+                        </a>
+                    </div>
                     @empty
                     <div class="list-group-item text-muted text-center py-3">
                         <i class="fa fa-check-circle me-1"></i> Aktif görev yok

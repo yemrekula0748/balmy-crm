@@ -50,8 +50,8 @@
                 </div>
             </div>
 
-            {{-- Görevi Bitir butonu (sadece görev sahibine, aktifse) --}}
-            @if($vehicleTrip->status === 'active' && $vehicleTrip->user_id === Auth::id())
+            {{-- Görevi Bitir butonu (görev sahibi veya yetkili yönetici) --}}
+            @if($vehicleTrip->status === 'active' && ($vehicleTrip->user_id === Auth::id() || Auth::user()->hasPermission('vehicle_trip_control', 'index')))
             <div class="d-grid mt-3">
                 <a href="{{ route('vehicle-trips.complete', $vehicleTrip) }}" class="btn btn-danger btn-lg">
                     <i class="fa fa-stop-circle me-2"></i>Görevi Bitir
