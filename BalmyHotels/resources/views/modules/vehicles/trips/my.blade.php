@@ -102,7 +102,7 @@ const CSRF = '{{ csrf_token() }}';
 let locationCount = {{ $activeTrip->locations->count() }};
 let watchId = null;
 let lastSent = 0;
-const SEND_INTERVAL = 30000; // 30 saniyede bir gönder
+const SEND_INTERVAL = 5000; // 5 saniyede bir gönder
 
 function updateGpsUI(status, coordText, badgeClass, badgeText) {
     document.getElementById('gpsStatus').textContent = status;
