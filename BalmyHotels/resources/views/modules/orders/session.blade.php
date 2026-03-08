@@ -221,6 +221,11 @@
     </div>
 </div>
 
+{{-- Toast container --}}
+<div id="cart-toast-container"
+     class="toast-container position-fixed bottom-0 end-0 p-3"
+     style="z-index:9999"></div>
+
 {{-- Masa Kapat Modal --}}
 <div class="modal fade" id="closeModal" tabindex="-1">
     <div class="modal-dialog">
@@ -298,6 +303,30 @@
         btn.disabled = false;
     }
 
+    // Toast helper
+    function showToast(message){
+        const container = document.getElementById('cart-toast-container');
+        const id = 'toast-' + Date.now();
+        const el = document.createElement('div');
+        el.id = id;
+        el.className = 'toast align-items-center border-0 text-white';
+        el.style.background = '#71d8b5';
+        el.setAttribute('role', 'alert');
+        el.setAttribute('aria-live', 'assertive');
+        el.setAttribute('aria-atomic', 'true');
+        el.innerHTML = `
+            <div class="d-flex">
+                <div class="toast-body">
+                    <i class="fa fa-check-circle me-2"></i>${message}
+                </div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+            </div>`;
+        container.appendChild(el);
+        const bsToast = new bootstrap.Toast(el, {delay: 2500});
+        bsToast.show();
+        el.addEventListener('hidden.bs.toast', () => el.remove());
+    }
+
     // Sepete ekle
     document.querySelectorAll('.add-to-cart-btn').forEach(btn => {
         btn.addEventListener('click', function(){
@@ -318,6 +347,7 @@
             row.querySelector('.qty-input').value = 1;
             row.querySelector('.note-input').value = '';
             renderCart();
+            showToast(`<strong>${name}</strong> (×${qty}) sepete eklendi`);
         });
     });
 

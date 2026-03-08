@@ -144,8 +144,10 @@ class OrderController extends BaseModuleController
             ]);
         }
 
+        $restaurantId = $session->table->restaurant_id;
+
         return redirect()
-            ->route('orders.session', $session)
+            ->route('orders.take', ['restaurant_id' => $restaurantId])
             ->with('success', 'Sipariş kaydedildi.');
     }
 
