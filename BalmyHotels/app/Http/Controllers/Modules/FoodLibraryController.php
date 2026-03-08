@@ -362,7 +362,7 @@ class FoodLibraryController extends BaseModuleController
             'id'            => $p->id,
             'title_tr'      => $p->getTitle('tr'),
             'price'         => $p->price,
-            'image_url'     => $p->image ? asset('storage/'.$p->image) : null,
+            'image_url'     => $p->image ? asset('uploads/'.$p->image) : null,
             'badges'        => $p->badges ?? [],
             'category_name' => $p->foodCategory?->getTitle('tr'),
         ]);
