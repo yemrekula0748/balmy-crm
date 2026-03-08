@@ -5,6 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="theme-color" content="{{ $menu->theme_color ?? '#c4a35a' }}">
     <title>{{ $menu->getTitle($lang) }}</title>
+    <!-- Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-7HHCB1JYV7"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-7HHCB1JYV7');
+    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
     <style>
@@ -88,7 +96,7 @@
             letter-spacing: .14em; text-transform: uppercase; margin-top: .2rem;
         }
 
-        /* ---- DÝL ÇUBUÐU ---- */
+        /* ---- Dï¿½L ï¿½UBUï¿½U ---- */
         .lang-bar {
             position: fixed; top: calc(env(safe-area-inset-top,0px) + .7rem); right: .85rem;
             z-index: 300; display: flex; gap: .35rem;
@@ -106,7 +114,7 @@
         }
         .lang-bar a.active, .lang-bar a:hover { background: var(--accent); border-color: var(--accent); color: #fff; }
 
-        /* ---- KATEGORÝ ÇUBUÐU ---- */
+        /* ---- KATEGORï¿½ ï¿½UBUï¿½U ---- */
         .cat-bar {
             position: sticky; top: 0; z-index: 100;
             background: rgba(13,17,23,.9);
@@ -145,7 +153,7 @@
         .section-line { flex: 1; height: 1px; background: linear-gradient(to right, var(--border2), transparent); }
         .section-desc { font-size: .74rem; color: var(--text-sub); margin-bottom: .9rem; line-height: 1.55; }
 
-        /* ---- ÖNE ÇIKANLAR ---- */
+        /* ---- ï¿½NE ï¿½IKANLAR ---- */
         .featured-scroll {
             display: flex; gap: .75rem; overflow-x: auto; padding-bottom: .6rem;
             scrollbar-width: none; -webkit-overflow-scrolling: touch;
@@ -174,7 +182,7 @@
         .feat-desc { font-size: .67rem; color: var(--text-sub); margin-top: .18rem; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
         .feat-price { font-family: var(--serif); font-size: .92rem; font-weight: 600; color: var(--accent); margin-top: .4rem; }
 
-        /* ---- ÜRÜN GRÝD ---- */
+        /* ---- ï¿½Rï¿½N GRï¿½D ---- */
         .items-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: .7rem; padding-bottom: 1.4rem; }
         .items-grid > .item-card:only-child { grid-column: 1 / -1; max-width: 52%; }
 
@@ -272,12 +280,12 @@
 
 @php
 $_i18n = [
-    'tr' => ['product_info'=>'Ürün Bilgileri','tax_note'=>'KDV dahil','featured'=>'Öne Çýkanlar','recommended'=>'Önerilen','digital_menu'=>'Dijital Menü'],
+    'tr' => ['product_info'=>'ï¿½rï¿½n Bilgileri','tax_note'=>'KDV dahil','featured'=>'ï¿½ne ï¿½ï¿½kanlar','recommended'=>'ï¿½nerilen','digital_menu'=>'Dijital Menï¿½'],
     'en' => ['product_info'=>'Product Info','tax_note'=>'Tax included','featured'=>'Featured','recommended'=>'Recommended','digital_menu'=>'Digital Menu'],
     'de' => ['product_info'=>'Produktinfo','tax_note'=>'Inkl. MwSt.','featured'=>'Highlights','recommended'=>'Empfohlen','digital_menu'=>'Digitale Karte'],
     'ru' => ['product_info'=>'? ????????','tax_note'=>'??????? ???','featured'=>'???????????','recommended'=>'?????????????','digital_menu'=>'???????? ????'],
     'ar' => ['product_info'=>'??????? ??????','tax_note'=>'???? ???????','featured'=>'???????','recommended'=>'???? ??','digital_menu'=>'????? ?????'],
-    'fr' => ['product_info'=>'Info produit','tax_note'=>'TVA incluse','featured'=>'En vedette','recommended'=>'Recommandé','digital_menu'=>'Menu numérique'],
+    'fr' => ['product_info'=>'Info produit','tax_note'=>'TVA incluse','featured'=>'En vedette','recommended'=>'Recommandï¿½','digital_menu'=>'Menu numï¿½rique'],
 ];
 $_t = $_i18n[$lang] ?? $_i18n['tr'];
 @endphp
@@ -408,7 +416,7 @@ $_t = $_i18n[$lang] ?? $_i18n['tr'];
 </div>
 @endforeach
 
-<div class="menu-footer">{{ $menu->getTitle($lang) }} &nbsp;·&nbsp; {{ $_t['digital_menu'] }}</div>
+<div class="menu-footer">{{ $menu->getTitle($lang) }} &nbsp;ï¿½&nbsp; {{ $_t['digital_menu'] }}</div>
 
 {{-- DETAY BOTTOM SHEET --}}
 <div class="sheet-backdrop" id="sheetBackdrop" onclick="closeSheet(event)">
