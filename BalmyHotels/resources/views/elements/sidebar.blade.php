@@ -199,6 +199,15 @@
                     @if($user->hasPermission('vehicles', 'create'))
                     <li><a href="{{ route('vehicles.create') }}">Yeni Araç Ekle</a></li>
                     @endif
+                    @if($user->hasPermission('vehicle_trips', 'index'))
+                    <li><a href="{{ route('vehicle-trips.index') }}">Araç Görevleri</a></li>
+                    @endif
+                    @if($user->hasPermission('vehicle_trips', 'create'))
+                    <li><a href="{{ route('vehicle-trips.create') }}">Görev Başlat</a></li>
+                    @endif
+                    @if($user->hasPermission('vehicle_trip_control', 'index'))
+                    <li><a href="{{ route('vehicle-trips.control') }}">Görev Kontrol Haritası</a></li>
+                    @endif
                 </ul>
             </li>
             @endif

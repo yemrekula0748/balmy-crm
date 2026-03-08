@@ -60,6 +60,17 @@ class Vehicle extends Model
         return $this->hasOne(VehicleMaintenance::class)->orderByDesc('maintenance_at');
     }
 
+    /** Aktif görev */
+    public function activeTrip()
+    {
+        return $this->hasOne(VehicleTrip::class)->where('status', 'active');
+    }
+
+    public function trips()
+    {
+        return $this->hasMany(VehicleTrip::class)->orderByDesc('started_at');
+    }
+
     /** Şubeye göre scope */
     public function scopeForBranch($query, $branchId)
     {

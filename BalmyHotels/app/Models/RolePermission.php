@@ -25,10 +25,12 @@ class RolePermission extends Model
     // ----------------------------------------------------------------
     const MODULES = [
         'Araç Yönetimi' => [
-            'vehicles'       => 'Araçlar',
-            'vehicle_ops'    => 'Araç Operasyonları',
-            'vehicle_maint'  => 'Araç Bakım',
-            'vehicle_ins'    => 'Araç Sigorta',
+            'vehicles'             => 'Araçlar',
+            'vehicle_ops'          => 'Araç Operasyonları',
+            'vehicle_maint'        => 'Araç Bakım',
+            'vehicle_ins'          => 'Araç Sigorta',
+            'vehicle_trips'        => 'Araç Görev Başlat/Bitir',
+            'vehicle_trip_control' => 'Araç Görev Kontrol (Harita)',
         ],
         'Personel' => [
             'users'          => 'Kullanıcılar',

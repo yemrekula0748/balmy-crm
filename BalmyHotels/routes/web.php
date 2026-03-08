@@ -8,6 +8,7 @@ use App\Http\Controllers\Modules\VehicleController;
 use App\Http\Controllers\Modules\VehicleOperationController;
 use App\Http\Controllers\Modules\VehicleMaintenanceController;
 use App\Http\Controllers\Modules\VehicleInsuranceController;
+use App\Http\Controllers\Modules\VehicleTripController;
 use App\Http\Controllers\Modules\UserController;
 use App\Http\Controllers\Modules\DepartmentController;
 use App\Http\Controllers\Modules\DoorLogController;
@@ -218,6 +219,27 @@ Route::middleware('auth')->group(function () {
         Route::resource('{vehicle}/sigortalar', VehicleInsuranceController::class)
             ->parameters(['sigortalar' => 'insurance'])
             ->only(['index', 'create', 'store', 'show', 'edit', 'update', 'destroy']);
+    });
+
+    /*
+    |--------------------------------------------------------------------------
+    | Araç Görev Takip
+    |--------------------------------------------------------------------------
+    */
+    Route::prefix('arac-gorevler')->name('vehicle-trips.')->group(function () {
+        Route::get('/',                                  [VehicleTripController::class, 'index'])->name('index');
+        Route::get('/yeni',                              [VehicleTripController::class, 'create'])->name('create');
+        Route::post('/',                                 [VehicleTripController::class, 'store'])->name('store');
+        Route::get('/aktif-gorevim',                     [VehicleTripController::class, 'myTrip'])->name('my');
+        Route::get('/kontrol',                           [VehicleTripController::class, 'control'])->name('control');
+        Route::get('/{vehicleTrip}',                     [VehicleTripController::class, 'show'])->name('show');
+        Route::get('/{vehicleTrip}/bitir',               [VehicleTripController::class, 'complete'])->name('complete');
+        Route::put('/{vehicleTrip}',                     [VehicleTripController::class, 'update'])->name('update');
+        Route::delete('/{vehicleTrip}',                  [VehicleTripController::class, 'destroy'])->name('destroy');
+        // API: konum kaydet
+        Route::post('/{vehicleTrip}/konum',              [VehicleTripController::class, 'storeLocation'])->name('location');
+        // API: kontrol sayfası konum polling
+        Route::get('/{vehicleTrip}/konumlar',            [VehicleTripController::class, 'controlLocations'])->name('control-locations');
     });
 
     /*
