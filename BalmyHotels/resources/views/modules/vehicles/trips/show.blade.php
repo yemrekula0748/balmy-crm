@@ -15,7 +15,7 @@
         </div>
     </div>
 
-    <div class="row g-4">
+    <div class="row g-4 align-items-start">
         <div class="col-lg-5">
             {{-- Bilgi kartı --}}
             <div class="card mb-3">
