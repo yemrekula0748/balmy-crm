@@ -54,7 +54,7 @@
                         <span class="badge bg-light text-dark border small">{{ $category->items->count() }} ürün</span>
                     </div>
                     <div class="d-flex gap-1">
-                        <a href="{{ route('qrmenus.item.create', [$menu, $category]) }}"
+                        <a href="{{ route('food-library.product.create') }}"
                            class="btn btn-outline-success btn-sm py-0 px-2" title="Ürün ekle">
                             <i class="fa fa-plus"></i> Ürün
                         </a>
@@ -138,7 +138,7 @@
                 @else
                 <div class="card-body py-2 text-center text-muted small">
                     Henüz ürün yok.
-                    <a href="{{ route('qrmenus.item.create', [$menu, $category]) }}" style="color:#c19b77">
+                    <a href="{{ route('food-library.product.create') }}" style="color:#c19b77">
                         İlk ürünü ekle
                     </a>
                 </div>
