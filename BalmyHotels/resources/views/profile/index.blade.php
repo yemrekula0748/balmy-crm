@@ -107,49 +107,43 @@
                     <div class="card-body">
                         <p class="text-muted small mb-3">Şifrenizi değiştirmek istemiyorsanız bu alanları boş bırakın.</p>
 
-                        <div class="mb-3">
+                        <div class="mb-3 position-relative">
                             <label class="form-label fw-semibold">Mevcut Şifre</label>
-                            <div class="position-relative">
-                                <input type="password" name="current_password" id="current_password"
-                                       class="form-control @error('current_password') is-invalid @enderror"
-                                       placeholder="Mevcut şifrenizi girin">
-                                <span class="show-pass eye" onclick="togglePass('current_password')">
-                                    <i class="fa fa-eye-slash"></i>
-                                    <i class="fa fa-eye"></i>
-                                </span>
-                                @error('current_password')
-                                    <div class="invalid-feedback">{{ $message }}</div>
-                                @enderror
-                            </div>
+                            <input type="password" name="current_password" id="current_password"
+                                   class="form-control @error('current_password') is-invalid @enderror"
+                                   placeholder="Mevcut şifrenizi girin">
+                            <span class="show-pass eye" data-target="current_password">
+                                <i class="fa fa-eye-slash"></i>
+                                <i class="fa fa-eye"></i>
+                            </span>
+                            @error('current_password')
+                                <div class="invalid-feedback d-block">{{ $message }}</div>
+                            @enderror
                         </div>
 
-                        <div class="mb-3">
+                        <div class="mb-3 position-relative">
                             <label class="form-label fw-semibold">Yeni Şifre</label>
-                            <div class="position-relative">
-                                <input type="password" name="password" id="new_password"
-                                       class="form-control @error('password') is-invalid @enderror"
-                                       placeholder="En az 8 karakter">
-                                <span class="show-pass eye" onclick="togglePass('new_password')">
-                                    <i class="fa fa-eye-slash"></i>
-                                    <i class="fa fa-eye"></i>
-                                </span>
-                                @error('password')
-                                    <div class="invalid-feedback">{{ $message }}</div>
-                                @enderror
-                            </div>
+                            <input type="password" name="password" id="new_password"
+                                   class="form-control @error('password') is-invalid @enderror"
+                                   placeholder="En az 8 karakter">
+                            <span class="show-pass eye" data-target="new_password">
+                                <i class="fa fa-eye-slash"></i>
+                                <i class="fa fa-eye"></i>
+                            </span>
+                            @error('password')
+                                <div class="invalid-feedback d-block">{{ $message }}</div>
+                            @enderror
                         </div>
 
-                        <div class="mb-3">
+                        <div class="mb-3 position-relative">
                             <label class="form-label fw-semibold">Yeni Şifre (Tekrar)</label>
-                            <div class="position-relative">
-                                <input type="password" name="password_confirmation" id="password_confirmation"
-                                       class="form-control"
-                                       placeholder="Yeni şifreyi tekrar girin">
-                                <span class="show-pass eye" onclick="togglePass('password_confirmation')">
-                                    <i class="fa fa-eye-slash"></i>
-                                    <i class="fa fa-eye"></i>
-                                </span>
-                            </div>
+                            <input type="password" name="password_confirmation" id="password_confirmation"
+                                   class="form-control"
+                                   placeholder="Yeni şifreyi tekrar girin">
+                            <span class="show-pass eye" data-target="password_confirmation">
+                                <i class="fa fa-eye-slash"></i>
+                                <i class="fa fa-eye"></i>
+                            </span>
                         </div>
                     </div>
                 </div>
@@ -176,10 +170,15 @@
         document.getElementById('avatar-preview-form').src = url;
     });
 
-    // Şifre göster/gizle toggle
-    function togglePass(id) {
-        const el = document.getElementById(id);
-        el.type = el.type === 'password' ? 'text' : 'password';
-    }
+    // Şifre göster/gizle: data-target ile input ID alınır
+    document.querySelectorAll('.show-pass[data-target]').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            var inputId = btn.getAttribute('data-target');
+            var input   = document.getElementById(inputId);
+            if (!input) return;
+            input.type = input.type === 'password' ? 'text' : 'password';
+            btn.classList.toggle('active');
+        });
+    });
 </script>
 @endpush
