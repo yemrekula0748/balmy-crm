@@ -278,6 +278,12 @@
         .allergen-chip { display: inline-flex; align-items: center; gap: .18rem; padding: 2px 6px 2px 4px; border-radius: 50px; background: rgba(232,160,32,.15); border: 1px solid rgba(232,160,32,.35); font-size: .62rem; color: #e8a020; white-space: nowrap; }
         .allergen-chip .a-emo { font-size: .85rem; line-height: 1; }
 
+        /* ---- BESIN DEĞLERI ---- */
+        .nut-cell { background: var(--surface2); border-radius: 10px; padding: .5rem .3rem; border: 1px solid var(--border2); }
+        .nut-cell .nut-val { font-family: var(--serif); font-size: 1.1rem; font-weight: 600; color: var(--accent); }
+        .nut-cell .nut-unit { font-size: .6rem; color: var(--muted); }
+        .nut-cell .nut-lbl { font-size: .62rem; color: var(--text-sub); margin-top: .15rem; }
+
         /* ---- SHEET TABS ---- */
         .sheet-tabs { display: flex; border-bottom: 1px solid var(--border2); margin-bottom: .8rem; }
         .sheet-tab-btn { flex: 1; padding: .55rem .4rem; font-size: .72rem; font-weight: 500; color: var(--muted); background: none; border: none; border-bottom: 2px solid transparent; cursor: pointer; transition: color .18s, border-color .18s; }
@@ -292,12 +298,12 @@
 
 @php
 $_i18n = [
-    'tr' => ['product_info'=>'Ürün Bilgileri','tax_note'=>'KDV dahil','featured'=>'Öne Çıkanlar','recommended'=>'Önerilen','digital_menu'=>'Dijital Menü','allergens_tab'=>'Alerjenler','info_tab'=>'Bilgiler'],
-    'en' => ['product_info'=>'Product Info','tax_note'=>'Tax included','featured'=>'Featured','recommended'=>'Recommended','digital_menu'=>'Digital Menu','allergens_tab'=>'Allergens','info_tab'=>'Details'],
-    'de' => ['product_info'=>'Produktinfo','tax_note'=>'Inkl. MwSt.','featured'=>'Highlights','recommended'=>'Empfohlen','digital_menu'=>'Digitale Karte','allergens_tab'=>'Allergene','info_tab'=>'Details'],
-    'ru' => ['product_info'=>'О продукте','tax_note'=>'Включая НДС','featured'=>'Рекомендуем','recommended'=>'Рекомендовано','digital_menu'=>'Цифровое меню','allergens_tab'=>'Аллергены','info_tab'=>'Детали'],
-    'ar' => ['product_info'=>'معلومات المنتج','tax_note'=>'شامل الضريبة','featured'=>'المميزة','recommended'=>'موصى به','digital_menu'=>'قائمة رقمية','allergens_tab'=>'مسببات الحساسية','info_tab'=>'تفاصيل'],
-    'fr' => ['product_info'=>'Info produit','tax_note'=>'TVA incluse','featured'=>'En vedette','recommended'=>'Recommandé','digital_menu'=>'Menu numérique','allergens_tab'=>'Allergènes','info_tab'=>'Détails'],
+    'tr' => ['product_info'=>'Ürün Bilgileri','tax_note'=>'KDV dahil','featured'=>'Öne Çıkanlar','recommended'=>'Önerilen','digital_menu'=>'Dijital Menü','allergens_tab'=>'Alerjenler','info_tab'=>'Bilgiler','ingredients_tab'=>'İçindekiler','calories'=>'Kalori','protein'=>'Protein','carbs'=>'Karbonhidrat','fat'=>'Yağ'],
+    'en' => ['product_info'=>'Product Info','tax_note'=>'Tax included','featured'=>'Featured','recommended'=>'Recommended','digital_menu'=>'Digital Menu','allergens_tab'=>'Allergens','info_tab'=>'Details','ingredients_tab'=>'Ingredients','calories'=>'Calories','protein'=>'Protein','carbs'=>'Carbohydrates','fat'=>'Fat'],
+    'de' => ['product_info'=>'Produktinfo','tax_note'=>'Inkl. MwSt.','featured'=>'Highlights','recommended'=>'Empfohlen','digital_menu'=>'Digitale Karte','allergens_tab'=>'Allergene','info_tab'=>'Details','ingredients_tab'=>'Zutaten','calories'=>'Kalorien','protein'=>'Protein','carbs'=>'Kohlenhydrate','fat'=>'Fett'],
+    'ru' => ['product_info'=>'О продукте','tax_note'=>'Включая НДС','featured'=>'Рекомендуем','recommended'=>'Рекомендовано','digital_menu'=>'Цифровое меню','allergens_tab'=>'Аллергены','info_tab'=>'Детали','ingredients_tab'=>'Состав','calories'=>'Калории','protein'=>'Белок','carbs'=>'Углеводы','fat'=>'Жиры'],
+    'ar' => ['product_info'=>'معلومات المنتج','tax_note'=>'شامل الضريبة','featured'=>'المميزة','recommended'=>'موصى به','digital_menu'=>'قائمة رقمية','allergens_tab'=>'مسببات الحساسية','info_tab'=>'تفاصيل','ingredients_tab'=>'المكونات','calories'=>'سعرات','protein'=>'بروتين','carbs'=>'كربوهيدرات','fat'=>'دهون'],
+    'fr' => ['product_info'=>'Info produit','tax_note'=>'TVA incluse','featured'=>'En vedette','recommended'=>'Recommandé','digital_menu'=>'Menu numérique','allergens_tab'=>'Allergènes','info_tab'=>'Détails','ingredients_tab'=>'Ingrédients','calories'=>'Calories','protein'=>'Protéines','carbs'=>'Glucides','fat'=>'Lipides'],
 ];
 $_t = $_i18n[$lang] ?? $_i18n['tr'];
 @endphp
@@ -467,13 +473,26 @@ $_t = $_i18n[$lang] ?? $_i18n['tr'];
             {{-- Sekmeler --}}
             <div id="sheetTabs" class="sheet-tabs" style="display:none">
                 <button class="sheet-tab-btn active" data-tab="info">{{ $_t['info_tab'] }}</button>
+                <button class="sheet-tab-btn" data-tab="ingredients">{{ $_t['ingredients_tab'] }}</button>
                 <button class="sheet-tab-btn" data-tab="allergens">{{ $_t['allergens_tab'] }}</button>
             </div>
             <div id="tabInfo" class="sheet-tab-panel active">
+                {{-- Besin değerleri --}}
+                <div id="sheetNutrition" style="display:none;margin-bottom:.8rem">
+                    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:.4rem;text-align:center">
+                        <div id="nutCalories" class="nut-cell"></div>
+                        <div id="nutProtein"  class="nut-cell"></div>
+                        <div id="nutCarbs"    class="nut-cell"></div>
+                        <div id="nutFat"      class="nut-cell"></div>
+                    </div>
+                </div>
                 <div id="sheetOptions" class="sheet-options" style="display:none">
                     <div class="sheet-options-title">{{ $_t['product_info'] }}</div>
                     <div id="sheetOptionsList"></div>
                 </div>
+            </div>
+            <div id="tabIngredients" class="sheet-tab-panel">
+                <div id="sheetIngredientsTxt" style="font-size:.82rem;color:var(--text-sub);line-height:1.65;padding:.4rem 0"></div>
             </div>
             <div id="tabAllergens" class="sheet-tab-panel">
                 <div id="sheetAllergensList" style="padding:.3rem 0"></div>
@@ -491,6 +510,7 @@ foreach ($categories as $_cat) {
             $aInfo = \App\Models\FoodProduct::ALLERGENS[$_ak] ?? null;
             if ($aInfo) $_allergens[] = ['key' => $_ak, 'label' => $aInfo[$lang] ?? $aInfo['tr'], 'emoji' => $aInfo['emoji']];
         }
+        $_fp = $_it->foodProduct;
         $_menuItemsJson[] = [
             'id'          => $_it->id,
             'title'       => $_it->getTitle($lang),
@@ -499,7 +519,14 @@ foreach ($categories as $_cat) {
             'image'       => $_it->image ? asset('uploads/'.$_it->image) : null,
             'badges'      => $_it->badges ?? [],
             'allergens'   => $_allergens,
-            'options'     => $_it->foodProduct?->options ?? [],
+            'ingredients' => $_fp?->ingredients[$lang] ?? $_fp?->ingredients['tr'] ?? null,
+            'options'     => $_fp?->options ?? [],
+            'nutrition'   => ($_fp && ($_fp->calories || $_fp->protein || $_fp->carbs || $_fp->fat)) ? [
+                'calories' => $_fp->calories,
+                'protein'  => $_fp->protein,
+                'carbs'    => $_fp->carbs,
+                'fat'      => $_fp->fat,
+            ] : null,
         ];
     }
 }
@@ -508,7 +535,17 @@ foreach ($categories as $_cat) {
 var CURRENT_LANG = '{{ $lang }}';
 var MENU_ITEMS = @json($_menuItemsJson);
 var BADGE_COLORS = @json(\App\Models\QrMenuItem::BADGE_COLORS);
-var I18N = { allergens_tab: '{{ $_t['allergens_tab'] }}', info_tab: '{{ $_t['info_tab'] }}', product_info: '{{ $_t['product_info'] }}', tax_note: '{{ $_t['tax_note'] }}' };
+var I18N = {
+    allergens_tab:    '{{ $_t['allergens_tab'] }}',
+    info_tab:         '{{ $_t['info_tab'] }}',
+    ingredients_tab:  '{{ $_t['ingredients_tab'] }}',
+    product_info:     '{{ $_t['product_info'] }}',
+    tax_note:         '{{ $_t['tax_note'] }}',
+    calories:         '{{ $_t['calories'] }}',
+    protein:          '{{ $_t['protein'] }}',
+    carbs:            '{{ $_t['carbs'] }}',
+    fat:              '{{ $_t['fat'] }}',
+};
 </script>
 
 <script>
@@ -624,34 +661,50 @@ function openSheet(itemId){
         allergenList.innerHTML = '<p style="font-size:.78rem;color:var(--muted);margin:.4rem 0">—</p>';
     }
 
+    // Ingredients
+    var ingEl = document.getElementById('sheetIngredientsTxt');
+    if(item.ingredients){ ingEl.textContent = item.ingredients; } else { ingEl.textContent = '—'; }
+
+    // Nutrition
+    var nutWrap = document.getElementById('sheetNutrition');
+    if(item.nutrition){
+        var n = item.nutrition;
+        function nutCell(id, val, unit, lbl){
+            var el = document.getElementById(id);
+            el.innerHTML = '<div class="nut-val">'+(val||'—')+'</div><div class="nut-unit">'+unit+'</div><div class="nut-lbl">'+lbl+'</div>';
+        }
+        nutCell('nutCalories', n.calories ? Math.round(n.calories) : null, 'kcal', I18N.calories);
+        nutCell('nutProtein',  n.protein,  'g', I18N.protein);
+        nutCell('nutCarbs',    n.carbs,    'g', I18N.carbs);
+        nutCell('nutFat',      n.fat,      'g', I18N.fat);
+        nutWrap.style.display = '';
+    } else { nutWrap.style.display = 'none'; }
+
     // Tabs: göster/gizle
     var sheetTabs = document.getElementById('sheetTabs');
     var tabInfo = document.getElementById('tabInfo');
+    var tabIngredients = document.getElementById('tabIngredients');
     var tabAllergens = document.getElementById('tabAllergens');
-    var hasContent = opts.length > 0 || allergens.length > 0;
+    var hasContent = opts.length > 0 || allergens.length > 0 || item.ingredients || item.nutrition;
     if(hasContent){
         sheetTabs.style.display = '';
-        // Tab butonları
         sheetTabs.querySelectorAll('.sheet-tab-btn').forEach(function(btn){
             btn.onclick = function(){
                 sheetTabs.querySelectorAll('.sheet-tab-btn').forEach(function(b){ b.classList.remove('active'); });
                 btn.classList.add('active');
-                if(btn.dataset.tab === 'allergens'){
-                    tabInfo.classList.remove('active');
-                    tabAllergens.classList.add('active');
-                } else {
-                    tabAllergens.classList.remove('active');
-                    tabInfo.classList.add('active');
-                }
+                tabInfo.classList.remove('active');
+                tabIngredients.classList.remove('active');
+                tabAllergens.classList.remove('active');
+                if(btn.dataset.tab === 'allergens')  tabAllergens.classList.add('active');
+                else if(btn.dataset.tab === 'ingredients') tabIngredients.classList.add('active');
+                else tabInfo.classList.add('active');
             };
         });
-        // varsayılan: info sekmesi
-        tabInfo.classList.add('active'); tabAllergens.classList.remove('active');
-        sheetTabs.querySelectorAll('.sheet-tab-btn')[0].classList.add('active');
-        sheetTabs.querySelectorAll('.sheet-tab-btn')[1].classList.remove('active');
+        tabInfo.classList.add('active'); tabIngredients.classList.remove('active'); tabAllergens.classList.remove('active');
+        sheetTabs.querySelectorAll('.sheet-tab-btn').forEach(function(b,i){ b.classList.toggle('active', i===0); });
     } else {
         sheetTabs.style.display = 'none';
-        tabInfo.classList.add('active'); tabAllergens.classList.remove('active');
+        tabInfo.classList.add('active'); tabIngredients.classList.remove('active'); tabAllergens.classList.remove('active');
     }
 
     var backdrop=document.getElementById('sheetBackdrop');

@@ -176,6 +176,30 @@
                                 </div>
                             </div>
 
+                            {{-- Çok Dilli İçindekiler --}}
+                            <div class="col-12">
+                                <label class="form-label fw-semibold">İçindekiler <span class="text-muted fw-normal" style="font-size:.8rem">(opsiyonel)</span></label>
+                                <div class="row g-2">
+                                    @foreach([
+                                        'tr' => ['flag'=>'🇹🇷','ph'=>'Su, un, yumurta, tuz...'],
+                                        'en' => ['flag'=>'🇬🇧','ph'=>'Water, flour, eggs, salt...'],
+                                        'de' => ['flag'=>'🇩🇪','ph'=>'Wasser, Mehl, Eier, Salz...'],
+                                        'ru' => ['flag'=>'🇷🇺','ph'=>'Вода, мука, яйца, соль...'],
+                                        'fr' => ['flag'=>'🇫🇷','ph'=>'Eau, farine, œufs, sel...'],
+                                        'ar' => ['flag'=>'🇸🇦','ph'=>'ماء، دقيق، بيض، ملح...'],
+                                    ] as $l => $meta)
+                                    <div class="col-md-6">
+                                        <div class="input-group input-group-sm align-items-start">
+                                            <span class="input-group-text" style="background:#f0f4ff;border-color:#dde3ef;min-width:48px;justify-content:center;font-size:.8rem;font-weight:600;height:auto;align-self:stretch">{{ $meta['flag'] }} {{ strtoupper($l) }}</span>
+                                            <textarea name="ingredients_{{ $l }}" class="form-control" rows="2"
+                                                      placeholder="{{ $meta['ph'] }}"
+                                                      @if($l==='ar') dir="rtl" @endif>{{ old('ingredients_'.$l, $product->ingredients[$l] ?? '') }}</textarea>
+                                        </div>
+                                    </div>
+                                    @endforeach
+                                </div>
+                            </div>
+
                             {{-- Fiyat --}}
                             <div class="col-md-4">
                                 <label class="form-label fw-semibold">Fiyat (₺) <span class="text-danger">*</span></label>
@@ -207,6 +231,44 @@
                             </div>
                             @endif
 
+                        </div>
+
+                        {{-- Besin Değerleri --}}
+                        <hr class="my-4">
+                        <h6 class="fw-bold text-dark mb-1">Besin Değerleri <span class="text-muted fw-normal" style="font-size:.8rem">(100g / porsiyon başına, opsiyonel)</span></h6>
+                        <div class="row g-2 mt-1">
+                            <div class="col-6 col-md-3">
+                                <label class="form-label small fw-semibold mb-1">🔥 Kalori</label>
+                                <div class="input-group input-group-sm">
+                                    <input type="number" name="calories" step="0.1" min="0" class="form-control"
+                                           placeholder="0" value="{{ old('calories', $product->calories ?? '') }}">
+                                    <span class="input-group-text">kcal</span>
+                                </div>
+                            </div>
+                            <div class="col-6 col-md-3">
+                                <label class="form-label small fw-semibold mb-1">💪 Protein</label>
+                                <div class="input-group input-group-sm">
+                                    <input type="number" name="protein" step="0.1" min="0" class="form-control"
+                                           placeholder="0" value="{{ old('protein', $product->protein ?? '') }}">
+                                    <span class="input-group-text">g</span>
+                                </div>
+                            </div>
+                            <div class="col-6 col-md-3">
+                                <label class="form-label small fw-semibold mb-1">🌾 Karbonhidrat</label>
+                                <div class="input-group input-group-sm">
+                                    <input type="number" name="carbs" step="0.1" min="0" class="form-control"
+                                           placeholder="0" value="{{ old('carbs', $product->carbs ?? '') }}">
+                                    <span class="input-group-text">g</span>
+                                </div>
+                            </div>
+                            <div class="col-6 col-md-3">
+                                <label class="form-label small fw-semibold mb-1">🫒 Yağ</label>
+                                <div class="input-group input-group-sm">
+                                    <input type="number" name="fat" step="0.1" min="0" class="form-control"
+                                           placeholder="0" value="{{ old('fat', $product->fat ?? '') }}">
+                                    <span class="input-group-text">g</span>
+                                </div>
+                            </div>
                         </div>
 
                         {{-- Görsel --}}

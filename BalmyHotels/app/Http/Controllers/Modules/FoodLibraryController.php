@@ -193,11 +193,14 @@ class FoodLibraryController extends BaseModuleController
 
         $title = [];
         $description = [];
+        $ingredients = [];
         foreach (['tr','en','de','fr','ar','ru'] as $lang) {
             $t = $request->input("title_{$lang}", '');
             $d = $request->input("description_{$lang}", '');
+            $ing = $request->input("ingredients_{$lang}", '');
             if ($t !== '') $title[$lang] = $t;
             if ($d !== '') $description[$lang] = $d;
+            if ($ing !== '') $ingredients[$lang] = $ing;
         }
 
         // Dinamik opsiyonlar (çok dilli etiket)
@@ -228,10 +231,15 @@ class FoodLibraryController extends BaseModuleController
             'food_category_id' => $request->food_category_id,
             'title'            => $title,
             'description'      => $description ?: null,
+            'ingredients'      => $ingredients ?: null,
             'price'            => $request->price,
             'badges'           => $request->badges ?: null,
             'allergens'        => $request->allergens ?: null,
             'options'          => $options ?: null,
+            'calories'         => $request->calories ?: null,
+            'protein'          => $request->protein ?: null,
+            'carbs'            => $request->carbs ?: null,
+            'fat'              => $request->fat ?: null,
             'is_active'        => true,
             'sort_order'       => $request->sort_order ?? 0,
         ]);
@@ -270,11 +278,14 @@ class FoodLibraryController extends BaseModuleController
 
         $title = $product->title ?? [];
         $description = $product->description ?? [];
+        $ingredients = $product->ingredients ?? [];
         foreach (['tr','en','de','fr','ar','ru'] as $lang) {
-            $t = $request->input("title_{$lang}", '');
-            $d = $request->input("description_{$lang}", '');
-            if ($t !== '') { $title[$lang] = $t; } else { unset($title[$lang]); }
-            if ($d !== '') { $description[$lang] = $d; } else { unset($description[$lang]); }
+            $t   = $request->input("title_{$lang}", '');
+            $d   = $request->input("description_{$lang}", '');
+            $ing = $request->input("ingredients_{$lang}", '');
+            if ($t   !== '') { $title[$lang]       = $t;   } else { unset($title[$lang]); }
+            if ($d   !== '') { $description[$lang] = $d;   } else { unset($description[$lang]); }
+            if ($ing !== '') { $ingredients[$lang] = $ing; } else { unset($ingredients[$lang]); }
         }
 
         $options = [];
@@ -304,10 +315,15 @@ class FoodLibraryController extends BaseModuleController
             'food_category_id' => $request->food_category_id,
             'title'            => $title,
             'description'      => $description ?: null,
+            'ingredients'      => $ingredients ?: null,
             'price'            => $request->price,
             'badges'           => $request->badges ?: null,
             'allergens'        => $request->allergens ?: null,
             'options'          => $options ?: null,
+            'calories'         => $request->calories ?: null,
+            'protein'          => $request->protein ?: null,
+            'carbs'            => $request->carbs ?: null,
+            'fat'              => $request->fat ?: null,
             'is_active'        => $request->boolean('is_active', true),
             'sort_order'       => $request->sort_order ?? $product->sort_order,
         ]);
