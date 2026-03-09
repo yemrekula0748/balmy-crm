@@ -81,8 +81,9 @@ class DoorLogController extends BaseModuleController
         $totalCikis     = $allLogs->where('type', 'cikis')->count();
         $uniquePersonel = $allLogs->unique('user_id')->count();
 
-        // İçeride / Dışarıda: her kullanıcının son kaydına göre
+        // İçeride / Dışarıda: her kullanıcının son kaydına göre (yalnızca görünür şubeler)
         $latestLogIds = DoorLog::selectRaw('MAX(id) as max_id')
+            ->when(!$authUser->isSuperAdmin(), fn ($q) => $q->whereIn('branch_id', $branchIds))
             ->groupBy('user_id')
             ->pluck('max_id');
 
