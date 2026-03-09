@@ -33,20 +33,20 @@ class FoodProduct extends Model
 
     /** 14 AB Alerjen sabiti [key => [tr, en, emoji]] */
     const ALLERGENS = [
-        'gluten'      => ['tr' => 'Gluten',                'en' => 'Gluten',           'emoji' => '🌾'],
-        'kabuklu'     => ['tr' => 'Kabuklu Deniz Ürünleri','en' => 'Crustaceans',      'emoji' => '🦐'],
-        'yumurta'     => ['tr' => 'Yumurta',               'en' => 'Eggs',             'emoji' => '🥚'],
-        'balik'       => ['tr' => 'Balık',                 'en' => 'Fish',             'emoji' => '🐟'],
-        'fistik'      => ['tr' => 'Yer Fıstığı',           'en' => 'Peanuts',          'emoji' => '🥜'],
-        'soya'        => ['tr' => 'Soya',                  'en' => 'Soybeans',         'emoji' => '🫘'],
-        'sut'         => ['tr' => 'Süt / Laktoz',          'en' => 'Milk',             'emoji' => '🥛'],
-        'kuruyemis'   => ['tr' => 'Kuruyemiş',             'en' => 'Nuts',             'emoji' => '🌰'],
-        'kereviz'     => ['tr' => 'Kereviz',               'en' => 'Celery',           'emoji' => '🥬'],
-        'hardal'      => ['tr' => 'Hardal',                'en' => 'Mustard',          'emoji' => '🌿'],
-        'susam'       => ['tr' => 'Susam',                 'en' => 'Sesame',           'emoji' => '🫙'],
-        'sulfit'      => ['tr' => 'Sülfitler',             'en' => 'Sulphites',        'emoji' => '🍷'],
-        'acibakla'    => ['tr' => 'Acı Bakla (Lupine)',    'en' => 'Lupin',            'emoji' => '🌼'],
-        'yumusakcalar'=> ['tr' => 'Yumuşakçalar',          'en' => 'Molluscs',         'emoji' => '🐚'],
+        'gluten'      => ['tr' => 'Gluten',                 'en' => 'Gluten',           'de' => 'Gluten',            'ru' => 'Глютен',              'ar' => 'الجلوتين',       'fr' => 'Gluten',              'emoji' => '🌾'],
+        'kabuklu'     => ['tr' => 'Kabuklu Deniz Ürünleri', 'en' => 'Crustaceans',      'de' => 'Krebstiere',        'ru' => 'Ракообразные',        'ar' => 'القشريات',       'fr' => 'Crustacés',           'emoji' => '🦐'],
+        'yumurta'     => ['tr' => 'Yumurta',                'en' => 'Eggs',             'de' => 'Eier',              'ru' => 'Яйца',                'ar' => 'البيض',          'fr' => 'Œufs',                'emoji' => '🥚'],
+        'balik'       => ['tr' => 'Balık',                  'en' => 'Fish',             'de' => 'Fisch',             'ru' => 'Рыба',                'ar' => 'السمك',          'fr' => 'Poisson',             'emoji' => '🐟'],
+        'fistik'      => ['tr' => 'Yer Fıstığı',            'en' => 'Peanuts',          'de' => 'Erdnüsse',          'ru' => 'Арахис',              'ar' => 'الفول السوداني', 'fr' => 'Arachides',           'emoji' => '🥜'],
+        'soya'        => ['tr' => 'Soya',                   'en' => 'Soybeans',         'de' => 'Sojabohnen',        'ru' => 'Соя',                 'ar' => 'فول الصويا',     'fr' => 'Soja',                'emoji' => '🫘'],
+        'sut'         => ['tr' => 'Süt / Laktoz',           'en' => 'Milk',             'de' => 'Milch / Laktose',   'ru' => 'Молоко / Лактоза',   'ar' => 'الحليب/اللاكتوز','fr' => 'Lait / Lactose',      'emoji' => '🥛'],
+        'kuruyemis'   => ['tr' => 'Kuruyemiş',              'en' => 'Nuts',             'de' => 'Schalenfrüchte',    'ru' => 'Орехи',               'ar' => 'المكسرات',       'fr' => 'Fruits à coque',      'emoji' => '🌰'],
+        'kereviz'     => ['tr' => 'Kereviz',                'en' => 'Celery',           'de' => 'Sellerie',          'ru' => 'Сельдерей',           'ar' => 'الكرفس',         'fr' => 'Céleri',              'emoji' => '🥬'],
+        'hardal'      => ['tr' => 'Hardal',                 'en' => 'Mustard',          'de' => 'Senf',              'ru' => 'Горчица',             'ar' => 'الخردل',         'fr' => 'Moutarde',            'emoji' => '🌿'],
+        'susam'       => ['tr' => 'Susam',                  'en' => 'Sesame',           'de' => 'Sesam',             'ru' => 'Кунжут',              'ar' => 'السمسم',         'fr' => 'Sésame',              'emoji' => '🫙'],
+        'sulfit'      => ['tr' => 'Sülfitler',              'en' => 'Sulphites',        'de' => 'Sulfite',           'ru' => 'Сульфиты',            'ar' => 'الكبريتيت',      'fr' => 'Sulfites',            'emoji' => '🍷'],
+        'acibakla'    => ['tr' => 'Acı Bakla (Lupine)',     'en' => 'Lupin',            'de' => 'Lupinen',           'ru' => 'Люпин',               'ar' => 'الترمس',         'fr' => 'Lupin',               'emoji' => '🌼'],
+        'yumusakcalar'=> ['tr' => 'Yumuşakçalar',           'en' => 'Molluscs',         'de' => 'Weichtiere',        'ru' => 'Моллюски',            'ar' => 'الرخويات',       'fr' => 'Mollusques',          'emoji' => '🐚'],
     ];
 
     /** Rozet seçenekleri — QrMenuItem ile aynı */
