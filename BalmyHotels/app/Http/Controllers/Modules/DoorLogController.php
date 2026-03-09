@@ -25,6 +25,10 @@ class DoorLogController extends BaseModuleController
 
     public function index(Request $request)
     {
+        // Oturum açan kullanıcı ve görünür şubeler
+        $authUser  = auth()->user();
+        $branchIds = $authUser->visibleBranchIds();
+
         // Varsayılan: bugün
         $dateFrom = $request->input('date_from', today()->format('Y-m-d'));
         $dateTo   = $request->input('date_to', today()->format('Y-m-d'));
@@ -100,8 +104,6 @@ class DoorLogController extends BaseModuleController
             ->values();
 
         // Filtrelerde kullanılacak veriler
-        $authUser  = auth()->user();
-        $branchIds = $authUser->visibleBranchIds();
         $branches  = $authUser->isSuperAdmin()
             ? Branch::orderBy('name')->get()
             : Branch::whereIn('id', $branchIds)->orderBy('name')->get();
