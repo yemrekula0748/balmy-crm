@@ -241,11 +241,13 @@
         .sheet-handle { position: absolute; top: .7rem; left: 50%; transform: translateX(-50%); width: 36px; height: 4px; border-radius: 2px; background: rgba(255,255,255,.15); z-index: 2; }
         .sheet-close {
             position: absolute; top: .7rem; right: .8rem; z-index: 3;
-            width: 32px; height: 32px; border-radius: 50%; background: rgba(255,255,255,.1);
+            width: 34px; height: 34px; border-radius: 50%;
+            background: rgba(0,0,0,.55); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+            box-shadow: 0 1px 6px rgba(0,0,0,.45);
             display: flex; align-items: center; justify-content: center;
-            border: none; color: rgba(255,255,255,.55); font-size: .9rem; cursor: pointer; transition: background .15s;
+            border: 1.5px solid rgba(255,255,255,.25); color: #fff; font-size: .9rem; cursor: pointer; transition: background .15s;
         }
-        .sheet-close:hover { background: rgba(255,255,255,.2); color: #fff; }
+        .sheet-close:hover { background: rgba(0,0,0,.75); }
 
         .sheet-img-wrap { position: relative; width: 100%; height: clamp(190px, 50vw, 270px); background: var(--surface2); overflow: hidden; border-radius: 22px 22px 0 0; }
         .sheet-img-wrap img { width: 100%; height: 100%; object-fit: cover; display: block; }
