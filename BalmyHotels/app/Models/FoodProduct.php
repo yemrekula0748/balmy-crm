@@ -11,7 +11,7 @@ class FoodProduct extends Model
     protected $fillable = [
         'branch_id', 'food_category_id',
         'title', 'description', 'price',
-        'image', 'badges', 'options',
+        'image', 'badges', 'allergens', 'options',
         'is_active', 'sort_order',
     ];
 
@@ -19,9 +19,28 @@ class FoodProduct extends Model
         'title'       => 'array',
         'description' => 'array',
         'badges'      => 'array',
+        'allergens'   => 'array',
         'options'     => 'array',
         'is_active'   => 'boolean',
         'price'       => 'float',
+    ];
+
+    /** 14 AB Alerjen sabiti [key => [tr, en, emoji]] */
+    const ALLERGENS = [
+        'gluten'      => ['tr' => 'Gluten',                'en' => 'Gluten',           'emoji' => '🌾'],
+        'kabuklu'     => ['tr' => 'Kabuklu Deniz Ürünleri','en' => 'Crustaceans',      'emoji' => '🦐'],
+        'yumurta'     => ['tr' => 'Yumurta',               'en' => 'Eggs',             'emoji' => '🥚'],
+        'balik'       => ['tr' => 'Balık',                 'en' => 'Fish',             'emoji' => '🐟'],
+        'fistik'      => ['tr' => 'Yer Fıstığı',           'en' => 'Peanuts',          'emoji' => '🥜'],
+        'soya'        => ['tr' => 'Soya',                  'en' => 'Soybeans',         'emoji' => '🫘'],
+        'sut'         => ['tr' => 'Süt / Laktoz',          'en' => 'Milk',             'emoji' => '🥛'],
+        'kuruyemis'   => ['tr' => 'Kuruyemiş',             'en' => 'Nuts',             'emoji' => '🌰'],
+        'kereviz'     => ['tr' => 'Kereviz',               'en' => 'Celery',           'emoji' => '🥬'],
+        'hardal'      => ['tr' => 'Hardal',                'en' => 'Mustard',          'emoji' => '🌿'],
+        'susam'       => ['tr' => 'Susam',                 'en' => 'Sesame',           'emoji' => '🫙'],
+        'sulfit'      => ['tr' => 'Sülfitler',             'en' => 'Sulphites',        'emoji' => '🍷'],
+        'acibakla'    => ['tr' => 'Acı Bakla (Lupine)',    'en' => 'Lupin',            'emoji' => '🌼'],
+        'yumusakcalar'=> ['tr' => 'Yumuşakçalar',          'en' => 'Molluscs',         'emoji' => '🐚'],
     ];
 
     /** Rozet seçenekleri — QrMenuItem ile aynı */

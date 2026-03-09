@@ -228,11 +228,28 @@
                         @error('image') <div class="invalid-feedback">{{ $message }}</div> @enderror
                         <small class="text-muted">JPG/PNG/WebP — Max 2MB</small>
 
+                        {{-- Alerjenler --}}
+                        <hr class="my-4">
+                        <h6 class="fw-bold text-dark mb-1">Alerjenler <span class="text-muted fw-normal" style="font-size:.8rem">(14 AB Alerjeni)</span></h6>
+                        <p class="text-muted small mb-3">İçeriğinde bulunan alerjenler için kutuları işaretleyin.</p>
+                        <div class="row g-2">
+                            @foreach(\App\Models\FoodProduct::ALLERGENS as $key => $allergen)
+                            @php $checkedA = in_array($key, old('allergens', isset($product) ? ($product->allergens ?? []) : [])); @endphp
+                            <div class="col-6 col-md-4 col-lg-3">
+                                <label class="allergen-toggle d-flex align-items-center gap-2 p-2 rounded border w-100"
+                                       style="cursor:pointer;border-color:#dde3ef!important;background:#fafbfd;transition:background .15s,border-color .15s"
+                                       data-checked="{{ $checkedA ? '1' : '0' }}">
+                                    <input type="checkbox" name="allergens[]" value="{{ $key }}" class="d-none allergen-cb" @checked($checkedA)>
+                                    <span style="font-size:1.3rem;line-height:1">{{ $allergen['emoji'] }}</span>
+                                    <span class="allergen-label" style="font-size:.78rem;font-weight:500;color:#333;line-height:1.2">{{ $allergen['tr'] }}</span>
+                                </label>
+                            </div>
+                            @endforeach
+                        </div>
+
                         {{-- Badges --}}
                         <hr class="my-4">
                         <h6 class="fw-bold text-dark mb-3">Etiketler</h6>
-                        <div class="d-flex flex-wrap gap-2">
-                            @foreach(\App\Models\FoodProduct::BADGE_OPTIONS as $badge)
                             @php $checked = in_array($badge, old('badges', isset($product) ? ($product->badges ?? []) : [])); @endphp
                             <label class="badge-toggle" style="cursor:pointer">
                                 <input type="checkbox" name="badges[]" value="{{ $badge }}" class="d-none badge-cb" @checked($checked)>
@@ -331,6 +348,25 @@ document.querySelectorAll('.badge-toggle').forEach(label => {
     }
     updateChip();
     label.addEventListener('click', () => { setTimeout(updateChip, 10); });
+});
+
+// Allergen toggle styling
+document.querySelectorAll('.allergen-toggle').forEach(label => {
+    const cb = label.querySelector('.allergen-cb');
+    function updateAllergen() {
+        if (cb.checked) {
+            label.style.background = '#fff8e6';
+            label.style.borderColor = '#e8a020!important';
+            label.style.borderColor = '#e8a020';
+            label.style.outline = '2px solid #e8a020';
+        } else {
+            label.style.background = '#fafbfd';
+            label.style.borderColor = '#dde3ef';
+            label.style.outline = 'none';
+        }
+    }
+    updateAllergen();
+    label.addEventListener('click', () => { setTimeout(updateAllergen, 10); });
 });
 
 // Dynamic options

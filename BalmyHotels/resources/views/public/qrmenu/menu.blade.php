@@ -273,6 +273,18 @@
         .sop-tags { display: flex; gap: .25rem; flex-wrap: wrap; flex: 1; }
         .sop-tag { padding: 2px 8px; border-radius: 50px; background: var(--surface3); border: 1px solid var(--border2); font-size: .68rem; color: var(--text); }
 
+        /* ---- ALERJEN ICONLAR ---- */
+        .allergen-icons { display: flex; gap: .2rem; flex-wrap: wrap; margin-top: .3rem; }
+        .allergen-chip { display: inline-flex; align-items: center; gap: .18rem; padding: 2px 6px 2px 4px; border-radius: 50px; background: rgba(232,160,32,.15); border: 1px solid rgba(232,160,32,.35); font-size: .62rem; color: #e8a020; white-space: nowrap; }
+        .allergen-chip .a-emo { font-size: .85rem; line-height: 1; }
+
+        /* ---- SHEET TABS ---- */
+        .sheet-tabs { display: flex; border-bottom: 1px solid var(--border2); margin-bottom: .8rem; }
+        .sheet-tab-btn { flex: 1; padding: .55rem .4rem; font-size: .72rem; font-weight: 500; color: var(--muted); background: none; border: none; border-bottom: 2px solid transparent; cursor: pointer; transition: color .18s, border-color .18s; }
+        .sheet-tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+        .sheet-tab-panel { display: none; }
+        .sheet-tab-panel.active { display: block; }
+
         * { -webkit-tap-highlight-color: transparent; }
     </style>
 </head>
@@ -280,12 +292,12 @@
 
 @php
 $_i18n = [
-    'tr' => ['product_info'=>'�r�n Bilgileri','tax_note'=>'KDV dahil','featured'=>'�ne ��kanlar','recommended'=>'�nerilen','digital_menu'=>'Dijital Men�'],
-    'en' => ['product_info'=>'Product Info','tax_note'=>'Tax included','featured'=>'Featured','recommended'=>'Recommended','digital_menu'=>'Digital Menu'],
-    'de' => ['product_info'=>'Produktinfo','tax_note'=>'Inkl. MwSt.','featured'=>'Highlights','recommended'=>'Empfohlen','digital_menu'=>'Digitale Karte'],
-    'ru' => ['product_info'=>'? ????????','tax_note'=>'??????? ???','featured'=>'???????????','recommended'=>'?????????????','digital_menu'=>'???????? ????'],
-    'ar' => ['product_info'=>'??????? ??????','tax_note'=>'???? ???????','featured'=>'???????','recommended'=>'???? ??','digital_menu'=>'????? ?????'],
-    'fr' => ['product_info'=>'Info produit','tax_note'=>'TVA incluse','featured'=>'En vedette','recommended'=>'Recommand�','digital_menu'=>'Menu num�rique'],
+    'tr' => ['product_info'=>'Ürün Bilgileri','tax_note'=>'KDV dahil','featured'=>'Öne Çıkanlar','recommended'=>'Önerilen','digital_menu'=>'Dijital Menü','allergens_tab'=>'Alerjenler','info_tab'=>'Bilgiler'],
+    'en' => ['product_info'=>'Product Info','tax_note'=>'Tax included','featured'=>'Featured','recommended'=>'Recommended','digital_menu'=>'Digital Menu','allergens_tab'=>'Allergens','info_tab'=>'Details'],
+    'de' => ['product_info'=>'Produktinfo','tax_note'=>'Inkl. MwSt.','featured'=>'Highlights','recommended'=>'Empfohlen','digital_menu'=>'Digitale Karte','allergens_tab'=>'Allergene','info_tab'=>'Details'],
+    'ru' => ['product_info'=>'О продукте','tax_note'=>'Включая НДС','featured'=>'Рекомендуем','recommended'=>'Рекомендовано','digital_menu'=>'Цифровое меню','allergens_tab'=>'Аллергены','info_tab'=>'Детали'],
+    'ar' => ['product_info'=>'معلومات المنتج','tax_note'=>'شامل الضريبة','featured'=>'المميزة','recommended'=>'موصى به','digital_menu'=>'قائمة رقمية','allergens_tab'=>'مسببات الحساسية','info_tab'=>'تفاصيل'],
+    'fr' => ['product_info'=>'Info produit','tax_note'=>'TVA incluse','featured'=>'En vedette','recommended'=>'Recommandé','digital_menu'=>'Menu numérique','allergens_tab'=>'Allergènes','info_tab'=>'Détails'],
 ];
 $_t = $_i18n[$lang] ?? $_i18n['tr'];
 @endphp
@@ -405,6 +417,22 @@ $_t = $_i18n[$lang] ?? $_i18n['tr'];
                         @endforeach
                     </div>
                     @endif
+                    @php $itemAllergens = $item->foodProduct?->allergens ?? []; @endphp
+                    @if(count($itemAllergens) > 0)
+                    <div class="allergen-icons">
+                        @foreach(array_slice($itemAllergens, 0, 5) as $ak)
+                        @php $aInfo = \App\Models\FoodProduct::ALLERGENS[$ak] ?? null; @endphp
+                        @if($aInfo)
+                        <span class="allergen-chip" title="{{ $aInfo[$lang] ?? $aInfo['tr'] }}">
+                            <span class="a-emo">{{ $aInfo['emoji'] }}</span>
+                        </span>
+                        @endif
+                        @endforeach
+                        @if(count($itemAllergens) > 5)
+                        <span class="allergen-chip">+{{ count($itemAllergens) - 5 }}</span>
+                        @endif
+                    </div>
+                    @endif
                     @if($item->effectivePrice())
                     <div class="ic-price">{{ $item->formattedPrice($menu->currency_symbol) }}</div>
                     @endif
@@ -427,7 +455,7 @@ $_t = $_i18n[$lang] ?? $_i18n['tr'];
             <img id="sheetImg" src="" alt="">
             <div class="sheet-img-overlay"></div>
         </div>
-        <div id="sheetNoImg" class="sheet-no-img">??</div>
+        <div id="sheetNoImg" class="sheet-no-img">🍽️</div>
         <div class="sheet-body">
             <div id="sheetBadges" class="sheet-badges"></div>
             <div id="sheetTitle" class="sheet-title"></div>
@@ -436,9 +464,19 @@ $_t = $_i18n[$lang] ?? $_i18n['tr'];
                 <div id="sheetPrice" class="sheet-price"></div>
                 <div class="sheet-price-note">{{ $_t['tax_note'] }}</div>
             </div>
-            <div id="sheetOptions" class="sheet-options" style="display:none">
-                <div class="sheet-options-title">{{ $_t['product_info'] }}</div>
-                <div id="sheetOptionsList"></div>
+            {{-- Sekmeler --}}
+            <div id="sheetTabs" class="sheet-tabs" style="display:none">
+                <button class="sheet-tab-btn active" data-tab="info">{{ $_t['info_tab'] }}</button>
+                <button class="sheet-tab-btn" data-tab="allergens">{{ $_t['allergens_tab'] }}</button>
+            </div>
+            <div id="tabInfo" class="sheet-tab-panel active">
+                <div id="sheetOptions" class="sheet-options" style="display:none">
+                    <div class="sheet-options-title">{{ $_t['product_info'] }}</div>
+                    <div id="sheetOptionsList"></div>
+                </div>
+            </div>
+            <div id="tabAllergens" class="sheet-tab-panel">
+                <div id="sheetAllergensList" style="padding:.3rem 0"></div>
             </div>
         </div>
     </div>
@@ -448,6 +486,11 @@ $_t = $_i18n[$lang] ?? $_i18n['tr'];
 $_menuItemsJson = [];
 foreach ($categories as $_cat) {
     foreach ($_cat->items->sortBy('sort_order') as $_it) {
+        $_allergens = [];
+        foreach ($_it->foodProduct?->allergens ?? [] as $_ak) {
+            $aInfo = \App\Models\FoodProduct::ALLERGENS[$_ak] ?? null;
+            if ($aInfo) $_allergens[] = ['key' => $_ak, 'label' => $aInfo[$lang] ?? $aInfo['tr'], 'emoji' => $aInfo['emoji']];
+        }
         $_menuItemsJson[] = [
             'id'          => $_it->id,
             'title'       => $_it->getTitle($lang),
@@ -455,6 +498,7 @@ foreach ($categories as $_cat) {
             'price'       => $_it->effectivePrice() ? $_it->formattedPrice($menu->currency_symbol) : null,
             'image'       => $_it->image ? asset('uploads/'.$_it->image) : null,
             'badges'      => $_it->badges ?? [],
+            'allergens'   => $_allergens,
             'options'     => $_it->foodProduct?->options ?? [],
         ];
     }
@@ -464,6 +508,7 @@ foreach ($categories as $_cat) {
 var CURRENT_LANG = '{{ $lang }}';
 var MENU_ITEMS = @json($_menuItemsJson);
 var BADGE_COLORS = @json(\App\Models\QrMenuItem::BADGE_COLORS);
+var I18N = { allergens_tab: '{{ $_t['allergens_tab'] }}', info_tab: '{{ $_t['info_tab'] }}', product_info: '{{ $_t['product_info'] }}', tax_note: '{{ $_t['tax_note'] }}' };
 </script>
 
 <script>
@@ -538,11 +583,11 @@ function openSheet(itemId){
     var optsWrap=document.getElementById('sheetOptions');
     var optsList=document.getElementById('sheetOptionsList');
     optsList.innerHTML='';
+
     var opts=item.options||[];
     if(opts.length>0){
         opts.forEach(function(opt){
             var row=document.createElement('div'); row.className='sheet-option-row';
-
             // Label: support both old string format and new {tr,en,...} object format
             var lbl=document.createElement('div'); lbl.className='sop-label';
             if(opt.label && typeof opt.label === 'object') {
@@ -563,6 +608,51 @@ function openSheet(itemId){
         });
         optsWrap.style.display='';
     } else { optsWrap.style.display='none'; }
+
+    // Allergens
+    var allergenList = document.getElementById('sheetAllergensList');
+    allergenList.innerHTML = '';
+    var allergens = item.allergens || [];
+    if(allergens.length > 0){
+        allergens.forEach(function(a){
+            var chip = document.createElement('div');
+            chip.style.cssText = 'display:inline-flex;align-items:center;gap:.4rem;margin:.2rem .25rem;padding:.35rem .75rem;border-radius:40px;background:rgba(232,160,32,.12);border:1px solid rgba(232,160,32,.3);font-size:.8rem;color:#e8a020;';
+            chip.innerHTML = '<span style="font-size:1.2rem">'+a.emoji+'</span><span>'+a.label+'</span>';
+            allergenList.appendChild(chip);
+        });
+    } else {
+        allergenList.innerHTML = '<p style="font-size:.78rem;color:var(--muted);margin:.4rem 0">—</p>';
+    }
+
+    // Tabs: göster/gizle
+    var sheetTabs = document.getElementById('sheetTabs');
+    var tabInfo = document.getElementById('tabInfo');
+    var tabAllergens = document.getElementById('tabAllergens');
+    var hasContent = opts.length > 0 || allergens.length > 0;
+    if(hasContent){
+        sheetTabs.style.display = '';
+        // Tab butonları
+        sheetTabs.querySelectorAll('.sheet-tab-btn').forEach(function(btn){
+            btn.onclick = function(){
+                sheetTabs.querySelectorAll('.sheet-tab-btn').forEach(function(b){ b.classList.remove('active'); });
+                btn.classList.add('active');
+                if(btn.dataset.tab === 'allergens'){
+                    tabInfo.classList.remove('active');
+                    tabAllergens.classList.add('active');
+                } else {
+                    tabAllergens.classList.remove('active');
+                    tabInfo.classList.add('active');
+                }
+            };
+        });
+        // varsayılan: info sekmesi
+        tabInfo.classList.add('active'); tabAllergens.classList.remove('active');
+        sheetTabs.querySelectorAll('.sheet-tab-btn')[0].classList.add('active');
+        sheetTabs.querySelectorAll('.sheet-tab-btn')[1].classList.remove('active');
+    } else {
+        sheetTabs.style.display = 'none';
+        tabInfo.classList.add('active'); tabAllergens.classList.remove('active');
+    }
 
     var backdrop=document.getElementById('sheetBackdrop');
     backdrop.style.display='flex'; document.body.style.overflow='hidden';
