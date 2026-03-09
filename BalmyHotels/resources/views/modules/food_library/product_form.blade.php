@@ -250,6 +250,8 @@
                         {{-- Badges --}}
                         <hr class="my-4">
                         <h6 class="fw-bold text-dark mb-3">Etiketler</h6>
+                        <div class="d-flex flex-wrap gap-2">
+                            @foreach(\App\Models\FoodProduct::BADGE_OPTIONS as $badge)
                             @php $checked = in_array($badge, old('badges', isset($product) ? ($product->badges ?? []) : [])); @endphp
                             <label class="badge-toggle" style="cursor:pointer">
                                 <input type="checkbox" name="badges[]" value="{{ $badge }}" class="d-none badge-cb" @checked($checked)>
