@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class FoodProduct extends Model
 {
     protected $fillable = [
-        'branch_id', 'food_category_id',
+        'branch_id', 'food_category_id', 'printer_id',
         'title', 'description', 'price',
         'image', 'badges', 'allergens', 'ingredients', 'options',
         'calories', 'protein', 'carbs', 'fat',
@@ -81,6 +81,11 @@ class FoodProduct extends Model
     public function foodCategory(): BelongsTo
     {
         return $this->belongsTo(FoodCategory::class);
+    }
+
+    public function printer(): BelongsTo
+    {
+        return $this->belongsTo(Printer::class);
     }
 
     /** Bu üründen türetilen menü kalemleri */

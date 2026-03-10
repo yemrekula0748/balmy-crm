@@ -146,13 +146,37 @@ class OrderController extends BaseModuleController
 
         $restaurantId = $session->table->restaurant_id;
 
-        return redirect()
-            ->route('orders.take', ['restaurant_id' => $restaurantId])
-            ->with('success', 'Sipariş kaydedildi.');
+        return redirect()->route('orders.receipt', [$session, $order]);
     }
 
     // -------------------------------------------------------------------------
-    // Sipariş kalemi sil
+    // Sipariş fişi — yazıcı başına gruplanmış
+    // -------------------------------------------------------------------------
+
+    public function receipt(TableSession $session, RestaurantOrder $order)
+    {
+        abort_if($order->table_session_id !== $session->id, 403);
+
+        $session->load(['table.restaurant.branch', 'opener']);
+        $order->load(['items.menuItem.foodProduct.printer', 'creator']);
+
+        // Kalemleri yazıcıya göre grupla
+        $groups = $order->items->groupBy(function ($item) {
+            $printerId = optional($item->menuItem?->foodProduct)->printer_id;
+            return $printerId ?? 0; // 0 = yazıcısız
+        });
+
+        // Yazıcı nesnelerini yükle
+        $printerMap = \App\Models\Printer::whereIn('id', $groups->keys()->filter()->all())->get()->keyBy('id');
+
+        $page_title = 'Sipariş Fişi #' . $order->id;
+
+        return view('modules.orders.receipt', compact(
+            'session', 'order', 'groups', 'printerMap', 'page_title'
+        ));
+    }
+
+    // -------------------------------------------------------------------------
     // -------------------------------------------------------------------------
 
     public function destroyOrderItem(TableSession $session, RestaurantOrderItem $item)

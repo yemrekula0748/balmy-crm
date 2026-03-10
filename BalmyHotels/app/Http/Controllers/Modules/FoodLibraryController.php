@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Modules;
 use App\Models\Branch;
 use App\Models\FoodCategory;
 use App\Models\FoodProduct;
+use App\Models\Printer;
 use App\Models\QrMenu;
 use App\Models\QrMenuCategory;
 use App\Models\QrMenuItem;
@@ -173,11 +174,12 @@ class FoodLibraryController extends BaseModuleController
         $branchIds = $user->visibleBranchIds();
         $branches  = Branch::whereIn('id', $branchIds)->orderBy('name')->get();
         $categories = FoodCategory::whereIn('branch_id', $branchIds)->orderBy('sort_order')->get();
+        $printers   = Printer::whereIn('branch_id', $branchIds)->where('is_active', true)->orderBy('name')->get();
         $badgeOptions = FoodProduct::BADGE_OPTIONS;
         $optionTypes  = FoodProduct::OPTION_TYPES;
         $page_title = 'Yeni Ürün';
         return view('modules.food_library.product_form', compact(
-            'branches', 'categories', 'badgeOptions', 'optionTypes', 'page_title'
+            'branches', 'categories', 'printers', 'badgeOptions', 'optionTypes', 'page_title'
         ));
     }
 
@@ -229,6 +231,7 @@ class FoodLibraryController extends BaseModuleController
         $product = FoodProduct::create([
             'branch_id'        => $request->branch_id,
             'food_category_id' => $request->food_category_id,
+            'printer_id'       => $request->printer_id ?: null,
             'title'            => $title,
             'description'      => $description ?: null,
             'ingredients'      => $ingredients ?: null,
@@ -258,11 +261,12 @@ class FoodLibraryController extends BaseModuleController
         $branchIds = $user->visibleBranchIds();
         $branches  = Branch::whereIn('id', $branchIds)->orderBy('name')->get();
         $categories = FoodCategory::whereIn('branch_id', $branchIds)->orderBy('sort_order')->get();
+        $printers   = Printer::whereIn('branch_id', $branchIds)->where('is_active', true)->orderBy('name')->get();
         $badgeOptions = FoodProduct::BADGE_OPTIONS;
         $optionTypes  = FoodProduct::OPTION_TYPES;
         $page_title = 'Ürün Düzenle';
         return view('modules.food_library.product_form', compact(
-            'product', 'branches', 'categories', 'badgeOptions', 'optionTypes', 'page_title'
+            'product', 'branches', 'categories', 'printers', 'badgeOptions', 'optionTypes', 'page_title'
         ));
     }
 
@@ -313,6 +317,7 @@ class FoodLibraryController extends BaseModuleController
         $product->update([
             'branch_id'        => $request->branch_id,
             'food_category_id' => $request->food_category_id,
+            'printer_id'       => $request->printer_id ?: null,
             'title'            => $title,
             'description'      => $description ?: null,
             'ingredients'      => $ingredients ?: null,

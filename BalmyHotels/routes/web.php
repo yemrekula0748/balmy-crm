@@ -629,6 +629,9 @@ Route::middleware('auth')->group(function () {
         // Sipariş kaydet
         Route::post('/seans/{session}/siparis',      [OrderController::class, 'storeOrder'])->name('store-order');
 
+        // Sipariş fişi
+        Route::get('/seans/{session}/siparis/{order}/fis', [OrderController::class, 'receipt'])->name('receipt');
+
         // Sipariş kalemi sil
         Route::delete('/seans/{session}/kalem/{item}', [OrderController::class, 'destroyOrderItem'])->name('destroy-item');
 

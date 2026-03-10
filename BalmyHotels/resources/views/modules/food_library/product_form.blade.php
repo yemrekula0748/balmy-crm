@@ -76,6 +76,23 @@
                                 @error('food_category_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
                             </div>
 
+                            {{-- Yazıcı --}}
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">
+                                    <i class="fas fa-print me-1 text-muted"></i>Mutfak Yazıcısı
+                                </label>
+                                <select name="printer_id" class="form-select">
+                                    <option value="">— Yazıcı seçin —</option>
+                                    @foreach($printers as $printer)
+                                        <option value="{{ $printer->id }}"
+                                                @selected(old('printer_id', $product->printer_id ?? '') == $printer->id)>
+                                            {{ $printer->name }} — {{ optional($printer->branch)->name }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                                <div class="form-text">Sipariş verildiğinde bu ürün seçili yazıcıya çıktı gönderir.</div>
+                            </div>
+
                             {{-- Çok Dilli Ürün Adı --}}
                             <div class="col-12">
                                 <label class="form-label fw-semibold">Ürün Adı <span class="text-danger">*</span></label>
