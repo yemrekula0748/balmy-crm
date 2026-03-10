@@ -257,7 +257,7 @@
                     <select name="branch_id" class="form-select form-select-sm">
                         <option value="">Tümü</option>
                         @foreach($branches as $branch)
-                            <option value="{{ $branch->id }}" @selected(request('branch_id') == $branch->id)>
+                            <option value="{{ $branch->id }}" @selected($selectedBranchId == $branch->id)>
                                 {{ $branch->name }}
                             </option>
                         @endforeach

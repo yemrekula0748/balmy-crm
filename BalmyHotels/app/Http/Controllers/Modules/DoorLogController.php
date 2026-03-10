@@ -29,6 +29,11 @@ class DoorLogController extends BaseModuleController
         $authUser  = auth()->user();
         $branchIds = $authUser->visibleBranchIds();
 
+        // Varsayılan şube: kullanıcının kendi şubesi (super admin için tüm şubeler)
+        $selectedBranchId = $request->filled('branch_id')
+            ? $request->branch_id
+            : ($authUser->isSuperAdmin() ? null : $authUser->branch_id);
+
         // Varsayılan: bugün
         $dateFrom = $request->input('date_from', today()->format('Y-m-d'));
         $dateTo   = $request->input('date_to', today()->format('Y-m-d'));
@@ -40,8 +45,8 @@ class DoorLogController extends BaseModuleController
             ])
             ->orderBy('logged_at', 'asc');
 
-        if ($request->filled('branch_id')) {
-            $query->where('branch_id', $request->branch_id);
+        if ($selectedBranchId) {
+            $query->where('branch_id', $selectedBranchId);
         }
         if ($request->filled('user_id')) {
             $query->where('user_id', $request->user_id);
@@ -125,6 +130,7 @@ class DoorLogController extends BaseModuleController
             'dateFrom', 'dateTo',
             'totalGiris', 'totalCikis', 'uniquePersonel',
             'insideUsers', 'outsideUsers',
+            'selectedBranchId',
             'page_title'
         ));
     }
