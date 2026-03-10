@@ -114,11 +114,11 @@
                     </svg>
                     <span class="text-white fw-semibold fs-6">
                         Dışarıdakiler
-                        <span class="badge bg-white text-danger ms-1">{{ $outsideUsers->count() }}</span>
+                        <span class="badge bg-white text-danger ms-1">{{ $outsideUsers->count() + $neverLoggedUsers->count() }}</span>
                     </span>
                 </div>
                 <div class="card-body p-0">
-                    @if($outsideUsers->isEmpty())
+                    @if($outsideUsers->isEmpty() && $neverLoggedUsers->isEmpty())
                         <div class="text-center text-muted py-5">
                             <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="none"
                                  stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" class="mb-2 opacity-50">
@@ -159,6 +159,26 @@
                                             <div class="text-muted" style="font-size:10px;">
                                                 {{ \Carbon\Carbon::parse($log->logged_at)->format('d.m.Y') }}
                                             </div>
+                                        </td>
+                                    </tr>
+                                    @endforeach
+                                    @foreach($neverLoggedUsers as $user)
+                                    <tr class="table-light">
+                                        <td class="ps-3">
+                                            <div class="d-flex align-items-center gap-2">
+                                                <span class="rounded-circle d-inline-flex align-items-center justify-content-center text-white fw-bold"
+                                                      style="width:30px;height:30px;font-size:12px;background:#adb5bd;flex-shrink:0;">
+                                                    {{ strtoupper(substr($user->name ?? '?', 0, 1)) }}
+                                                </span>
+                                                <div>
+                                                    <div class="fw-semibold" style="font-size:13px;">{{ $user->name }}</div>
+                                                    <div class="text-muted" style="font-size:11px;">{{ optional($user->branch)->name ?? '-' }}</div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td style="font-size:13px;">{{ optional($user->department)->name ?? '-' }}</td>
+                                        <td>
+                                            <span class="badge bg-secondary" style="font-size:11px;">Hiç giriş yok</span>
                                         </td>
                                     </tr>
                                     @endforeach

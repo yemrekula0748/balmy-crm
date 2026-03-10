@@ -108,6 +108,19 @@ class DoorLogController extends BaseModuleController
             ->sortBy(fn ($l) => optional($l->user)->name)
             ->values();
 
+        // Hiç kayıt yapmamış aktif personel (ilgili şube)
+        $usersWithLog = DoorLog::pluck('user_id')->unique();
+        $neverLoggedQuery = User::with('department', 'branch')
+            ->where('is_active', true)
+            ->whereNotIn('id', $usersWithLog)
+            ->orderBy('name');
+        if ($selectedBranchId) {
+            $neverLoggedQuery->where('branch_id', $selectedBranchId);
+        } else {
+            $neverLoggedQuery->whereIn('branch_id', $branchIds);
+        }
+        $neverLoggedUsers = $neverLoggedQuery->get();
+
         // Filtrelerde kullanılacak veriler
         $branches  = $authUser->isSuperAdmin()
             ? Branch::orderBy('name')->get()
@@ -129,7 +142,7 @@ class DoorLogController extends BaseModuleController
             'logs', 'branches', 'managers',
             'dateFrom', 'dateTo',
             'totalGiris', 'totalCikis', 'uniquePersonel',
-            'insideUsers', 'outsideUsers',
+            'insideUsers', 'outsideUsers', 'neverLoggedUsers',
             'selectedBranchId',
             'page_title'
         ));
