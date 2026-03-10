@@ -178,7 +178,7 @@
                                         </td>
                                         <td style="font-size:13px;">{{ optional($user->department)->name ?? '-' }}</td>
                                         <td>
-                                            <span class="badge bg-secondary" style="font-size:11px;">Hiç giriş yok</span>
+                                            <span class="badge bg-secondary" style="font-size:11px;">Bugün giriş yok</span>
                                         </td>
                                     </tr>
                                     @endforeach

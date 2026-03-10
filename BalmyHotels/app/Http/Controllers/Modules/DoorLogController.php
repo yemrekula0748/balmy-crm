@@ -108,12 +108,14 @@ class DoorLogController extends BaseModuleController
             ->sortBy(fn ($l) => optional($l->user)->name)
             ->values();
 
-        // Hiç kayıt yapmamış aktif departman müdürleri (ilgili şube)
-        $usersWithLog = DoorLog::pluck('user_id')->unique();
+        // Bugün giriş yapmamış aktif departman müdürleri (ilgili şube)
+        $todayLoggedIds = DoorLog::whereDate('logged_at', today())->pluck('user_id')->unique();
+        $insideUserIds  = $insideUsers->pluck('user_id');
         $neverLoggedQuery = User::with('department', 'branch')
             ->where('is_active', true)
             ->where('role', 'dept_manager')
-            ->whereNotIn('id', $usersWithLog)
+            ->whereNotIn('id', $todayLoggedIds)
+            ->whereNotIn('id', $insideUserIds)
             ->orderBy('name');
         if ($selectedBranchId) {
             $neverLoggedQuery->where('branch_id', $selectedBranchId);

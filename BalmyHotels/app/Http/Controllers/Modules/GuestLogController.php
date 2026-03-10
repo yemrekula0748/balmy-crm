@@ -88,19 +88,23 @@ class GuestLogController extends BaseModuleController
             ->get()
             ->keyBy('user_id');
 
-        // Müzüzäıt: ziyaretçisi yok + binada (giris logu var veya hiç log yok ama is_active)
+        // Müsait: ziyaretçisi yok + binada (giris logu var veya hiç log yok ama is_active)
         // Binada değil: son logu 'cikis'
-        // Aktif ziyaretçisi var: insideHostIds içinde
-        $freeManagers    = $deptManagers->filter(function ($mgr) use ($insideHostIds, $latestDoorLogs) {
-            if ($insideHostIds->contains($mgr->id)) return false; // ziyaretçisi var
+        // Meşgul: aktif ziyaretçisi var
+        $freeManagers = $deptManagers->filter(function ($mgr) use ($insideHostIds, $latestDoorLogs) {
+            if ($insideHostIds->contains($mgr->id)) return false;
             $lastLog = $latestDoorLogs->get($mgr->id);
-            return !$lastLog || $lastLog->type === 'giris'; // binada veya hiç log yok
+            return !$lastLog || $lastLog->type === 'giris';
+        })->values();
+
+        $busyManagers = $deptManagers->filter(function ($mgr) use ($insideHostIds) {
+            return $insideHostIds->contains($mgr->id);
         })->values();
 
         $absentManagers  = $deptManagers->filter(function ($mgr) use ($insideHostIds, $latestDoorLogs) {
-            if ($insideHostIds->contains($mgr->id)) return false; // ziyaretçisi var (zaten içeridekiler'de)
+            if ($insideHostIds->contains($mgr->id)) return false;
             $lastLog = $latestDoorLogs->get($mgr->id);
-            return $lastLog && $lastLog->type === 'cikis'; // binada değil
+            return $lastLog && $lastLog->type === 'cikis';
         })->values();
 
         // Eski değişken adını koruyarak view'e gönder
@@ -114,7 +118,7 @@ class GuestLogController extends BaseModuleController
             'logs', 'branches', 'departments',
             'dateFrom', 'dateTo',
             'totalToday', 'stillInside', 'leftCount',
-            'insideNow', 'outsideManagers', 'absentManagers',
+            'insideNow', 'outsideManagers', 'busyManagers', 'absentManagers',
             'page_title'
         ));
     }
