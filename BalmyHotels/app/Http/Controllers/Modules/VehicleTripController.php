@@ -127,7 +127,14 @@ class VehicleTripController extends BaseModuleController
     {
         abort_unless($this->canComplete($vehicleTrip), 403);
         $vehicleTrip->load('vehicle');
-        return view('modules.vehicles.trips.complete', compact('vehicleTrip'));
+
+        // GPS km varsa başlangıç km'ye ekleyerek bitiş km önerisi hesapla
+        $stats        = $this->calcTripStats($vehicleTrip);
+        $suggestedEndKm = $stats['gps_km']
+            ? (int) round($vehicleTrip->start_km + $stats['gps_km'])
+            : $vehicleTrip->start_km;
+
+        return view('modules.vehicles.trips.complete', compact('vehicleTrip', 'suggestedEndKm', 'stats'));
     }
 
     /** Görevi bitir (POST) */
@@ -144,12 +151,19 @@ class VehicleTripController extends BaseModuleController
         $photo = $request->file('end_km_photo');
         $path  = $photo->store('vehicle_trips', 'public');
 
+        // GPS istatistiklerini hesapla
+        $stats = $this->calcTripStats($vehicleTrip);
+
         $vehicleTrip->update([
             'end_km'       => $data['end_km'],
             'end_km_photo' => $path,
             'notes'        => $data['notes'] ?? null,
             'status'       => 'completed',
             'completed_at' => now(),
+            'gps_km'       => $stats['gps_km'],
+            'avg_speed'    => $stats['avg_speed'],
+            'min_speed'    => $stats['min_speed'],
+            'max_speed'    => $stats['max_speed'],
         ]);
 
         // Aracın km'ini güncelle
@@ -157,6 +171,46 @@ class VehicleTripController extends BaseModuleController
 
         return redirect()->route('vehicle-trips.index')
             ->with('success', 'Görev tamamlandı! Araç km değeri güncellendi.');
+    }
+
+    /** GPS konum kayıtlarından hız ve mesafe istatistiklerini hesapla */
+    private function calcTripStats(VehicleTrip $vehicleTrip): array
+    {
+        $locations = $vehicleTrip->locations()->select('lat', 'lng', 'speed', 'recorded_at')->get();
+
+        if ($locations->isEmpty()) {
+            return ['gps_km' => null, 'avg_speed' => null, 'min_speed' => null, 'max_speed' => null];
+        }
+
+        // Haversine ile toplam mesafe
+        $totalKm = 0.0;
+        for ($i = 1; $i < $locations->count(); $i++) {
+            $totalKm += $this->haversineKm(
+                (float) $locations[$i - 1]->lat, (float) $locations[$i - 1]->lng,
+                (float) $locations[$i]->lat,     (float) $locations[$i]->lng
+            );
+        }
+
+        // Hız istatistikleri (null olmayan kayıtlardan)
+        $speeds = $locations->whereNotNull('speed')->pluck('speed')->filter(fn($s) => $s >= 0);
+
+        return [
+            'gps_km'    => $totalKm > 0 ? round($totalKm, 2) : null,
+            'avg_speed' => $speeds->isNotEmpty() ? round($speeds->avg(), 2) : null,
+            'min_speed' => $speeds->isNotEmpty() ? round($speeds->min(), 2) : null,
+            'max_speed' => $speeds->isNotEmpty() ? round($speeds->max(), 2) : null,
+        ];
+    }
+
+    /** Haversine formülü — iki koordinat arası km */
+    private function haversineKm(float $lat1, float $lon1, float $lat2, float $lon2): float
+    {
+        $R    = 6371;
+        $dLat = deg2rad($lat2 - $lat1);
+        $dLon = deg2rad($lon2 - $lon1);
+        $a    = sin($dLat / 2) ** 2
+              + cos(deg2rad($lat1)) * cos(deg2rad($lat2)) * sin($dLon / 2) ** 2;
+        return $R * 2 * atan2(sqrt($a), sqrt(1 - $a));
     }
 
     /** Görev sil */
@@ -207,14 +261,16 @@ class VehicleTripController extends BaseModuleController
         abort_unless($vehicleTrip->user_id === Auth::id() && $vehicleTrip->isActive(), 403);
 
         $data = $request->validate([
-            'lat' => 'required|numeric|between:-90,90',
-            'lng' => 'required|numeric|between:-180,180',
+            'lat'   => 'required|numeric|between:-90,90',
+            'lng'   => 'required|numeric|between:-180,180',
+            'speed' => 'nullable|numeric|min:0|max:300', // km/h gönderilir
         ]);
 
         VehicleTripLocation::create([
             'vehicle_trip_id' => $vehicleTrip->id,
             'lat'             => $data['lat'],
             'lng'             => $data['lng'],
+            'speed'           => isset($data['speed']) ? round($data['speed'], 2) : null,
             'recorded_at'     => now(),
         ]);
 

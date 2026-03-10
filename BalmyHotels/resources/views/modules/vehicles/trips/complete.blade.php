@@ -71,12 +71,21 @@
                             <div class="input-group">
                                 <input type="number" name="end_km"
                                        class="form-control @error('end_km') is-invalid @enderror"
-                                       placeholder="Dönüşteki km değerini girin"
                                        min="{{ $vehicleTrip->start_km }}" required
-                                       value="{{ old('end_km') }}"
+                                       value="{{ old('end_km', $suggestedEndKm) }}"
                                        id="endKmInput">
                                 <span class="input-group-text">km</span>
                             </div>
+                            @if($stats['gps_km'])
+                            <div class="form-text text-info">
+                                <i class="fa fa-map-marker me-1"></i>
+                                GPS bu seferde <strong>{{ number_format($stats['gps_km'], 1) }} km</strong> kaydetti — km sayacı buna göre önerilen değer girildi, dilediğiniz gibi düzesleyebilirsiniz.
+                            </div>
+                            @else
+                            <div class="form-text text-muted">
+                                GPS kaydı bulunamadı, başlangıç km değeri önerildi.
+                            </div>
+                            @endif
                             <div class="form-text" id="kmDiff"></div>
                             @error('end_km')<div class="invalid-feedback">{{ $message }}</div>@enderror
                         </div>
@@ -118,6 +127,32 @@
                             <div class="fw-semibold">{{ number_format($vehicleTrip->start_km) }} km</div>
                         </div>
                     </div>
+                    @if($stats['gps_km'] || $stats['avg_speed'])
+                    <hr class="my-2">
+                    <div class="row text-center g-2">
+                        @if($stats['gps_km'])
+                        <div class="col-3">
+                            <div class="text-muted" style="font-size:11px;">GPS KM</div>
+                            <div class="fw-bold">{{ number_format($stats['gps_km'], 1) }}</div>
+                        </div>
+                        @endif
+                        @if($stats['avg_speed'])
+                        <div class="col-3">
+                            <div class="text-muted" style="font-size:11px;">ORT. HIZ</div>
+                            <div class="fw-bold">{{ number_format($stats['avg_speed'], 1) }}</div>
+                        </div>
+                        <div class="col-3">
+                            <div class="text-muted" style="font-size:11px;">MIN HIZ</div>
+                            <div class="fw-bold">{{ number_format($stats['min_speed'], 1) }}</div>
+                        </div>
+                        <div class="col-3">
+                            <div class="text-muted" style="font-size:11px;">MAKS HIZ</div>
+                            <div class="fw-bold text-danger">{{ number_format($stats['max_speed'], 1) }}</div>
+                        </div>
+                        @endif
+                    </div>
+                    <div class="text-muted text-center" style="font-size:10px;">km/h</div>
+                    @endif
                 </div>
             </div>
 

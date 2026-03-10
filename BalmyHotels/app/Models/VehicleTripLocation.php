@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class VehicleTripLocation extends Model
 {
-    protected $fillable = ['vehicle_trip_id', 'lat', 'lng', 'recorded_at'];
+    protected $fillable = ['vehicle_trip_id', 'lat', 'lng', 'speed', 'recorded_at'];
 
     protected $casts = ['recorded_at' => 'datetime'];
 

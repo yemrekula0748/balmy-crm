@@ -12,6 +12,7 @@ class VehicleTrip extends Model
     protected $fillable = [
         'vehicle_id', 'user_id',
         'start_km', 'end_km',
+        'gps_km', 'avg_speed', 'min_speed', 'max_speed',
         'start_km_photo', 'end_km_photo',
         'destination', 'notes',
         'status', 'started_at', 'completed_at',

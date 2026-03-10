@@ -97,11 +97,16 @@
                             <div class="input-group">
                                 <input type="number" name="start_km" id="startKm"
                                        class="form-control @error('start_km') is-invalid @enderror"
-                                       placeholder="Örn: 45230" min="0" required value="{{ old('start_km') }}">
+                                       placeholder="Önce araç seçin" min="0" required
+                                       value="{{ old('start_km') }}"
+                                       readonly
+                                       style="background:#f8f9fa;">
                                 <span class="input-group-text">km</span>
                             </div>
-                            <div class="form-text text-muted" id="kmHint"></div>
-                            @error('start_km')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                            <div class="form-text text-muted" id="kmHint">
+                                <i class="fa fa-info-circle me-1"></i>Araç seçildiğinde sistemdeki km otomatik olarak gelir.
+                            </div>
+                            @error('start_km')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
                         </div>
 
                         {{-- Gidilecek yer --}}
@@ -128,16 +133,20 @@
 
 @push('scripts')
 <script>
-// Araç seçilince güncel km ipucunu göster
+// Araç seçilince güncel km'yi otomatik doldur
 document.querySelector('select[name="vehicle_id"]')?.addEventListener('change', function () {
-    const opt = this.options[this.selectedIndex];
-    const km  = opt.dataset.km;
+    const opt  = this.options[this.selectedIndex];
+    const km   = opt.dataset.km;
+    const inp  = document.getElementById('startKm');
     const hint = document.getElementById('kmHint');
-    if (km !== undefined) {
-        document.getElementById('startKm').min = km;
-        hint.textContent = 'Bu aracın güncel km değeri: ' + Number(km).toLocaleString('tr-TR') + ' km — bu değerden küçük girilemez.';
+    if (km !== undefined && km !== '') {
+        inp.value = km;
+        inp.min   = km;
+        hint.innerHTML = '<i class="fa fa-check-circle text-success me-1"></i>'
+            + 'Sistemdeki güncel km: <strong>' + Number(km).toLocaleString('tr-TR') + ' km</strong> — fotoğrafı çekin ve formu gönderin.';
     } else {
-        hint.textContent = '';
+        inp.value = '';
+        hint.innerHTML = '<i class="fa fa-info-circle me-1"></i>Araç seçildiğinde sistemdeki km otomatik olarak gelir.';
     }
 });
 

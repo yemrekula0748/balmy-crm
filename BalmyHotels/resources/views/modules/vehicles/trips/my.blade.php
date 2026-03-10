@@ -65,6 +65,29 @@
                     </div>
                 </div>
 
+                {{-- Canlı Hız Kartı --}}
+                <div class="card border-info mb-3" id="speedCard">
+                    <div class="card-body py-2">
+                        <div class="row text-center g-2">
+                            <div class="col-4">
+                                <div class="text-muted" style="font-size:11px;">ANLİK</div>
+                                <div class="fw-bold fs-5 text-info" id="speedCurrent">—</div>
+                                <div class="text-muted" style="font-size:11px;">km/h</div>
+                            </div>
+                            <div class="col-4">
+                                <div class="text-muted" style="font-size:11px;">ORTALAMA</div>
+                                <div class="fw-bold fs-5" id="speedAvg">—</div>
+                                <div class="text-muted" style="font-size:11px;">km/h</div>
+                            </div>
+                            <div class="col-4">
+                                <div class="text-muted" style="font-size:11px;">MAKSİMUM</div>
+                                <div class="fw-bold fs-5 text-danger" id="speedMax">—</div>
+                                <div class="text-muted" style="font-size:11px;">km/h</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 {{-- GPS Durum --}}
                 <div class="card mb-3" id="gpsCard">
                     <div class="card-body d-flex align-items-center gap-3">
@@ -112,6 +135,20 @@ let watchId = null;
 let lastSent = 0;
 const SEND_INTERVAL = 5000; // 5 saniyede bir gönder
 
+// Hız istatistikleri
+let speedSamples = [];
+
+function updateSpeedUI(speedKph) {
+    document.getElementById('speedCurrent').textContent = speedKph !== null ? speedKph.toFixed(1) : '—';
+    if (speedKph !== null && speedKph > 0) {
+        speedSamples.push(speedKph);
+        const avg = speedSamples.reduce((a, b) => a + b, 0) / speedSamples.length;
+        const max = Math.max(...speedSamples);
+        document.getElementById('speedAvg').textContent = avg.toFixed(1);
+        document.getElementById('speedMax').textContent = max.toFixed(1);
+    }
+}
+
 // ── Wake Lock: ekranın kilitlenmesini engelle ──────────────────────────────
 let wakeLock = null;
 
@@ -145,10 +182,13 @@ function updateGpsUI(status, coordText, badgeClass, badgeText) {
     badge.textContent = badgeText;
 }
 
-function sendLocation(lat, lng) {
+function sendLocation(lat, lng, speedKph) {
     const now = Date.now();
     if (now - lastSent < SEND_INTERVAL) return;
     lastSent = now;
+
+    const payload = { lat, lng };
+    if (speedKph !== null) payload.speed = parseFloat(speedKph.toFixed(2));
 
     fetch(LOCATION_URL, {
         method: 'POST',
@@ -156,7 +196,7 @@ function sendLocation(lat, lng) {
             'Content-Type': 'application/json',
             'X-CSRF-TOKEN': CSRF
         },
-        body: JSON.stringify({ lat, lng })
+        body: JSON.stringify(payload)
     }).then(r => r.json()).then(() => {
         locationCount++;
         document.getElementById('locationCount').textContent = locationCount + ' nokta';
@@ -185,13 +225,19 @@ function startTracking() {
         pos => {
             const lat = pos.coords.latitude.toFixed(6);
             const lng = pos.coords.longitude.toFixed(6);
+            // Hızı m/s'den km/h'ye çevir (null gelebilir)
+            const speedMs  = pos.coords.speed;
+            const speedKph = (speedMs !== null && speedMs >= 0) ? speedMs * 3.6 : null;
+
+            updateSpeedUI(speedKph);
+
             updateGpsUI(
                 'Konum aktif — 5 saniyede bir kaydediliyor',
                 `${lat}, ${lng} (±${Math.round(pos.coords.accuracy)}m)`,
                 'bg-success',
                 'Aktif'
             );
-            sendLocation(pos.coords.latitude, pos.coords.longitude);
+            sendLocation(pos.coords.latitude, pos.coords.longitude, speedKph);
         },
         err => {
             let msg = 'Konum alınamıyor';
