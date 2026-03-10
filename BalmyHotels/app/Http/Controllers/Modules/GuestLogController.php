@@ -80,7 +80,9 @@ class GuestLogController extends BaseModuleController
 
         // Kapı loglarından her müdürün binada olup olmadığını kontrol et
         $mgrIds           = $deptManagers->pluck('id');
+        // Yalnızca BUGÜNKÜ kapı loglarına bak
         $latestDoorLogIds = \App\Models\DoorLog::whereIn('user_id', $mgrIds)
+            ->whereDate('logged_at', today())
             ->selectRaw('MAX(id) as max_id')
             ->groupBy('user_id')
             ->pluck('max_id');
@@ -88,23 +90,23 @@ class GuestLogController extends BaseModuleController
             ->get()
             ->keyBy('user_id');
 
-        // Müsait: ziyaretçisi yok + binada (giris logu var veya hiç log yok ama is_active)
-        // Binada değil: son logu 'cikis'
+        // Müsait: ziyaretçisi yok + bugün 'giris' logu var ve henüz çıkmamış
+        // Binada değil: bugün hiç log yok VEYA son logu 'cikis'
         // Meşgul: aktif ziyaretçisi var
         $freeManagers = $deptManagers->filter(function ($mgr) use ($insideHostIds, $latestDoorLogs) {
             if ($insideHostIds->contains($mgr->id)) return false;
             $lastLog = $latestDoorLogs->get($mgr->id);
-            return !$lastLog || $lastLog->type === 'giris';
+            return $lastLog && $lastLog->type === 'giris';
         })->values();
 
         $busyManagers = $deptManagers->filter(function ($mgr) use ($insideHostIds) {
             return $insideHostIds->contains($mgr->id);
         })->values();
 
-        $absentManagers  = $deptManagers->filter(function ($mgr) use ($insideHostIds, $latestDoorLogs) {
+        $absentManagers = $deptManagers->filter(function ($mgr) use ($insideHostIds, $latestDoorLogs) {
             if ($insideHostIds->contains($mgr->id)) return false;
             $lastLog = $latestDoorLogs->get($mgr->id);
-            return $lastLog && $lastLog->type === 'cikis';
+            return !$lastLog || $lastLog->type === 'cikis';
         })->values();
 
         // Eski değişken adını koruyarak view'e gönder
