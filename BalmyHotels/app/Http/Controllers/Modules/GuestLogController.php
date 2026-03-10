@@ -141,18 +141,6 @@ class GuestLogController extends BaseModuleController
 
     public function store(Request $request)
     {
-        // Aynı müdürün yanında zaten içeride bir ziyaretçi varsa engelle
-        if ($request->filled('host_user_id')) {
-            $alreadyInside = GuestLog::where('host_user_id', $request->host_user_id)
-                ->whereNull('check_out_at')
-                ->exists();
-            if ($alreadyInside) {
-                return back()->withInput()->withErrors([
-                    'host_user_id' => 'Bu müdürün yanında zaten içeride bir ziyaretçi var. Önce çıkış kaydedilmeli.'
-                ]);
-            }
-        }
-
         $request->validate([
             'branch_id'      => 'required|exists:branches,id',
             'department_id'  => 'nullable|exists:departments,id',
