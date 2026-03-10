@@ -23,7 +23,6 @@
 
     <div class="row">
         {{-- YENİ YAZICI EKLE --}}
-        @can('printers.store')
         <div class="col-xl-4 col-lg-5">
             <div class="card border-0 shadow-sm">
                 <div class="card-header py-3">
@@ -67,7 +66,6 @@
                 </div>
             </div>
         </div>
-        @endcan
 
         {{-- YAZICI LİSTESİ --}}
         <div class="col-xl-8 col-lg-7">
@@ -116,13 +114,10 @@
                                             @endif
                                         </td>
                                         <td class="text-end pe-3">
-                                            @can('printers.update')
                                             <a href="{{ route('printers.edit', $printer) }}"
                                                class="btn btn-sm btn-outline-primary me-1">
                                                 <i class="fas fa-edit"></i>
                                             </a>
-                                            @endcan
-                                            @can('printers.destroy')
                                             <form action="{{ route('printers.destroy', $printer) }}" method="POST"
                                                   class="d-inline"
                                                   onsubmit="return confirm('Bu yazıcıyı silmek istediğinize emin misiniz?')">
@@ -132,7 +127,6 @@
                                                     <i class="fas fa-trash"></i>
                                                 </button>
                                             </form>
-                                            @endcan
                                         </td>
                                     </tr>
                                     @endforeach
