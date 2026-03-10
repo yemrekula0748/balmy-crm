@@ -43,15 +43,6 @@
                                     </select>
                                 @endif
                             </div>
-                            <div class="col-md-6">
-                                <label class="form-label fw-semibold">Departman</label>
-                                <select name="department_id" id="deptSelect" class="form-select">
-                                    <option value="">Seçin...</option>
-                                    @foreach($departments as $d)
-                                        <option value="{{ $d->id }}" @selected(old('department_id') == $d->id)>{{ $d->name }}</option>
-                                    @endforeach
-                                </select>
-                            </div>
                         </div>
 
                         {{-- KİME GELİYOR --}}
@@ -60,17 +51,12 @@
                             <select name="host_user_id" id="hostSelect" class="form-select">
                                 <option value="">Kişi seçin...</option>
                                 @foreach($hosts as $h)
-                                    @php $activeLog = \App\Models\GuestLog::where('host_user_id',$h->id)->whereNull('check_out_at')->exists(); @endphp
                                     <option value="{{ $h->id }}"
-                                            data-dept="{{ $h->department_id }}"
-                                            @selected(old('host_user_id', request('host_user_id')) == $h->id)
-                                            @if($activeLog) disabled class="text-muted" @endif>
+                                            @selected(old('host_user_id', request('host_user_id')) == $h->id)>
                                         {{ $h->name }}{{ $h->title ? ' — '.$h->title : '' }}
-                                        @if($activeLog) (İçeride ziyaretçi var) @endif
                                     </option>
                                 @endforeach
                             </select>
-                            <div class="form-text text-muted"><i class="fas fa-info-circle me-1"></i>Gri seçenekler: yanında zaten aktif ziyaretçi olan müdürler</div>
                             @error('host_user_id')
                                 <div class="text-danger small mt-1"><i class="fas fa-exclamation-circle me-1"></i>{{ $message }}</div>
                             @enderror
@@ -150,17 +136,4 @@
 </div>
 @endsection
 
-@push('scripts')
-<script>
-// Departman seçince host listesini filtrele
-document.getElementById('deptSelect')?.addEventListener('change', function () {
-    const deptId = this.value;
-    const hostSel = document.getElementById('hostSelect');
-    [...hostSel.options].forEach(opt => {
-        if (!opt.value) return;
-        opt.hidden = deptId && opt.dataset.dept !== deptId;
-    });
-    if (deptId) hostSel.value = '';
-});
-</script>
-@endpush
+

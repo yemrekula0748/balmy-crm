@@ -155,9 +155,13 @@ class GuestLogController extends BaseModuleController
             'notes'          => 'nullable|string|max:1000',
         ]);
 
+        $hostDeptId = $request->host_user_id
+            ? optional(User::find($request->host_user_id))->department_id
+            : null;
+
         GuestLog::create([
             'branch_id'       => $request->branch_id,
-            'department_id'   => $request->department_id,
+            'department_id'   => $hostDeptId,
             'host_user_id'    => $request->host_user_id,
             'created_by'      => auth()->id(),
             'visitor_name'    => $request->visitor_name,
