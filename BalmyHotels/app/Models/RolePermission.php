@@ -55,6 +55,7 @@ class RolePermission extends Model
         'Menü & Anket' => [
             'qrmenus'        => 'QR Menü',
             'food_library'   => 'Yemek Kütüphanesi',
+            'printers'       => 'Yazıcılar',
             'surveys'        => 'Misafir Anket',
             'food_labels'    => 'Yemek İsimlik',
             'staff_surveys'  => 'Personel Anket',

@@ -27,6 +27,7 @@ use App\Http\Controllers\QrMenuPublicController;
 use App\Http\Controllers\Modules\SurveyController;
 use App\Http\Controllers\SurveyPublicController;
 use App\Http\Controllers\Modules\FoodLabelController;
+use App\Http\Controllers\Modules\PrinterController;
 use App\Http\Controllers\FoodLabelPublicController;
 use App\Http\Controllers\StaffSurveyPublicController;
 use App\Http\Controllers\Modules\StaffSurveyController;
@@ -480,6 +481,15 @@ Route::middleware('auth')->group(function () {
         Route::put('/urunler/{product}', [FoodLibraryController::class, 'updateProduct'])->name('product.update');
         Route::delete('/urunler/{product}', [FoodLibraryController::class, 'destroyProduct'])->name('product.destroy');
         Route::get('/api/urunler', [FoodLibraryController::class, 'apiProducts'])->name('api.products');
+    });
+
+    // Yazıcılar
+    Route::prefix('yazicilar')->name('printers.')->group(function () {
+        Route::get('/',                   [PrinterController::class, 'index'])->name('index');
+        Route::post('/',                  [PrinterController::class, 'store'])->name('store');
+        Route::get('/{printer}/duzenle',  [PrinterController::class, 'edit'])->name('edit');
+        Route::put('/{printer}',          [PrinterController::class, 'update'])->name('update');
+        Route::delete('/{printer}',       [PrinterController::class, 'destroy'])->name('destroy');
     });
 
     /*

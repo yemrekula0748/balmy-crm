@@ -260,6 +260,25 @@
             </li>
             @endif
 
+            {{-- YAZICILAR --}}
+            @if($user->hasPermission('printers', 'index'))
+            <li @class(['mm-active' => request()->is('yazicilar*')])>
+                <a class="has-arrow ai-icon" href="javascript:void()" aria-expanded="false">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
+                         fill="none" stroke="currentColor" stroke-width="2"
+                         stroke-linecap="round" stroke-linejoin="round" style="min-width:20px">
+                        <polyline points="6 9 6 2 18 2 18 9"></polyline>
+                        <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+                        <rect x="6" y="14" width="12" height="8"></rect>
+                    </svg>
+                    <span class="nav-text">Yazıcılar</span>
+                </a>
+                <ul aria-expanded="false">
+                    <li><a href="{{ route('printers.index') }}">Yazıcılar</a></li>
+                </ul>
+            </li>
+            @endif
+
             {{-- MİSAFİR ANKET --}}
             @if($user->hasPermission('surveys', 'index'))
             <li @class(['mm-active' => request()->is('anketler*')])>
