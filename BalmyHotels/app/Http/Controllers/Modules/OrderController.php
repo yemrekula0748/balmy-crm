@@ -8,6 +8,7 @@ use App\Models\RestaurantOrder;
 use App\Models\RestaurantOrderItem;
 use App\Models\RestaurantTable;
 use App\Models\TableSession;
+use App\Services\ThermalPrintService;
 use Illuminate\Http\Request;
 
 class OrderController extends BaseModuleController
@@ -144,9 +145,18 @@ class OrderController extends BaseModuleController
             ]);
         }
 
-        $restaurantId = $session->table->restaurant_id;
+        // Termal yazıcılara arka planda gönder
+        $printResult = (new ThermalPrintService())->printOrder($order);
 
-        return redirect()->route('orders.receipt', [$session, $order]);
+        if (!empty($printResult['success'])) {
+            session()->flash('print_success', $printResult['success']);
+        }
+        if (!empty($printResult['failed'])) {
+            session()->flash('print_failed', $printResult['failed']);
+        }
+
+        return redirect()->route('orders.session', $session)
+            ->with('success', 'Sipariş alındı.');
     }
 
     // -------------------------------------------------------------------------

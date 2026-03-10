@@ -23,6 +23,29 @@
         <div class="alert alert-success alert-dismissible fade show"><button type="button" class="btn-close" data-bs-dismiss="alert"></button>{{ session('success') }}</div>
     @endif
 
+    @if(session('print_success'))
+        <div class="alert alert-success alert-dismissible fade show d-flex align-items-center gap-2">
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+            <span>
+                <strong>Yazıcıya gönderildi:</strong>
+                {{ implode(', ', session('print_success')) }}
+            </span>
+        </div>
+    @endif
+
+    @if(session('print_failed'))
+        <div class="alert alert-warning alert-dismissible fade show d-flex align-items-center gap-2">
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            <span>
+                <strong>Yazıcıya ulaşılamadı:</strong>
+                {{ implode(', ', session('print_failed')) }}
+                — sipariş yine de kaydedildi.
+            </span>
+        </div>
+    @endif
+
     {{-- Seans bilgi bandı --}}
     <div class="card border-0 mb-4" style="background:linear-gradient(135deg,#1e3d2b 0%,#2c4e3a 100%);border-radius:12px">
         <div class="card-body px-4 py-3 d-flex align-items-center justify-content-between flex-wrap gap-3">
