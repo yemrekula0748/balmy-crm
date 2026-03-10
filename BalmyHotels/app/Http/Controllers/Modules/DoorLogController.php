@@ -108,10 +108,11 @@ class DoorLogController extends BaseModuleController
             ->sortBy(fn ($l) => optional($l->user)->name)
             ->values();
 
-        // Hiç kayıt yapmamış aktif personel (ilgili şube)
+        // Hiç kayıt yapmamış aktif departman müdürleri (ilgili şube)
         $usersWithLog = DoorLog::pluck('user_id')->unique();
         $neverLoggedQuery = User::with('department', 'branch')
             ->where('is_active', true)
+            ->where('role', 'dept_manager')
             ->whereNotIn('id', $usersWithLog)
             ->orderBy('name');
         if ($selectedBranchId) {
