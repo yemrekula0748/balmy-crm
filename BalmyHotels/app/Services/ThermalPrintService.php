@@ -234,11 +234,56 @@ class ThermalPrintService
      */
     private function enc(string $text, int $codepage = 32): string
     {
-        // codepage'e göre iconv hedef şifrelemeleri
+        // ESC/POS codepage → iconv encoding tablosu (0–47)
         $iconvMap = [
-            12  => 'CP857',
-            32  => 'CP1254',
-            33  => 'CP1255',
+            0  => 'CP437',
+            1  => 'CP437',   // Katakana — ASCII kısmı aynı
+            2  => 'CP850',
+            3  => 'CP860',
+            4  => 'CP863',
+            5  => 'CP865',
+            6  => 'CP851',
+            7  => 'CP852',
+            8  => 'CP858',
+            9  => 'CP866',
+            10 => 'CP437',   // CP928 — iconv desteği yok, fallback
+            11 => 'CP437',   // CP770 — iconv desteği yok, fallback
+            12 => 'CP857',
+            13 => 'CP737',
+            14 => 'ISO-8859-7',
+            15 => 'CP1252',
+            16 => 'CP866',
+            17 => 'CP852',
+            18 => 'CP858',
+            19 => 'CP874',   // Thai
+            20 => 'CP874',
+            21 => 'CP874',
+            22 => 'CP874',
+            23 => 'CP874',
+            24 => 'CP874',
+            25 => 'CP874',
+            26 => 'CP437',   // TCVN-3 — iconv desteği yok, fallback
+            27 => 'CP720',
+            28 => 'CP775',
+            29 => 'CP855',
+            30 => 'CP861',
+            31 => 'CP862',
+            32 => 'CP1254',
+            33 => 'CP869',
+            34 => 'ISO-8859-2',
+            35 => 'ISO-8859-15',
+            36 => 'CP1098',
+            37 => 'CP437',   // PC1118 — iconv desteği yok, fallback
+            38 => 'CP437',   // PC1119 — iconv desteği yok, fallback
+            39 => 'CP1125',
+            40 => 'CP1250',
+            41 => 'CP1251',
+            42 => 'CP1253',
+            43 => 'CP1255',
+            44 => 'CP1256',
+            45 => 'CP1257',
+            46 => 'CP1258',
+            47 => 'CP437',   // KZ1048 — iconv desteği sınırlı, fallback
         ];
         $targetEncoding = $iconvMap[$codepage] ?? 'CP1254';
 
