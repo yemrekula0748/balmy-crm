@@ -77,6 +77,9 @@
                     @if($user->hasPermission('door_log_reports', 'index'))
                     <li><a href="{{ route('door-reports.index') }}">Çalışma Raporu</a></li>
                     @endif
+                    @if($user->hasPermission('hr_reports', 'index'))
+                    <li><a href="{{ route('door-logs.hr-report') }}">İ.K Raporu</a></li>
+                    @endif
                 </ul>
             </li>
             @endif

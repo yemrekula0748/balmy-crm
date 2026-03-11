@@ -13,6 +13,7 @@ use App\Http\Controllers\Modules\UserController;
 use App\Http\Controllers\Modules\DepartmentController;
 use App\Http\Controllers\Modules\DoorLogController;
 use App\Http\Controllers\Modules\DoorLogReportController;
+use App\Http\Controllers\Modules\HrReportController;
 use App\Http\Controllers\Modules\GuestLogController;
 use App\Http\Controllers\Modules\FaultController;
 use App\Http\Controllers\Modules\FaultLocationController;
@@ -273,6 +274,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/manuel',        [DoorLogController::class, 'store'])->name('store');
         Route::post('/hizli',         [DoorLogController::class, 'quick'])->name('quick');
         Route::delete('/{doorLog}',   [DoorLogController::class, 'destroy'])->name('destroy');
+        Route::get('/ik-rapor',       [HrReportController::class, 'index'])->name('hr-report');
     });
 
     /*

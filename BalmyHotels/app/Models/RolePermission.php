@@ -39,6 +39,7 @@ class RolePermission extends Model
         'Güvenlik & Misafir' => [
             'door_logs'        => 'Kapı Geçiş Logları',
             'door_log_reports' => 'Kapı Geçiş Raporları',
+            'hr_reports'       => 'İ.K Raporları (Tüm Şubeler)',
             'guest_logs'       => 'Misafir Logları',
         ],
         'Teknik Arıza' => [
