@@ -509,8 +509,49 @@
             </li>
             @endif
 
-            {{-- YETKİ YÖNETİMİ — sadece super_admin --}}
-            @if($user->isSuperAdmin())
+            {{-- İÇ DENETİM MODÜLÜ --}}
+            @if($user->hasPermission('audits','index') || $user->hasPermission('audit_types','index') || $user->hasPermission('audit_nonconformities','index') || $user->hasPermission('audit_analytics','index'))
+            <li @class(['mm-active' => request()->is('ic-denetim*')])>
+                <a class="has-arrow ai-icon" href="javascript:void()" aria-expanded="false">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
+                         fill="none" stroke="currentColor" stroke-width="2"
+                         stroke-linecap="round" stroke-linejoin="round" style="min-width:20px">
+                        <path d="M9 11l3 3L22 4"/>
+                        <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+                    </svg>
+                    <span class="nav-text">İç Denetim</span>
+                </a>
+                <ul aria-expanded="false">
+                    @if($user->hasPermission('audits','index'))
+                    <li @class(['mm-active' => request()->is('ic-denetim') || (request()->is('ic-denetim/*') && !request()->is('ic-denetim/tipler*') && !request()->is('ic-denetim/uygunsuzluklarim*') && !request()->is('ic-denetim/analiz*'))])>
+                        <a href="{{ route('audit.index') }}">Denetimler</a>
+                    </li>
+                    @endif
+                    @if($user->hasPermission('audits','create'))
+                    <li @class(['mm-active' => request()->is('ic-denetim/olustur*')])>
+                        <a href="{{ route('audit.create') }}">Yeni Denetim</a>
+                    </li>
+                    @endif
+                    @if($user->hasPermission('audit_nonconformities','index'))
+                    <li @class(['mm-active' => request()->is('ic-denetim/uygunsuzluklarim*')])>
+                        <a href="{{ route('audit.nonconformities.index') }}">Uygunsuzluklarım</a>
+                    </li>
+                    @endif
+                    @if($user->hasPermission('audit_analytics','index'))
+                    <li @class(['mm-active' => request()->is('ic-denetim/analiz*')])>
+                        <a href="{{ route('audit.analytics.index') }}">Analiz & İstatistik</a>
+                    </li>
+                    @endif
+                    @if($user->hasPermission('audit_types','index'))
+                    <li @class(['mm-active' => request()->is('ic-denetim/tipler*')])>
+                        <a href="{{ route('audit.types.index') }}">Denetim Tipleri</a>
+                    </li>
+                    @endif
+                </ul>
+            </li>
+            @endif
+
+            {{-- YETKİ YÖNETİMİ — sadece super_admin --}}            @if($user->isSuperAdmin())
             <li @class(['mm-active' => request()->is('roller*')])>
                 <a class="has-arrow ai-icon" href="javascript:void()" aria-expanded="false">
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"

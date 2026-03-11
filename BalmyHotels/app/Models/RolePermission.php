@@ -86,6 +86,12 @@ class RolePermission extends Model
             'order_reports'       => 'Sipariş Raporları',
             'order_analytics'    => 'Sipariş Analizi',
         ],
+        'İç Denetim' => [
+            'audit_types'            => 'Denetim Tipleri Yönetimi',
+            'audits'                 => 'Denetim Oluştur / Listele',
+            'audit_nonconformities'  => 'Uygunsuzluklarım',
+            'audit_analytics'        => 'Denetim Analiz & İstatistik',
+        ],
     ];
 
     /** Düz module_key => Ad listesi döner */

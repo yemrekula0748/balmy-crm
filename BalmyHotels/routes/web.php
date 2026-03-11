@@ -46,6 +46,10 @@ use App\Http\Controllers\Modules\OrderController;
 use App\Http\Controllers\Modules\OrderReportController;
 use App\Http\Controllers\Modules\OrderAnalyticsController;
 use App\Http\Controllers\Modules\OcrController;
+use App\Http\Controllers\Modules\AuditTypeController;
+use App\Http\Controllers\Modules\AuditController;
+use App\Http\Controllers\Modules\AuditNonconformityController;
+use App\Http\Controllers\Modules\AuditAnalyticsController;
 
 /*
 |--------------------------------------------------------------------------
@@ -664,11 +668,42 @@ Route::middleware('auth')->group(function () {
 
     /*
     |--------------------------------------------------------------------------
+    | İç Denetim Modülü
+    |--------------------------------------------------------------------------
+    */
+    Route::prefix('ic-denetim')->name('audit.')->group(function () {
+
+        // AJAX
+        Route::get('ajax/departmanlar', [AuditController::class, 'ajaxDepartments'])->name('ajax.departments');
+
+        // Denetim Tipleri Yönetimi
+        Route::get('tipler',                    [AuditTypeController::class, 'index'])->name('types.index');
+        Route::post('tipler',                   [AuditTypeController::class, 'store'])->name('types.store');
+        Route::put('tipler/{auditType}',        [AuditTypeController::class, 'update'])->name('types.update');
+        Route::delete('tipler/{auditType}',     [AuditTypeController::class, 'destroy'])->name('types.destroy');
+
+        // Uygunsuzluklarım
+        Route::get('uygunsuzluklarim',          [AuditNonconformityController::class, 'index'])->name('nonconformities.index');
+        Route::patch('uygunsuzluk/{nonconformity}/coz', [AuditNonconformityController::class, 'resolve'])->name('nonconformities.resolve');
+
+        // Analiz & PDF (static routes before {audit} wildcard)
+        Route::get('analiz',                    [AuditAnalyticsController::class, 'index'])->name('analytics.index');
+        Route::get('analiz/pdf',                [AuditAnalyticsController::class, 'pdf'])->name('analytics.pdf');
+
+        // Denetimler (parameterized routes LAST)
+        Route::get('olustur',                   [AuditController::class, 'create'])->name('create');
+        Route::get('',                          [AuditController::class, 'index'])->name('index');
+        Route::post('',                         [AuditController::class, 'store'])->name('store');
+        Route::get('{audit}',                   [AuditController::class, 'show'])->name('show');
+        Route::delete('{audit}',                [AuditController::class, 'destroy'])->name('destroy');
+    });
+
+    /*
+    |--------------------------------------------------------------------------
     | Rol & Yetki Yönetimi (sadece super_admin)
     |--------------------------------------------------------------------------
     */
-    Route::prefix('roller')->name('roles.')->group(function () {
-        Route::get('/',                          [RoleController::class, 'index'])->name('index');
+    Route::prefix('roller')->name('roles.')->group(function () {        Route::get('/',                          [RoleController::class, 'index'])->name('index');
         Route::post('/',                         [RoleController::class, 'store'])->name('store');
         Route::put('/{role}',                    [RoleController::class, 'update'])->name('update');
         Route::delete('/{role}',                 [RoleController::class, 'destroy'])->name('destroy');
