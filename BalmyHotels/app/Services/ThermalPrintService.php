@@ -65,7 +65,12 @@ class ThermalPrintService
             }
 
             try {
-                $data = $this->buildReceipt($order, $items, $printer, $restaurant, $branch, $table);
+                $otherItems = $order->items->filter(function ($item) use ($printerId) {
+                    $pid = optional($item->menuItem?->foodProduct)->printer_id ?? 0;
+                    return $pid !== $printerId && $pid !== 0;
+                });
+
+                $data = $this->buildReceipt($order, $items, $printer, $restaurant, $branch, $table, $otherItems);
                 $this->sendTcp($printer->ip_address, self::PORT, $data);
                 $result['success'][] = $printer->name;
             } catch (\Throwable $e) {
@@ -87,7 +92,8 @@ class ThermalPrintService
         Printer $printer,
         $restaurant,
         $branch,
-        $table
+        $table,
+        $otherItems = null
     ): string {
         $E  = self::ESC;
         $G  = self::GS;
@@ -158,7 +164,29 @@ class ThermalPrintService
             $buf .= $this->enc($order->note) . $LF;
             $buf .= $LF;
         }
+        // ── Diğer Siparişler ──────────────────────────────────────────────
+        if ($otherItems && $otherItems->isNotEmpty()) {
+            $buf .= str_repeat('-', 32) . $LF;
+            $buf .= $E . 'a' . "\x01";          // Ortala
+            $buf .= $E . 'E' . "\x01";          // Bold
+            $buf .= $this->enc('DIGER SIPARISLER') . $LF;
+            $buf .= $E . 'E' . "\x00";          // Bold kapat
+            $buf .= $E . 'a' . "\x00";          // Sola yasla
+            $buf .= $LF;
 
+            foreach ($otherItems as $item) {
+                // Normal (ince) font — ESC/POS varsayılan boyut
+                $buf .= $G . '!' . "\x00";      // Normal boyut
+                $buf .= $E . 'E' . "\x00";      // Bold kapalı
+                $buf .= $this->enc($item->quantity . 'x  ' . $item->item_name) . $LF;
+
+                if (!empty($item->note)) {
+                    $buf .= $this->enc('    >> ' . $item->note) . $LF;
+                }
+            }
+
+            $buf .= $LF;
+        }
         // ── Kes ──────────────────────────────────────────────────────────────
         $buf .= $E . 'd' . "\x04";               // 4 satır besle
         $buf .= $G . 'V' . "\x42" . "\x00";      // Kısmi kes (partial cut)
