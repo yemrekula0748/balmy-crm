@@ -441,7 +441,32 @@
                 </table>
             </div>
 
-            {{ $logs->links() }}
+            <div class="d-flex justify-content-center mt-3" style="font-size:0.8rem">
+                <nav>
+                    <ul class="pagination pagination-sm mb-0">
+                        @if ($logs->onFirstPage())
+                            <li class="page-item disabled"><span class="page-link">&laquo;</span></li>
+                        @else
+                            <li class="page-item"><a class="page-link" href="{{ $logs->previousPageUrl() }}">&laquo;</a></li>
+                        @endif
+
+                        @foreach ($logs->getUrlRange(max(1, $logs->currentPage() - 2), min($logs->lastPage(), $logs->currentPage() + 2)) as $page => $url)
+                            <li class="page-item {{ $page == $logs->currentPage() ? 'active' : '' }}">
+                                <a class="page-link" href="{{ $url }}">{{ $page }}</a>
+                            </li>
+                        @endforeach
+
+                        @if ($logs->hasMorePages())
+                            <li class="page-item"><a class="page-link" href="{{ $logs->nextPageUrl() }}">&raquo;</a></li>
+                        @else
+                            <li class="page-item disabled"><span class="page-link">&raquo;</span></li>
+                        @endif
+                    </ul>
+                </nav>
+                <small class="text-muted ms-3 align-self-center">
+                    Toplam {{ $logs->total() }} kayıt, sayfa {{ $logs->currentPage() }}/{{ $logs->lastPage() }}
+                </small>
+            </div>
         </div>
     </div>
 </div>
