@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\Log;
  * termal yazıcılara gönderir. Harici kütüphane gerektirmez.
  *
  * Yazıcı varsayılan portu: 9100 (Epson / Star / Generic standart)
- * Karakter seti       : CP857 — ESC/POS codepage 12 (Türkçe)
+ * Karakter seti       : CP1254 — ESC/POS codepage 32 (PC1254 Turkish)
  */
 class ThermalPrintService
 {
@@ -95,9 +95,9 @@ class ThermalPrintService
 
         $buf = '';
 
-        // ── Başlat + Türkçe codepage (PC857 = 0x0C) ──────────────────────────
+        // ── Başlat + Türkçe codepage (PC1254 = 0x20) ─────────────────────────
         $buf .= $E . '@';            // Initialize
-        $buf .= $E . 't' . "\x0C";  // Codepage 12 = PC857 (Turkish)
+        $buf .= $E . 't' . "\x20";  // Codepage 32 = PC1254 (Turkish Windows)
 
         // ── Başlık ───────────────────────────────────────────────────────────
         $buf .= $E . 'a' . "\x01";  // Ortala
@@ -195,12 +195,12 @@ class ThermalPrintService
     // -------------------------------------------------------------------------
 
     /**
-     * UTF-8 → CP857 (ESC/POS Türkçe codepage 12)
+     * UTF-8 → CP1254 (ESC/POS Türkçe codepage 32 = PC1254 Windows Turkish)
      * iconv başarısız olursa Türkçe→ASCII karşılığıyla devam et.
      */
     private function enc(string $text): string
     {
-        $result = @iconv('UTF-8', 'CP857//TRANSLIT//IGNORE', $text);
+        $result = @iconv('UTF-8', 'CP1254//TRANSLIT//IGNORE', $text);
 
         if ($result !== false) {
             return $result;
