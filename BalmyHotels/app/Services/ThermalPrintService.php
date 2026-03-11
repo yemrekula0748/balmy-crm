@@ -67,7 +67,7 @@ class ThermalPrintService
             try {
                 $otherItems = $order->items->filter(function ($item) use ($printerId) {
                     $pid = optional($item->menuItem?->foodProduct)->printer_id ?? 0;
-                    return $pid !== $printerId && $pid !== 0;
+                    return $pid !== $printerId;
                 });
 
                 $data = $this->buildReceipt($order, $items, $printer, $restaurant, $branch, $table, $otherItems);
