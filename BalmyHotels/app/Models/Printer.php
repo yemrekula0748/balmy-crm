@@ -10,6 +10,7 @@ class Printer extends Model
         'branch_id',
         'name',
         'ip_address',
+        'codepage',
         'is_active',
     ];
 

@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\Log;
  * termal yazıcılara gönderir. Harici kütüphane gerektirmez.
  *
  * Yazıcı varsayılan portu: 9100 (Epson / Star / Generic standart)
- * Karakter seti       : CP1254 — ESC/POS codepage 32 (PC1254 Turkish)
+ * Karakter seti       : Her yazıcının kendi codepage değeri (varsayılan 32 = PC1254 Turkish)
  */
 class ThermalPrintService
 {
@@ -99,11 +99,14 @@ class ThermalPrintService
         $G  = self::GS;
         $LF = self::LF;
 
+        // ESC/POS codepage (yazıcıya özgü, varsayılan 32 = PC1254)
+        $codepage = $printer->codepage ?? 32;
+
         $buf = '';
 
-        // ── Başlat + Türkçe codepage (PC1254 = 0x20) ─────────────────────────
-        $buf .= $E . '@';            // Initialize
-        $buf .= $E . 't' . "\x20";  // Codepage 32 = PC1254 (Turkish Windows)
+        // ── Başlat + codepage ──────────────────────────────────────────────
+        $buf .= $E . '@';                      // Initialize
+        $buf .= $E . 't' . chr($codepage);     // Codepage komutu
 
         // ── Başlık ───────────────────────────────────────────────────────────
         $buf .= $E . 'a' . "\x01";  // Ortala
@@ -111,13 +114,13 @@ class ThermalPrintService
         if ($branch) {
             $buf .= $G . '!' . "\x00";           // Normal boyut
             $buf .= $E . 'E' . "\x01";           // Bold aç
-            $buf .= $this->enc($branch->name) . $LF;
+            $buf .= $this->enc($branch->name, $codepage) . $LF;
             $buf .= $E . 'E' . "\x00";           // Bold kapat
         }
 
         $buf .= $G . '!' . "\x11";               // 2×2 boyut
         $buf .= $E . 'E' . "\x01";
-        $buf .= $this->enc($restaurant->name) . $LF;
+        $buf .= $this->enc($restaurant->name, $codepage) . $LF;
         $buf .= $E . 'E' . "\x00";
         $buf .= $G . '!' . "\x00";               // Normal
 
@@ -125,7 +128,7 @@ class ThermalPrintService
 
         // Yazıcı adı
         $buf .= $E . 'E' . "\x01";
-        $buf .= $this->enc('[ ' . mb_strtoupper($printer->name) . ' ]') . $LF;
+        $buf .= $this->enc('[ ' . mb_strtoupper($printer->name) . ' ]', $codepage) . $LF;
         $buf .= $E . 'E' . "\x00";
 
         $buf .= $LF;
@@ -133,8 +136,8 @@ class ThermalPrintService
         // ── Masa / Garson / Tarih / Sipariş No ───────────────────────────────
         $buf .= $E . 'a' . "\x00";              // Sola yasla
         $buf .= str_repeat('-', 32) . $LF;
-        $buf .= $this->row('MASA',    $this->enc($table->name));
-        $buf .= $this->row('GARSON',  $this->enc(optional($order->creator)->name ?? '-'));
+        $buf .= $this->row('MASA',    $this->enc($table->name, $codepage));
+        $buf .= $this->row('GARSON',  $this->enc(optional($order->creator)->name ?? '-', $codepage));
         $buf .= $this->row('TARIH',   $order->created_at->format('d.m.Y H:i:s'));
         $buf .= $this->row('SIP.NO',  '#' . $order->id);
         $buf .= str_repeat('=', 32) . $LF;
@@ -145,12 +148,12 @@ class ThermalPrintService
             // Adet × Ürün adı — çift yükseklik + kalın
             $buf .= $G . '!' . "\x01";           // Çift yükseklik
             $buf .= $E . 'E' . "\x01";           // Bold
-            $buf .= $this->enc($item->quantity . 'x  ' . $item->item_name) . $LF;
+            $buf .= $this->enc($item->quantity . 'x  ' . $item->item_name, $codepage) . $LF;
             $buf .= $E . 'E' . "\x00";
             $buf .= $G . '!' . "\x00";           // Normal
 
             if (!empty($item->note)) {
-                $buf .= $this->enc('    >> ' . $item->note) . $LF;
+                $buf .= $this->enc('    >> ' . $item->note, $codepage) . $LF;
             }
         }
 
@@ -160,8 +163,8 @@ class ThermalPrintService
         if (!empty($order->note)) {
             $buf .= str_repeat('-', 32) . $LF;
             $buf .= $E . 'E' . "\x01";
-            $buf .= $this->enc('NOT: ') . $E . 'E' . "\x00";
-            $buf .= $this->enc($order->note) . $LF;
+            $buf .= $this->enc('NOT: ', $codepage) . $E . 'E' . "\x00";
+            $buf .= $this->enc($order->note, $codepage) . $LF;
             $buf .= $LF;
         }
         // ── Diğer Siparişler ──────────────────────────────────────────────
@@ -178,10 +181,10 @@ class ThermalPrintService
                 // Normal (ince) font — ESC/POS varsayılan boyut
                 $buf .= $G . '!' . "\x00";      // Normal boyut
                 $buf .= $E . 'E' . "\x00";      // Bold kapalı
-                $buf .= $this->enc($item->quantity . 'x  ' . $item->item_name) . $LF;
+                $buf .= $this->enc($item->quantity . 'x  ' . $item->item_name, $codepage) . $LF;
 
                 if (!empty($item->note)) {
-                    $buf .= $this->enc('    >> ' . $item->note) . $LF;
+                    $buf .= $this->enc('    >> ' . $item->note, $codepage) . $LF;
                 }
             }
 
@@ -223,12 +226,23 @@ class ThermalPrintService
     // -------------------------------------------------------------------------
 
     /**
-     * UTF-8 → CP1254 (ESC/POS Türkçe codepage 32 = PC1254 Windows Turkish)
+     * UTF-8 → yazıcının codepage'ine dönüştür.
+     * Desteklenen Türkçe codepage'ler:
+     *   12 (0x0C) = CP857   (DOS Turkish)
+     *   32 (0x20) = CP1254  (Windows-1254 / Windows Turkish)
      * iconv başarısız olursa Türkçe→ASCII karşılığıyla devam et.
      */
-    private function enc(string $text): string
+    private function enc(string $text, int $codepage = 32): string
     {
-        $result = @iconv('UTF-8', 'CP1254//TRANSLIT//IGNORE', $text);
+        // codepage'e göre iconv hedef şifrelemeleri
+        $iconvMap = [
+            12  => 'CP857',
+            32  => 'CP1254',
+            33  => 'CP1255',
+        ];
+        $targetEncoding = $iconvMap[$codepage] ?? 'CP1254';
+
+        $result = @iconv('UTF-8', $targetEncoding . '//TRANSLIT//IGNORE', $text);
 
         if ($result !== false) {
             return $result;

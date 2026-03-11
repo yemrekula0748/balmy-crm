@@ -53,6 +53,14 @@
                             <input type="text" name="ip_address" class="form-control"
                                    value="{{ old('ip_address', $printer->ip_address) }}" required>
                         </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Karakter Seti (Codepage) <span class="text-danger">*</span></label>
+                            <select name="codepage" class="form-select" required>
+                                <option value="32" @selected(old('codepage', $printer->codepage) == 32)>32 — PC1254 (Windows Turkish) — önerilen</option>
+                                <option value="12" @selected(old('codepage', $printer->codepage) == 12)>12 — CP857 (DOS Turkish)</option>
+                            </select>
+                            <div class="form-text">Yazıcı code page ayarına uygun seçin.</div>
+                        </div>
                         <div class="mb-4">
                             <div class="form-check form-switch">
                                 <input class="form-check-input" type="checkbox" name="is_active" value="1"

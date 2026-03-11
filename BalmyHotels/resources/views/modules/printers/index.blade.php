@@ -59,6 +59,14 @@
                             <input type="text" name="ip_address" class="form-control"
                                    value="{{ old('ip_address') }}" placeholder="ör. 192.168.1.100" required>
                         </div>
+                        <div class="mb-4">
+                            <label class="form-label fw-semibold">Karakter Seti (Codepage) <span class="text-danger">*</span></label>
+                            <select name="codepage" class="form-select" required>
+                                <option value="32" @selected(old('codepage', 32) == 32)>32 — PC1254 (Windows Turkish) — önerilen</option>
+                                <option value="12" @selected(old('codepage') == 12)>12 — CP857 (DOS Turkish)</option>
+                            </select>
+                            <div class="form-text">Yazıcı code page ayarına uygun seçin.</div>
+                        </div>
                         <button type="submit" class="btn btn-primary w-100">
                             <i class="fas fa-save me-1"></i> Kaydet
                         </button>

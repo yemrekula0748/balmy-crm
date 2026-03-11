@@ -46,12 +46,14 @@ class PrinterController extends BaseModuleController
             'branch_id'  => 'required|exists:branches,id',
             'name'       => 'required|string|max:100',
             'ip_address' => 'required|ip',
+            'codepage'   => 'required|integer|min:0|max:255',
         ]);
 
         Printer::create([
             'branch_id'  => $request->branch_id,
             'name'       => $request->name,
             'ip_address' => $request->ip_address,
+            'codepage'   => $request->codepage,
             'is_active'  => true,
         ]);
 
@@ -78,6 +80,7 @@ class PrinterController extends BaseModuleController
             'branch_id'  => 'required|exists:branches,id',
             'name'       => 'required|string|max:100',
             'ip_address' => 'required|ip',
+            'codepage'   => 'required|integer|min:0|max:255',
             'is_active'  => 'boolean',
         ]);
 
@@ -85,6 +88,7 @@ class PrinterController extends BaseModuleController
             'branch_id'  => $request->branch_id,
             'name'       => $request->name,
             'ip_address' => $request->ip_address,
+            'codepage'   => $request->codepage,
             'is_active'  => $request->boolean('is_active'),
         ]);
 
