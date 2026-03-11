@@ -274,7 +274,9 @@ Route::middleware('auth')->group(function () {
         Route::post('/manuel',        [DoorLogController::class, 'store'])->name('store');
         Route::post('/hizli',         [DoorLogController::class, 'quick'])->name('quick');
         Route::delete('/{doorLog}',   [DoorLogController::class, 'destroy'])->name('destroy');
-        Route::get('/ik-rapor',       [HrReportController::class, 'index'])->name('hr-report');
+        Route::get('/ik-rapor',              [HrReportController::class, 'index'])->name('hr-report');
+        Route::get('/ik-rapor/pdf',          [HrReportController::class, 'pdf'])->name('hr-report-pdf');
+        Route::get('/ik-rapor/personeller',  [HrReportController::class, 'staffByBranch'])->name('hr-report-staff');
     });
 
     /*

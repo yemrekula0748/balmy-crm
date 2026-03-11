@@ -28,7 +28,7 @@
             </h6>
         </div>
         <div class="card-body">
-            <form method="GET" action="{{ route('door-logs.hr-report') }}" class="row g-3 align-items-end">
+            <form method="GET" action="{{ route('door-logs.hr-report') }}" class="row g-3 align-items-end" id="hrFilterForm">
                 <div class="col-md-2 col-sm-6">
                     <label class="form-label fw-semibold" style="font-size:13px">Başlangıç Tarihi</label>
                     <input type="date" name="date_from" class="form-control form-control-sm"
@@ -41,7 +41,7 @@
                 </div>
                 <div class="col-md-2 col-sm-6">
                     <label class="form-label fw-semibold" style="font-size:13px">Şube</label>
-                    <select name="branch_id" class="form-select form-select-sm">
+                    <select name="branch_id" id="branchFilter" class="form-select form-select-sm">
                         <option value="">Tüm Şubeler</option>
                         @foreach($branches as $b)
                             <option value="{{ $b->id }}" @selected($filters['branchId'] == $b->id)>{{ $b->name }}</option>
@@ -49,11 +49,11 @@
                     </select>
                 </div>
                 <div class="col-md-2 col-sm-6">
-                    <label class="form-label fw-semibold" style="font-size:13px">Departman</label>
-                    <select name="department_id" class="form-select form-select-sm">
-                        <option value="">Tüm Departmanlar</option>
-                        @foreach($departments as $d)
-                            <option value="{{ $d->id }}" @selected($filters['deptId'] == $d->id)>{{ $d->name }}</option>
+                    <label class="form-label fw-semibold" style="font-size:13px">Kişi</label>
+                    <select name="user_id" id="userFilter" class="form-select form-select-sm">
+                        <option value="">Tüm Personel</option>
+                        @foreach($deptManagers as $dm)
+                            <option value="{{ $dm->id }}" @selected($filters['userId'] == $dm->id)>{{ $dm->name }}</option>
                         @endforeach
                     </select>
                 </div>
@@ -66,9 +66,12 @@
                     </a>
                 </div>
                 <div class="col-md-2 col-sm-6">
-                    <button type="button" onclick="window.print()" class="btn btn-outline-danger btn-sm w-100">
-                        <i class="fas fa-print me-1"></i> Yazdır / PDF
-                    </button>
+                    <a id="pdfBtn"
+                       href="{{ route('door-logs.hr-report-pdf') }}?{{ http_build_query(request()->query()) }}"
+                       target="_blank"
+                       class="btn btn-outline-danger btn-sm w-100">
+                        <i class="fas fa-file-pdf me-1"></i> PDF Rapor
+                    </a>
                 </div>
             </form>
         </div>
@@ -249,6 +252,7 @@
                             <th class="text-center" style="font-size:12px">Günlük Ort.</th>
                             <th class="text-center" style="font-size:12px">Fazla Mesai</th>
                             <th class="text-center" style="font-size:12px">Geç Giriş</th>
+                            <th class="text-center" style="font-size:12px">Shift</th>
                             <th class="text-center" style="font-size:12px">İlk/Son</th>
                         </tr>
                     </thead>
@@ -302,13 +306,21 @@
                                     <span class="text-success" style="font-size:11px"><i class="fas fa-check"></i></span>
                                 @endif
                             </td>
+                            <td class="text-center">
+                                <span class="badge" style="
+                                    font-size:10px;
+                                    {{ $s['dominant_shift'] === '09-17' ? 'background:rgba(59,130,246,.12);color:#2563eb' : ($s['dominant_shift'] === '16-24' ? 'background:rgba(245,158,11,.12);color:#b45309' : 'background:rgba(139,92,246,.12);color:#7c3aed') }}
+                                ">
+                                    {{ $s['dominant_shift'] }}
+                                </span>
+                            </td>
                             <td class="text-center text-muted" style="font-size:11px">
                                 {{ $s['first_entry'] }} – {{ $s['last_exit'] }}
                             </td>
                         </tr>
                         @empty
                         <tr>
-                            <td colspan="11" class="text-center text-muted py-5">
+                            <td colspan="12" class="text-center text-muted py-5">
                                 <i class="fas fa-inbox fa-2x mb-2 d-block opacity-25"></i>
                                 Seçilen filtreler için kayıt bulunamadı.
                             </td>
@@ -374,11 +386,25 @@
                 </table>
             </div>
         </div>
-        <div class="card-footer bg-white border-top py-2 d-flex align-items-center gap-3" style="font-size:11px">
-            <span class="attend-dot attend-both" style="display:inline-flex;font-size:10px">✓</span> Giriş & Çıkış
-            <span class="attend-dot attend-entry ms-2" style="display:inline-flex;font-size:10px">G</span> Sadece Giriş
-            <span class="attend-dot attend-exit ms-2" style="display:inline-flex;font-size:10px">Ç</span> Sadece Çıkış
-            <span class="attend-dot attend-none ms-2" style="display:inline-flex;font-size:10px">–</span> Kayıt Yok
+        <div class="card-footer bg-white border-top py-2">
+            <div class="d-flex flex-wrap align-items-center gap-2" style="font-size:12px">
+                <span class="d-inline-flex align-items-center gap-1">
+                    <span class="attend-dot attend-both" style="width:22px;height:22px;font-size:10px">&#10003;</span>
+                    <span class="text-muted">Giriş &amp; Çıkış</span>
+                </span>
+                <span class="d-inline-flex align-items-center gap-1">
+                    <span class="attend-dot attend-entry" style="width:22px;height:22px;font-size:10px">G</span>
+                    <span class="text-muted">Sadece Giriş</span>
+                </span>
+                <span class="d-inline-flex align-items-center gap-1">
+                    <span class="attend-dot attend-exit" style="width:22px;height:22px;font-size:10px">Ç</span>
+                    <span class="text-muted">Sadece Çıkış</span>
+                </span>
+                <span class="d-inline-flex align-items-center gap-1">
+                    <span class="attend-dot attend-none" style="width:22px;height:22px;font-size:10px">–</span>
+                    <span class="text-muted">Kayıt Yok</span>
+                </span>
+            </div>
         </div>
     </div>
     @elseif(count($calDays) > 31)
@@ -463,6 +489,43 @@
 @push('scripts')
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script>
+// ── Şube değişince Kişi dropdownunu güncelle ─────────────────────────
+(function () {
+    const branchSel = document.getElementById('branchFilter');
+    const userSel   = document.getElementById('userFilter');
+    const pdfBtn    = document.getElementById('pdfBtn');
+    if (!branchSel || !userSel) return;
+
+    branchSel.addEventListener('change', function () {
+        const branchId = this.value;
+        const url = '{{ route("door-logs.hr-report-staff") }}' + (branchId ? '?branch_id=' + branchId : '');
+
+        fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+            .then(r => r.json())
+            .then(users => {
+                const current = userSel.value;
+                userSel.innerHTML = '<option value="">Tüm Personel</option>';
+                users.forEach(u => {
+                    const opt = document.createElement('option');
+                    opt.value = u.id;
+                    opt.textContent = u.name;
+                    if (String(u.id) === String(current)) opt.selected = true;
+                    userSel.appendChild(opt);
+                });
+            });
+    });
+
+    // PDF butonunu form değerleriyle güncelle
+    const form = document.getElementById('hrFilterForm');
+    if (form && pdfBtn) {
+        form.addEventListener('change', function () {
+            const params = new URLSearchParams(new FormData(form)).toString();
+            pdfBtn.href = '{{ route("door-logs.hr-report-pdf") }}?' + params;
+        });
+    }
+})();
+
+// ── Grafik ─────────────────────────────────────────────────────────────
 (function () {
     const labels  = @json($dailyLabels);
     const hours   = @json($dailyHours);
