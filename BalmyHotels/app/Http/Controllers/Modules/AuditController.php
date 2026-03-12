@@ -124,9 +124,6 @@ class AuditController extends BaseModuleController
 
     public function show(Audit $audit)
     {
-        $user = auth()->user();
-        abort_if(!in_array($audit->branch_id, $user->visibleBranchIds()), 403);
-
         $audit->load(['branch', 'department', 'auditType', 'auditor', 'nonconformities.resolver']);
 
         $page_title = 'Denetim Detayı #' . $audit->id;
