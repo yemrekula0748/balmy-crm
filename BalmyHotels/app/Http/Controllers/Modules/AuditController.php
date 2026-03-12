@@ -58,14 +58,9 @@ class AuditController extends BaseModuleController
 
     public function create()
     {
-        $user      = auth()->user();
-        $branchIds = $user->visibleBranchIds();
-
-        $autoBranchId = count($branchIds) === 1 ? $branchIds[0] : null;
-        $branches     = Branch::whereIn('id', $branchIds)->orderBy('name')->get();
-        $departments  = $autoBranchId
-            ? Department::where('branch_id', $autoBranchId)->where('is_active', true)->orderBy('name')->get()
-            : collect();
+        $branches    = Branch::orderBy('name')->get();
+        $autoBranchId = null;
+        $departments  = collect();
         $auditTypes   = AuditType::where('is_active', true)->orderBy('sort_order')->orderBy('name')->get();
 
         $page_title = 'Yeni Denetim Oluştur';
@@ -88,7 +83,6 @@ class AuditController extends BaseModuleController
         ]);
 
         $user = auth()->user();
-        abort_if(!in_array($request->branch_id, $user->visibleBranchIds()), 403);
 
         DB::transaction(function () use ($request, $user) {
             $items = collect($request->input('items', []))->filter(fn($i) => !empty(trim($i['description'] ?? '')));
