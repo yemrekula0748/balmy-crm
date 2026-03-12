@@ -128,9 +128,6 @@ class AuditController extends BaseModuleController
 
     public function destroy(Audit $audit)
     {
-        $user = auth()->user();
-        abort_if(!in_array($audit->branch_id, $user->visibleBranchIds()), 403);
-
         foreach ($audit->nonconformities as $nc) {
             if ($nc->photo_path) {
                 Storage::disk('public')->delete($nc->photo_path);
