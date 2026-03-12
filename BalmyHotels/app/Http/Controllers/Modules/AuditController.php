@@ -91,17 +91,18 @@ class AuditController extends BaseModuleController
         abort_if(!in_array($request->branch_id, $user->visibleBranchIds()), 403);
 
         DB::transaction(function () use ($request, $user) {
+            $items = collect($request->input('items', []))->filter(fn($i) => !empty(trim($i['description'] ?? '')));
+
             $audit = Audit::create([
                 'branch_id'     => $request->branch_id,
                 'department_id' => $request->department_id,
                 'audit_type_id' => $request->audit_type_id,
                 'audited_by'    => $user->id,
                 'notes'         => $request->notes,
-                'status'        => 'open',
+                'status'        => $items->isEmpty() ? 'closed' : 'open',
             ]);
 
-            foreach ($request->input('items', []) as $index => $item) {
-                if (empty(trim($item['description'] ?? ''))) continue;
+            foreach ($items as $index => $item) {
 
                 $photoPath = null;
                 if ($request->hasFile("items.{$index}.photo")) {
