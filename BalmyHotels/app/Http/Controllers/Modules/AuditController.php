@@ -27,11 +27,7 @@ class AuditController extends BaseModuleController
 
     public function index(Request $request)
     {
-        $user      = auth()->user();
-        $branchIds = $user->visibleBranchIds();
-
         $query = Audit::with(['branch', 'department', 'auditType', 'auditor', 'nonconformities'])
-            ->whereIn('branch_id', $branchIds)
             ->orderBy('created_at', 'desc');
 
         if ($request->filled('branch_id'))     $query->where('branch_id', $request->branch_id);
@@ -40,16 +36,16 @@ class AuditController extends BaseModuleController
         if ($request->filled('status'))        $query->where('status', $request->status);
 
         $audits      = $query->paginate(20)->withQueryString();
-        $branches    = Branch::whereIn('id', $branchIds)->orderBy('name')->get();
-        $departments = Department::whereIn('branch_id', $branchIds)->orderBy('name')->get();
+        $branches    = Branch::orderBy('name')->get();
+        $departments = Department::orderBy('name')->get();
         $auditTypes  = AuditType::where('is_active', true)->orderBy('sort_order')->orderBy('name')->get();
 
-        $base = Audit::whereIn('branch_id', $branchIds);
+        $base = Audit::query();
         if ($request->filled('branch_id')) $base->where('branch_id', $request->branch_id);
 
         $totalAudits          = (clone $base)->count();
-        $totalNonconformities = AuditNonconformity::whereIn('branch_id', $branchIds)->count();
-        $openNonconformities  = AuditNonconformity::whereIn('branch_id', $branchIds)->where('status', 'open')->count();
+        $totalNonconformities = AuditNonconformity::count();
+        $openNonconformities  = AuditNonconformity::where('status', 'open')->count();
 
         $page_title = 'İç Denetimler';
 
