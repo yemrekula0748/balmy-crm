@@ -325,15 +325,18 @@
 </div>{{-- .print-wrap --}}
 
 @if($vehicleTrip->locations->isNotEmpty())
+@php
+$printLocations = $vehicleTrip->locations->map(fn($l) => [
+    'lat'  => (float) $l->lat,
+    'lng'  => (float) $l->lng,
+    'time' => $l->recorded_at->format('H:i:s'),
+    'spd'  => $l->speed,
+]);
+@endphp
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 (function () {
-    const locations = @json($vehicleTrip->locations->map(fn($l) => [
-        'lat'  => (float) $l->lat,
-        'lng'  => (float) $l->lng,
-        'time' => $l->recorded_at->format('H:i:s'),
-        'spd'  => $l->speed,
-    ]));
+    const locations = @json($printLocations);
 
     const map = L.map('print-map');
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
