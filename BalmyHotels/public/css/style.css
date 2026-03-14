@@ -34339,5 +34339,9 @@ html[dir="rtl"] [direction="rtl"][data-sidebar-style="compact"]:not([data-layout
 /* Sidebar kapalıyken (menu-toggle) sadece logo-abbr (b ikonu) görünsün */
 [data-sidebar-style="full"][data-layout="vertical"] .menu-toggle .nav-header .brand-logo .logo-abbr { display: block !important; }
 [data-sidebar-style="full"][data-layout="vertical"] .menu-toggle .nav-header .brand-logo .brand-title { display: none !important; }
+/* Mobil/tablet (<1199px): brand-title zaten gizli, logo-abbr her zaman göster */
+@media only screen and (max-width: 1199px) {
+  .nav-header .brand-logo .logo-abbr { display: block !important; }
+}
 
 /*# sourceMappingURL=style.css.map */

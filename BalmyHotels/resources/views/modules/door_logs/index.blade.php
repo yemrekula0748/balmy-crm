@@ -65,6 +65,7 @@
                                         <th class="ps-3">Personel</th>
                                         <th>Departman</th>
                                         <th>Giriş Saati</th>
+                                        <th>İşlem</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -91,6 +92,23 @@
                                                 {{ \Carbon\Carbon::parse($log->logged_at)->format('d.m.Y') }}
                                             </div>
                                         </td>
+                                        <td>
+                                            <button type="button"
+                                                    class="btn btn-sm btn-outline-warning btn-hizli-islem"
+                                                    style="font-size:11px;padding:3px 10px;border-radius:20px;"
+                                                    data-user-id="{{ optional($log->user)->id }}"
+                                                    data-user-name="{{ optional($log->user)->name }}"
+                                                    data-user-title="{{ optional($log->user)->title ?? '' }}"
+                                                    data-type="cikis">
+                                                ↓ Çıkış
+                                            </button>
+                                            <form id="hizli-form-cikis-{{ optional($log->user)->id }}"
+                                                  action="{{ route('door-logs.quick') }}" method="POST" class="d-none">
+                                                @csrf
+                                                <input type="hidden" name="user_id" value="{{ optional($log->user)->id }}">
+                                                <input type="hidden" name="type" value="cikis">
+                                            </form>
+                                        </td>
                                     </tr>
                                     @endforeach
                                 </tbody>
@@ -114,11 +132,11 @@
                     </svg>
                     <span class="text-white fw-semibold fs-6">
                         Dışarıdakiler
-                        <span class="badge bg-white text-danger ms-1">{{ $outsideUsers->count() }}</span>
+                        <span class="badge bg-white text-danger ms-1">{{ $outsideUsers->count() + $neverLoggedUsers->count() }}</span>
                     </span>
                 </div>
                 <div class="card-body p-0">
-                    @if($outsideUsers->isEmpty())
+                    @if($outsideUsers->isEmpty() && $neverLoggedUsers->isEmpty())
                         <div class="text-center text-muted py-5">
                             <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="none"
                                  stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" class="mb-2 opacity-50">
@@ -134,6 +152,7 @@
                                         <th class="ps-3">Personel</th>
                                         <th>Departman</th>
                                         <th>Çıkış Saati</th>
+                                        <th>İşlem</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -159,6 +178,60 @@
                                             <div class="text-muted" style="font-size:10px;">
                                                 {{ \Carbon\Carbon::parse($log->logged_at)->format('d.m.Y') }}
                                             </div>
+                                        </td>
+                                        <td>
+                                            <button type="button"
+                                                    class="btn btn-sm btn-outline-success btn-hizli-islem"
+                                                    style="font-size:11px;padding:3px 10px;border-radius:20px;"
+                                                    data-user-id="{{ optional($log->user)->id }}"
+                                                    data-user-name="{{ optional($log->user)->name }}"
+                                                    data-user-title="{{ optional($log->user)->title ?? '' }}"
+                                                    data-type="giris">
+                                                ↑ Giriş
+                                            </button>
+                                            <form id="hizli-form-giris-{{ optional($log->user)->id }}"
+                                                  action="{{ route('door-logs.quick') }}" method="POST" class="d-none">
+                                                @csrf
+                                                <input type="hidden" name="user_id" value="{{ optional($log->user)->id }}">
+                                                <input type="hidden" name="type" value="giris">
+                                            </form>
+                                        </td>
+                                    </tr>
+                                    @endforeach
+                                    @foreach($neverLoggedUsers as $user)
+                                    <tr class="table-light">
+                                        <td class="ps-3">
+                                            <div class="d-flex align-items-center gap-2">
+                                                <span class="rounded-circle d-inline-flex align-items-center justify-content-center text-white fw-bold"
+                                                      style="width:30px;height:30px;font-size:12px;background:#adb5bd;flex-shrink:0;">
+                                                    {{ strtoupper(substr($user->name ?? '?', 0, 1)) }}
+                                                </span>
+                                                <div>
+                                                    <div class="fw-semibold" style="font-size:13px;">{{ $user->name }}</div>
+                                                    <div class="text-muted" style="font-size:11px;">{{ optional($user->branch)->name ?? '-' }}</div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td style="font-size:13px;">{{ optional($user->department)->name ?? '-' }}</td>
+                                        <td>
+                                            <span class="badge bg-secondary" style="font-size:11px;">Bugün giriş yok</span>
+                                        </td>
+                                        <td>
+                                            <button type="button"
+                                                    class="btn btn-sm btn-outline-success btn-hizli-islem"
+                                                    style="font-size:11px;padding:3px 10px;border-radius:20px;"
+                                                    data-user-id="{{ $user->id }}"
+                                                    data-user-name="{{ $user->name }}"
+                                                    data-user-title="{{ $user->title ?? '' }}"
+                                                    data-type="giris">
+                                                ↑ Giriş
+                                            </button>
+                                            <form id="hizli-form-giris-{{ $user->id }}"
+                                                  action="{{ route('door-logs.quick') }}" method="POST" class="d-none">
+                                                @csrf
+                                                <input type="hidden" name="user_id" value="{{ $user->id }}">
+                                                <input type="hidden" name="type" value="giris">
+                                            </form>
                                         </td>
                                     </tr>
                                     @endforeach
@@ -257,7 +330,7 @@
                     <select name="branch_id" class="form-select form-select-sm">
                         <option value="">Tümü</option>
                         @foreach($branches as $branch)
-                            <option value="{{ $branch->id }}" @selected(request('branch_id') == $branch->id)>
+                            <option value="{{ $branch->id }}" @selected($selectedBranchId == $branch->id)>
                                 {{ $branch->name }}
                             </option>
                         @endforeach
@@ -421,7 +494,32 @@
                 </table>
             </div>
 
-            {{ $logs->links() }}
+            <div class="d-flex justify-content-center mt-3" style="font-size:0.8rem">
+                <nav>
+                    <ul class="pagination pagination-sm mb-0">
+                        @if ($logs->onFirstPage())
+                            <li class="page-item disabled"><span class="page-link">&laquo;</span></li>
+                        @else
+                            <li class="page-item"><a class="page-link" href="{{ $logs->previousPageUrl() }}">&laquo;</a></li>
+                        @endif
+
+                        @foreach ($logs->getUrlRange(max(1, $logs->currentPage() - 2), min($logs->lastPage(), $logs->currentPage() + 2)) as $page => $url)
+                            <li class="page-item {{ $page == $logs->currentPage() ? 'active' : '' }}">
+                                <a class="page-link" href="{{ $url }}">{{ $page }}</a>
+                            </li>
+                        @endforeach
+
+                        @if ($logs->hasMorePages())
+                            <li class="page-item"><a class="page-link" href="{{ $logs->nextPageUrl() }}">&raquo;</a></li>
+                        @else
+                            <li class="page-item disabled"><span class="page-link">&raquo;</span></li>
+                        @endif
+                    </ul>
+                </nav>
+                <small class="text-muted ms-3 align-self-center">
+                    Toplam {{ $logs->total() }} kayıt, sayfa {{ $logs->currentPage() }}/{{ $logs->lastPage() }}
+                </small>
+            </div>
         </div>
     </div>
 </div>
@@ -461,6 +559,37 @@ document.querySelectorAll('.btn-sil').forEach(btn => {
         }).then(result => {
             if (result.isConfirmed) {
                 document.getElementById('form-sil-' + id).submit();
+            }
+        });
+    });
+});
+
+// Hızlı Giriş / Çıkış onayı
+document.querySelectorAll('.btn-hizli-islem').forEach(btn => {
+    btn.addEventListener('click', function () {
+        const userId   = this.dataset.userId;
+        const name     = this.dataset.userName;
+        const title    = this.dataset.userTitle;
+        const type     = this.dataset.type;
+        const label    = type === 'giris' ? 'Giriş' : 'Çıkış';
+        const color    = type === 'giris' ? '#198754' : '#f97316';
+        const icon     = type === 'giris' ? 'question' : 'warning';
+        const formId   = 'hizli-form-' + type + '-' + userId;
+        const fullName = title ? title + ' ' + name : name;
+
+        Swal.fire({
+            title: 'Hızlı ' + label,
+            html: `<div style="font-size:15px;font-weight:600;margin-bottom:6px;">${fullName}</div>`
+                + `<div style="font-size:13px;color:#64748b;">${label} kaydedilecek, onaylıyor musunuz?</div>`,
+            icon: icon,
+            showCancelButton: true,
+            confirmButtonColor: color,
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: 'Evet, Kaydet',
+            cancelButtonText: 'İptal'
+        }).then(result => {
+            if (result.isConfirmed) {
+                document.getElementById(formId).submit();
             }
         });
     });

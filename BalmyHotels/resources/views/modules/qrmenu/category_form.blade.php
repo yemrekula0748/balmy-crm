@@ -86,7 +86,7 @@
                             <label class="form-label fw-semibold">Kategori Görseli</label>
                             @if($isEdit && $category->image)
                                 <div class="mb-2">
-                                    <img src="{{ asset('storage/'.$category->image) }}" alt="görsel"
+                                    <img src="{{ asset('uploads/'.$category->image) }}" alt="görsel"
                                          class="rounded" style="height:80px;object-fit:cover">
                                 </div>
                             @endif

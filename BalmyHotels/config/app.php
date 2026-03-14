@@ -16,7 +16,7 @@ return [
     |
     */
 
-    'name' => env('APP_NAME', 'Koki Laravel'),
+    'name' => env('APP_NAME', 'BalmyCRM'),
 
     /*
      | LibreOffice executable path (PDF → Word konversiyonu için)
@@ -24,6 +24,21 @@ return [
      | Linux:   /usr/bin/soffice
      */
     'libreoffice_path' => env('LIBREOFFICE_PATH', 'C:\\Program Files\\LibreOffice\\program\\soffice.exe'),
+
+    /*
+     | Tesseract OCR executable path (Yazıya Çevir modülü için)
+     | Windows: C:\Program Files\Tesseract-OCR\tesseract.exe
+     | Linux:   /usr/bin/tesseract
+     */
+    'tesseract_path' => env('TESSERACT_PATH', 'C:\\Program Files\\Tesseract-OCR\\tesseract.exe'),
+
+    /*
+     | pdftoppm executable path (PDF → görüntü dönüşümü — OCR modülü, Poppler utils)
+     | Windows: https://github.com/oschwartz10612/poppler-windows/releases adresinden indirin
+     |          Örnek: C:\poppler\Library\bin\pdftoppm.exe
+     | Linux:   /usr/bin/pdftoppm  (apt install poppler-utils)
+     */
+    'pdftoppm_path' => env('PDFTOPPM_PATH', ''),
 
     /*
     |--------------------------------------------------------------------------
@@ -77,7 +92,7 @@ return [
     |
     */
 
-    'timezone' => 'UTC',
+    'timezone' => 'Europe/Istanbul',
 
     /*
     |--------------------------------------------------------------------------
@@ -90,7 +105,7 @@ return [
     |
     */
 
-    'locale' => 'en',
+    'locale' => 'tr',
 
     /*
     |--------------------------------------------------------------------------
@@ -103,7 +118,7 @@ return [
     |
     */
 
-    'fallback_locale' => 'en',
+    'fallback_locale' => 'tr',
 
     /*
     |--------------------------------------------------------------------------
@@ -116,7 +131,7 @@ return [
     |
     */
 
-    'faker_locale' => 'en_US',
+    'faker_locale' => 'tr_TR',
 
     /*
     |--------------------------------------------------------------------------

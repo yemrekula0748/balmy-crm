@@ -115,7 +115,7 @@
                                 <label class="form-label fw-semibold">Logo</label>
                                 @if($menu->logo)
                                     <div class="mb-2">
-                                        <img src="{{ asset('storage/'.$menu->logo) }}" alt="logo"
+                                        <img src="{{ asset('uploads/'.$menu->logo) }}" alt="logo"
                                              class="rounded" style="width:56px;height:56px;object-fit:cover">
                                     </div>
                                 @endif
@@ -127,7 +127,7 @@
                                 <label class="form-label fw-semibold">Kapak Görseli</label>
                                 @if($menu->cover_image)
                                     <div class="mb-2">
-                                        <img src="{{ asset('storage/'.$menu->cover_image) }}" alt="kapak"
+                                        <img src="{{ asset('uploads/'.$menu->cover_image) }}" alt="kapak"
                                              class="rounded w-100" style="height:72px;object-fit:cover">
                                     </div>
                                 @endif

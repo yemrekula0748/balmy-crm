@@ -25,6 +25,18 @@ class DoorLogController extends BaseModuleController
 
     public function index(Request $request)
     {
+        // Oturum açan kullanıcı ve görünür şubeler
+        $authUser  = auth()->user();
+        $branchIds = $authUser->visibleBranchIds();
+
+        // İnsan Kaynakları departmanı kontrolü
+        $isHR = str_contains(mb_strtolower($authUser->department?->name ?? ''), 'kaynaklar');
+
+        // Varsayılan şube: kullanıcının kendi şubesi (super admin ve İK için tüm şubeler)
+        $selectedBranchId = $request->filled('branch_id')
+            ? $request->branch_id
+            : (($authUser->isSuperAdmin() || $isHR) ? null : $authUser->branch_id);
+
         // Varsayılan: bugün
         $dateFrom = $request->input('date_from', today()->format('Y-m-d'));
         $dateTo   = $request->input('date_to', today()->format('Y-m-d'));
@@ -36,8 +48,8 @@ class DoorLogController extends BaseModuleController
             ])
             ->orderBy('logged_at', 'asc');
 
-        if ($request->filled('branch_id')) {
-            $query->where('branch_id', $request->branch_id);
+        if ($selectedBranchId) {
+            $query->where('branch_id', $selectedBranchId);
         }
         if ($request->filled('user_id')) {
             $query->where('user_id', $request->user_id);
@@ -81,8 +93,9 @@ class DoorLogController extends BaseModuleController
         $totalCikis     = $allLogs->where('type', 'cikis')->count();
         $uniquePersonel = $allLogs->unique('user_id')->count();
 
-        // İçeride / Dışarıda: her kullanıcının son kaydına göre
+        // İçeride / Dışarıda: her kullanıcının son kaydına göre (yalnızca görünür şubeler)
         $latestLogIds = DoorLog::selectRaw('MAX(id) as max_id')
+            ->when(!$authUser->isSuperAdmin(), fn ($q) => $q->whereIn('branch_id', $branchIds))
             ->groupBy('user_id')
             ->pluck('max_id');
 
@@ -98,10 +111,24 @@ class DoorLogController extends BaseModuleController
             ->sortBy(fn ($l) => optional($l->user)->name)
             ->values();
 
+        // Bugün giriş yapmamış aktif departman müdürleri (ilgili şube)
+        $todayLoggedIds = DoorLog::whereDate('logged_at', today())->pluck('user_id')->unique();
+        $insideUserIds  = $insideUsers->pluck('user_id');
+        $neverLoggedQuery = User::with('department', 'branch')
+            ->where('is_active', true)
+            ->where('role', 'dept_manager')
+            ->whereNotIn('id', $todayLoggedIds)
+            ->whereNotIn('id', $insideUserIds)
+            ->orderBy('name');
+        if ($selectedBranchId) {
+            $neverLoggedQuery->where('branch_id', $selectedBranchId);
+        } else {
+            $neverLoggedQuery->whereIn('branch_id', $branchIds);
+        }
+        $neverLoggedUsers = $neverLoggedQuery->get();
+
         // Filtrelerde kullanılacak veriler
-        $authUser  = auth()->user();
-        $branchIds = $authUser->visibleBranchIds();
-        $branches  = $authUser->isSuperAdmin()
+        $branches  = ($authUser->isSuperAdmin() || $isHR)
             ? Branch::orderBy('name')->get()
             : Branch::whereIn('id', $branchIds)->orderBy('name')->get();
 
@@ -121,7 +148,8 @@ class DoorLogController extends BaseModuleController
             'logs', 'branches', 'managers',
             'dateFrom', 'dateTo',
             'totalGiris', 'totalCikis', 'uniquePersonel',
-            'insideUsers', 'outsideUsers',
+            'insideUsers', 'outsideUsers', 'neverLoggedUsers',
+            'selectedBranchId',
             'page_title'
         ));
     }

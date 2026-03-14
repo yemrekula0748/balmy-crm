@@ -7,18 +7,26 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class QrMenuItem extends Model
 {
+    /** Aktif fiyat: override varsa onu kullan, yoksa library fiyatı */
+    public function effectivePrice(): ?float
+    {
+        return $this->price_override ?? $this->price;
+    }
+
     protected $fillable = [
-        'category_id', 'title', 'description', 'price', 'image',
+        'category_id', 'food_product_id',
+        'title', 'description', 'price', 'price_override', 'image',
         'is_active', 'is_featured', 'badges', 'sort_order',
     ];
 
     protected $casts = [
-        'title'       => 'array',
-        'description' => 'array',
-        'badges'      => 'array',
-        'is_active'   => 'boolean',
-        'is_featured' => 'boolean',
-        'price'       => 'float',
+        'title'          => 'array',
+        'description'    => 'array',
+        'badges'         => 'array',
+        'is_active'      => 'boolean',
+        'is_featured'    => 'boolean',
+        'price'          => 'float',
+        'price_override' => 'float',
     ];
 
     /**
@@ -45,6 +53,11 @@ class QrMenuItem extends Model
         return $this->belongsTo(QrMenuCategory::class, 'category_id');
     }
 
+    public function foodProduct(): BelongsTo
+    {
+        return $this->belongsTo(FoodProduct::class, 'food_product_id');
+    }
+
     public function getTitle(string $lang = 'tr'): string
     {
         $titles = array_filter((array)($this->title ?? []), fn($v) => is_string($v) && $v !== '');
@@ -59,7 +72,8 @@ class QrMenuItem extends Model
 
     public function formattedPrice(?string $symbol = '₺'): string
     {
-        if ($this->price === null) return '';
-        return $symbol . ' ' . number_format($this->price, 2);
+        $p = $this->effectivePrice();
+        if ($p === null) return '';
+        return $symbol . ' ' . number_format($p, 2);
     }
 }

@@ -38,7 +38,9 @@ class QrMenuPublicController extends Controller
                 $q->where('is_active', true)
                   ->orderBy('sort_order')
                   ->with(['items' => function ($qi) {
-                      $qi->where('is_active', true)->orderBy('sort_order');
+                      $qi->where('is_active', true)
+                         ->orderBy('sort_order')
+                         ->with('foodProduct');
                   }]);
             }])
             ->firstOrFail();

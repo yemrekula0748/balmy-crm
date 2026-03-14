@@ -27,6 +27,15 @@
 	<!-- Mobile Specific -->
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 
+	<!-- Google Analytics -->
+	<script async src="https://www.googletagmanager.com/gtag/js?id=G-7HHCB1JYV7"></script>
+	<script>
+	  window.dataLayer = window.dataLayer || [];
+	  function gtag(){dataLayer.push(arguments);}
+	  gtag('js', new Date());
+	  gtag('config', 'G-7HHCB1JYV7');
+	</script>
+
 	<!-- Favicon icon -->
 	<link rel="icon" type="image/svg+xml" href="{{ asset('images/logo-icon.svg')}}">
 	<link rel="alternate icon" type="image/png" href="{{ asset('images/favicon.png')}}">

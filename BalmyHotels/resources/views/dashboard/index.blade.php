@@ -17,13 +17,6 @@
                 Hoş geldin, <span style="color:#c19b77">{{ explode(' ', $user->name)[0] }}</span> 👋
             </h3>
             <div class="d-flex align-items-center gap-2 flex-wrap">
-                @foreach($user->userRoles as $ur)
-                    @php $roleObj = \App\Models\Role::where('name', $ur->role_name)->first(); @endphp
-                    <span class="badge rounded-pill px-3 py-1"
-                          style="background:{{ $roleObj->color ?? '#6c757d' }};font-size:12px">
-                        {{ $roleObj->display_name ?? $ur->role_name }}
-                    </span>
-                @endforeach
                 @if($user->branch)
                     <span class="text-muted small"><i class="fas fa-building me-1"></i>{{ $user->branch->name }}</span>
                 @endif
@@ -267,69 +260,6 @@
                 </div>
                 @endif
 
-                {{-- Hızlı İşlemler --}}
-                <div class="col-12">
-                    <div class="card border-0 shadow-sm">
-                        <div class="card-header bg-white border-bottom">
-                            <h6 class="mb-0 fw-bold"><i class="fas fa-rocket me-2 text-primary"></i>Hızlı İşlemler</h6>
-                        </div>
-                        <div class="card-body">
-                            <div class="d-flex flex-wrap gap-2">
-                                @if($user->hasPermission('faults', 'create'))
-                                <a href="{{ route('faults.create') }}" class="quick-btn" style="--qc:#dc3545">
-                                    <i class="fas fa-plus-circle"></i> Arıza Bildir
-                                </a>
-                                @endif
-                                @if($user->hasPermission('faults', 'index'))
-                                <a href="{{ route('faults.index') }}" class="quick-btn" style="--qc:#fd7e14">
-                                    <i class="fas fa-list"></i> Tüm Arızalar
-                                </a>
-                                @endif
-                                @if($user->hasPermission('users', 'create'))
-                                <a href="{{ route('users.create') }}" class="quick-btn" style="--qc:#198754">
-                                    <i class="fas fa-user-plus"></i> Personel Ekle
-                                </a>
-                                @endif
-                                @if($user->hasPermission('door_logs', 'index'))
-                                <a href="{{ route('door-logs.index') }}" class="quick-btn" style="--qc:#9c27b0">
-                                    <i class="fas fa-door-open"></i> Kapı Logları
-                                </a>
-                                @endif
-                                @if($user->hasPermission('guest_logs', 'index'))
-                                <a href="{{ route('guest-logs.index') }}" class="quick-btn" style="--qc:#0288d1">
-                                    <i class="fas fa-user-friends"></i> Ziyaretçiler
-                                </a>
-                                @endif
-                                @if($user->hasPermission('assets', 'index'))
-                                <a href="{{ route('assets.index') }}" class="quick-btn" style="--qc:#7b1fa2">
-                                    <i class="fas fa-cube"></i> Demirbaşlar
-                                </a>
-                                @endif
-                                @if($user->hasPermission('vehicles', 'index'))
-                                <a href="{{ route('vehicles.index') }}" class="quick-btn" style="--qc:#c2185b">
-                                    <i class="fas fa-car"></i> Araçlar
-                                </a>
-                                @endif
-                                @if($user->hasPermission('surveys', 'index'))
-                                <a href="{{ route('surveys.index') }}" class="quick-btn" style="--qc:#f57c00">
-                                    <i class="fas fa-poll"></i> Anketler
-                                </a>
-                                @endif
-                                @if($user->hasPermission('qrmenus', 'index'))
-                                <a href="{{ route('qrmenus.index') }}" class="quick-btn" style="--qc:#00796b">
-                                    <i class="fas fa-qrcode"></i> QR Menü
-                                </a>
-                                @endif
-                                @if($user->isSuperAdmin())
-                                <a href="{{ route('roles.index') }}" class="quick-btn" style="--qc:#455a64">
-                                    <i class="fas fa-lock"></i> Yetki Yönetimi
-                                </a>
-                                @endif
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
             </div>
         </div>
 
@@ -380,6 +310,16 @@
     font-weight: 500;
     text-transform: uppercase;
     letter-spacing: .5px;
+}
+
+/* ─── TripAdvisor Kart ─── */
+.ta-card {
+    border-left: 4px solid #00aa6c !important;
+    transition: box-shadow .15s ease, transform .15s ease;
+}
+.ta-card:hover {
+    box-shadow: 0 6px 20px rgba(0,170,108,.15) !important;
+    transform: translateY(-2px);
 }
 
 /* ─── Quick Buttons ─── */

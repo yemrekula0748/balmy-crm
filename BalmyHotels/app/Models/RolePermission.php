@@ -25,10 +25,12 @@ class RolePermission extends Model
     // ----------------------------------------------------------------
     const MODULES = [
         'Araç Yönetimi' => [
-            'vehicles'       => 'Araçlar',
-            'vehicle_ops'    => 'Araç Operasyonları',
-            'vehicle_maint'  => 'Araç Bakım',
-            'vehicle_ins'    => 'Araç Sigorta',
+            'vehicles'             => 'Araçlar',
+            'vehicle_ops'          => 'Araç Operasyonları',
+            'vehicle_maint'        => 'Araç Bakım',
+            'vehicle_ins'          => 'Araç Sigorta',
+            'vehicle_trips'        => 'Araç Görev Başlat/Bitir',
+            'vehicle_trip_control' => 'Araç Görev Kontrol (Harita)',
         ],
         'Personel' => [
             'users'          => 'Kullanıcılar',
@@ -37,6 +39,7 @@ class RolePermission extends Model
         'Güvenlik & Misafir' => [
             'door_logs'        => 'Kapı Geçiş Logları',
             'door_log_reports' => 'Kapı Geçiş Raporları',
+            'hr_reports'       => 'İ.K Raporları (Tüm Şubeler)',
             'guest_logs'       => 'Misafir Logları',
         ],
         'Teknik Arıza' => [
@@ -52,6 +55,8 @@ class RolePermission extends Model
         ],
         'Menü & Anket' => [
             'qrmenus'        => 'QR Menü',
+            'food_library'   => 'Yemek Kütüphanesi',
+            'printers'       => 'Yazıcılar',
             'surveys'        => 'Misafir Anket',
             'food_labels'    => 'Yemek İsimlik',
             'staff_surveys'  => 'Personel Anket',
@@ -60,9 +65,39 @@ class RolePermission extends Model
             'contract_compare' => 'Sözleşme Karşılaştırma',
             'pdf_converter'    => 'PDF Word Çevirici',
             'pdf_merger'       => 'PDF Birleştirici',
+            'ocr'              => 'Yazıya Çevir (OCR)',
         ],
         'Sürdürülebilirlik' => [
             'carbon_footprint' => 'Karbon Ayak İzi Raporları',
+        ],
+        'Raporlar' => [
+            'tripadvisor_report' => 'TripAdvisor Puanları',
+            'google_report'      => 'Google Puanları',
+        ],
+        'Servis Takip' => [
+            'shuttle_routes'     => 'Güzergah Tanımları',
+            'shuttle_vehicles'   => 'Servis Araçları',
+            'shuttle_operations' => 'Servis Operasyonu',
+            'shuttle_reports'    => 'Servis Raporları',
+        ],
+        'Sipariş Modülü' => [
+            'restaurant_settings' => 'Restoran & Masa Tanımları',
+            'orders'              => 'Sipariş Al',
+            'order_reports'       => 'Sipariş Raporları',
+            'order_analytics'    => 'Sipariş Analizi',
+        ],
+        'İç Denetim' => [
+            'audit_types'            => 'Denetim Tipleri Yönetimi',
+            'audits'                 => 'Denetim Oluştur / Listele',
+            'audit_nonconformities'  => 'Uygunsuzluklarım',
+            'audit_analytics'        => 'Denetim Analiz & İstatistik',
+        ],
+        'Bilgi İşlem' => [
+            'it_computers' => 'Bilgisayar Envanteri',
+            'it_backup'    => 'Veritabanı Yedekleme',
+        ],
+        'İşlerim' => [
+            'my_tasks' => 'Görevlerim',
         ],
     ];
 

@@ -8,10 +8,12 @@ use App\Http\Controllers\Modules\VehicleController;
 use App\Http\Controllers\Modules\VehicleOperationController;
 use App\Http\Controllers\Modules\VehicleMaintenanceController;
 use App\Http\Controllers\Modules\VehicleInsuranceController;
+use App\Http\Controllers\Modules\VehicleTripController;
 use App\Http\Controllers\Modules\UserController;
 use App\Http\Controllers\Modules\DepartmentController;
 use App\Http\Controllers\Modules\DoorLogController;
 use App\Http\Controllers\Modules\DoorLogReportController;
+use App\Http\Controllers\Modules\HrReportController;
 use App\Http\Controllers\Modules\GuestLogController;
 use App\Http\Controllers\Modules\FaultController;
 use App\Http\Controllers\Modules\FaultLocationController;
@@ -21,10 +23,12 @@ use App\Http\Controllers\Modules\AssetController;
 use App\Http\Controllers\Modules\AssetExitController;
 use App\Http\Controllers\Modules\QrMenuController;
 use App\Http\Controllers\Modules\QrMenuCategoryController;
+use App\Http\Controllers\Modules\FoodLibraryController;
 use App\Http\Controllers\QrMenuPublicController;
 use App\Http\Controllers\Modules\SurveyController;
 use App\Http\Controllers\SurveyPublicController;
 use App\Http\Controllers\Modules\FoodLabelController;
+use App\Http\Controllers\Modules\PrinterController;
 use App\Http\Controllers\FoodLabelPublicController;
 use App\Http\Controllers\StaffSurveyPublicController;
 use App\Http\Controllers\Modules\StaffSurveyController;
@@ -33,6 +37,22 @@ use App\Http\Controllers\Modules\PdfConverterController;
 use App\Http\Controllers\Modules\PdfMergerController;
 use App\Http\Controllers\Modules\RoleController;
 use App\Http\Controllers\Modules\CarbonFootprintController;
+use App\Http\Controllers\Modules\ShuttleRouteController;
+use App\Http\Controllers\Modules\ShuttleVehicleController;
+use App\Http\Controllers\Modules\ShuttleOperationController;
+use App\Http\Controllers\Modules\ShuttleReportController;
+use App\Http\Controllers\Modules\RestaurantController;
+use App\Http\Controllers\Modules\OrderController;
+use App\Http\Controllers\Modules\OrderReportController;
+use App\Http\Controllers\Modules\OrderAnalyticsController;
+use App\Http\Controllers\Modules\OcrController;
+use App\Http\Controllers\Modules\AuditTypeController;
+use App\Http\Controllers\Modules\AuditController;
+use App\Http\Controllers\Modules\AuditNonconformityController;
+use App\Http\Controllers\Modules\AuditAnalyticsController;
+use App\Http\Controllers\Modules\ItComputerController;
+use App\Http\Controllers\Modules\ItBackupController;
+use App\Http\Controllers\Modules\MyTaskController;
 
 /*
 |--------------------------------------------------------------------------
@@ -45,6 +65,31 @@ Route::middleware('guest')->group(function () {
 });
 
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout')->middleware('auth');
+
+// Profil
+use App\Http\Controllers\ProfileController;
+Route::middleware('auth')->group(function () {
+    Route::get('/profil',  [ProfileController::class, 'index'])->name('profile.index');
+    Route::post('/profil', [ProfileController::class, 'update'])->name('profile.update');
+
+    // Sunucudaki mevcut storage dosyalarının izinlerini düz (0644) yap — bir kez çalıştırılır
+    Route::get('/storage-fix-permissions', function () {
+        $dir = storage_path('app/public');
+        $fixed = 0;
+        foreach (new RecursiveIteratorIterator(new RecursiveDirectoryIterator($dir, FilesystemIterator::SKIP_DOTS)) as $file) {
+            if ($file->isFile()) {
+                @chmod($file->getPathname(), 0644);
+                $fixed++;
+            }
+        }
+        foreach (new RecursiveIteratorIterator(new RecursiveDirectoryIterator($dir, FilesystemIterator::SKIP_DOTS), RecursiveIteratorIterator::SELF_FIRST) as $item) {
+            if ($item->isDir()) {
+                @chmod($item->getPathname(), 0755);
+            }
+        }
+        return response("Tamam: {$fixed} dosya 0644, klasörler 0755 yapıldı.");
+    })->middleware('auth');
+});
 
 /*
 |--------------------------------------------------------------------------
@@ -187,6 +232,28 @@ Route::middleware('auth')->group(function () {
 
     /*
     |--------------------------------------------------------------------------
+    | Araç Görev Takip
+    |--------------------------------------------------------------------------
+    */
+    Route::prefix('arac-gorevler')->name('vehicle-trips.')->group(function () {
+        Route::get('/',                                  [VehicleTripController::class, 'index'])->name('index');
+        Route::get('/yeni',                              [VehicleTripController::class, 'create'])->name('create');
+        Route::post('/',                                 [VehicleTripController::class, 'store'])->name('store');
+        Route::get('/aktif-gorevim',                     [VehicleTripController::class, 'myTrip'])->name('my');
+        Route::get('/kontrol',                           [VehicleTripController::class, 'control'])->name('control');
+        Route::get('/{vehicleTrip}',                     [VehicleTripController::class, 'show'])->name('show');
+        Route::get('/{vehicleTrip}/yazdir',              [VehicleTripController::class, 'printTrip'])->name('print');
+        Route::get('/{vehicleTrip}/bitir',               [VehicleTripController::class, 'complete'])->name('complete');
+        Route::put('/{vehicleTrip}',                     [VehicleTripController::class, 'update'])->name('update');
+        Route::delete('/{vehicleTrip}',                  [VehicleTripController::class, 'destroy'])->name('destroy');
+        // API: konum kaydet
+        Route::post('/{vehicleTrip}/konum',              [VehicleTripController::class, 'storeLocation'])->name('location');
+        // API: kontrol sayfası konum polling
+        Route::get('/{vehicleTrip}/konumlar',            [VehicleTripController::class, 'controlLocations'])->name('control-locations');
+    });
+
+    /*
+    |--------------------------------------------------------------------------
     | Kullanıcı / Çalışan Modülü
     |--------------------------------------------------------------------------
     */
@@ -215,6 +282,9 @@ Route::middleware('auth')->group(function () {
         Route::post('/manuel',        [DoorLogController::class, 'store'])->name('store');
         Route::post('/hizli',         [DoorLogController::class, 'quick'])->name('quick');
         Route::delete('/{doorLog}',   [DoorLogController::class, 'destroy'])->name('destroy');
+        Route::get('/ik-rapor',              [HrReportController::class, 'index'])->name('hr-report');
+        Route::get('/ik-rapor/pdf',          [HrReportController::class, 'pdf'])->name('hr-report-pdf');
+        Route::get('/ik-rapor/personeller',  [HrReportController::class, 'staffByBranch'])->name('hr-report-staff');
     });
 
     /*
@@ -404,6 +474,34 @@ Route::middleware('auth')->group(function () {
         Route::get('/{qrmenu}/kategori/{category}/urun/{item}/duzenle', [QrMenuCategoryController::class, 'editItem'])->name('item.edit');
         Route::put('/{qrmenu}/kategori/{category}/urun/{item}', [QrMenuCategoryController::class, 'updateItem'])->name('item.update');
         Route::delete('/{qrmenu}/kategori/{category}/urun/{item}', [QrMenuCategoryController::class, 'destroyItem'])->name('item.destroy');
+        // Kütüphaneden Ürün Ekle
+        Route::post('/{qrmenu}/kategoriler/{category}/kutuphane', [QrMenuCategoryController::class, 'addFromLibrary'])->name('category.addFromLibrary');
+    });
+
+    // Yemek Kütüphanesi
+    Route::prefix('yemek-kutuphane')->name('food-library.')->group(function () {
+        Route::get('/', [FoodLibraryController::class, 'index'])->name('index');
+        Route::get('/kategoriler/ekle', [FoodLibraryController::class, 'createCategory'])->name('categories.create');
+        Route::post('/kategoriler', [FoodLibraryController::class, 'storeCategory'])->name('categories.store');
+        Route::get('/kategoriler/{category}/duzenle', [FoodLibraryController::class, 'editCategory'])->name('categories.edit');
+        Route::put('/kategoriler/{category}', [FoodLibraryController::class, 'updateCategory'])->name('categories.update');
+        Route::delete('/kategoriler/{category}', [FoodLibraryController::class, 'destroyCategory'])->name('categories.destroy');
+        Route::get('/urunler', [FoodLibraryController::class, 'products'])->name('products');
+        Route::get('/urunler/ekle', [FoodLibraryController::class, 'createProduct'])->name('product.create');
+        Route::post('/urunler', [FoodLibraryController::class, 'storeProduct'])->name('product.store');
+        Route::get('/urunler/{product}/duzenle', [FoodLibraryController::class, 'editProduct'])->name('product.edit');
+        Route::put('/urunler/{product}', [FoodLibraryController::class, 'updateProduct'])->name('product.update');
+        Route::delete('/urunler/{product}', [FoodLibraryController::class, 'destroyProduct'])->name('product.destroy');
+        Route::get('/api/urunler', [FoodLibraryController::class, 'apiProducts'])->name('api.products');
+    });
+
+    // Yazıcılar
+    Route::prefix('yazicilar')->name('printers.')->group(function () {
+        Route::get('/',                   [PrinterController::class, 'index'])->name('index');
+        Route::post('/',                  [PrinterController::class, 'store'])->name('store');
+        Route::get('/{printer}/duzenle',  [PrinterController::class, 'edit'])->name('edit');
+        Route::put('/{printer}',          [PrinterController::class, 'update'])->name('update');
+        Route::delete('/{printer}',       [PrinterController::class, 'destroy'])->name('destroy');
     });
 
     /*
@@ -459,16 +557,196 @@ Route::middleware('auth')->group(function () {
 
     /*
     |--------------------------------------------------------------------------
+    | OCR — Yazıya Çevir
+    |--------------------------------------------------------------------------
+    */
+    Route::prefix('yaziya-cevir')->name('ocr.')->group(function () {
+        Route::get('/',      [OcrController::class, 'index'])->name('index');
+        Route::post('/cevir',[OcrController::class, 'extract'])->name('extract');
+    });
+
+    /*
+    |--------------------------------------------------------------------------
+    | Raporlar — TripAdvisor
+    |--------------------------------------------------------------------------
+    */
+    Route::prefix('raporlar')->name('reports.')->group(function () {
+        Route::get('/tripadvisor', [\App\Http\Controllers\Modules\TripAdvisorReportController::class, 'index'])->name('tripadvisor');
+        Route::post('/tripadvisor/snapshot', [\App\Http\Controllers\Modules\TripAdvisorReportController::class, 'snapshot'])->name('tripadvisor.snapshot');
+        Route::get('/google', [\App\Http\Controllers\Modules\GoogleReportController::class, 'index'])->name('google');
+        Route::post('/google/snapshot', [\App\Http\Controllers\Modules\GoogleReportController::class, 'snapshot'])->name('google.snapshot');
+    });
+
+    /*
+    |--------------------------------------------------------------------------
+    | Servis Takip Modülü
+    |--------------------------------------------------------------------------
+    */
+    Route::prefix('servis-takip')->name('shuttle.')->group(function () {
+
+        // Güzergah tanımları
+        Route::prefix('guzergahlar')->name('routes.')->group(function () {
+            Route::get('/',             [ShuttleRouteController::class, 'index'])->name('index');
+            Route::get('/ekle',         [ShuttleRouteController::class, 'create'])->name('create');
+            Route::post('/',            [ShuttleRouteController::class, 'store'])->name('store');
+            Route::get('/{route}/duzenle', [ShuttleRouteController::class, 'edit'])->name('edit');
+            Route::put('/{route}',      [ShuttleRouteController::class, 'update'])->name('update');
+            Route::delete('/{route}',   [ShuttleRouteController::class, 'destroy'])->name('destroy');
+        });
+
+        // Araçlar
+        Route::prefix('araclar')->name('vehicles.')->group(function () {
+            Route::get('/',              [ShuttleVehicleController::class, 'index'])->name('index');
+            Route::get('/ekle',          [ShuttleVehicleController::class, 'create'])->name('create');
+            Route::post('/',             [ShuttleVehicleController::class, 'store'])->name('store');
+            Route::get('/{vehicle}/duzenle', [ShuttleVehicleController::class, 'edit'])->name('edit');
+            Route::put('/{vehicle}',     [ShuttleVehicleController::class, 'update'])->name('update');
+            Route::delete('/{vehicle}',  [ShuttleVehicleController::class, 'destroy'])->name('destroy');
+        });
+
+        // Operasyon
+        Route::prefix('operasyon')->name('operations.')->group(function () {
+            Route::get('/',                     [ShuttleOperationController::class, 'index'])->name('index');
+            Route::post('/',                    [ShuttleOperationController::class, 'store'])->name('store');
+            Route::get('/{operation}/duzenle',      [ShuttleOperationController::class, 'edit'])->name('edit');
+            Route::put('/{operation}',               [ShuttleOperationController::class, 'update'])->name('update');
+            Route::patch('/{operation}/donus',       [ShuttleOperationController::class, 'departure'])->name('departure');
+            Route::delete('/{operation}',            [ShuttleOperationController::class, 'destroy'])->name('destroy');
+        });
+
+        // Raporlar
+        Route::prefix('raporlar')->name('reports.')->group(function () {
+            Route::get('/',    [ShuttleReportController::class, 'index'])->name('index');
+            Route::get('/pdf', [ShuttleReportController::class, 'pdf'])->name('pdf');
+        });
+
+    });
+
+    /*
+    |--------------------------------------------------------------------------
+    | Sipariş Modülü (Garson)
+    |--------------------------------------------------------------------------
+    */
+    Route::prefix('siparisler')->name('orders.')->group(function () {
+
+        // Ana sayfa: restoran + masa seçimi
+        Route::get('/',                              [OrderController::class, 'take'])->name('take');
+
+        // Masayı aç
+        Route::post('/masa-ac/{table}',              [OrderController::class, 'openTable'])->name('open-table');
+
+        // Aktif seans sayfası
+        Route::get('/seans/{session}',               [OrderController::class, 'session'])->name('session');
+
+        // Sipariş kaydet
+        Route::post('/seans/{session}/siparis',      [OrderController::class, 'storeOrder'])->name('store-order');
+
+        // Sipariş fişi
+        Route::get('/seans/{session}/siparis/{order}/fis', [OrderController::class, 'receipt'])->name('receipt');
+
+        // Sipariş kalemi sil
+        Route::delete('/seans/{session}/kalem/{item}', [OrderController::class, 'destroyOrderItem'])->name('destroy-item');
+
+        // Masayı kapat
+        Route::post('/seans/{session}/kapat',        [OrderController::class, 'closeTable'])->name('close-table');
+
+        // Raporlar
+        Route::get('/raporlar',                      [OrderReportController::class, 'index'])->name('report');
+
+        // Analiz
+        Route::get('/analiz',                        [OrderAnalyticsController::class, 'index'])->name('analytics');
+
+        // Restoran tanımları
+        Route::prefix('restoranlar')->name('restaurants.')->group(function () {
+            Route::get('/',                                               [RestaurantController::class, 'index'])->name('index');
+            Route::get('/ekle',                                           [RestaurantController::class, 'create'])->name('create');
+            Route::post('/ekle',                                          [RestaurantController::class, 'store'])->name('store');
+            Route::get('/{restaurant}',                                   [RestaurantController::class, 'show'])->name('show');
+            Route::get('/{restaurant}/duzenle',                           [RestaurantController::class, 'edit'])->name('edit');
+            Route::put('/{restaurant}',                                   [RestaurantController::class, 'update'])->name('update');
+            Route::delete('/{restaurant}',                                [RestaurantController::class, 'destroy'])->name('destroy');
+            Route::post('/{restaurant}/masalar',                          [RestaurantController::class, 'storeTable'])->name('tables.store');
+            Route::delete('/{restaurant}/masalar/{table}',                [RestaurantController::class, 'destroyTable'])->name('tables.destroy');
+        });
+    });
+
+    /*
+    |--------------------------------------------------------------------------
+    | İç Denetim Modülü
+    |--------------------------------------------------------------------------
+    */
+    Route::prefix('ic-denetim')->name('audit.')->group(function () {
+
+        // AJAX
+        Route::get('ajax/departmanlar', [AuditController::class, 'ajaxDepartments'])->name('ajax.departments');
+
+        // Denetim Tipleri Yönetimi
+        Route::get('tipler',                    [AuditTypeController::class, 'index'])->name('types.index');
+        Route::post('tipler',                   [AuditTypeController::class, 'store'])->name('types.store');
+        Route::put('tipler/{auditType}',        [AuditTypeController::class, 'update'])->name('types.update');
+        Route::delete('tipler/{auditType}',     [AuditTypeController::class, 'destroy'])->name('types.destroy');
+
+        // Uygunsuzluklarım
+        Route::get('uygunsuzluklarim',          [AuditNonconformityController::class, 'index'])->name('nonconformities.index');
+        Route::patch('uygunsuzluk/{nonconformity}/coz', [AuditNonconformityController::class, 'resolve'])->name('nonconformities.resolve');
+
+        // Analiz & PDF (static routes before {audit} wildcard)
+        Route::get('analiz',                    [AuditAnalyticsController::class, 'index'])->name('analytics.index');
+        Route::get('analiz/pdf',                [AuditAnalyticsController::class, 'pdf'])->name('analytics.pdf');
+
+        // Denetimler (parameterized routes LAST)
+        Route::get('olustur',                   [AuditController::class, 'create'])->name('create');
+        Route::get('',                          [AuditController::class, 'index'])->name('index');
+        Route::post('',                         [AuditController::class, 'store'])->name('store');
+        Route::get('{audit}',                   [AuditController::class, 'show'])->name('show');
+        Route::delete('{audit}',                [AuditController::class, 'destroy'])->name('destroy');
+    });
+
+    /*
+    |--------------------------------------------------------------------------
     | Rol & Yetki Yönetimi (sadece super_admin)
     |--------------------------------------------------------------------------
     */
-    Route::prefix('roller')->name('roles.')->group(function () {
-        Route::get('/',                          [RoleController::class, 'index'])->name('index');
+    Route::prefix('roller')->name('roles.')->group(function () {        Route::get('/',                          [RoleController::class, 'index'])->name('index');
         Route::post('/',                         [RoleController::class, 'store'])->name('store');
         Route::put('/{role}',                    [RoleController::class, 'update'])->name('update');
         Route::delete('/{role}',                 [RoleController::class, 'destroy'])->name('destroy');
         Route::get('/{role}/izinler',            [RoleController::class, 'permissions'])->name('permissions');
         Route::post('/{role}/izinler',           [RoleController::class, 'updatePermissions'])->name('updatePermissions');
+    });
+
+    /*
+    |--------------------------------------------------------------------------
+    | Bilgi İşlem Modülü
+    |--------------------------------------------------------------------------
+    */
+    Route::prefix('bilgi-islem')->name('it.')->group(function () {
+        // Bilgisayarlar
+        Route::get('bilgisayarlar',             [ItComputerController::class, 'index'])->name('computers.index');
+        Route::post('bilgisayarlar',            [ItComputerController::class, 'store'])->name('computers.store');
+        Route::put('bilgisayarlar/{computer}',  [ItComputerController::class, 'update'])->name('computers.update');
+        Route::delete('bilgisayarlar/{computer}', [ItComputerController::class, 'destroy'])->name('computers.destroy');
+
+        // Yedekleme
+        Route::get('yedekleme',            [ItBackupController::class, 'index'])->name('backup.index');
+        Route::post('yedekleme',           [ItBackupController::class, 'run'])->name('backup.run');
+        Route::get('yedekleme/indir/{filename}',   [ItBackupController::class, 'download'])->name('backup.download')
+            ->where('filename', '[^/]+');
+        Route::delete('yedekleme/{filename}',      [ItBackupController::class, 'deleteFile'])->name('backup.delete')
+            ->where('filename', '[^/]+');
+    });
+
+    /*
+    |--------------------------------------------------------------------------
+    | İşlerim (Kişisel Görev Listesi)
+    |--------------------------------------------------------------------------
+    */
+    Route::prefix('islerim')->name('islerim.')->group(function () {
+        Route::get('/',              [MyTaskController::class, 'index'])->name('index');
+        Route::post('/',             [MyTaskController::class, 'store'])->name('store');
+        Route::put('/{userTask}',    [MyTaskController::class, 'update'])->name('update');
+        Route::patch('/{userTask}/tamamla', [MyTaskController::class, 'complete'])->name('complete');
+        Route::delete('/{userTask}', [MyTaskController::class, 'destroy'])->name('destroy');
     });
 
 }); // auth middleware group
