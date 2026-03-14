@@ -50,6 +50,9 @@ use App\Http\Controllers\Modules\AuditTypeController;
 use App\Http\Controllers\Modules\AuditController;
 use App\Http\Controllers\Modules\AuditNonconformityController;
 use App\Http\Controllers\Modules\AuditAnalyticsController;
+use App\Http\Controllers\Modules\ItComputerController;
+use App\Http\Controllers\Modules\ItBackupController;
+use App\Http\Controllers\Modules\MyTaskController;
 
 /*
 |--------------------------------------------------------------------------
@@ -709,6 +712,40 @@ Route::middleware('auth')->group(function () {
         Route::delete('/{role}',                 [RoleController::class, 'destroy'])->name('destroy');
         Route::get('/{role}/izinler',            [RoleController::class, 'permissions'])->name('permissions');
         Route::post('/{role}/izinler',           [RoleController::class, 'updatePermissions'])->name('updatePermissions');
+    });
+
+    /*
+    |--------------------------------------------------------------------------
+    | Bilgi İşlem Modülü
+    |--------------------------------------------------------------------------
+    */
+    Route::prefix('bilgi-islem')->name('it.')->group(function () {
+        // Bilgisayarlar
+        Route::get('bilgisayarlar',             [ItComputerController::class, 'index'])->name('computers.index');
+        Route::post('bilgisayarlar',            [ItComputerController::class, 'store'])->name('computers.store');
+        Route::put('bilgisayarlar/{computer}',  [ItComputerController::class, 'update'])->name('computers.update');
+        Route::delete('bilgisayarlar/{computer}', [ItComputerController::class, 'destroy'])->name('computers.destroy');
+
+        // Yedekleme
+        Route::get('yedekleme',            [ItBackupController::class, 'index'])->name('backup.index');
+        Route::post('yedekleme',           [ItBackupController::class, 'run'])->name('backup.run');
+        Route::get('yedekleme/indir/{filename}',   [ItBackupController::class, 'download'])->name('backup.download')
+            ->where('filename', '[^/]+');
+        Route::delete('yedekleme/{filename}',      [ItBackupController::class, 'deleteFile'])->name('backup.delete')
+            ->where('filename', '[^/]+');
+    });
+
+    /*
+    |--------------------------------------------------------------------------
+    | İşlerim (Kişisel Görev Listesi)
+    |--------------------------------------------------------------------------
+    */
+    Route::prefix('islerim')->name('islerim.')->group(function () {
+        Route::get('/',              [MyTaskController::class, 'index'])->name('index');
+        Route::post('/',             [MyTaskController::class, 'store'])->name('store');
+        Route::put('/{userTask}',    [MyTaskController::class, 'update'])->name('update');
+        Route::patch('/{userTask}/tamamla', [MyTaskController::class, 'complete'])->name('complete');
+        Route::delete('/{userTask}', [MyTaskController::class, 'destroy'])->name('destroy');
     });
 
 }); // auth middleware group

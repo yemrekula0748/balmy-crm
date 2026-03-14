@@ -148,8 +148,8 @@
     <div class="row g-4 mb-4">
 
         {{-- Günlük Aktivite Grafiği --}}
-        <div class="col-12 col-xl-8">
-            <div class="card border-0 shadow-sm h-100">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm">
                 <div class="card-header bg-white border-bottom py-3">
                     <h6 class="mb-0 fw-bold d-flex align-items-center gap-2">
                         <i class="fas fa-chart-line text-primary"></i>
@@ -157,14 +157,14 @@
                     </h6>
                 </div>
                 <div class="card-body">
-                    <canvas id="dailyChart" height="120"></canvas>
+                    <canvas id="dailyChart" height="80"></canvas>
                 </div>
             </div>
         </div>
 
         {{-- Departman Özeti --}}
-        <div class="col-12 col-xl-4">
-            <div class="card border-0 shadow-sm h-100">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm">
                 <div class="card-header bg-white border-bottom py-3">
                     <h6 class="mb-0 fw-bold d-flex align-items-center gap-2">
                         <i class="fas fa-sitemap" style="color:#6366f1"></i>

@@ -1,7 +1,7 @@
 @extends('layouts.default')
 
 @section('content')
-<div class="container-fluid">
+<div class="container-fluid pb-5">
     <div class="row page-titles mx-0">
         <div class="col-sm-6 p-md-0">
             <div class="welcome-text"><h4>Aktif Görevim</h4></div>
@@ -37,9 +37,14 @@
                 {{-- Bilgi kartı --}}
                 <div class="card border-success mb-3">
                     <div class="card-header bg-success bg-opacity-10 border-success d-flex justify-content-between align-items-center">
-                        <h5 class="card-title mb-0 text-success">
+                        <h5 class="card-title mb-0 text-success d-flex align-items-center gap-2">
                             <span class="badge bg-success me-2 pulse-badge">● CANLI</span>
                             Görev #{{ $activeTrip->id }}
+                            <a href="{{ route('vehicle-trips.complete', $activeTrip) }}"
+                               class="btn btn-danger btn-sm ms-2"
+                               style="font-size:12px;padding:3px 10px;border-radius:8px;">
+                                <i class="fa fa-stop-circle me-1"></i>Görevi Bitir
+                            </a>
                         </h5>
                         <span class="text-muted small">{{ $activeTrip->started_at->format('d.m.Y H:i') }}</span>
                     </div>
@@ -113,7 +118,7 @@
                 <div id="pauseWarning" class="alert alert-warning py-2 small d-none mb-3"></div>
 
                 {{-- Görevi Bitir butonu --}}
-                <div class="d-grid">
+                <div class="d-grid mb-4">
                     <a href="{{ route('vehicle-trips.complete', $activeTrip) }}" class="btn btn-danger btn-lg">
                         <i class="fa fa-stop-circle me-2"></i>Görevi Bitir
                     </a>

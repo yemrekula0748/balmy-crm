@@ -15,8 +15,8 @@ class Kernel extends ConsoleKernel
         // Her gece 06:00'da TripAdvisor puanlarını kaydet
         $schedule->command('tripadvisor:snapshot')->dailyAt('06:00');
         // Her gece 06:10'da Google puanlarını kaydet
-        $schedule->command('google:snapshot')->dailyAt('06:10');
-    }
+        $schedule->command('google:snapshot')->dailyAt('06:10');        // Her sabah 08:00'de yarın son tarihi olan göreveleri hatırlat
+        $schedule->command('tasks:send-reminders')->dailyAt('08:00');    }
 
     /**
      * Register the commands for the application.

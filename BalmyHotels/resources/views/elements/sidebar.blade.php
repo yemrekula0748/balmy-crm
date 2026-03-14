@@ -551,6 +551,54 @@
             </li>
             @endif
 
+            {{-- BİLGİ İŞLEM --}}
+            @if($user->hasPermission('it_computers','index') || $user->hasPermission('it_backup','index'))
+            <li @class(['mm-active' => request()->is('bilgi-islem*')])>
+                <a class="has-arrow ai-icon" href="javascript:void()" aria-expanded="false">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
+                         fill="none" stroke="currentColor" stroke-width="2"
+                         stroke-linecap="round" stroke-linejoin="round" style="min-width:20px">
+                        <rect x="2" y="3" width="20" height="14" rx="2"></rect>
+                        <line x1="8" y1="21" x2="16" y2="21"></line>
+                        <line x1="12" y1="17" x2="12" y2="21"></line>
+                    </svg>
+                    <span class="nav-text">Bilgi İşlem</span>
+                </a>
+                <ul aria-expanded="false">
+                    @if($user->hasPermission('it_computers','index'))
+                    <li @class(['mm-active' => request()->is('bilgi-islem/bilgisayarlar*')])>
+                        <a href="{{ route('it.computers.index') }}">Bilgisayarlar</a>
+                    </li>
+                    @endif
+                    @if($user->hasPermission('it_backup','index'))
+                    <li @class(['mm-active' => request()->is('bilgi-islem/yedekleme*')])>
+                        <a href="{{ route('it.backup.index') }}">Veritabanı Yedekleme</a>
+                    </li>
+                    @endif
+                </ul>
+            </li>
+            @endif
+
+            {{-- İŞLERİM --}}
+            @if($user->hasPermission('my_tasks','index'))
+            <li @class(['mm-active' => request()->is('islerim*')])>
+                <a class="has-arrow ai-icon" href="javascript:void()" aria-expanded="false">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
+                         fill="none" stroke="currentColor" stroke-width="2"
+                         stroke-linecap="round" stroke-linejoin="round" style="min-width:20px">
+                        <path d="M9 11l3 3L22 4"></path>
+                        <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
+                    </svg>
+                    <span class="nav-text">İşlerim</span>
+                </a>
+                <ul aria-expanded="false">
+                    <li @class(['mm-active' => request()->is('islerim')])>
+                        <a href="{{ route('islerim.index') }}">Görevlerim</a>
+                    </li>
+                </ul>
+            </li>
+            @endif
+
             {{-- YETKİ YÖNETİMİ — sadece super_admin --}}            @if($user->isSuperAdmin())
             <li @class(['mm-active' => request()->is('roller*')])>
                 <a class="has-arrow ai-icon" href="javascript:void()" aria-expanded="false">

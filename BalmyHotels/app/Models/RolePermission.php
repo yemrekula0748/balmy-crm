@@ -92,6 +92,13 @@ class RolePermission extends Model
             'audit_nonconformities'  => 'Uygunsuzluklarım',
             'audit_analytics'        => 'Denetim Analiz & İstatistik',
         ],
+        'Bilgi İşlem' => [
+            'it_computers' => 'Bilgisayar Envanteri',
+            'it_backup'    => 'Veritabanı Yedekleme',
+        ],
+        'İşlerim' => [
+            'my_tasks' => 'Görevlerim',
+        ],
     ];
 
     /** Düz module_key => Ad listesi döner */

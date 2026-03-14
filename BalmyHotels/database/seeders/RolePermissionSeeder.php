@@ -34,6 +34,10 @@ class RolePermissionSeeder extends Seeder
 
         $this->savePerms('branch_manager', $branchManagerPerms);
 
+        // dept_manager için ek modüller
+        $branchManagerPerms['it_computers']['delete'] = 1;
+        $branchManagerPerms['it_backup']['delete']    = 1;
+
         // 3) dept_manager: kendi departmanıyla ilgili modüller
         $deptManagerPerms = [
             'faults'         => ['index'=>1,'show'=>1,'create'=>1,'edit'=>1,'delete'=>0],
@@ -47,6 +51,8 @@ class RolePermissionSeeder extends Seeder
             'staff_surveys'  => ['index'=>1,'show'=>1,'create'=>0,'edit'=>0,'delete'=>0],
             'food_labels'    => ['index'=>1,'show'=>1,'create'=>0,'edit'=>0,'delete'=>0],
             'vehicles'       => ['index'=>1,'show'=>1,'create'=>0,'edit'=>0,'delete'=>0],
+            'it_computers'   => ['index'=>1,'show'=>0,'create'=>0,'edit'=>0,'delete'=>0],
+            'my_tasks'       => ['index'=>1,'show'=>1,'create'=>1,'edit'=>1,'delete'=>1],
         ];
         $this->savePerms('dept_manager', $deptManagerPerms);
 
@@ -56,6 +62,7 @@ class RolePermissionSeeder extends Seeder
             'guest_logs'  => ['index'=>1,'show'=>1,'create'=>0,'edit'=>0,'delete'=>0],
             'door_logs'   => ['index'=>1,'show'=>0,'create'=>0,'edit'=>0,'delete'=>0],
             'food_labels' => ['index'=>1,'show'=>1,'create'=>0,'edit'=>0,'delete'=>0],
+            'my_tasks'    => ['index'=>1,'show'=>1,'create'=>1,'edit'=>1,'delete'=>1],
         ];
         $this->savePerms('staff', $staffPerms);
 
