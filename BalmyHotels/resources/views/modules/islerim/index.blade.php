@@ -163,30 +163,48 @@
 
     {{-- ── Hero ──────────────────────────────────────────────────────────────── --}}
     <div class="tasks-hero mb-4">
-        <div class="d-flex align-items-center justify-content-between flex-wrap gap-3 position-relative">
+        <div class="d-flex align-items-center justify-content-between flex-wrap gap-4 position-relative">
+
+            {{-- Left: title + subtitle --}}
             <div>
+                <div style="font-size:11px;color:rgba(255,255,255,.5);font-weight:600;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:6px">
+                    {{ now()->format('d F Y') }}
+                </div>
                 <div class="tasks-hero-title">İşlerim</div>
                 <div class="tasks-hero-sub">Kişisel görev takibi &amp; yönetimi</div>
             </div>
-            <div class="d-flex align-items-center gap-4">
-                {{-- Progress Ring --}}
-                <div class="d-flex align-items-center gap-3">
-                    <svg width="72" height="72" viewBox="0 0 72 72" style="transform:rotate(-90deg)">
-                        <circle cx="36" cy="36" r="30" fill="none" stroke="rgba(255,255,255,.2)" stroke-width="6"/>
-                        <circle cx="36" cy="36" r="30" fill="none" stroke="#fff" stroke-width="6"
+
+            {{-- Right: progress ring + stats + button --}}
+            <div class="d-flex align-items-center gap-3 flex-wrap">
+
+                {{-- Progress ring (proper centered overlay) --}}
+                <div style="position:relative;width:76px;height:76px;flex-shrink:0">
+                    <svg width="76" height="76" viewBox="0 0 76 76" style="position:absolute;inset:0;transform:rotate(-90deg)">
+                        <circle cx="38" cy="38" r="32" fill="none" stroke="rgba(255,255,255,.15)" stroke-width="7"/>
+                        <circle cx="38" cy="38" r="32" fill="none" stroke="rgba(255,255,255,.9)" stroke-width="7"
                                 stroke-linecap="round"
-                                stroke-dasharray="{{ number_format($circumference, 2) }}"
-                                stroke-dashoffset="{{ number_format($offset, 2) }}"
+                                stroke-dasharray="{{ number_format(2 * pi() * 32, 2) }}"
+                                stroke-dashoffset="{{ number_format(2 * pi() * 32 - ($pct / 100 * 2 * pi() * 32), 2) }}"
                                 style="transition:stroke-dashoffset .6s ease"/>
                     </svg>
-                    <div style="margin-left:-64px;margin-right:16px;text-align:center;min-width:44px">
-                        <div style="font-size:16px;font-weight:800;color:#fff;line-height:1">{{ $pct }}%</div>
-                        <div style="font-size:10px;color:rgba(255,255,255,.7)">tamamlandı</div>
+                    <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px">
+                        <span style="font-size:15px;font-weight:800;color:#fff;line-height:1">{{ $pct }}%</span>
+                        <span style="font-size:8px;color:rgba(255,255,255,.6);letter-spacing:.5px;text-transform:uppercase">bitti</span>
                     </div>
                 </div>
-                <button class="btn px-4 py-2 fw-bold" data-bs-toggle="modal" data-bs-target="#addTaskModal"
+
+                {{-- Stat summary --}}
+                <div style="border-left:1px solid rgba(255,255,255,.2);padding-left:16px;padding-right:8px">
+                    <div style="font-size:10px;color:rgba(255,255,255,.55);font-weight:600;text-transform:uppercase;letter-spacing:.8px;margin-bottom:4px">Tamamlanma</div>
+                    <div style="font-size:22px;font-weight:800;color:#fff;line-height:1">{{ $completed }}<span style="font-size:14px;font-weight:500;opacity:.6">/{{ $total }}</span></div>
+                    <div style="font-size:11px;color:rgba(255,255,255,.5);margin-top:3px">görev</div>
+                </div>
+
+                {{-- Add button --}}
+                <button class="btn fw-bold" data-bs-toggle="modal" data-bs-target="#addTaskModal"
                         style="background:#fff;color:#4361ee;border-radius:12px;font-size:13px;
-                               box-shadow:0 4px 16px rgba(0,0,0,.15)">
+                               padding:10px 22px;box-shadow:0 4px 16px rgba(0,0,0,.2);
+                               white-space:nowrap;flex-shrink:0">
                     <i class="fas fa-plus me-2"></i>Yeni Görev
                 </button>
             </div>

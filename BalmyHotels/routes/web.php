@@ -242,6 +242,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/aktif-gorevim',                     [VehicleTripController::class, 'myTrip'])->name('my');
         Route::get('/kontrol',                           [VehicleTripController::class, 'control'])->name('control');
         Route::get('/{vehicleTrip}',                     [VehicleTripController::class, 'show'])->name('show');
+        Route::get('/{vehicleTrip}/yazdir',              [VehicleTripController::class, 'printTrip'])->name('print');
         Route::get('/{vehicleTrip}/bitir',               [VehicleTripController::class, 'complete'])->name('complete');
         Route::put('/{vehicleTrip}',                     [VehicleTripController::class, 'update'])->name('update');
         Route::delete('/{vehicleTrip}',                  [VehicleTripController::class, 'destroy'])->name('destroy');

@@ -21,11 +21,18 @@
             <div class="card mb-3">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <h5 class="card-title mb-0">Görev Bilgileri</h5>
-                    @if($vehicleTrip->status === 'active')
-                        <span class="badge bg-success pulse-badge">● Devam Ediyor</span>
-                    @else
-                        <span class="badge bg-secondary">Tamamlandı</span>
-                    @endif
+                    <div class="d-flex align-items-center gap-2">
+                        <a href="{{ route('vehicle-trips.print', $vehicleTrip) }}" target="_blank"
+                           class="btn btn-sm btn-outline-secondary"
+                           style="border-radius:8px;font-size:12px">
+                            <i class="fas fa-print me-1"></i>Görevi Yazdır
+                        </a>
+                        @if($vehicleTrip->status === 'active')
+                            <span class="badge bg-success pulse-badge">● Devam Ediyor</span>
+                        @else
+                            <span class="badge bg-secondary">Tamamlandı</span>
+                        @endif
+                    </div>
                 </div>                <div class="card-body p-0">
                     <table class="table table-sm mb-0">
                         <tbody>
@@ -35,7 +42,25 @@
                             <tr><td class="text-muted ps-3">Başlangıç KM</td><td>{{ number_format($vehicleTrip->start_km) }} km</td></tr>
                             <tr><td class="text-muted ps-3">Dönüş KM</td><td>{{ $vehicleTrip->end_km ? number_format($vehicleTrip->end_km).' km' : '—' }}</td></tr>
                             @if($vehicleTrip->totalKm() !== null)
-                            <tr><td class="text-muted ps-3">Toplam</td><td><strong class="text-primary">{{ number_format($vehicleTrip->totalKm()) }} km</strong></td></tr>
+                            <tr><td class="text-muted ps-3">Toplam KM</td><td><strong class="text-primary">{{ number_format($vehicleTrip->totalKm()) }} km</strong></td></tr>
+                            @endif
+                            @if($vehicleTrip->gps_km !== null)
+                            <tr><td class="text-muted ps-3">GPS Mesafe</td><td>{{ $vehicleTrip->gps_km }} km</td></tr>
+                            @endif
+                            @if($vehicleTrip->avg_speed !== null)
+                            <tr><td class="text-muted ps-3">Ort. Hız</td><td>{{ $vehicleTrip->avg_speed }} km/h</td></tr>
+                            @endif
+                            @if($vehicleTrip->min_speed !== null)
+                            <tr>
+                                <td class="text-muted ps-3">Min. Hız</td>
+                                <td><span class="badge" style="background:rgba(16,185,129,.12);color:#059669;font-size:12px;font-weight:600">{{ $vehicleTrip->min_speed }} km/h</span></td>
+                            </tr>
+                            @endif
+                            @if($vehicleTrip->max_speed !== null)
+                            <tr>
+                                <td class="text-muted ps-3">Maks. Hız</td>
+                                <td><span class="badge" style="background:rgba(239,68,68,.12);color:#dc2626;font-size:12px;font-weight:600">{{ $vehicleTrip->max_speed }} km/h</span></td>
+                            </tr>
                             @endif
                             <tr><td class="text-muted ps-3">Başlangıç</td><td>{{ $vehicleTrip->started_at->format('d.m.Y H:i') }}</td></tr>
                             @if($vehicleTrip->completed_at)

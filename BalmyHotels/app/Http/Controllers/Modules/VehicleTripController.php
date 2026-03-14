@@ -104,6 +104,17 @@ class VehicleTripController extends BaseModuleController
         return view('modules.vehicles.trips.show', compact('vehicleTrip'));
     }
 
+    /** Görev yazdır (standalone print view) */
+    public function printTrip(VehicleTrip $vehicleTrip)
+    {
+        if ($vehicleTrip->user_id !== Auth::id()) {
+            abort_unless(Auth::user()->hasPermission('vehicle_trip_control', 'index'), 403);
+        }
+
+        $vehicleTrip->load(['vehicle', 'user', 'locations']);
+        return view('modules.vehicles.trips.print', compact('vehicleTrip'));
+    }
+
     /** Kullanıcının kendi aktif görevi */
     public function myTrip()
     {
