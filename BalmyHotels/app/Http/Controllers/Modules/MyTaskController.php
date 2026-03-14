@@ -24,7 +24,7 @@ class MyTaskController extends BaseModuleController
         $tasks = UserTask::where('user_id', Auth::id())
             ->orderByRaw("FIELD(status, 'in_progress', 'pending', 'completed')")
             ->orderByRaw("FIELD(priority, 'high', 'medium', 'low')")
-            ->orderBy('due_date')
+            ->orderBy('created_at', 'desc')
             ->get();
 
         return view('modules.islerim.index', compact('tasks'));
