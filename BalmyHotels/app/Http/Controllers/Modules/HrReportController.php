@@ -163,9 +163,10 @@ class HrReportController extends BaseModuleController
 
         usort($userStats, fn($a, $b) => $b['total_minutes'] <=> $a['total_minutes']);
 
-        // ── Grup Müdürleri: aynı ad + aynı departman, farklı şubelerdeki kullanıcılar
+        // ── Grup Müdürleri: aynı ad + aynı departman adı, farklı şubelerdeki kullanıcılar
+        // Departmanlar şubeye özel olduğu için ID yerine departman adıyla eşleştiriyoruz
         $groupManagers = collect($userStats)
-            ->groupBy(fn($s) => (mb_strtolower(optional($s['user'])->name ?? '')) . '||' . (optional(optional($s['user'])->department)->id ?? 0))
+            ->groupBy(fn($s) => mb_strtolower(optional($s['user'])->name ?? '', 'UTF-8') . '||' . mb_strtolower($s['department'] ?? '', 'UTF-8'))
             ->filter(function ($group) {
                 $branchIds = $group->map(fn($s) => optional($s['user'])->branch_id)->unique()->filter()->values();
                 return $branchIds->count() > 1;
