@@ -30,7 +30,7 @@ class DoorLogController extends BaseModuleController
         $branchIds = $authUser->visibleBranchIds();
 
         // İnsan Kaynakları departmanı kontrolü
-        $isHR = str_contains(mb_strtolower($authUser->department?->name ?? ''), 'insan kaynaklar');
+        $isHR = str_contains(mb_strtolower($authUser->department?->name ?? ''), 'kaynaklar');
 
         // Varsayılan şube: kullanıcının kendi şubesi (super admin ve İK için tüm şubeler)
         $selectedBranchId = $request->filled('branch_id')

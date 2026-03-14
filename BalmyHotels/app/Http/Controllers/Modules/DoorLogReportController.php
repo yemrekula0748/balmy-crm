@@ -60,7 +60,7 @@ class DoorLogReportController extends BaseModuleController
         $allowedBranchIds = $user->visibleBranchIds();
 
         // İnsan Kaynakları departmanı kontrolü
-        $isHR = str_contains(mb_strtolower($user->department?->name ?? ''), 'insan kaynaklar');
+        $isHR = str_contains(mb_strtolower($user->department?->name ?? ''), 'kaynaklar');
 
         // Filtreler
         $branchId    = $request->input('branch_id');
