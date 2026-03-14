@@ -29,10 +29,13 @@ class DoorLogController extends BaseModuleController
         $authUser  = auth()->user();
         $branchIds = $authUser->visibleBranchIds();
 
-        // Varsayılan şube: kullanıcının kendi şubesi (super admin için tüm şubeler)
+        // İnsan Kaynakları departmanı kontrolü
+        $isHR = str_contains(mb_strtolower($authUser->department?->name ?? ''), 'insan kaynaklar');
+
+        // Varsayılan şube: kullanıcının kendi şubesi (super admin ve İK için tüm şubeler)
         $selectedBranchId = $request->filled('branch_id')
             ? $request->branch_id
-            : ($authUser->isSuperAdmin() ? null : $authUser->branch_id);
+            : (($authUser->isSuperAdmin() || $isHR) ? null : $authUser->branch_id);
 
         // Varsayılan: bugün
         $dateFrom = $request->input('date_from', today()->format('Y-m-d'));
@@ -125,7 +128,7 @@ class DoorLogController extends BaseModuleController
         $neverLoggedUsers = $neverLoggedQuery->get();
 
         // Filtrelerde kullanılacak veriler
-        $branches  = $authUser->isSuperAdmin()
+        $branches  = ($authUser->isSuperAdmin() || $isHR)
             ? Branch::orderBy('name')->get()
             : Branch::whereIn('id', $branchIds)->orderBy('name')->get();
 

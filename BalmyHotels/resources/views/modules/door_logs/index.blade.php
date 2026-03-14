@@ -65,6 +65,7 @@
                                         <th class="ps-3">Personel</th>
                                         <th>Departman</th>
                                         <th>Giriş Saati</th>
+                                        <th>İşlem</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -90,6 +91,23 @@
                                             <div class="text-muted" style="font-size:10px;">
                                                 {{ \Carbon\Carbon::parse($log->logged_at)->format('d.m.Y') }}
                                             </div>
+                                        </td>
+                                        <td>
+                                            <button type="button"
+                                                    class="btn btn-sm btn-outline-warning btn-hizli-islem"
+                                                    style="font-size:11px;padding:3px 10px;border-radius:20px;"
+                                                    data-user-id="{{ optional($log->user)->id }}"
+                                                    data-user-name="{{ optional($log->user)->name }}"
+                                                    data-user-title="{{ optional($log->user)->title ?? '' }}"
+                                                    data-type="cikis">
+                                                ↓ Çıkış
+                                            </button>
+                                            <form id="hizli-form-cikis-{{ optional($log->user)->id }}"
+                                                  action="{{ route('door-logs.quick') }}" method="POST" class="d-none">
+                                                @csrf
+                                                <input type="hidden" name="user_id" value="{{ optional($log->user)->id }}">
+                                                <input type="hidden" name="type" value="cikis">
+                                            </form>
                                         </td>
                                     </tr>
                                     @endforeach
@@ -134,6 +152,7 @@
                                         <th class="ps-3">Personel</th>
                                         <th>Departman</th>
                                         <th>Çıkış Saati</th>
+                                        <th>İşlem</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -160,6 +179,23 @@
                                                 {{ \Carbon\Carbon::parse($log->logged_at)->format('d.m.Y') }}
                                             </div>
                                         </td>
+                                        <td>
+                                            <button type="button"
+                                                    class="btn btn-sm btn-outline-success btn-hizli-islem"
+                                                    style="font-size:11px;padding:3px 10px;border-radius:20px;"
+                                                    data-user-id="{{ optional($log->user)->id }}"
+                                                    data-user-name="{{ optional($log->user)->name }}"
+                                                    data-user-title="{{ optional($log->user)->title ?? '' }}"
+                                                    data-type="giris">
+                                                ↑ Giriş
+                                            </button>
+                                            <form id="hizli-form-giris-{{ optional($log->user)->id }}"
+                                                  action="{{ route('door-logs.quick') }}" method="POST" class="d-none">
+                                                @csrf
+                                                <input type="hidden" name="user_id" value="{{ optional($log->user)->id }}">
+                                                <input type="hidden" name="type" value="giris">
+                                            </form>
+                                        </td>
                                     </tr>
                                     @endforeach
                                     @foreach($neverLoggedUsers as $user)
@@ -179,6 +215,23 @@
                                         <td style="font-size:13px;">{{ optional($user->department)->name ?? '-' }}</td>
                                         <td>
                                             <span class="badge bg-secondary" style="font-size:11px;">Bugün giriş yok</span>
+                                        </td>
+                                        <td>
+                                            <button type="button"
+                                                    class="btn btn-sm btn-outline-success btn-hizli-islem"
+                                                    style="font-size:11px;padding:3px 10px;border-radius:20px;"
+                                                    data-user-id="{{ $user->id }}"
+                                                    data-user-name="{{ $user->name }}"
+                                                    data-user-title="{{ $user->title ?? '' }}"
+                                                    data-type="giris">
+                                                ↑ Giriş
+                                            </button>
+                                            <form id="hizli-form-giris-{{ $user->id }}"
+                                                  action="{{ route('door-logs.quick') }}" method="POST" class="d-none">
+                                                @csrf
+                                                <input type="hidden" name="user_id" value="{{ $user->id }}">
+                                                <input type="hidden" name="type" value="giris">
+                                            </form>
                                         </td>
                                     </tr>
                                     @endforeach
@@ -506,6 +559,37 @@ document.querySelectorAll('.btn-sil').forEach(btn => {
         }).then(result => {
             if (result.isConfirmed) {
                 document.getElementById('form-sil-' + id).submit();
+            }
+        });
+    });
+});
+
+// Hızlı Giriş / Çıkış onayı
+document.querySelectorAll('.btn-hizli-islem').forEach(btn => {
+    btn.addEventListener('click', function () {
+        const userId   = this.dataset.userId;
+        const name     = this.dataset.userName;
+        const title    = this.dataset.userTitle;
+        const type     = this.dataset.type;
+        const label    = type === 'giris' ? 'Giriş' : 'Çıkış';
+        const color    = type === 'giris' ? '#198754' : '#f97316';
+        const icon     = type === 'giris' ? 'question' : 'warning';
+        const formId   = 'hizli-form-' + type + '-' + userId;
+        const fullName = title ? title + ' ' + name : name;
+
+        Swal.fire({
+            title: 'Hızlı ' + label,
+            html: `<div style="font-size:15px;font-weight:600;margin-bottom:6px;">${fullName}</div>`
+                + `<div style="font-size:13px;color:#64748b;">${label} kaydedilecek, onaylıyor musunuz?</div>`,
+            icon: icon,
+            showCancelButton: true,
+            confirmButtonColor: color,
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: 'Evet, Kaydet',
+            cancelButtonText: 'İptal'
+        }).then(result => {
+            if (result.isConfirmed) {
+                document.getElementById(formId).submit();
             }
         });
     });

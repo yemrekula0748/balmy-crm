@@ -59,6 +59,9 @@ class DoorLogReportController extends BaseModuleController
         // Şube kısıtı: super_admin her şubeyi görür, diğerleri sadece kendi şubesini
         $allowedBranchIds = $user->visibleBranchIds();
 
+        // İnsan Kaynakları departmanı kontrolü
+        $isHR = str_contains(mb_strtolower($user->department?->name ?? ''), 'insan kaynaklar');
+
         // Filtreler
         $branchId    = $request->input('branch_id');
         $deptId      = $request->input('department_id');
@@ -70,7 +73,7 @@ class DoorLogReportController extends BaseModuleController
                 $dateFrom . ' 00:00:00',
                 $dateTo   . ' 23:59:59',
             ])
-            ->when(!$user->isSuperAdmin(), fn($q) => $q->whereIn('branch_id', $allowedBranchIds))
+            ->when(!$user->isSuperAdmin() && !$isHR, fn($q) => $q->whereIn('branch_id', $allowedBranchIds))
             ->when($branchId,  fn($q) => $q->where('branch_id', $branchId))
             ->when($userId,    fn($q) => $q->where('user_id', $userId))
             ->orderBy('user_id')
@@ -161,7 +164,7 @@ class DoorLogReportController extends BaseModuleController
             ->sortDesc();
 
         // Filtrelerde kullanılacak listeler
-        $branchList = $user->isSuperAdmin()
+        $branchList = ($user->isSuperAdmin() || $isHR)
             ? Branch::orderBy('name')->get()
             : Branch::whereIn('id', $allowedBranchIds)->orderBy('name')->get();
 

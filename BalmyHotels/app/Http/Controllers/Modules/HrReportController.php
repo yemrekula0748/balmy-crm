@@ -163,6 +163,29 @@ class HrReportController extends BaseModuleController
 
         usort($userStats, fn($a, $b) => $b['total_minutes'] <=> $a['total_minutes']);
 
+        // ── Grup Müdürleri: aynı ad + aynı departman, farklı şubelerdeki kullanıcılar
+        $groupManagers = collect($userStats)
+            ->groupBy(fn($s) => (mb_strtolower(optional($s['user'])->name ?? '')) . '||' . (optional(optional($s['user'])->department)->id ?? 0))
+            ->filter(function ($group) {
+                $branchIds = $group->map(fn($s) => optional($s['user'])->branch_id)->unique()->filter()->values();
+                return $branchIds->count() > 1;
+            })
+            ->map(function ($group) {
+                $first = $group->first();
+                return [
+                    'name'         => optional($first['user'])->name ?? '-',
+                    'department'   => $first['department'],
+                    'branches_str' => $group->pluck('branch')->filter()->implode(', '),
+                    'total_hours'  => round($group->sum('total_minutes') / 60, 1),
+                    'overtime_hrs' => round($group->sum('overtime_min') / 60, 1),
+                    'late_entries' => $group->sum('late_entries'),
+                    'worked_days'  => $group->sum('worked_days'),
+                    'entry_count'  => $group->sum('entry_count'),
+                    'exit_count'   => $group->sum('exit_count'),
+                    'members'      => $group->values(),
+                ];
+            })->values();
+
         // ── Devam takvimi
         $period     = CarbonPeriod::create($dateFrom, $dateTo);
         $calDays    = collect($period)->map(fn($d) => $d->format('Y-m-d'))->toArray();
@@ -228,7 +251,8 @@ class HrReportController extends BaseModuleController
             'userStats', 'summary', 'deptSummary',
             'attendance', 'calDays',
             'dailyLabels', 'dailyHours',
-            'filters', 'branches', 'deptManagers'
+            'filters', 'branches', 'deptManagers',
+            'groupManagers'
         );
     }
 }

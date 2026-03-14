@@ -226,6 +226,150 @@
 
     </div>
 
+    {{-- GRUP MÜDÜRLERİ RAPORU: aynı ad + departman, farklı şubeler --}}
+    @if($groupManagers->isNotEmpty())
+    <div class="card border-0 shadow-sm mb-4" style="border-left:4px solid #8b5cf6 !important;">
+        <div class="card-header bg-white border-bottom py-3 d-flex align-items-center justify-content-between">
+            <h6 class="mb-0 fw-bold d-flex align-items-center gap-2" style="color:#7c3aed;">
+                <i class="fas fa-layer-group" style="color:#8b5cf6;"></i>
+                Grup Müdürleri Raporu
+                <span class="badge ms-1" style="background:rgba(139,92,246,.12);color:#7c3aed;font-size:11px;font-weight:600;">
+                    Şubeler arası birleşik görünüm
+                </span>
+            </h6>
+            <span class="badge bg-purple bg-opacity-10 fw-semibold" style="background:rgba(139,92,246,.1);color:#7c3aed;font-size:12px;">
+                {{ $groupManagers->count() }} grup müdürü
+            </span>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="ps-3" style="font-size:12px;">#</th>
+                            <th style="font-size:12px;">Ad Soyad</th>
+                            <th style="font-size:12px;">Departman</th>
+                            <th style="font-size:12px;">Şubeler</th>
+                            <th class="text-center" style="font-size:12px;">Toplam Gün</th>
+                            <th class="text-center" style="font-size:12px;">Giriş / Çıkış</th>
+                            <th class="text-center" style="font-size:12px;">Toplam Saat</th>
+                            <th class="text-center" style="font-size:12px;">Fazla Mesai</th>
+                            <th class="text-center" style="font-size:12px;">Geç Giriş</th>
+                            <th class="text-center" style="font-size:12px;">Şube Detayı</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach($groupManagers as $i => $gm)
+                        @php $gmRowId = 'gm-detail-' . $i; @endphp
+                        <tr style="background:#faf8ff;">
+                            <td class="ps-3 text-muted" style="font-size:12px;">{{ $i + 1 }}</td>
+                            <td style="font-size:13px;">
+                                <div class="d-flex align-items-center gap-2">
+                                    <div class="hr-avatar" style="background:linear-gradient(135deg,#8b5cf6,#c4b5fd);">
+                                        {{ strtoupper(mb_substr($gm['name'], 0, 1)) }}
+                                    </div>
+                                    <div class="fw-semibold" style="line-height:1.2">{{ $gm['name'] }}</div>
+                                </div>
+                            </td>
+                            <td style="font-size:12px;">{{ $gm['department'] }}</td>
+                            <td style="font-size:12px;max-width:200px;">
+                                <span class="text-muted">{{ $gm['branches_str'] }}</span>
+                            </td>
+                            <td class="text-center">
+                                <span class="badge rounded-pill px-3"
+                                      style="background:rgba(139,92,246,.1);color:#7c3aed;font-size:12px;font-weight:600;">
+                                    {{ $gm['worked_days'] }}
+                                </span>
+                            </td>
+                            <td class="text-center" style="font-size:12px;">
+                                <span class="text-success fw-semibold">{{ $gm['entry_count'] }}</span>
+                                <span class="text-muted mx-1">/</span>
+                                <span class="text-warning fw-semibold">{{ $gm['exit_count'] }}</span>
+                            </td>
+                            <td class="text-center">
+                                <span class="fw-bold" style="font-size:13px;color:#8b5cf6;">{{ $gm['total_hours'] }} sa</span>
+                            </td>
+                            <td class="text-center">
+                                @if($gm['overtime_hrs'] > 0)
+                                    <span class="badge" style="background:rgba(245,158,11,.15);color:#d97706;font-size:11px;">
+                                        +{{ $gm['overtime_hrs'] }} sa
+                                    </span>
+                                @else
+                                    <span class="text-muted" style="font-size:11px;">—</span>
+                                @endif
+                            </td>
+                            <td class="text-center">
+                                @if($gm['late_entries'] > 0)
+                                    <span class="badge bg-danger bg-opacity-10 text-danger" style="font-size:11px;">
+                                        {{ $gm['late_entries'] }} kez
+                                    </span>
+                                @else
+                                    <span class="text-success" style="font-size:11px;"><i class="fas fa-check"></i></span>
+                                @endif
+                            </td>
+                            <td class="text-center">
+                                <button class="btn btn-sm btn-outline-secondary toggler-btn-gm"
+                                        style="font-size:11px;padding:3px 10px;border-radius:20px;"
+                                        data-target="{{ $gmRowId }}">
+                                    <span class="toggle-label-gm">Detay</span>
+                                </button>
+                            </td>
+                        </tr>
+                        {{-- Şube bazlı detay satırı --}}
+                        <tr id="{{ $gmRowId }}" class="gm-detail-row d-none">
+                            <td colspan="10" style="background:#f5f3ff;padding:0;">
+                                <div style="padding:12px 16px;">
+                                    <table class="table table-sm mb-0" style="font-size:12px;">
+                                        <thead>
+                                            <tr style="color:#7c3aed;">
+                                                <th class="border-0 ps-2" style="font-weight:600;">Şube</th>
+                                                <th class="border-0 text-center" style="font-weight:600;">Gün</th>
+                                                <th class="border-0 text-center" style="font-weight:600;">Giriş/Çıkış</th>
+                                                <th class="border-0 text-center" style="font-weight:600;">Toplam (sa)</th>
+                                                <th class="border-0 text-center" style="font-weight:600;">Fazla (sa)</th>
+                                                <th class="border-0 text-center" style="font-weight:600;">Geç</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach($gm['members'] as $m)
+                                            <tr>
+                                                <td class="ps-2 fw-semibold">{{ $m['branch'] }}</td>
+                                                <td class="text-center">{{ $m['worked_days'] }}</td>
+                                                <td class="text-center">
+                                                    <span class="text-success fw-semibold">{{ $m['entry_count'] }}</span>
+                                                    <span class="text-muted mx-1">/</span>
+                                                    <span class="text-warning fw-semibold">{{ $m['exit_count'] }}</span>
+                                                </td>
+                                                <td class="text-center fw-bold" style="color:#8b5cf6;">{{ $m['total_hours'] }} sa</td>
+                                                <td class="text-center">
+                                                    @if($m['overtime_hrs'] > 0)
+                                                        <span style="color:#d97706;">+{{ $m['overtime_hrs'] }} sa</span>
+                                                    @else
+                                                        <span class="text-muted">—</span>
+                                                    @endif
+                                                </td>
+                                                <td class="text-center">
+                                                    @if($m['late_entries'] > 0)
+                                                        <span class="text-danger">{{ $m['late_entries'] }}</span>
+                                                    @else
+                                                        <span class="text-success"><i class="fas fa-check"></i></span>
+                                                    @endif
+                                                </td>
+                                            </tr>
+                                            @endforeach
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </td>
+                        </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    @endif
+
     {{-- PERSONEL BAZLI ÇALIŞMA SAATLERİ --}}
     <div class="card border-0 shadow-sm mb-4">
         <div class="card-header bg-white border-bottom py-3 d-flex align-items-center justify-content-between">
@@ -489,6 +633,20 @@
 @push('scripts')
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script>
+// ── Grup Müdürleri detay toggler ──────────────────────────────────────
+document.querySelectorAll('.toggler-btn-gm').forEach(btn => {
+    btn.addEventListener('click', function () {
+        const id  = this.dataset.target;
+        const row = document.getElementById(id);
+        if (!row) return;
+        const isOpen = !row.classList.contains('d-none');
+        row.classList.toggle('d-none', isOpen);
+        this.querySelector('.toggle-label-gm').textContent = isOpen ? 'Detay' : 'Kapat';
+        this.classList.toggle('btn-outline-secondary', isOpen);
+        this.classList.toggle('btn-secondary', !isOpen);
+    });
+});
+
 // ── Şube değişince Kişi dropdownunu güncelle ─────────────────────────
 (function () {
     const branchSel = document.getElementById('branchFilter');
