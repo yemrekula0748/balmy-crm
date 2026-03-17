@@ -427,6 +427,7 @@ Route::middleware('auth')->group(function () {
     Route::prefix('yemek-isimlikler')->name('food-labels.')->group(function () {
         Route::get('/',                     [FoodLabelController::class, 'index'])->name('index');
         Route::get('/export',               [FoodLabelController::class, 'export'])->name('export');
+        Route::post('/json-import',         [FoodLabelController::class, 'importJson'])->name('json-import');
         Route::get('/ekle',                 [FoodLabelController::class, 'create'])->name('create');
         Route::post('/ekle',                [FoodLabelController::class, 'store'])->name('store');
         Route::post('/yazdir',              [FoodLabelController::class, 'printBulk'])->name('print-bulk');

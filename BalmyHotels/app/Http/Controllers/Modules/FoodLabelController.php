@@ -330,6 +330,58 @@ class FoodLabelController extends BaseModuleController
     }
 
     // -----------------------------------------------------------------------
+    /** JSON formatında tek veya birden fazla yemek ekle (AJAX) */
+    public function importJson(Request $request)
+    {
+        $request->validate(['json_data' => 'required|string']);
+
+        $data = json_decode($request->json_data, true);
+
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            return response()->json(['error' => 'Geçersiz JSON: ' . json_last_error_msg()], 422);
+        }
+
+        // Tek obje veya dizi desteği
+        $items = (isset($data[0]) && is_array($data[0])) ? $data : [$data];
+
+        $created = 0;
+        foreach ($items as $item) {
+            $name = array_filter((array)($item['name'] ?? []));
+            if (empty($name)) {
+                continue;
+            }
+
+            FoodLabel::create([
+                'branch_id'     => $item['branch_id'] ?? null,
+                'created_by'    => auth()->id(),
+                'name'          => $name,
+                'description'   => $item['description'] ?? [],
+                'ingredients'   => $item['ingredients'] ?? [],
+                'calories'      => isset($item['calories']) && $item['calories'] !== null ? (int)$item['calories'] : null,
+                'allergens'     => $item['allergens'] ?? [],
+                'category'      => $item['category'] ?? null,
+                'is_vegan'      => (bool)($item['is_vegan'] ?? false),
+                'is_vegetarian' => (bool)($item['is_vegetarian'] ?? false),
+                'is_halal'      => (bool)($item['is_halal'] ?? false),
+                'is_active'     => (bool)($item['is_active'] ?? true),
+                'sort_order'    => (int)($item['sort_order'] ?? 0),
+            ]);
+
+            $created++;
+        }
+
+        if ($created === 0) {
+            return response()->json(['error' => 'Hiçbir kayıt eklenemedi. JSON içinde geçerli "name" alanı bulunamadı.'], 422);
+        }
+
+        return response()->json([
+            'success' => true,
+            'count'   => $created,
+            'message' => $created . ' yemek başarıyla eklendi.',
+        ]);
+    }
+
+    // -----------------------------------------------------------------------
     private function parseIngredients(Request $request): array
     {
         $result = [];

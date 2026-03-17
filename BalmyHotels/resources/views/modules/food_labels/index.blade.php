@@ -83,6 +83,9 @@
                class="btn btn-sm btn-outline-success">
                 <i class="fas fa-file-excel me-1"></i>Excel'e Aktar
             </a>
+            <button type="button" class="btn btn-sm btn-outline-info" data-bs-toggle="modal" data-bs-target="#jsonImportModal">
+                <i class="fas fa-file-code me-1"></i>JSON Yemek Ekle
+            </button>
             <a href="{{ route('food-labels.create') }}" class="btn btn-sm btn-primary">
                 <i class="fas fa-plus me-1"></i>Yeni İsimlik
             </a>
@@ -223,6 +226,30 @@
 
     @endif
 
+{{-- JSON Import Modal --}}
+<div class="modal fade" id="jsonImportModal" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h6 class="modal-title fw-bold"><i class="fas fa-file-code me-2 text-info"></i>JSON ile Yemek Ekle</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-muted small mb-2">Tek bir yemek objesi veya <code>[{...}, {...}]</code> şeklinde dizi yapıştırabilirsiniz.</p>
+                <textarea id="jsonImportInput" class="form-control font-monospace" rows="18"
+                          placeholder='{ "name": { "tr": "...", "en": "..." }, "category": "main", ... }'></textarea>
+                <div id="jsonImportAlert" class="mt-2" style="display:none"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
+                <button type="button" class="btn btn-info text-white" id="jsonImportBtn" onclick="submitJsonImport()">
+                    <i class="fas fa-upload me-1"></i>İçe Aktar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 {{-- QR Modal --}}
 <div class="modal fade" id="qrModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered" style="max-width:360px">
@@ -344,6 +371,60 @@ function downloadQr() {
     link.download = 'qr-yemek.png';
     link.href = canvas.toDataURL('image/png');
     link.click();
+}
+
+// ---- JSON Import ----
+function submitJsonImport() {
+    const textarea  = document.getElementById('jsonImportInput');
+    const alertBox  = document.getElementById('jsonImportAlert');
+    const btn       = document.getElementById('jsonImportBtn');
+    const jsonData  = textarea.value.trim();
+
+    alertBox.style.display = 'none';
+    alertBox.innerHTML     = '';
+
+    if (!jsonData) {
+        showImportAlert('danger', 'Lütfen JSON yapıştırın.');
+        return;
+    }
+
+    btn.disabled   = true;
+    btn.innerHTML  = '<i class="fas fa-spinner fa-spin me-1"></i>İşleniyor...';
+
+    fetch('{{ route("food-labels.json-import") }}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': '{{ csrf_token() }}',
+            'Accept': 'application/json',
+        },
+        body: JSON.stringify({ json_data: jsonData }),
+    })
+    .then(r => r.json().then(data => ({ ok: r.ok, data })))
+    .then(({ ok, data }) => {
+        if (ok && data.success) {
+            showImportAlert('success', '<i class="fas fa-check me-1"></i>' + data.message);
+            textarea.value = '';
+            setTimeout(() => {
+                bootstrap.Modal.getInstance(document.getElementById('jsonImportModal')).hide();
+                window.location.reload();
+            }, 1200);
+        } else {
+            showImportAlert('danger', data.error || 'Bir hata oluştu.');
+        }
+    })
+    .catch(() => showImportAlert('danger', 'Sunucuya ulaşılamadı.'))
+    .finally(() => {
+        btn.disabled  = false;
+        btn.innerHTML = '<i class="fas fa-upload me-1"></i>İçe Aktar';
+    });
+}
+
+function showImportAlert(type, html) {
+    const box = document.getElementById('jsonImportAlert');
+    box.className = 'alert alert-' + type + ' py-2 small mt-2';
+    box.innerHTML = html;
+    box.style.display = 'block';
 }
 </script>
 @endpush
