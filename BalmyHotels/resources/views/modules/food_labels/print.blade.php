@@ -129,13 +129,13 @@
         }
 
         .name-tr {
-            font-size: 15pt;
+            font-size: 17pt;
             font-weight: 800;
             color: #1a1a2e;
             line-height: 1.2;
         }
 
-        .name-other { font-size: 10pt; color: #4b5563; line-height: 1.35; }
+        .name-other { font-size: 12pt; color: #4b5563; line-height: 1.35; }
         .name-other span { display: block; }
 
         .cal-pill {
@@ -194,36 +194,36 @@
             letter-spacing: 0.3px;
         }
 
-        .allergen-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(8mm, 1fr));
-            gap: 1mm;
-        }
-
-        .allergen-box {
-            height: 9mm;
-            border-radius: 1.2mm;
+        .allergen-items {
             display: flex;
-            flex-direction: column;
+            flex-wrap: wrap;
+            gap: 1mm;
+            align-content: flex-start;
+            flex: 1;
+        }
+
+        .allergen-item {
+            display: inline-flex;
             align-items: center;
-            justify-content: center;
-            font-size: 11pt;
-            line-height: 1;
-            border: 0.4pt solid;
-        }
-
-        .allergen-box.present { background: #fef2f2; border-color: #fca5a5; }
-        .allergen-box.absent  { background: #f9fafb; border-color: #e5e7eb; opacity: 0.25; }
-
-        .allergen-box .eu-num {
-            font-size: 4.5pt;
+            gap: 0.7mm;
+            background: #fef2f2;
+            border: 0.4pt solid #fca5a5;
+            border-radius: 1.5mm;
+            padding: 0.6mm 1.5mm;
+            font-size: 5pt;
             font-weight: 700;
-            color: #6b7280;
-            line-height: 1;
-            margin-top: 0.2mm;
+            color: #b91c1c;
+            white-space: nowrap;
         }
 
-        .allergen-box.present .eu-num { color: #b91c1c; }
+        .allergen-item .a-icon { font-size: 9pt; line-height: 1; }
+
+        .qr-right {
+            display: flex;
+            justify-content: center;
+            margin-top: auto;
+            padding-top: 1.5mm;
+        }
 
         /* Alt şerit: allerjen refs + logo + QR */
         .label-bottom {
@@ -247,15 +247,15 @@
         .card-logo {
             height: 12mm;
             width: auto;
-            opacity: 0.6;
+            opacity: 0.5;
             flex-shrink: 0;
-            filter: sepia(0.3) saturate(1.5);
+            filter: grayscale(1);
         }
 
-        .qr-container { width: 16mm; height: 16mm; flex-shrink: 0; }
+        .qr-container { width: 22mm; height: 22mm; flex-shrink: 0; }
         .qr-container canvas, .qr-container img {
-            width: 16mm !important;
-            height: 16mm !important;
+            width: 22mm !important;
+            height: 22mm !important;
             display: block;
         }
 
@@ -458,23 +458,32 @@
                 @endif
             </div>
 
-            {{-- Sağ sütun: 14 allerjen --}}
+            {{-- Sağ sütun: present allerjenler + QR --}}
             <div class="label-right">
                 <div class="allergen-title">Allergens</div>
-                <div class="allergen-grid">
+                @if(!empty($labelAllergens))
+                <div class="allergen-items">
                     @foreach($allergens as $key => $info)
-                    <div class="allergen-box {{ in_array($key, $labelAllergens) ? 'present' : 'absent' }}"
-                         title="{{ $info['label_en'] }} ({{ $info['label'] }})">
-                        <span>{{ $info['icon'] }}</span>
-                        <span class="eu-num">{{ $info['eu'] }}</span>
-                    </div>
+                        @if(in_array($key, $labelAllergens))
+                        <div class="allergen-item" title="{{ $info['label_en'] }}">
+                            <span class="a-icon">{{ $info['icon'] }}</span>
+                            <span>{{ $info['label'] }}</span>
+                        </div>
+                        @endif
                     @endforeach
+                </div>
+                @else
+                <div style="font-size:5.5pt;color:#9ca3af;font-style:italic;margin-top:1mm">Alerjen bulunmamaktadır</div>
+                @endif
+                <div class="qr-right">
+                    <div class="qr-container" id="qr-{{ $label->id }}"
+                         data-url="{{ route('food-labels.public', $label->qr_token) }}"></div>
                 </div>
             </div>
 
         </div>
 
-        {{-- Alt şerit: allerjen refs + logo + QR --}}
+        {{-- Alt şerit: allerjen refs + logo --}}
         <div class="label-bottom">
             <div class="allergen-refs">
                 @if(!empty($labelAllergens))
@@ -490,8 +499,6 @@
             </div>
             <div class="bottom-right">
                 <img src="{{ asset('images/logo.svg') }}" class="card-logo" alt="">
-                <div class="qr-container" id="qr-{{ $label->id }}"
-                     data-url="{{ route('food-labels.public', $label->qr_token) }}"></div>
             </div>
         </div>
 
@@ -510,8 +517,8 @@
     document.querySelectorAll('.qr-container[data-url]').forEach(function(el) {
         new QRCode(el, {
             text: el.dataset.url,
-            width: 120,
-            height: 120,
+            width: 165,
+            height: 165,
             colorDark: '#1a1a2e',
             colorLight: '#ffffff',
             correctLevel: QRCode.CorrectLevel.M
