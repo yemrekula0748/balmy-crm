@@ -184,7 +184,8 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: center;
+            justify-content: flex-start;
+            padding-top: 3mm;
         }
 
         .allergen-title {
@@ -251,9 +252,9 @@
         .card-logo {
             height: 14mm;
             width: auto;
-            opacity: 0.5;
+            opacity: 0.75;
             flex-shrink: 0;
-            filter: grayscale(1);
+            filter: grayscale(1) brightness(0.35);
         }
 
         .qr-container { width: 27mm; height: 27mm; flex-shrink: 0; }
