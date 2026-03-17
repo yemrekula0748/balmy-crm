@@ -52,6 +52,7 @@ use App\Http\Controllers\Modules\AuditNonconformityController;
 use App\Http\Controllers\Modules\AuditAnalyticsController;
 use App\Http\Controllers\Modules\ItComputerController;
 use App\Http\Controllers\Modules\ItBackupController;
+use App\Http\Controllers\Modules\LoginLogController;
 use App\Http\Controllers\Modules\MyTaskController;
 
 /*
@@ -735,6 +736,9 @@ Route::middleware('auth')->group(function () {
             ->where('filename', '[^/]+');
         Route::delete('yedekleme/{filename}',      [ItBackupController::class, 'deleteFile'])->name('backup.delete')
             ->where('filename', '[^/]+');
+
+        // Giriş Logları
+        Route::get('giris-loglari', [LoginLogController::class, 'index'])->name('login-logs.index');
     });
 
     /*

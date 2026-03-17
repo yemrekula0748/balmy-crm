@@ -95,6 +95,7 @@ class RolePermission extends Model
         'Bilgi İşlem' => [
             'it_computers' => 'Bilgisayar Envanteri',
             'it_backup'    => 'Veritabanı Yedekleme',
+            'login_logs'   => 'Giriş Logları',
         ],
         'İşlerim' => [
             'my_tasks' => 'Görevlerim',
