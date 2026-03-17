@@ -175,15 +175,16 @@
         .ing-text .lang-row span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; min-width: 0; }
         .ing-text .lang-code { font-size: 4.8pt; font-weight: 800; color: #9ca3af; letter-spacing: 0.2px; min-width: 5mm; flex-shrink: 0; }
 
-        /* Sağ sütun: allerjen ızgarası */
+        /* Sağ sütun: sadece QR */
         .label-right {
-            width: 46mm;
+            width: 32mm;
             flex-shrink: 0;
-            padding: 3mm 3mm 2mm 2mm;
+            padding: 2mm;
             border-left: 0.5pt solid #f3f4f6;
             display: flex;
             flex-direction: column;
-            gap: 1mm;
+            align-items: center;
+            justify-content: center;
         }
 
         .allergen-title {
@@ -200,6 +201,7 @@
             gap: 1mm;
             align-content: flex-start;
             flex: 1;
+            overflow: hidden;
         }
 
         .allergen-item {
@@ -209,8 +211,8 @@
             background: #fef2f2;
             border: 0.4pt solid #fca5a5;
             border-radius: 1.5mm;
-            padding: 0.6mm 1.5mm;
-            font-size: 5pt;
+            padding: 0.5mm 1.5mm;
+            font-size: 5.2pt;
             font-weight: 700;
             color: #b91c1c;
             white-space: nowrap;
@@ -218,44 +220,46 @@
 
         .allergen-item .a-icon { font-size: 9pt; line-height: 1; }
 
-        .qr-right {
-            display: flex;
-            justify-content: center;
-            margin-top: auto;
-            padding-top: 1.5mm;
-        }
-
-        /* Alt şerit: allerjen refs + logo + QR */
+        /* Alt şerit */
         .label-bottom {
-            height: 20mm;
+            height: 24mm;
             padding: 2mm 3mm 2mm 3.5mm;
             flex-shrink: 0;
             display: flex;
-            align-items: center;
+            align-items: flex-start;
             justify-content: space-between;
-            gap: 1.5mm;
+            gap: 2mm;
             background: linear-gradient(135deg, #fdfcfb 0%, #f9f5f0 100%);
+            border-top: 0.5pt solid #f3f4f6;
         }
 
-        .allergen-refs { font-size: 5.5pt; color: #9ca3af; line-height: 1.45; flex: 1; overflow: hidden; }
-        .allergen-refs .lang-row { display: flex; align-items: baseline; gap: 0.8mm; margin-bottom: 0.2mm; }
-        .allergen-refs .lang-code { font-size: 4.8pt; font-weight: 800; color: #6b7280; letter-spacing: 0.2px; min-width: 5mm; flex-shrink: 0; }
-        .allergen-refs strong { color: #ef4444; font-weight: 600; }
+        .bottom-allergens {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 1mm;
+            overflow: hidden;
+            min-height: 0;
+        }
 
-        .bottom-right { display: flex; align-items: center; gap: 2mm; flex-shrink: 0; }
+        .bottom-allergens .allergen-title {
+            margin-bottom: 0.5mm;
+        }
+
+        .bottom-right { display: flex; align-items: center; flex-shrink: 0; }
 
         .card-logo {
-            height: 12mm;
+            height: 14mm;
             width: auto;
             opacity: 0.5;
             flex-shrink: 0;
             filter: grayscale(1);
         }
 
-        .qr-container { width: 22mm; height: 22mm; flex-shrink: 0; }
+        .qr-container { width: 27mm; height: 27mm; flex-shrink: 0; }
         .qr-container canvas, .qr-container img {
-            width: 22mm !important;
-            height: 22mm !important;
+            width: 27mm !important;
+            height: 27mm !important;
             display: block;
         }
 
@@ -458,14 +462,23 @@
                 @endif
             </div>
 
-            {{-- Sağ sütun: present allerjenler + QR --}}
+            {{-- Sağ sütun: sadece QR --}}
             <div class="label-right">
+                <div class="qr-container" id="qr-{{ $label->id }}"
+                     data-url="{{ route('food-labels.public', $label->qr_token) }}"></div>
+            </div>
+
+        </div>
+
+        {{-- Alt şerit: allerjenler (sol) + logo (sağ) --}}
+        <div class="label-bottom">
+            <div class="bottom-allergens">
                 <div class="allergen-title">Allergens</div>
                 @if(!empty($labelAllergens))
                 <div class="allergen-items">
                     @foreach($allergens as $key => $info)
                         @if(in_array($key, $labelAllergens))
-                        <div class="allergen-item" title="{{ $info['label_en'] }}">
+                        <div class="allergen-item">
                             <span class="a-icon">{{ $info['icon'] }}</span>
                             <span>{{ $info['label'] }}</span>
                         </div>
@@ -474,27 +487,6 @@
                 </div>
                 @else
                 <div style="font-size:5.5pt;color:#9ca3af;font-style:italic;margin-top:1mm">Alerjen bulunmamaktadır</div>
-                @endif
-                <div class="qr-right">
-                    <div class="qr-container" id="qr-{{ $label->id }}"
-                         data-url="{{ route('food-labels.public', $label->qr_token) }}"></div>
-                </div>
-            </div>
-
-        </div>
-
-        {{-- Alt şerit: allerjen refs + logo --}}
-        <div class="label-bottom">
-            <div class="allergen-refs">
-                @if(!empty($labelAllergens))
-                    @foreach($presentByLang as $langCode => $names)
-                        @if($names->isNotEmpty())
-                        <div class="lang-row">
-                            <span class="lang-code">{{ $langCode }}</span>
-                            <strong>{{ $names->implode(', ') }}</strong>
-                        </div>
-                        @endif
-                    @endforeach
                 @endif
             </div>
             <div class="bottom-right">
@@ -517,8 +509,8 @@
     document.querySelectorAll('.qr-container[data-url]').forEach(function(el) {
         new QRCode(el, {
             text: el.dataset.url,
-            width: 165,
-            height: 165,
+            width: 200,
+            height: 200,
             colorDark: '#1a1a2e',
             colorLight: '#ffffff',
             correctLevel: QRCode.CorrectLevel.M
