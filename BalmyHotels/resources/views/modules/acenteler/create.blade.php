@@ -46,7 +46,7 @@
 
     <form id="agencyForm" action="{{ route('agencies.store') }}" method="POST" novalidate>
         @csrf
-        <div class="row g-4">
+        <div class="row g-4 align-items-start">
 
             {{-- Sol Sütun --}}
             <div class="col-lg-8">

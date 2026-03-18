@@ -47,7 +47,7 @@
 
     <form action="{{ route('frontdesk.reservations.store') }}" method="POST" id="reservationForm">
         @csrf
-        <div class="row g-4">
+        <div class="row g-4 align-items-start">
 
             {{-- ═══ SOL KOLON ═══ --}}
             <div class="col-lg-8">
