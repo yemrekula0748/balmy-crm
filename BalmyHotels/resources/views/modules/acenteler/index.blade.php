@@ -4,14 +4,14 @@
 
 @push('styles')
 <link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap5.min.css">
-<link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.5.0/css/responsive.bootstrap5.min.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css">
 <style>
-    #agenciesTable tbody tr { cursor: pointer; }
-    #agenciesTable tbody tr:hover { background: rgba(193,155,119,.07) !important; }
+    #agenciesTable tbody tr { cursor:pointer; }
+    #agenciesTable thead th { white-space:nowrap; font-size:.78rem; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:#4b5563; }
+    #agenciesTable tbody tr:hover { background:#fdf8f4 !important; }
+    #agenciesTable td { vertical-align:middle; }
     .badge-currency { font-size:.72rem; font-weight:600; }
-    table.dataTable thead th { white-space:nowrap; }
     .agency-name { font-weight:600; line-height:1.3; }
     .agency-code-badge { font-size:.68rem; }
 </style>
@@ -262,8 +262,6 @@
 @push('scripts')
 <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
 <script src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap5.min.js"></script>
-<script src="https://cdn.datatables.net/responsive/2.5.0/js/dataTables.responsive.min.js"></script>
-<script src="https://cdn.datatables.net/responsive/2.5.0/js/responsive.bootstrap5.min.js"></script>
 <script src="{{ asset('vendor/sweetalert2/dist/sweetalert2.min.js') }}"></script>
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 <script>
@@ -271,12 +269,11 @@ $(function () {
 
     // DataTable
     $('#agenciesTable').DataTable({
-        responsive: true,
         language: {
             url: 'https://cdn.datatables.net/plug-ins/1.13.7/i18n/tr.json'
         },
         pageLength: 25,
-        columnDefs: [{ targets: [-1], orderable: false }]
+        columnDefs: [{ targets: [-1], orderable: false, searchable: false }]
     });
 
     // Double-click to edit

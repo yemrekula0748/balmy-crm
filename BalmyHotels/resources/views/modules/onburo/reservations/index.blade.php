@@ -4,10 +4,10 @@
 
 @push('styles')
 <link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap5.min.css">
-<link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.5.0/css/responsive.bootstrap5.min.css">
 <style>
-    table.dataTable thead th { white-space:nowrap; }
-    .rez-row td { vertical-align:middle; }
+    #reservationsTable thead th { white-space:nowrap; font-size:.78rem; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:#4b5563; }
+    #reservationsTable tbody tr:hover { background:#fdf8f4 !important; }
+    #reservationsTable td { vertical-align:middle; }
 </style>
 @endpush
 
@@ -158,17 +158,14 @@
 @push('scripts')
 <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
 <script src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap5.min.js"></script>
-<script src="https://cdn.datatables.net/responsive/2.5.0/js/dataTables.responsive.min.js"></script>
-<script src="https://cdn.datatables.net/responsive/2.5.0/js/responsive.bootstrap5.min.js"></script>
 <script src="{{ asset('vendor/sweetalert2/dist/sweetalert2.min.js') }}"></script>
 <script>
 $(function () {
     $('#reservationsTable').DataTable({
-        responsive: true,
         language: { url: 'https://cdn.datatables.net/plug-ins/1.13.7/i18n/tr.json' },
         order: [[3, 'desc']],
         pageLength: 25,
-        columnDefs: [{ targets: [-1], orderable: false }]
+        columnDefs: [{ targets: [-1], orderable: false, searchable: false }]
     });
 
     $(document).on('submit', '.del-res-form', function (e) {

@@ -4,7 +4,6 @@
 
 @push('styles')
 <link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap5.min.css">
-<link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.5.0/css/responsive.bootstrap5.min.css">
 <style>
     .contract-active  { border-left: 3px solid #22c55e; }
     .contract-expired { border-left: 3px solid #ef4444; }
@@ -15,7 +14,9 @@
     .price-pill .pp-label { color:#6c757d; font-weight:600; }
     .price-pill .pp-val   { font-weight:700; color:#212529; }
     .price-section { margin-bottom:3px; }
-    table.dataTable thead th { white-space:nowrap; }
+    #contractsTable thead th { white-space:nowrap; font-size:.78rem; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:#4b5563; }
+    #contractsTable tbody tr:hover { background:#fdf8f4 !important; }
+    #contractsTable td { vertical-align:middle; }
 </style>
 @endpush
 
@@ -222,17 +223,14 @@
 @push('scripts')
 <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
 <script src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap5.min.js"></script>
-<script src="https://cdn.datatables.net/responsive/2.5.0/js/dataTables.responsive.min.js"></script>
-<script src="https://cdn.datatables.net/responsive/2.5.0/js/responsive.bootstrap5.min.js"></script>
 <script src="{{ asset('vendor/sweetalert2/dist/sweetalert2.min.js') }}"></script>
 <script>
 $(function () {
     $('#contractsTable').DataTable({
-        responsive: true,
         language: { url: 'https://cdn.datatables.net/plug-ins/1.13.7/i18n/tr.json' },
         order: [[3, 'desc']],
         pageLength: 25,
-        columnDefs: [{ targets: [-1], orderable: false }]
+        columnDefs: [{ targets: [-1], orderable: false, searchable: false }]
     });
 
     $(document).on('submit', '.delete-contract-form', function (e) {

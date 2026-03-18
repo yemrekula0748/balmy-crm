@@ -50,7 +50,7 @@
         </a>
     </div>
 
-    <div class="row g-4">
+    <div class="row g-3 align-items-start">
 
         {{-- ── Sol: Rezervasyon Bilgileri ── --}}
         <div class="col-lg-8">
