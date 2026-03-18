@@ -49,8 +49,13 @@ class FrontDeskReservationController extends BaseModuleController
             ];
         })->values()->toJson();
 
+        $countriesOptionsHtml = '';
+        foreach (\App\Helper\DzHelper::countries() as $label) {
+            $countriesOptionsHtml .= '<option value="' . e($label) . '">' . e($label) . '</option>';
+        }
+
         return view('modules.onburo.reservations.create',
-            compact('agencies', 'roomTypes', 'rooms', 'contracts', 'roomsJson'));
+            compact('agencies', 'roomTypes', 'rooms', 'contracts', 'roomsJson', 'countriesOptionsHtml'));
     }
 
     public function store(Request $request)

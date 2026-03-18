@@ -279,75 +279,6 @@
     </form>
 </div>
 
-{{-- Guest Card Template (hidden) --}}
-<template id="guestCardTemplate">
-    <div class="guest-card mb-3 guest-entry" data-index="__IDX__">
-        <div class="guest-header p-3 d-flex align-items-center justify-content-between">
-            <span class="fw-bold">
-                <i class="fas fa-user me-2"></i>
-                <span class="guest-num">__NUM__</span>. Misafir
-                <span class="guest-primary-badge ms-2" style="display:__PRIMARY_DISP__">Baş Misafir</span>
-            </span>
-            <button type="button" class="btn btn-sm btn-link text-white remove-guest-btn" style="display:__REMOVE_DISP__">
-                <i class="fas fa-times"></i> Kaldır
-            </button>
-        </div>
-        <div class="p-3">
-            <div class="row g-2">
-                <div class="col-md-4">
-                    <label class="form-label fw-semibold small">Ad <span class="text-danger">*</span></label>
-                    <input type="text" name="guests[__IDX__][first_name]" class="form-control form-control-sm" placeholder="Ad" required>
-                </div>
-                <div class="col-md-4">
-                    <label class="form-label fw-semibold small">Soyad <span class="text-danger">*</span></label>
-                    <input type="text" name="guests[__IDX__][last_name]" class="form-control form-control-sm" placeholder="Soyad" required>
-                </div>
-                <div class="col-md-4">
-                    <label class="form-label fw-semibold small">Uyruk</label>
-                    <select name="guests[__IDX__][nationality]" class="form-select form-select-sm">
-                        <option value="">Seçin...</option>
-                        @foreach(\App\Helper\DzHelper::countries() as $code => $label)
-                        <option value="{{ $label }}">{{ $label }}</option>
-                        @endforeach
-                    </select>
-                </div>
-                <div class="col-md-3">
-                    <label class="form-label fw-semibold small">Cinsiyet</label>
-                    <select name="guests[__IDX__][gender]" class="form-select form-select-sm">
-                        <option value="">—</option>
-                        <option value="male">Erkek</option>
-                        <option value="female">Kadın</option>
-                        <option value="other">Diğer</option>
-                    </select>
-                </div>
-                <div class="col-md-3">
-                    <label class="form-label fw-semibold small">Doğum Tarihi</label>
-                    <input type="date" name="guests[__IDX__][birth_date]" class="form-control form-control-sm">
-                </div>
-                <div class="col-md-3">
-                    <label class="form-label fw-semibold small">TC Kimlik No</label>
-                    <input type="text" name="guests[__IDX__][id_no]" class="form-control form-control-sm" placeholder="TC / ID No" maxlength="50">
-                </div>
-                <div class="col-md-3">
-                    <label class="form-label fw-semibold small">Pasaport No</label>
-                    <input type="text" name="guests[__IDX__][passport_no]" class="form-control form-control-sm" placeholder="Pasaport No" maxlength="50">
-                </div>
-                <div class="col-md-4">
-                    <label class="form-label fw-semibold small">Telefon</label>
-                    <input type="tel" name="guests[__IDX__][phone]" class="form-control form-control-sm" placeholder="+90 5xx xxx xx xx">
-                </div>
-                <div class="col-md-4">
-                    <label class="form-label fw-semibold small">E-posta</label>
-                    <input type="email" name="guests[__IDX__][email]" class="form-control form-control-sm" placeholder="email@örnek.com">
-                </div>
-                <div class="col-md-4">
-                    <label class="form-label fw-semibold small">Araç Plakası</label>
-                    <input type="text" name="guests[__IDX__][vehicle_plate]" class="form-control form-control-sm" placeholder="34 AA 001" style="text-transform:uppercase">
-                </div>
-            </div>
-        </div>
-    </div>
-</template>
 @endsection
 
 @push('scripts')
@@ -431,20 +362,81 @@ $(function () {
     updateGuestCount();
 
     // ── Dynamic Guest Cards ──
+    const countriesOptions = {!! json_encode($countriesOptionsHtml) !!};
     let guestCount = 0;
     const container = document.getElementById('guestsContainer');
-    const template  = document.getElementById('guestCardTemplate').innerHTML;
+
+    function buildGuestCard(idx, isFirst) {
+        return `
+        <div class="guest-card mb-3 guest-entry" data-index="${idx}">
+            <div class="guest-header p-3 d-flex align-items-center justify-content-between">
+                <span class="fw-bold">
+                    <i class="fas fa-user me-2"></i>
+                    <span class="guest-num">${idx + 1}</span>. Misafir
+                    <span class="guest-primary-badge ms-2" style="display:${isFirst ? 'inline' : 'none'}">Baş Misafir</span>
+                </span>
+                <button type="button" class="btn btn-sm btn-link text-white remove-guest-btn" style="display:${isFirst ? 'none' : 'inline-block'}">
+                    <i class="fas fa-times"></i> Kaldır
+                </button>
+            </div>
+            <div class="p-3">
+                <div class="row g-2">
+                    <div class="col-md-4">
+                        <label class="form-label fw-semibold small">Ad <span class="text-danger">*</span></label>
+                        <input type="text" name="guests[${idx}][first_name]" class="form-control form-control-sm" placeholder="Ad" required>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label fw-semibold small">Soyad <span class="text-danger">*</span></label>
+                        <input type="text" name="guests[${idx}][last_name]" class="form-control form-control-sm" placeholder="Soyad" required>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label fw-semibold small">Uyruk</label>
+                        <select name="guests[${idx}][nationality]" class="form-select form-select-sm">
+                            <option value="">Seçin...</option>
+                            ${countriesOptions}
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label fw-semibold small">Cinsiyet</label>
+                        <select name="guests[${idx}][gender]" class="form-select form-select-sm">
+                            <option value="">—</option>
+                            <option value="male">Erkek</option>
+                            <option value="female">Kadın</option>
+                            <option value="other">Diğer</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label fw-semibold small">Doğum Tarihi</label>
+                        <input type="date" name="guests[${idx}][birth_date]" class="form-control form-control-sm">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label fw-semibold small">TC Kimlik No</label>
+                        <input type="text" name="guests[${idx}][id_no]" class="form-control form-control-sm" placeholder="TC / ID No" maxlength="50">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label fw-semibold small">Pasaport No</label>
+                        <input type="text" name="guests[${idx}][passport_no]" class="form-control form-control-sm" placeholder="Pasaport No" maxlength="50">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label fw-semibold small">Telefon</label>
+                        <input type="tel" name="guests[${idx}][phone]" class="form-control form-control-sm" placeholder="+90 5xx xxx xx xx">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label fw-semibold small">E-posta</label>
+                        <input type="email" name="guests[${idx}][email]" class="form-control form-control-sm" placeholder="email@örnek.com">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label fw-semibold small">Araç Plakası</label>
+                        <input type="text" name="guests[${idx}][vehicle_plate]" class="form-control form-control-sm" placeholder="34 AA 001" style="text-transform:uppercase">
+                    </div>
+                </div>
+            </div>
+        </div>`;
+    }
 
     function addGuest() {
-        const idx  = guestCount;
-        const num  = guestCount + 1;
         const isFirst = guestCount === 0;
-        let html = template
-            .replace(/__IDX__/g, idx)
-            .replace(/__NUM__/g, num)
-            .replace(/__PRIMARY_DISP__/g, isFirst ? 'inline' : 'none')
-            .replace(/__REMOVE_DISP__/g, isFirst ? 'none' : 'inline-block');
-        container.insertAdjacentHTML('beforeend', html);
+        container.insertAdjacentHTML('beforeend', buildGuestCard(guestCount, isFirst));
         guestCount++;
     }
 
