@@ -357,7 +357,7 @@
 $(function () {
 
     // All rooms data for filtering
-    const allRooms = @json($rooms->map(fn($r) => ['id' => $r->id, 'room_number' => $r->room_number, 'room_type_id' => $r->room_type_id, 'floor' => $r->floor, 'code' => optional($r->roomType)->code]));
+    const allRooms = {!! $roomsJson !!};
 
     // Select2 inits
     $('.select2-agency').select2({ theme:'bootstrap-5', width:'100%', placeholder:'Acente seçin...' });

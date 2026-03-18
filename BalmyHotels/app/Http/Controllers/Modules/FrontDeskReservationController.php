@@ -37,9 +37,20 @@ class FrontDeskReservationController extends BaseModuleController
         $agencies  = Agency::orderBy('name')->get();
         $roomTypes = RoomType::orderBy('name')->get();
         $rooms     = Room::with('roomType')->orderBy('room_number')->get();
-        $contracts = AgencyContract::with('agency')->orderBy('id', 'desc')->get();
+        $contracts = AgencyContract::with('roomType')->orderBy('id', 'desc')->get();
+
+        $roomsJson = $rooms->map(function ($r) {
+            return [
+                'id'           => $r->id,
+                'room_number'  => $r->room_number,
+                'room_type_id' => $r->room_type_id,
+                'floor'        => $r->floor,
+                'code'         => optional($r->roomType)->code,
+            ];
+        })->values()->toJson();
+
         return view('modules.onburo.reservations.create',
-            compact('agencies', 'roomTypes', 'rooms', 'contracts'));
+            compact('agencies', 'roomTypes', 'rooms', 'contracts', 'roomsJson'));
     }
 
     public function store(Request $request)
