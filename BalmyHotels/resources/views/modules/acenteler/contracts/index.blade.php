@@ -6,10 +6,16 @@
 <link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap5.min.css">
 <link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.5.0/css/responsive.bootstrap5.min.css">
 <style>
-    .price-cell { font-size: .8rem; }
-    .contract-active { border-left: 3px solid #22c55e; }
+    .contract-active  { border-left: 3px solid #22c55e; }
     .contract-expired { border-left: 3px solid #ef4444; }
-    .contract-future { border-left: 3px solid #f59e0b; }
+    .contract-future  { border-left: 3px solid #f59e0b; }
+    .price-pill { display:inline-flex; align-items:center; gap:4px; background:#f8f9fa;
+                  border:1px solid #dee2e6; border-radius:20px; padding:2px 9px;
+                  font-size:.72rem; white-space:nowrap; margin:2px; }
+    .price-pill .pp-label { color:#6c757d; font-weight:600; }
+    .price-pill .pp-val   { font-weight:700; color:#212529; }
+    .price-section { margin-bottom:3px; }
+    table.dataTable thead th { white-space:nowrap; }
 </style>
 @endpush
 
@@ -123,39 +129,32 @@
                             <th>Kontrat Kodu</th>
                             <th>Acente</th>
                             <th>Oda Tipi</th>
-                            <th>Başlangıç</th>
-                            <th>Bitiş</th>
+                            <th>Tarih Aralığı</th>
                             <th>Durum</th>
-                            <th>1 Kişi</th>
-                            <th>2 Kişi</th>
-                            <th>3 Kişi</th>
-                            <th>4 Kişi</th>
-                            <th>1.Bebek</th>
-                            <th>2.Bebek</th>
-                            <th>1.Çocuk</th>
-                            <th>2.Çocuk</th>
-                            <th>İşlem</th>
+                            <th>Fiyatlar (YT / Ç0 / B0)</th>
+                            <th style="width:70px">İşlem</th>
                         </tr>
                     </thead>
                     <tbody>
                         @forelse($contracts as $contract)
                         @php
-                            $isActive = $contract->start_date->toDateString() <= $now && $contract->end_date->toDateString() >= $now;
+                            $isActive  = $contract->start_date->toDateString() <= $now && $contract->end_date->toDateString() >= $now;
                             $isExpired = $contract->end_date->toDateString() < $now;
-                            $isFuture = $contract->start_date->toDateString() > $now;
-                            $rowClass = $isActive ? 'contract-active' : ($isExpired ? 'contract-expired' : 'contract-future');
+                            $isFuture  = $contract->start_date->toDateString() > $now;
+                            $rowClass  = $isActive ? 'contract-active' : ($isExpired ? 'contract-expired' : 'contract-future');
                         @endphp
                         <tr class="{{ $rowClass }}">
-                            <td>
-                                <span class="badge bg-dark fw-semibold">{{ $contract->contract_code }}</span>
-                            </td>
+                            <td><span class="badge bg-dark fw-semibold">{{ $contract->contract_code }}</span></td>
                             <td>
                                 <div class="fw-semibold small">{{ $contract->agency->name ?? '—' }}</div>
-                                <div class="text-muted" style="font-size:.75rem">{{ $contract->agency->agency_code ?? '' }}</div>
+                                <div class="text-muted" style="font-size:.73rem">{{ $contract->agency->agency_code ?? '' }}</div>
                             </td>
                             <td><span class="badge bg-primary-subtle text-primary">{{ $contract->roomType->name ?? '—' }}</span></td>
-                            <td><span class="small">{{ $contract->start_date->format('d.m.Y') }}</span></td>
-                            <td><span class="small">{{ $contract->end_date->format('d.m.Y') }}</span></td>
+                            <td>
+                                <span class="small text-success fw-semibold">{{ $contract->start_date->format('d.m.Y') }}</span>
+                                <span class="text-muted mx-1">→</span>
+                                <span class="small text-danger fw-semibold">{{ $contract->end_date->format('d.m.Y') }}</span>
+                            </td>
                             <td>
                                 @if($isActive)
                                     <span class="badge bg-success">Aktif</span>
@@ -165,14 +164,36 @@
                                     <span class="badge bg-danger">Süresi Doldu</span>
                                 @endif
                             </td>
-                            <td class="price-cell text-end">{{ number_format($contract->price_single, 2) }}</td>
-                            <td class="price-cell text-end">{{ number_format($contract->price_double, 2) }}</td>
-                            <td class="price-cell text-end">{{ number_format($contract->price_triple, 2) }}</td>
-                            <td class="price-cell text-end">{{ number_format($contract->price_quad, 2) }}</td>
-                            <td class="price-cell text-end">{{ number_format($contract->price_baby1, 2) }}</td>
-                            <td class="price-cell text-end">{{ number_format($contract->price_baby2, 2) }}</td>
-                            <td class="price-cell text-end">{{ number_format($contract->price_child1, 2) }}</td>
-                            <td class="price-cell text-end">{{ number_format($contract->price_child2, 2) }}</td>
+                            <td>
+                                <div class="price-section">
+                                    @if($contract->price_single)
+                                    <span class="price-pill"><span class="pp-label">1Y</span><span class="pp-val">{{ number_format($contract->price_single,2) }}</span></span>
+                                    @endif
+                                    @if($contract->price_double)
+                                    <span class="price-pill"><span class="pp-label">2Y</span><span class="pp-val">{{ number_format($contract->price_double,2) }}</span></span>
+                                    @endif
+                                    @if($contract->price_triple)
+                                    <span class="price-pill"><span class="pp-label">3Y</span><span class="pp-val">{{ number_format($contract->price_triple,2) }}</span></span>
+                                    @endif
+                                    @if($contract->price_quad)
+                                    <span class="price-pill"><span class="pp-label">4Y</span><span class="pp-val">{{ number_format($contract->price_quad,2) }}</span></span>
+                                    @endif
+                                </div>
+                                <div class="price-section">
+                                    @if($contract->price_child1)
+                                    <span class="price-pill" style="background:#fff8e1;border-color:#f9c74f"><span class="pp-label">Ç1</span><span class="pp-val">{{ number_format($contract->price_child1,2) }}</span></span>
+                                    @endif
+                                    @if($contract->price_child2)
+                                    <span class="price-pill" style="background:#fff8e1;border-color:#f9c74f"><span class="pp-label">Ç2</span><span class="pp-val">{{ number_format($contract->price_child2,2) }}</span></span>
+                                    @endif
+                                    @if($contract->price_baby1)
+                                    <span class="price-pill" style="background:#ffeded;border-color:#f87171"><span class="pp-label">B1</span><span class="pp-val">{{ number_format($contract->price_baby1,2) }}</span></span>
+                                    @endif
+                                    @if($contract->price_baby2)
+                                    <span class="price-pill" style="background:#ffeded;border-color:#f87171"><span class="pp-label">B2</span><span class="pp-val">{{ number_format($contract->price_baby2,2) }}</span></span>
+                                    @endif
+                                </div>
+                            </td>
                             <td>
                                 @if(auth()->user()->hasPermission('agency_contracts', 'delete'))
                                 <form action="{{ route('agencies.contracts.destroy', $contract) }}" method="POST" class="d-inline delete-contract-form">
@@ -185,7 +206,7 @@
                             </td>
                         </tr>
                         @empty
-                        <tr><td colspan="15" class="text-center text-muted py-5">
+                        <tr><td colspan="7" class="text-center text-muted py-5">
                             <i class="fas fa-file-contract fa-2x mb-2 d-block opacity-25"></i>
                             Henüz kontrat eklenmemiş.
                         </td></tr>
@@ -201,6 +222,8 @@
 @push('scripts')
 <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
 <script src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap5.min.js"></script>
+<script src="https://cdn.datatables.net/responsive/2.5.0/js/dataTables.responsive.min.js"></script>
+<script src="https://cdn.datatables.net/responsive/2.5.0/js/responsive.bootstrap5.min.js"></script>
 <script src="{{ asset('vendor/sweetalert2/dist/sweetalert2.min.js') }}"></script>
 <script>
 $(function () {
@@ -208,7 +231,8 @@ $(function () {
         responsive: true,
         language: { url: 'https://cdn.datatables.net/plug-ins/1.13.7/i18n/tr.json' },
         order: [[3, 'desc']],
-        columnDefs: [{ targets: [14], orderable: false }]
+        pageLength: 25,
+        columnDefs: [{ targets: [-1], orderable: false }]
     });
 
     $(document).on('submit', '.delete-contract-form', function (e) {

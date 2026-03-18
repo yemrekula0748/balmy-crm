@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Modules;
 
 use App\Models\BedType;
 use App\Models\Room;
+use App\Models\RoomType;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
@@ -22,15 +23,17 @@ class FrontDeskRoomController extends BaseModuleController
 
     public function index()
     {
-        $rooms    = Room::with(['roomType', 'bedTypes'])->orderBy('room_number')->get();
-        $bedTypes = BedType::orderBy('name')->get();
-        return view('modules.onburo.rooms.index', compact('rooms', 'bedTypes'));
+        $rooms     = Room::with(['roomType', 'bedTypes'])->orderBy('room_number')->get();
+        $bedTypes  = BedType::orderBy('name')->get();
+        $roomTypes = RoomType::orderBy('name')->get();
+        return view('modules.onburo.rooms.index', compact('rooms', 'bedTypes', 'roomTypes'));
     }
 
     public function store(Request $request)
     {
         $data = $request->validate([
             'room_number'    => 'required|string|max:20|unique:rooms,room_number',
+            'room_type_id'   => 'nullable|exists:room_types,id',
             'floor'          => 'nullable|string|max:20',
             'block'          => 'nullable|string|max:50',
             'extra_features' => 'nullable|string',
@@ -66,6 +69,7 @@ class FrontDeskRoomController extends BaseModuleController
     {
         $data = $request->validate([
             'room_number'    => 'required|string|max:20|unique:rooms,room_number,' . $room->id,
+            'room_type_id'   => 'nullable|exists:room_types,id',
             'floor'          => 'nullable|string|max:20',
             'block'          => 'nullable|string|max:50',
             'extra_features' => 'nullable|string',

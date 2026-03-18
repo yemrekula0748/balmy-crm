@@ -2,6 +2,31 @@
 
 @section('title', 'Yatak Tipleri')
 
+@push('styles')
+<style>
+    .bt-card {
+        border: 1px solid #e9ecef;
+        border-radius: .75rem;
+        transition: box-shadow .2s, transform .15s;
+        height: 100%;
+    }
+    .bt-card:hover {
+        box-shadow: 0 4px 18px rgba(0,0,0,.1);
+        transform: translateY(-2px);
+    }
+    .bt-icon-wrap {
+        width: 52px; height: 52px;
+        border-radius: .6rem;
+        background: linear-gradient(135deg,#c19b77,#a07855);
+        display: flex; align-items: center; justify-content: center;
+        flex-shrink: 0;
+    }
+    .bt-abbr { font-size: 1.05rem; font-weight: 800; letter-spacing: .04em; color: #212529; }
+    .bt-actions { opacity: 0; transition: opacity .15s; }
+    .bt-card:hover .bt-actions { opacity: 1; }
+</style>
+@endpush
+
 @section('content')
 <div class="container-fluid pb-4">
 
@@ -28,80 +53,93 @@
     </div>
     @endif
 
-    <div class="row g-4">
+    {{-- Page header --}}
+    <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+        <div>
+            <h5 class="fw-bold mb-0">
+                <i class="fas fa-bed me-2 text-muted"></i>Yatak Tipleri
+                <span class="badge bg-primary bg-opacity-10 text-primary ms-2 fs-6">{{ $bedTypes->count() }}</span>
+            </h5>
+            <small class="text-muted">Odalara atanan yatak konfigürasyonları</small>
+        </div>
+        @if(auth()->user()->hasPermission('bed_types', 'create'))
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addBedTypeModal">
+            <i class="fas fa-plus me-1"></i> Yeni Yatak Tipi Ekle
+        </button>
+        @endif
+    </div>
 
-        {{-- Tablo --}}
+    <div class="row g-3">
+
+        {{-- Bed type cards --}}
         <div class="col-lg-8">
-            <div class="card border-0 shadow-sm">
-                <div class="card-header bg-white border-bottom py-3 d-flex align-items-center justify-content-between">
-                    <h6 class="fw-bold mb-0">
-                        <i class="fas fa-bed me-2 text-muted"></i>Yatak Tipi Listesi
-                        <span class="badge bg-primary bg-opacity-10 text-primary ms-2">{{ $bedTypes->count() }}</span>
-                    </h6>
-                    @if(auth()->user()->hasPermission('bed_types', 'create'))
-                    <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#addBedTypeModal">
-                        <i class="fas fa-plus me-1"></i> Yeni Ekle
-                    </button>
-                    @endif
+            <div class="row g-3">
+                @forelse($bedTypes as $bt)
+                <div class="col-sm-6 col-md-4">
+                    <div class="bt-card p-3 bg-white">
+                        <div class="d-flex align-items-center gap-3 mb-3">
+                            <div class="bt-icon-wrap">
+                                <i class="fas fa-bed text-white fs-5"></i>
+                            </div>
+                            <div class="flex-grow-1 min-w-0">
+                                <div class="fw-semibold text-truncate">{{ $bt->name }}</div>
+                                <span class="bt-abbr">{{ $bt->abbreviation }}</span>
+                            </div>
+                        </div>
+                        <div class="bt-actions d-flex gap-2 justify-content-end">
+                            @if(auth()->user()->hasPermission('bed_types', 'edit'))
+                            <button class="btn btn-sm btn-outline-primary edit-bt-btn"
+                                data-id="{{ $bt->id }}"
+                                data-name="{{ $bt->name }}"
+                                data-abbreviation="{{ $bt->abbreviation }}">
+                                <i class="fas fa-edit me-1"></i>Düzenle
+                            </button>
+                            @endif
+                            @if(auth()->user()->hasPermission('bed_types', 'delete'))
+                            <form action="{{ route('frontdesk.bed-types.destroy', $bt) }}" method="POST" class="d-inline delete-bt-form">
+                                @csrf @method('DELETE')
+                                <button type="submit" class="btn btn-sm btn-outline-danger">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </form>
+                            @endif
+                        </div>
+                    </div>
                 </div>
-                <div class="table-responsive">
-                    <table class="table table-hover align-middle mb-0">
-                        <thead class="table-light">
-                            <tr>
-                                <th style="width:50px">#</th>
-                                <th>Yatak Tipi Adı</th>
-                                <th>Kısaltma</th>
-                                <th style="width:120px">İşlem</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @forelse($bedTypes as $i => $bt)
-                            <tr>
-                                <td class="text-muted">{{ $i + 1 }}</td>
-                                <td class="fw-semibold">{{ $bt->name }}</td>
-                                <td><span class="badge bg-secondary fs-6">{{ $bt->abbreviation }}</span></td>
-                                <td>
-                                    @if(auth()->user()->hasPermission('bed_types', 'edit'))
-                                    <button class="btn btn-sm btn-outline-primary edit-bt-btn"
-                                        data-id="{{ $bt->id }}"
-                                        data-name="{{ $bt->name }}"
-                                        data-abbreviation="{{ $bt->abbreviation }}">
-                                        <i class="fas fa-edit"></i>
-                                    </button>
-                                    @endif
-                                    @if(auth()->user()->hasPermission('bed_types', 'delete'))
-                                    <form action="{{ route('frontdesk.bed-types.destroy', $bt) }}" method="POST" class="d-inline delete-bt-form">
-                                        @csrf @method('DELETE')
-                                        <button type="submit" class="btn btn-sm btn-outline-danger">
-                                            <i class="fas fa-trash"></i>
-                                        </button>
-                                    </form>
-                                    @endif
-                                </td>
-                            </tr>
-                            @empty
-                            <tr><td colspan="4" class="text-center text-muted py-4">Yatak tipi eklenmemiş</td></tr>
-                            @endforelse
-                        </tbody>
-                    </table>
+                @empty
+                <div class="col-12">
+                    <div class="card border-0 shadow-sm text-center py-5">
+                        <i class="fas fa-bed fa-3x text-muted opacity-25 mb-3"></i>
+                        <p class="text-muted mb-3">Henüz yatak tipi eklenmemiş.</p>
+                        @if(auth()->user()->hasPermission('bed_types', 'create'))
+                        <button class="btn btn-primary mx-auto" style="width:fit-content" data-bs-toggle="modal" data-bs-target="#addBedTypeModal">
+                            <i class="fas fa-plus me-1"></i> İlk Yatak Tipini Ekle
+                        </button>
+                        @endif
+                    </div>
                 </div>
+                @endforelse
             </div>
         </div>
 
-        {{-- Bilgi --}}
+        {{-- Info sidebar --}}
         <div class="col-lg-4">
-            <div class="card border-0 shadow-sm" style="border-left:4px solid #c19b77 !important">
+            <div class="card border-0 shadow-sm h-100" style="border-left:4px solid #c19b77 !important">
                 <div class="card-body p-4">
-                    <h6 class="fw-bold mb-3"><i class="fas fa-info-circle me-2 text-muted"></i>Yatak Tipleri Hakkında</h6>
-                    <p class="text-muted small mb-2">Yatak tipleri, odalara atanarak misafirlerin oda tercihlerinin belirlenmesinde kullanılır.</p>
-                    <p class="text-muted small mb-0">Örnekler:</p>
-                    <ul class="small text-muted mt-1">
-                        <li>Single Bed (SNG)</li>
-                        <li>Double Bed (DBL)</li>
-                        <li>Twin Bed (TWN)</li>
-                        <li>King Size (KING)</li>
-                        <li>Queen Size (QN)</li>
-                    </ul>
+                    <h6 class="fw-bold mb-3">
+                        <i class="fas fa-info-circle me-2" style="color:#c19b77"></i>Yatak Tipleri Hakkında
+                    </h6>
+                    <p class="text-muted small mb-3">
+                        Yatak tipleri, odalara atanarak misafirlerin oda tercihlerinin belirlenmesinde kullanılır.
+                    </p>
+                    <div class="mb-1" style="font-size:.8rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:#8d9297">Yaygın Örnekler</div>
+                    <div class="d-flex flex-wrap gap-2 mt-2">
+                        @foreach([['SNG','Single'],['DBL','Double'],['TWN','Twin'],['KING','King'],['QN','Queen'],['3BED','Triple'],['BUNK','Ranza']] as [$abbr,$name])
+                        <span class="badge rounded-pill text-bg-light border" style="font-size:.78rem">
+                            <span class="fw-bold">{{ $abbr }}</span> · <span class="text-muted">{{ $name }}</span>
+                        </span>
+                        @endforeach
+                    </div>
                 </div>
             </div>
         </div>
@@ -128,6 +166,7 @@
                     <div class="mb-0">
                         <label class="form-label fw-semibold">Kısaltma <span class="text-danger">*</span></label>
                         <input type="text" name="abbreviation" class="form-control" placeholder="ör: DBL" style="text-transform:uppercase" required>
+                        <small class="text-muted">Büyük harf, kısa (maks. 6 karakter)</small>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -179,7 +218,6 @@
 <script src="{{ asset('vendor/sweetalert2/dist/sweetalert2.min.js') }}"></script>
 <script>
 $(function () {
-    // Edit
     $(document).on('click', '.edit-bt-btn', function () {
         const id = $(this).data('id');
         $('#edit_bt_name').val($(this).data('name'));
@@ -188,7 +226,6 @@ $(function () {
         new bootstrap.Modal(document.getElementById('editBedTypeModal')).show();
     });
 
-    // Delete
     $(document).on('submit', '.delete-bt-form', function (e) {
         e.preventDefault(); const form = this;
         Swal.fire({

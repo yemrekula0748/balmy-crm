@@ -9,10 +9,11 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css">
 <style>
     #agenciesTable tbody tr { cursor: pointer; }
-    #agenciesTable tbody tr:hover { background: rgba(193,155,119,.08) !important; }
+    #agenciesTable tbody tr:hover { background: rgba(193,155,119,.07) !important; }
     .badge-currency { font-size:.72rem; font-weight:600; }
-    .dt-filter-row th { padding: 6px 8px !important; }
-    .dt-filter-row input, .dt-filter-row select { font-size:.82rem; }
+    table.dataTable thead th { white-space:nowrap; }
+    .agency-name { font-weight:600; line-height:1.3; }
+    .agency-code-badge { font-size:.68rem; }
 </style>
 @endpush
 
@@ -74,26 +75,22 @@
                 <table id="agenciesTable" class="table table-hover align-middle mb-0 w-100">
                     <thead class="table-light">
                         <tr>
-                            <th>#</th>
-                            <th>Acenta Kodu</th>
-                            <th>Acenta Adı</th>
+                            <th style="width:200px">Acente</th>
                             <th>Para Birimi</th>
                             <th>Market</th>
-                            <th>Ödeme Türü</th>
-                            <th>Ödeme Tipi</th>
-                            <th>Konaklama Tipi</th>
+                            <th>Ödeme</th>
+                            <th>Konaklama</th>
                             <th>Uyruklar</th>
-                            <th>İşlem</th>
+                            <th style="width:90px">İşlem</th>
                         </tr>
                     </thead>
                     <tbody>
                         @forelse($agencies as $i => $agency)
                         <tr class="agency-row" data-id="{{ $agency->id }}">
-                            <td class="text-muted" style="width:50px">{{ $i + 1 }}</td>
                             <td>
-                                <span class="badge rounded-pill text-bg-dark fw-semibold">{{ $agency->agency_code }}</span>
+                                <span class="badge rounded-pill text-bg-dark agency-code-badge">{{ $agency->agency_code }}</span>
+                                <div class="agency-name mt-1">{{ $agency->name }}</div>
                             </td>
-                            <td class="fw-semibold">{{ $agency->name }}</td>
                             <td>
                                 <span class="badge badge-currency
                                     @if($agency->currency === 'TL') bg-success-subtle text-success
@@ -104,8 +101,10 @@
                                 </span>
                             </td>
                             <td><span class="badge bg-info-subtle text-info">{{ \App\Models\Agency::MARKETS[$agency->market] ?? $agency->market }}</span></td>
-                            <td><small>{{ \App\Models\Agency::PAYMENT_TYPES[$agency->payment_type] ?? $agency->payment_type }}</small></td>
-                            <td><small>{{ \App\Models\Agency::PAYMENT_METHODS[$agency->payment_method] ?? $agency->payment_method }}</small></td>
+                            <td>
+                                <small class="d-block">{{ \App\Models\Agency::PAYMENT_TYPES[$agency->payment_type] ?? $agency->payment_type }}</small>
+                                <small class="text-muted">{{ \App\Models\Agency::PAYMENT_METHODS[$agency->payment_method] ?? $agency->payment_method }}</small>
+                            </td>
                             <td>
                                 <span class="badge
                                     @if($agency->accommodation_type === 'sold') bg-primary
@@ -116,9 +115,9 @@
                             </td>
                             <td>
                                 @if($agency->nationalities && count($agency->nationalities) > 0)
-                                    <small class="text-muted">{{ implode(', ', array_slice($agency->nationalities, 0, 3)) }}
-                                    @if(count($agency->nationalities) > 3)
-                                        <span class="text-primary">+{{ count($agency->nationalities) - 3 }}</span>
+                                    <small class="text-muted">{{ implode(', ', array_slice($agency->nationalities, 0, 2)) }}
+                                    @if(count($agency->nationalities) > 2)
+                                        <span class="text-primary fw-semibold">+{{ count($agency->nationalities) - 2 }}</span>
                                     @endif
                                     </small>
                                 @else
@@ -153,7 +152,7 @@
                             </td>
                         </tr>
                         @empty
-                        <tr><td colspan="10" class="text-center text-muted py-5">
+                        <tr><td colspan="7" class="text-center text-muted py-5">
                             <i class="fas fa-building fa-2x mb-2 d-block opacity-25"></i>
                             Henüz acente tanımlanmamış.
                         </td></tr>
@@ -270,33 +269,15 @@
 <script>
 $(function () {
 
-    // DataTable init with column-level filtering
-    const table = $('#agenciesTable').DataTable({
+    // DataTable
+    $('#agenciesTable').DataTable({
         responsive: true,
         language: {
             url: 'https://cdn.datatables.net/plug-ins/1.13.7/i18n/tr.json'
         },
-        orderCellsTop: true,
-        fixedHeader: true,
-        initComplete: function () {
-            this.api().columns().every(function (colIdx) {
-                if (colIdx === 0 || colIdx === 9) return; // skip # and action
-                const column = this;
-                const $th = $('<th>').appendTo($('#agenciesTable thead tr.dt-filter-row'));
-                const $input = $('<input type="text" class="form-control form-control-sm" placeholder="Filtrele...">')
-                    .appendTo($th)
-                    .on('keyup change', function () {
-                        if (column.search() !== this.value) {
-                            column.search(this.value).draw();
-                        }
-                    });
-            });
-        }
+        pageLength: 25,
+        columnDefs: [{ targets: [-1], orderable: false }]
     });
-
-    // Add filter row to thead
-    $('#agenciesTable thead').prepend('<tr class="dt-filter-row"><th></th></tr>');
-    // Re-init with footer filter row approach (simpler): use search inputs below each header
 
     // Double-click to edit
     $('#agenciesTable tbody').on('dblclick', 'tr.agency-row', function () {

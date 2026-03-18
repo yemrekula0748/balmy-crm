@@ -4,8 +4,14 @@
 
 @push('styles')
 <link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap5.min.css">
+<link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.5.0/css/responsive.bootstrap5.min.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css">
+<style>
+    .room-thumb { width:42px;height:34px;object-fit:cover;border-radius:5px;border:1px solid #dee2e6;cursor:pointer;transition:transform .15s; }
+    .room-thumb:hover { transform:scale(1.1); }
+    table.dataTable thead th { white-space:nowrap; }
+</style>
 @endpush
 
 @section('content')
@@ -95,24 +101,26 @@
                             </td>
                             <td><small class="text-muted">{{ \Illuminate\Support\Str::limit($room->extra_features, 40) }}</small></td>
                             <td>
-                                @if($room->images && count($room->images) > 0)
-                                <div class="d-flex gap-1">
-                                    @foreach(array_slice($room->images, 0, 3) as $img)
-                                    <img src="{{ asset('storage/' . $img) }}" alt="" style="width:40px;height:32px;object-fit:cover;border-radius:4px">
-                                    @endforeach
-                                    @if(count($room->images) > 3)
-                                    <span class="badge bg-secondary align-self-center">+{{ count($room->images) - 3 }}</span>
-                                    @endif
-                                </div>
-                                @else
-                                <span class="text-muted small">—</span>
+                            @if($room->images && count($room->images) > 0)
+                            <div class="d-flex gap-1 flex-wrap">
+                                @foreach(array_slice($room->images, 0, 3) as $img)
+                                <img src="{{ asset('storage/' . $img) }}" alt="" class="room-thumb"
+                                     data-bs-toggle="tooltip" title="Büyütmek için tıklayın">
+                                @endforeach
+                                @if(count($room->images) > 3)
+                                <span class="badge bg-secondary align-self-center">+{{ count($room->images) - 3 }}</span>
                                 @endif
-                            </td>
+                            </div>
+                            @else
+                            <span class="text-muted" style="font-size:.78rem"><i class="fas fa-image me-1 opacity-25"></i>Yok</span>
+                            @endif
+                        </td>
                             <td>
                                 @if(auth()->user()->hasPermission('rooms', 'edit'))
                                 <button class="btn btn-sm btn-outline-primary edit-room-btn"
                                     data-id="{{ $room->id }}"
                                     data-room-number="{{ $room->room_number }}"
+                                    data-room-type-id="{{ $room->room_type_id }}"
                                     data-floor="{{ $room->floor }}"
                                     data-block="{{ $room->block }}"
                                     data-extra-features="{{ $room->extra_features }}"
@@ -160,6 +168,15 @@
                         <div class="col-md-3">
                             <label class="form-label fw-semibold">Oda No <span class="text-danger">*</span></label>
                             <input type="text" name="room_number" class="form-control" placeholder="ör: 101" required>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label fw-semibold">Oda Tipi</label>
+                            <select name="room_type_id" class="form-select">
+                                <option value="">— Seçiniz —</option>
+                                @foreach($roomTypes as $rt)
+                                <option value="{{ $rt->id }}">[{{ $rt->code }}] {{ $rt->name }}</option>
+                                @endforeach
+                            </select>
                         </div>
                         <div class="col-md-3">
                             <label class="form-label fw-semibold">Kaçıncı Kat</label>
@@ -222,6 +239,15 @@
                             <input type="text" name="room_number" id="edit_room_number" class="form-control" required>
                         </div>
                         <div class="col-md-3">
+                            <label class="form-label fw-semibold">Oda Tipi</label>
+                            <select name="room_type_id" id="edit_room_type" class="form-select">
+                                <option value="">— Seçiniz —</option>
+                                @foreach($roomTypes as $rt)
+                                <option value="{{ $rt->id }}">[{{ $rt->code }}] {{ $rt->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="col-md-3">
                             <label class="form-label fw-semibold">Kaçıncı Kat</label>
                             <input type="text" name="floor" id="edit_room_floor" class="form-control">
                         </div>
@@ -267,6 +293,8 @@
 @push('scripts')
 <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
 <script src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap5.min.js"></script>
+<script src="https://cdn.datatables.net/responsive/2.5.0/js/dataTables.responsive.min.js"></script>
+<script src="https://cdn.datatables.net/responsive/2.5.0/js/responsive.bootstrap5.min.js"></script>
 <script src="{{ asset('vendor/sweetalert2/dist/sweetalert2.min.js') }}"></script>
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 <script>
@@ -274,8 +302,12 @@ $(function () {
     $('#roomsTable').DataTable({
         responsive: true,
         language: { url: 'https://cdn.datatables.net/plug-ins/1.13.7/i18n/tr.json' },
-        columnDefs: [{ targets: [7], orderable: false }]
+        pageLength: 25,
+        columnDefs: [{ targets: [-1], orderable: false }]
     });
+
+    // Tooltips
+    $('[data-bs-toggle="tooltip"]').tooltip();
 
     $('.select2-bed-add').select2({ theme: 'bootstrap-5', width: '100%', placeholder: 'Yatak tipi...', allowClear: true, dropdownParent: $('#addRoomModal') });
     $('.select2-bed-edit').select2({ theme: 'bootstrap-5', width: '100%', placeholder: 'Yatak tipi...', allowClear: true, dropdownParent: $('#editRoomModal') });
@@ -284,6 +316,7 @@ $(function () {
         const d = $(this).data();
         $('#editRoomForm').attr('action', '/onburo/odalar/' + d.id);
         $('#edit_room_number').val(d.roomNumber);
+        $('#edit_room_type').val(d.roomTypeId);
         $('#edit_room_floor').val(d.floor);
         $('#edit_room_block').val(d.block);
         $('#edit_room_extra').val(d.extraFeatures);

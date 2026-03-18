@@ -5,6 +5,10 @@
 @push('styles')
 <link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap5.min.css">
 <link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.5.0/css/responsive.bootstrap5.min.css">
+<style>
+    table.dataTable thead th { white-space:nowrap; }
+    .rez-row td { vertical-align:middle; }
+</style>
 @endpush
 
 @section('content')
@@ -154,6 +158,8 @@
 @push('scripts')
 <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
 <script src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap5.min.js"></script>
+<script src="https://cdn.datatables.net/responsive/2.5.0/js/dataTables.responsive.min.js"></script>
+<script src="https://cdn.datatables.net/responsive/2.5.0/js/responsive.bootstrap5.min.js"></script>
 <script src="{{ asset('vendor/sweetalert2/dist/sweetalert2.min.js') }}"></script>
 <script>
 $(function () {
@@ -161,7 +167,8 @@ $(function () {
         responsive: true,
         language: { url: 'https://cdn.datatables.net/plug-ins/1.13.7/i18n/tr.json' },
         order: [[3, 'desc']],
-        columnDefs: [{ targets: [9], orderable: false }]
+        pageLength: 25,
+        columnDefs: [{ targets: [-1], orderable: false }]
     });
 
     $(document).on('submit', '.del-res-form', function (e) {
