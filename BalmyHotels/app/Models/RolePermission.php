@@ -100,6 +100,16 @@ class RolePermission extends Model
         'İşlerim' => [
             'my_tasks' => 'Görevlerim',
         ],
+        'Acenteler' => [
+            'agencies'         => 'Acenteler',
+            'agency_contracts' => 'Acente Kontratları',
+        ],
+        'Önbüro' => [
+            'bed_types'    => 'Yatak Tipleri',
+            'room_types'   => 'Oda Tipleri',
+            'rooms'        => 'Odalar',
+            'reservations' => 'Rezervasyonlar',
+        ],
     ];
 
     /** Düz module_key => Ad listesi döner */

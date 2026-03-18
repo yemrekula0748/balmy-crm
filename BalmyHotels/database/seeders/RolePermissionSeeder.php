@@ -53,6 +53,13 @@ class RolePermissionSeeder extends Seeder
             'vehicles'       => ['index'=>1,'show'=>1,'create'=>0,'edit'=>0,'delete'=>0],
             'it_computers'   => ['index'=>1,'show'=>0,'create'=>0,'edit'=>0,'delete'=>0],
             'my_tasks'       => ['index'=>1,'show'=>1,'create'=>1,'edit'=>1,'delete'=>1],
+            // Önbüro & Acenteler
+            'agencies'         => ['index'=>1,'show'=>1,'create'=>1,'edit'=>1,'delete'=>0],
+            'agency_contracts' => ['index'=>1,'show'=>1,'create'=>1,'edit'=>1,'delete'=>0],
+            'bed_types'        => ['index'=>1,'show'=>0,'create'=>0,'edit'=>0,'delete'=>0],
+            'room_types'       => ['index'=>1,'show'=>1,'create'=>0,'edit'=>0,'delete'=>0],
+            'rooms'            => ['index'=>1,'show'=>1,'create'=>0,'edit'=>0,'delete'=>0],
+            'reservations'     => ['index'=>1,'show'=>1,'create'=>1,'edit'=>1,'delete'=>0],
         ];
         $this->savePerms('dept_manager', $deptManagerPerms);
 
@@ -63,6 +70,9 @@ class RolePermissionSeeder extends Seeder
             'door_logs'   => ['index'=>1,'show'=>0,'create'=>0,'edit'=>0,'delete'=>0],
             'food_labels' => ['index'=>1,'show'=>1,'create'=>0,'edit'=>0,'delete'=>0],
             'my_tasks'    => ['index'=>1,'show'=>1,'create'=>1,'edit'=>1,'delete'=>1],
+            // Önbüro
+            'rooms'        => ['index'=>1,'show'=>1,'create'=>0,'edit'=>0,'delete'=>0],
+            'reservations' => ['index'=>1,'show'=>1,'create'=>1,'edit'=>0,'delete'=>0],
         ];
         $this->savePerms('staff', $staffPerms);
 

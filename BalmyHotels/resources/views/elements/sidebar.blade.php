@@ -604,6 +604,81 @@
             </li>
             @endif
 
+            @if($user->hasPermission('agencies') || $user->hasPermission('agency_contracts'))
+            <li @class(['mm-active' => request()->is('acenteler*')])
+            >
+                <a class="has-arrow ai-icon" href="javascript:void()" aria-expanded="false">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
+                         fill="none" stroke="currentColor" stroke-width="2"
+                         stroke-linecap="round" stroke-linejoin="round" style="min-width:20px">
+                        <rect x="2" y="7" width="20" height="14" rx="2"/>
+                        <path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/>
+                        <line x1="12" y1="12" x2="12" y2="16"/>
+                        <line x1="10" y1="14" x2="14" y2="14"/>
+                    </svg>
+                    <span class="nav-text">Acenteler</span>
+                </a>
+                <ul aria-expanded="false">
+                    @if($user->hasPermission('agencies'))
+                    <li @class(['mm-active' => request()->is('acenteler') && !request()->is('acenteler/yeni')])>
+                        <a href="{{ route('agencies.index') }}">Acentalarım</a>
+                    </li>
+                    <li @class(['mm-active' => request()->is('acenteler/yeni')])>
+                        <a href="{{ route('agencies.create') }}">Yeni Acente</a>
+                    </li>
+                    @endif
+                    @if($user->hasPermission('agency_contracts'))
+                    <li @class(['mm-active' => request()->is('acenteler/kontratlar*') && !request()->is('acenteler/kontratlar/yeni')])>
+                        <a href="{{ route('agencies.contracts.index') }}">Kontratlar</a>
+                    </li>
+                    <li @class(['mm-active' => request()->is('acenteler/kontratlar/yeni')])>
+                        <a href="{{ route('agencies.contracts.create') }}">Yeni Kontrat</a>
+                    </li>
+                    @endif
+                </ul>
+            </li>
+            @endif
+
+            @if($user->hasPermission('reservations') || $user->hasPermission('room_types') || $user->hasPermission('rooms') || $user->hasPermission('bed_types'))
+            <li @class(['mm-active' => request()->is('onburo*')])
+            >
+                <a class="has-arrow ai-icon" href="javascript:void()" aria-expanded="false">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
+                         fill="none" stroke="currentColor" stroke-width="2"
+                         stroke-linecap="round" stroke-linejoin="round" style="min-width:20px">
+                        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                        <polyline points="9 22 9 12 15 12 15 22"/>
+                    </svg>
+                    <span class="nav-text">Önbüro</span>
+                </a>
+                <ul aria-expanded="false">
+                    @if($user->hasPermission('reservations'))
+                    <li @class(['mm-active' => request()->is('onburo/rezervasyonlar') && !request()->is('onburo/rezervasyonlar/yeni')])>
+                        <a href="{{ route('frontdesk.reservations.index') }}">Rezervasyonlar</a>
+                    </li>
+                    <li @class(['mm-active' => request()->is('onburo/rezervasyonlar/yeni')])>
+                        <a href="{{ route('frontdesk.reservations.create') }}">Yeni Rezervasyon</a>
+                    </li>
+                    @endif
+                    @if($user->hasPermission('room_types'))
+                    <li @class(['mm-active' => request()->is('onburo/oda-tipleri*')])>
+                        <a href="{{ route('frontdesk.room-types.index') }}">Oda Tipleri</a>
+                    </li>
+                    @endif
+                    @if($user->hasPermission('rooms'))
+                    <li @class(['mm-active' => request()->is('onburo/odalar*')])>
+                        <a href="{{ route('frontdesk.rooms.index') }}">Odalar</a>
+                    </li>
+                    @endif
+                    @if($user->hasPermission('bed_types'))
+                    <li @class(['mm-active' => request()->is('onburo/yatak-tipleri*')])>
+                        <a href="{{ route('frontdesk.bed-types.index') }}">Yatak Tipleri</a>
+                    </li>
+                    @endif
+                </ul>
+            </li>
+            @endif
+
             {{-- YETKİ YÖNETİMİ — sadece super_admin --}}            @if($user->isSuperAdmin())
             <li @class(['mm-active' => request()->is('roller*')])>
                 <a class="has-arrow ai-icon" href="javascript:void()" aria-expanded="false">

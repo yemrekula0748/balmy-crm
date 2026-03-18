@@ -54,6 +54,12 @@ use App\Http\Controllers\Modules\ItComputerController;
 use App\Http\Controllers\Modules\ItBackupController;
 use App\Http\Controllers\Modules\LoginLogController;
 use App\Http\Controllers\Modules\MyTaskController;
+use App\Http\Controllers\Modules\AgencyController;
+use App\Http\Controllers\Modules\AgencyContractController;
+use App\Http\Controllers\Modules\FrontDeskBedTypeController;
+use App\Http\Controllers\Modules\FrontDeskRoomTypeController;
+use App\Http\Controllers\Modules\FrontDeskRoomController;
+use App\Http\Controllers\Modules\FrontDeskReservationController;
 
 /*
 |--------------------------------------------------------------------------
@@ -752,6 +758,55 @@ Route::middleware('auth')->group(function () {
         Route::put('/{userTask}',    [MyTaskController::class, 'update'])->name('update');
         Route::patch('/{userTask}/tamamla', [MyTaskController::class, 'complete'])->name('complete');
         Route::delete('/{userTask}', [MyTaskController::class, 'destroy'])->name('destroy');
+    });
+
+    /*
+    |--------------------------------------------------------------------------
+    | Acenteler
+    |--------------------------------------------------------------------------
+    */
+    Route::prefix('acenteler')->name('agencies.')->group(function () {
+        Route::get('/',              [AgencyController::class, 'index'])->name('index');
+        Route::get('/yeni',          [AgencyController::class, 'create'])->name('create');
+        Route::post('/',             [AgencyController::class, 'store'])->name('store');
+        Route::put('/{agency}',      [AgencyController::class, 'update'])->name('update');
+        Route::delete('/{agency}',   [AgencyController::class, 'destroy'])->name('destroy');
+
+        Route::prefix('kontratlar')->name('contracts.')->group(function () {
+            Route::get('/',              [AgencyContractController::class, 'index'])->name('index');
+            Route::get('/yeni',          [AgencyContractController::class, 'create'])->name('create');
+            Route::post('/',             [AgencyContractController::class, 'store'])->name('store');
+            Route::put('/{contract}',    [AgencyContractController::class, 'update'])->name('update');
+            Route::delete('/{contract}', [AgencyContractController::class, 'destroy'])->name('destroy');
+        });
+    });
+
+    /*
+    |--------------------------------------------------------------------------
+    | Önbüro (Front Desk)
+    |--------------------------------------------------------------------------
+    */
+    Route::prefix('onburo')->name('frontdesk.')->group(function () {
+        Route::get('yatak-tipleri',             [FrontDeskBedTypeController::class, 'index'])->name('bed-types.index');
+        Route::post('yatak-tipleri',            [FrontDeskBedTypeController::class, 'store'])->name('bed-types.store');
+        Route::put('yatak-tipleri/{bedType}',   [FrontDeskBedTypeController::class, 'update'])->name('bed-types.update');
+        Route::delete('yatak-tipleri/{bedType}',[FrontDeskBedTypeController::class, 'destroy'])->name('bed-types.destroy');
+
+        Route::get('oda-tipleri',               [FrontDeskRoomTypeController::class, 'index'])->name('room-types.index');
+        Route::post('oda-tipleri',              [FrontDeskRoomTypeController::class, 'store'])->name('room-types.store');
+        Route::put('oda-tipleri/{roomType}',    [FrontDeskRoomTypeController::class, 'update'])->name('room-types.update');
+        Route::delete('oda-tipleri/{roomType}', [FrontDeskRoomTypeController::class, 'destroy'])->name('room-types.destroy');
+
+        Route::get('odalar',                    [FrontDeskRoomController::class, 'index'])->name('rooms.index');
+        Route::post('odalar',                   [FrontDeskRoomController::class, 'store'])->name('rooms.store');
+        Route::put('odalar/{room}',             [FrontDeskRoomController::class, 'update'])->name('rooms.update');
+        Route::delete('odalar/{room}',          [FrontDeskRoomController::class, 'destroy'])->name('rooms.destroy');
+
+        Route::get('rezervasyonlar',            [FrontDeskReservationController::class, 'index'])->name('reservations.index');
+        Route::get('rezervasyonlar/yeni',       [FrontDeskReservationController::class, 'create'])->name('reservations.create');
+        Route::post('rezervasyonlar',           [FrontDeskReservationController::class, 'store'])->name('reservations.store');
+        Route::get('rezervasyonlar/{reservation}', [FrontDeskReservationController::class, 'show'])->name('reservations.show');
+        Route::delete('rezervasyonlar/{reservation}', [FrontDeskReservationController::class, 'destroy'])->name('reservations.destroy');
     });
 
 }); // auth middleware group
