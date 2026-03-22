@@ -120,7 +120,7 @@
                             @if($room->images && count($room->images) > 0)
                             <div class="d-flex gap-1 flex-wrap">
                                 @foreach(array_slice($room->images, 0, 3) as $img)
-                                <img src="{{ asset('storage/' . $img) }}" alt="" class="room-thumb"
+                                <img src="{{ asset('uploads/' . $img) }}" alt="" class="room-thumb"
                                      data-bs-toggle="tooltip" title="Büyütmek için tıklayın">
                                 @endforeach
                                 @if(count($room->images) > 3)

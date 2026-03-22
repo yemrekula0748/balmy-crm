@@ -4,22 +4,70 @@
 
 @push('styles')
 <style>
-    .modern-dt { border-collapse: separate !important; border-spacing: 0 5px !important; }
-    .modern-dt thead th { border: none !important; font-size: 11.5px; color: #94a3b8; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; white-space: nowrap; background: transparent; padding: 6px 12px 10px; }
-    .modern-dt tbody tr { background: #fff; box-shadow: 0 1px 4px rgba(0,0,0,.06); transition: box-shadow .15s, transform .1s; }
-    .modern-dt tbody tr:hover { background: #fff !important; box-shadow: 0 3px 12px rgba(0,0,0,.12) !important; transform: translateY(-1px); }
-    .modern-dt tbody tr td { border: none !important; vertical-align: middle; padding: 10px 12px; }
-    .modern-dt tbody tr td:first-child { border-radius: 10px 0 0 10px; }
-    .modern-dt tbody tr td:last-child  { border-radius: 0 10px 10px 0; }
-    .modern-dt tbody tr.contract-active  { box-shadow: 0 1px 4px rgba(0,0,0,.06), -4px 0 0 0 #22c55e; }
-    .modern-dt tbody tr.contract-expired { box-shadow: 0 1px 4px rgba(0,0,0,.06), -4px 0 0 0 #ef4444; }
-    .modern-dt tbody tr.contract-future  { box-shadow: 0 1px 4px rgba(0,0,0,.06), -4px 0 0 0 #f59e0b; }
-    .price-pill { display:inline-flex; align-items:center; gap:4px; background:#f8f9fa;
-                  border:1px solid #dee2e6; border-radius:20px; padding:2px 9px;
-                  font-size:.72rem; white-space:nowrap; margin:2px; }
-    .price-pill .pp-label { color:#6c757d; font-weight:600; }
-    .price-pill .pp-val   { font-weight:700; color:#212529; }
-    .price-section { margin-bottom:3px; }
+    /* ── Layout ── */
+    .modern-dt { border-collapse: collapse !important; }
+    .modern-dt thead tr.col-header { background: #f1f5f9; }
+    .modern-dt thead th { border: none !important; font-size: 11px; color: #64748b; font-weight: 700;
+        text-transform: uppercase; letter-spacing: .6px; white-space: nowrap;
+        padding: 11px 14px; border-bottom: 2px solid #e2e8f0 !important; }
+    .modern-dt tbody tr { background: #fff; transition: background .1s; }
+    .modern-dt tbody tr:nth-child(even) { background: #fafbfc; }
+    .modern-dt tbody tr:hover { background: #f0f6ff !important; }
+    .modern-dt tbody tr td { border: none !important; border-bottom: 1px solid #f1f5f9 !important;
+        vertical-align: middle; padding: 10px 14px; }
+
+    /* ── Status stripe (left border via outline trick) ── */
+    .modern-dt tbody tr.contract-active  td:first-child { border-left: 3px solid #16a34a !important; }
+    .modern-dt tbody tr.contract-expired td:first-child { border-left: 3px solid #dc2626 !important; }
+    .modern-dt tbody tr.contract-future  td:first-child { border-left: 3px solid #d97706 !important; }
+
+    /* ── Contract code chip ── */
+    .code-chip { display:inline-flex; align-items:center; gap:6px;
+        background:#1e293b; color:#f8fafc; border-radius:6px;
+        padding:4px 10px; font-size:12px; font-weight:700; letter-spacing:.3px; }
+
+    /* ── Agency cell ── */
+    .agency-label { font-size:13px; font-weight:600; color:#1e293b; }
+    .agency-sub   { font-size:11px; color:#94a3b8; margin-top:1px; }
+
+    /* ── Date range ── */
+    .date-from { color:#16a34a; font-weight:600; font-size:12.5px; }
+    .date-to   { color:#dc2626; font-weight:600; font-size:12.5px; }
+    .date-arrow{ color:#cbd5e1; margin:0 4px; font-size:11px; }
+
+    /* ── Status badges ── */
+    .status-active  { background:#dcfce7; color:#15803d; border:1px solid #bbf7d0;
+        font-size:11px; font-weight:700; padding:3px 9px; border-radius:20px; display:inline-block; }
+    .status-expired { background:#fee2e2; color:#b91c1c; border:1px solid #fecaca;
+        font-size:11px; font-weight:700; padding:3px 9px; border-radius:20px; display:inline-block; }
+    .status-future  { background:#fef9c3; color:#92400e; border:1px solid #fde68a;
+        font-size:11px; font-weight:700; padding:3px 9px; border-radius:20px; display:inline-block; }
+
+    /* ── Room type chip ── */
+    .room-chip { background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe;
+        font-size:11.5px; font-weight:600; padding:3px 9px; border-radius:5px; display:inline-block; }
+
+    /* ── Price grid ── */
+    .price-grid { display:flex; flex-wrap:wrap; gap:3px; }
+    .price-pill { display:inline-flex; align-items:center; gap:4px; border-radius:4px;
+        padding:3px 7px; font-size:11px; white-space:nowrap; border:1px solid transparent; }
+    .price-pill-adult   { background:#f0fdf4; border-color:#bbf7d0; }
+    .price-pill-adult .pp-label   { color:#15803d; font-weight:700; }
+    .price-pill-adult .pp-val     { color:#166534; font-weight:700; }
+    .price-pill-child   { background:#fefce8; border-color:#fde68a; }
+    .price-pill-child .pp-label   { color:#92400e; font-weight:700; }
+    .price-pill-child .pp-val     { color:#78350f; font-weight:700; }
+    .price-pill-baby    { background:#fff1f2; border-color:#fecdd3; }
+    .price-pill-baby .pp-label    { color:#be123c; font-weight:700; }
+    .price-pill-baby .pp-val      { color:#9f1239; font-weight:700; }
+
+    /* ── Table toolbar ── */
+    .table-toolbar { background:#f8fafc; border-bottom:1px solid #e2e8f0; padding:10px 16px; }
+
+    /* ── Stat cards ── */
+    .stat-card { border-radius:10px; overflow:hidden; }
+    .stat-card .stat-icon { width:46px;height:46px;border-radius:8px;
+        display:flex;align-items:center;justify-content:center;font-size:18px; }
 </style>
 @endpush
 
@@ -80,52 +128,46 @@
     @endphp
     <div class="row g-3 mb-4">
         <div class="col-sm-4">
-            <div class="card border-0 shadow-sm h-100" style="border-left:4px solid #22c55e !important">
-                <div class="card-body d-flex align-items-center gap-3">
-                    <div class="rounded-circle d-flex align-items-center justify-content-center"
-                         style="width:48px;height:48px;background:rgba(34,197,94,.15)">
-                        <i class="fas fa-check-circle text-success fs-5"></i>
-                    </div>
+            <div class="card border-0 shadow-sm stat-card">
+                <div class="card-body d-flex align-items-center gap-3 py-3">
+                    <div class="stat-icon" style="background:#dcfce7"><i class="fas fa-check-circle" style="color:#16a34a"></i></div>
                     <div>
-                        <div class="fs-4 fw-bold text-success">{{ $active }}</div>
-                        <div class="text-muted small">Aktif Kontrat</div>
+                        <div class="fs-3 fw-bold lh-1 mb-1" style="color:#16a34a">{{ $active }}</div>
+                        <div class="text-uppercase fw-semibold" style="font-size:10.5px;color:#64748b;letter-spacing:.5px">Aktif Kontrat</div>
                     </div>
+                    <div class="ms-auto" style="font-size:38px;font-weight:900;color:#dcfce7;line-height:1">A</div>
                 </div>
             </div>
         </div>
         <div class="col-sm-4">
-            <div class="card border-0 shadow-sm h-100" style="border-left:4px solid #f59e0b !important">
-                <div class="card-body d-flex align-items-center gap-3">
-                    <div class="rounded-circle d-flex align-items-center justify-content-center"
-                         style="width:48px;height:48px;background:rgba(245,158,11,.15)">
-                        <i class="fas fa-clock text-warning fs-5"></i>
-                    </div>
+            <div class="card border-0 shadow-sm stat-card">
+                <div class="card-body d-flex align-items-center gap-3 py-3">
+                    <div class="stat-icon" style="background:#fef9c3"><i class="fas fa-clock" style="color:#d97706"></i></div>
                     <div>
-                        <div class="fs-4 fw-bold text-warning">{{ $future }}</div>
-                        <div class="text-muted small">Gelecek Kontrat</div>
+                        <div class="fs-3 fw-bold lh-1 mb-1" style="color:#d97706">{{ $future }}</div>
+                        <div class="text-uppercase fw-semibold" style="font-size:10.5px;color:#64748b;letter-spacing:.5px">Gelecek Kontrat</div>
                     </div>
+                    <div class="ms-auto" style="font-size:38px;font-weight:900;color:#fef9c3;line-height:1">G</div>
                 </div>
             </div>
         </div>
         <div class="col-sm-4">
-            <div class="card border-0 shadow-sm h-100" style="border-left:4px solid #ef4444 !important">
-                <div class="card-body d-flex align-items-center gap-3">
-                    <div class="rounded-circle d-flex align-items-center justify-content-center"
-                         style="width:48px;height:48px;background:rgba(239,68,68,.15)">
-                        <i class="fas fa-times-circle text-danger fs-5"></i>
-                    </div>
+            <div class="card border-0 shadow-sm stat-card">
+                <div class="card-body d-flex align-items-center gap-3 py-3">
+                    <div class="stat-icon" style="background:#fee2e2"><i class="fas fa-times-circle" style="color:#dc2626"></i></div>
                     <div>
-                        <div class="fs-4 fw-bold text-danger">{{ $expired }}</div>
-                        <div class="text-muted small">Süresi Dolmuş</div>
+                        <div class="fs-3 fw-bold lh-1 mb-1" style="color:#dc2626">{{ $expired }}</div>
+                        <div class="text-uppercase fw-semibold" style="font-size:10.5px;color:#64748b;letter-spacing:.5px">Süresi Dolmuş</div>
                     </div>
+                    <div class="ms-auto" style="font-size:38px;font-weight:900;color:#fee2e2;line-height:1">S</div>
                 </div>
             </div>
         </div>
     </div>
 
     {{-- Table --}}
-    <div class="card border-0 shadow-sm overflow-hidden">
-        <div class="px-3 py-2 border-bottom bg-white d-flex justify-content-between align-items-center gap-2 flex-wrap">
+    <div class="card border-0 shadow-sm">
+        <div class="table-toolbar d-flex justify-content-between align-items-center gap-2 flex-wrap">
             <div class="d-flex align-items-center gap-2">
                 <span class="text-muted" style="font-size:.8rem">Göster</span>
                 <select id="contractsTable-len" class="form-select form-select-sm" style="width:72px">
@@ -136,21 +178,28 @@
                 </select>
                 <span class="text-muted" style="font-size:.8rem">kayıt</span>
             </div>
-            <input type="text" id="contractsTable-search" class="form-control form-control-sm" placeholder="Ara..." style="max-width:220px">
+            <div class="d-flex align-items-center gap-3">
+                <div class="d-flex align-items-center gap-2" style="font-size:11px;color:#64748b">
+                    <span class="d-inline-block" style="width:10px;height:10px;border-radius:2px;background:#16a34a"></span>Aktif
+                    <span class="d-inline-block ms-1" style="width:10px;height:10px;border-radius:2px;background:#d97706"></span>Gelecek
+                    <span class="d-inline-block ms-1" style="width:10px;height:10px;border-radius:2px;background:#dc2626"></span>Süresi Dolmuş
+                </div>
+                <input type="text" id="contractsTable-search" class="form-control form-control-sm" placeholder="Ara..." style="max-width:220px">
+            </div>
         </div>
-        <div class="table-responsive px-2 pt-1">
+        <div class="table-responsive">
             <table id="contractsTable" class="table modern-dt align-middle mb-0 w-100">
-                <thead>
-                        <tr>
-                            <th>Kontrat Kodu</th>
-                            <th>Acente</th>
-                            <th>Oda Tipi</th>
-                            <th>Tarih Aralığı</th>
-                            <th>Durum</th>
-                            <th>Fiyatlar (YT / Ç0 / B0)</th>
-                            <th style="width:70px">İşlem</th>
-                        </tr>
-                    </thead>
+                <thead class="col-header">
+                    <tr>
+                        <th>Kontrat Kodu</th>
+                        <th>Acente</th>
+                        <th>Oda Tipi</th>
+                        <th>Tarih Aralığı</th>
+                        <th>Durum</th>
+                        <th>Fiyatlar</th>
+                        <th style="width:60px"></th>
+                    </tr>
+                </thead>
                     <tbody>
                         @forelse($contracts as $contract)
                         @php
@@ -160,57 +209,67 @@
                             $rowClass  = $isActive ? 'contract-active' : ($isExpired ? 'contract-expired' : 'contract-future');
                         @endphp
                         <tr class="{{ $rowClass }}">
-                            <td><span class="badge bg-dark fw-semibold">{{ $contract->contract_code }}</span></td>
                             <td>
-                                <div class="fw-semibold small">{{ $contract->agency->name ?? '—' }}</div>
-                                <div class="text-muted" style="font-size:.73rem">{{ $contract->agency->agency_code ?? '' }}</div>
+                                <span class="code-chip">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none"
+                                         stroke="currentColor" stroke-width="2.5">
+                                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                        <polyline points="14 2 14 8 20 8"/>
+                                    </svg>
+                                    {{ $contract->contract_code }}
+                                </span>
                             </td>
-                            <td><span class="badge bg-primary-subtle text-primary">{{ $contract->roomType->name ?? '—' }}</span></td>
                             <td>
-                                <span class="small text-success fw-semibold">{{ $contract->start_date->format('d.m.Y') }}</span>
-                                <span class="text-muted mx-1">→</span>
-                                <span class="small text-danger fw-semibold">{{ $contract->end_date->format('d.m.Y') }}</span>
+                                <div class="agency-label">{{ $contract->agency->name ?? '—' }}</div>
+                                <div class="agency-sub">{{ $contract->agency->agency_code ?? '' }}</div>
+                            </td>
+                            <td><span class="room-chip">{{ $contract->roomType->name ?? '—' }}</span></td>
+                            <td>
+                                <span class="date-from">{{ $contract->start_date->format('d.m.Y') }}</span>
+                                <span class="date-arrow">→</span>
+                                <span class="date-to">{{ $contract->end_date->format('d.m.Y') }}</span>
+                                <div style="font-size:11px;color:#94a3b8;margin-top:2px">
+                                    {{ $contract->start_date->diffInDays($contract->end_date) }} gün
+                                </div>
                             </td>
                             <td>
                                 @if($isActive)
-                                    <span class="badge bg-success">Aktif</span>
+                                    <span class="status-active">✓ Aktif</span>
                                 @elseif($isFuture)
-                                    <span class="badge bg-warning text-dark">Gelecek</span>
+                                    <span class="status-future">● Gelecek</span>
                                 @else
-                                    <span class="badge bg-danger">Süresi Doldu</span>
+                                    <span class="status-expired">× Süresi Doldu</span>
                                 @endif
                             </td>
                             <td>
-                                <div class="price-section">
+                                <div class="price-grid">
                                     @if($contract->price_single)
-                                    <span class="price-pill"><span class="pp-label">1Y</span><span class="pp-val">{{ number_format($contract->price_single,2) }}</span></span>
+                                    <span class="price-pill price-pill-adult"><span class="pp-label">1Y</span><span class="pp-val">{{ number_format($contract->price_single,2) }}</span></span>
                                     @endif
                                     @if($contract->price_double)
-                                    <span class="price-pill"><span class="pp-label">2Y</span><span class="pp-val">{{ number_format($contract->price_double,2) }}</span></span>
+                                    <span class="price-pill price-pill-adult"><span class="pp-label">2Y</span><span class="pp-val">{{ number_format($contract->price_double,2) }}</span></span>
                                     @endif
                                     @if($contract->price_triple)
-                                    <span class="price-pill"><span class="pp-label">3Y</span><span class="pp-val">{{ number_format($contract->price_triple,2) }}</span></span>
+                                    <span class="price-pill price-pill-adult"><span class="pp-label">3Y</span><span class="pp-val">{{ number_format($contract->price_triple,2) }}</span></span>
                                     @endif
                                     @if($contract->price_quad)
-                                    <span class="price-pill"><span class="pp-label">4Y</span><span class="pp-val">{{ number_format($contract->price_quad,2) }}</span></span>
+                                    <span class="price-pill price-pill-adult"><span class="pp-label">4Y</span><span class="pp-val">{{ number_format($contract->price_quad,2) }}</span></span>
                                     @endif
-                                </div>
-                                <div class="price-section">
                                     @if($contract->price_child1)
-                                    <span class="price-pill" style="background:#fff8e1;border-color:#f9c74f"><span class="pp-label">Ç1</span><span class="pp-val">{{ number_format($contract->price_child1,2) }}</span></span>
+                                    <span class="price-pill price-pill-child"><span class="pp-label">Ç1</span><span class="pp-val">{{ number_format($contract->price_child1,2) }}</span></span>
                                     @endif
                                     @if($contract->price_child2)
-                                    <span class="price-pill" style="background:#fff8e1;border-color:#f9c74f"><span class="pp-label">Ç2</span><span class="pp-val">{{ number_format($contract->price_child2,2) }}</span></span>
+                                    <span class="price-pill price-pill-child"><span class="pp-label">Ç2</span><span class="pp-val">{{ number_format($contract->price_child2,2) }}</span></span>
                                     @endif
                                     @if($contract->price_baby1)
-                                    <span class="price-pill" style="background:#ffeded;border-color:#f87171"><span class="pp-label">B1</span><span class="pp-val">{{ number_format($contract->price_baby1,2) }}</span></span>
+                                    <span class="price-pill price-pill-baby"><span class="pp-label">B1</span><span class="pp-val">{{ number_format($contract->price_baby1,2) }}</span></span>
                                     @endif
                                     @if($contract->price_baby2)
-                                    <span class="price-pill" style="background:#ffeded;border-color:#f87171"><span class="pp-label">B2</span><span class="pp-val">{{ number_format($contract->price_baby2,2) }}</span></span>
+                                    <span class="price-pill price-pill-baby"><span class="pp-label">B2</span><span class="pp-val">{{ number_format($contract->price_baby2,2) }}</span></span>
                                     @endif
                                 </div>
                             </td>
-                            <td>
+                            <td class="text-center">
                                 @if(auth()->user()->hasPermission('agency_contracts', 'delete'))
                                 <form action="{{ route('agencies.contracts.destroy', $contract) }}" method="POST" class="d-inline delete-contract-form">
                                     @csrf @method('DELETE')
