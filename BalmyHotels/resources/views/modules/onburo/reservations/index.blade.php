@@ -3,11 +3,14 @@
 @section('title', 'Rezervasyonlar')
 
 @push('styles')
-<link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap5.min.css">
 <style>
-    #reservationsTable thead th { white-space:nowrap; font-size:.78rem; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:#4b5563; }
-    #reservationsTable tbody tr:hover { background:#fdf8f4 !important; }
-    #reservationsTable td { vertical-align:middle; }
+    .modern-dt { border-collapse: separate !important; border-spacing: 0 5px !important; }
+    .modern-dt thead th { border: none !important; font-size: 11.5px; color: #94a3b8; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; white-space: nowrap; background: transparent; padding: 6px 12px 10px; }
+    .modern-dt tbody tr { background: #fff; box-shadow: 0 1px 4px rgba(0,0,0,.06); transition: box-shadow .15s, transform .1s; }
+    .modern-dt tbody tr:hover { background: #fff !important; box-shadow: 0 3px 12px rgba(0,0,0,.12) !important; transform: translateY(-1px); }
+    .modern-dt tbody tr td { border: none !important; vertical-align: middle; padding: 10px 12px; }
+    .modern-dt tbody tr td:first-child { border-radius: 10px 0 0 10px; }
+    .modern-dt tbody tr td:last-child  { border-radius: 0 10px 10px 0; }
 </style>
 @endpush
 
@@ -83,11 +86,23 @@
         @endif
     </div>
 
-    <div class="card border-0 shadow-sm">
-        <div class="card-body p-0">
-            <div class="table-responsive">
-                <table id="reservationsTable" class="table table-hover align-middle mb-0 w-100">
-                    <thead class="table-light">
+    <div class="card border-0 shadow-sm overflow-hidden">
+        <div class="px-3 py-2 border-bottom bg-white d-flex justify-content-between align-items-center gap-2 flex-wrap">
+            <div class="d-flex align-items-center gap-2">
+                <span class="text-muted" style="font-size:.8rem">Göster</span>
+                <select id="reservationsTable-len" class="form-select form-select-sm" style="width:72px">
+                    <option value="10">10</option>
+                    <option value="25" selected>25</option>
+                    <option value="50">50</option>
+                    <option value="100">100</option>
+                </select>
+                <span class="text-muted" style="font-size:.8rem">kayıt</span>
+            </div>
+            <input type="text" id="reservationsTable-search" class="form-control form-control-sm" placeholder="Ara..." style="max-width:220px">
+        </div>
+        <div class="table-responsive px-2 pt-1">
+            <table id="reservationsTable" class="table modern-dt align-middle mb-0 w-100">
+                <thead>
                         <tr>
                             <th>Rez. No</th>
                             <th>Acente</th>
@@ -149,24 +164,21 @@
                         @endforelse
                     </tbody>
                 </table>
-            </div>
+        </div>
+        <div class="px-3 py-2 border-top bg-white d-flex justify-content-between align-items-center gap-2 flex-wrap">
+            <small class="text-muted" id="reservationsTable-info"></small>
+            <nav><ul class="pagination pagination-sm mb-0" id="reservationsTable-pagin"></ul></nav>
         </div>
     </div>
 </div>
 @endsection
 
 @push('scripts')
-<script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
-<script src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap5.min.js"></script>
 <script src="{{ asset('vendor/sweetalert2/dist/sweetalert2.min.js') }}"></script>
+<script src="{{ asset('js/modern-table.js') }}"></script>
 <script>
 $(function () {
-    $('#reservationsTable').DataTable({
-        language: { url: 'https://cdn.datatables.net/plug-ins/1.13.7/i18n/tr.json' },
-        order: [[3, 'desc']],
-        pageLength: 25,
-        columnDefs: [{ targets: [-1], orderable: false, searchable: false }]
-    });
+    modernTable('reservationsTable', { pageLength: 25 });
 
     $(document).on('submit', '.del-res-form', function (e) {
         e.preventDefault(); const form = this;
