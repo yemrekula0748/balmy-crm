@@ -1,14 +1,19 @@
 /**
- * modernTable — Lightweight client-side search + pagination.
+ * modernTable — Lightweight client-side search + per-column filtering + pagination.
  * Replaces DataTables for simple use cases.
  *
  * Usage: modernTable('myTableId', { pageLength: 25 });
  *
  * Required DOM elements (by id convention):
- *   #myTableId-search  → search <input>
+ *   #myTableId-search  → global search <input>
  *   #myTableId-len     → page-length <select>
  *   #myTableId-info    → info text element (e.g. <small>)
  *   #myTableId-pagin   → <ul class="pagination"> container
+ *
+ * Optional — column filters:
+ *   Add a <tr class="col-filters"> inside <thead>.
+ *   Each <th> may contain an <input> to filter that column by index.
+ *   Leave <th> empty (no input) to skip filtering for that column.
  */
 function modernTable(tableId, opts) {
     opts = Object.assign({ pageLength: 25 }, opts || {});
@@ -29,14 +34,36 @@ function modernTable(tableId, opts) {
     var infoEl   = document.getElementById(tableId + '-info');
     var paginEl  = document.getElementById(tableId + '-pagin');
 
+    // Collect column filter inputs from thead tr.col-filters
+    var colFilters = [];
+    var filterRow = table.querySelector('thead tr.col-filters');
+    if (filterRow) {
+        Array.from(filterRow.querySelectorAll('th')).forEach(function (th, idx) {
+            var inp = th.querySelector('input');
+            if (inp) {
+                colFilters.push({ index: idx, el: inp });
+                inp.addEventListener('input', function () { page = 1; render(); });
+            }
+        });
+    }
+
     var pageLen  = opts.pageLength;
     var page     = 1;
 
     function getFiltered() {
         var q = (searchEl ? searchEl.value : '').toLowerCase().trim();
-        if (!q) return dataRows.slice();
         return dataRows.filter(function (r) {
-            return r.textContent.toLowerCase().indexOf(q) !== -1;
+            // Global search across entire row
+            if (q && r.textContent.toLowerCase().indexOf(q) === -1) return false;
+            // Per-column filters (AND logic)
+            for (var i = 0; i < colFilters.length; i++) {
+                var cf  = colFilters[i];
+                var val = cf.el.value.toLowerCase().trim();
+                if (!val) continue;
+                var cell = r.cells[cf.index];
+                if (!cell || cell.textContent.toLowerCase().indexOf(val) === -1) return false;
+            }
+            return true;
         });
     }
 

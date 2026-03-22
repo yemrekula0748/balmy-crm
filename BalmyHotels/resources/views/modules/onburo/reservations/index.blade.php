@@ -11,6 +11,11 @@
     .modern-dt tbody tr td { border: none !important; vertical-align: middle; padding: 10px 12px; }
     .modern-dt tbody tr td:first-child { border-radius: 10px 0 0 10px; }
     .modern-dt tbody tr td:last-child  { border-radius: 0 10px 10px 0; }
+    /* Column filters row */
+    .col-filters th { padding: 4px 6px 8px !important; font-size: inherit !important; color: inherit !important; text-transform: none !important; letter-spacing: 0 !important; font-weight: normal !important; }
+    .col-filters input { font-size: 12px; border-radius: 6px; border: 1px solid #e2e8f0; background: #f8fafc; transition: border-color .15s, box-shadow .15s; }
+    .col-filters input:focus { border-color: #6366f1; box-shadow: 0 0 0 2px rgba(99,102,241,.15); background: #fff; }
+    .col-filters input::placeholder { color: #cbd5e1; }
 </style>
 @endpush
 
@@ -103,19 +108,31 @@
         <div class="table-responsive px-2 pt-1">
             <table id="reservationsTable" class="table modern-dt align-middle mb-0 w-100">
                 <thead>
-                        <tr>
-                            <th>Rez. No</th>
-                            <th>Acente</th>
-                            <th>Oda</th>
-                            <th>Giriş</th>
-                            <th>Çıkış</th>
-                            <th>Gece</th>
-                            <th>Misafirler</th>
-                            <th>Durum</th>
-                            <th>Voucher</th>
-                            <th>İşlem</th>
-                        </tr>
-                    </thead>
+                    <tr>
+                        <th>Rez. No</th>
+                        <th>Acente</th>
+                        <th>Oda</th>
+                        <th>Giriş</th>
+                        <th>Çıkış</th>
+                        <th>Gece</th>
+                        <th>Misafirler</th>
+                        <th>Durum</th>
+                        <th>Voucher</th>
+                        <th>İşlem</th>
+                    </tr>
+                    <tr class="col-filters">
+                        <th><input type="text" class="form-control form-control-sm w-100" placeholder="Ara..."></th>
+                        <th><input type="text" class="form-control form-control-sm w-100" placeholder="Ara..."></th>
+                        <th><input type="text" class="form-control form-control-sm w-100" placeholder="Ara..."></th>
+                        <th><input type="text" class="form-control form-control-sm w-100" placeholder="gg.aa.yy"></th>
+                        <th><input type="text" class="form-control form-control-sm w-100" placeholder="gg.aa.yy"></th>
+                        <th><input type="text" class="form-control form-control-sm w-100" placeholder="#"></th>
+                        <th></th>
+                        <th><input type="text" class="form-control form-control-sm w-100" placeholder="Durum..."></th>
+                        <th><input type="text" class="form-control form-control-sm w-100" placeholder="Ara..."></th>
+                        <th></th>
+                    </tr>
+                </thead>
                     <tbody>
                         @forelse($reservations as $r)
                         @php $color = \App\Models\Reservation::STATUS_COLORS[$r->status] ?? 'secondary'; @endphp
