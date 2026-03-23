@@ -55,11 +55,11 @@
         .a4-page:last-child { page-break-after: auto; }
 
         /* =====================================================
-           LABEL KARTI — 94mm × 63mm  (sayfa başına 9 kart, 3×3 yatay A4)
+           LABEL KARTI — 94mm × 99mm  (sayfa başına 6 kart, 3×2 yatay A4)
            ===================================================== */
         .label-card {
             width: 94mm;
-            height: 63mm;
+            height: 99mm;
             border: 0.5pt solid #d1d5db;
             border-radius: 2.5mm;
             overflow: hidden;
@@ -177,15 +177,15 @@
 
         /* Sağ sütun: sadece QR */
         .label-right {
-            width: 18mm;
+            width: 32mm;
             flex-shrink: 0;
-            padding: 1.5mm;
+            padding: 2mm;
             border-left: 0.5pt solid #f3f4f6;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: flex-start;
-            padding-top: 2mm;
+            padding-top: 3mm;
         }
 
         .allergen-title {
@@ -223,8 +223,8 @@
 
         /* Alt şerit */
         .label-bottom {
-            height: 13mm;
-            padding: 1mm 2mm 1mm 2mm;
+            height: 20mm;
+            padding: 2mm 3mm 2mm 3mm;
             flex-shrink: 0;
             display: flex;
             align-items: flex-start;
@@ -250,17 +250,17 @@
         .bottom-right { display: flex; align-items: center; flex-shrink: 0; }
 
         .card-logo {
-            height: 8mm;
+            height: 12mm;
             width: auto;
             opacity: 0.75;
             flex-shrink: 0;
             filter: grayscale(1) brightness(0.35);
         }
 
-        .qr-container { width: 14mm; height: 14mm; flex-shrink: 0; }
+        .qr-container { width: 26mm; height: 26mm; flex-shrink: 0; }
         .qr-container canvas, .qr-container img {
-            width: 14mm !important;
-            height: 14mm !important;
+            width: 26mm !important;
+            height: 26mm !important;
             display: block;
         }
 
@@ -360,7 +360,7 @@
     <h5>🖨️ Yemek İsimlik Baskı Önizleme</h5>
     <div class="meta">
         {{ $labels->count() }} isimlik —
-        {{ ceil($labels->count() / 9) }} sayfa (yatay A4, sayfa başına 9 kart)
+        {{ ceil($labels->count() / 6) }} sayfa (yatay A4, sayfa başına 6 kart)
     </div>
     <button class="btn-print" onclick="window.print()">
         🖨️ Yazdır / PDF Kaydet
@@ -369,7 +369,7 @@
 </div>
 
 @php
-    $chunks = $labels->chunk(9);
+    $chunks = $labels->chunk(6);
 
     // Kategori renkleri
     $catColors = [
@@ -494,7 +494,7 @@
     @endforeach
 
     {{-- Boş hücre dolgusu (9'u tamamlamak için) --}}
-    @for($i = $chunk->count(); $i < 9; $i++)
+    @for($i = $chunk->count(); $i < 6; $i++)
     <div class="label-card" style="border:0.5pt dashed #e5e7eb;background:transparent"></div>
     @endfor
 </div>
