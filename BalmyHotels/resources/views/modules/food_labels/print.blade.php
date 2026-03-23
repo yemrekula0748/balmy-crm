@@ -37,17 +37,17 @@
             margin-bottom: 12px;
         }
 
-        /* Yatay A4 sayfa */
+        /* Dikey A4 sayfa - 3×3 = 9 kart */
         .a4-page {
-            width: 297mm;
-            min-height: 210mm;
+            width: 210mm;
+            min-height: 297mm;
             background: #fff;
             margin: 0 auto 20px;
-            padding: 8mm;
+            padding: 5mm;
             box-shadow: 0 4px 20px rgba(0,0,0,0.12);
             display: flex;
             flex-wrap: wrap;
-            gap: 2.5mm;
+            gap: 2mm;
             align-content: flex-start;
             page-break-after: always;
         }
@@ -55,11 +55,11 @@
         .a4-page:last-child { page-break-after: auto; }
 
         /* =====================================================
-           LABEL KARTI — 138mm × 95mm  (sayfa başına 4 kart, 2×2)
+           LABEL KARTI — 65mm × 93mm  (sayfa başına 9 kart, 3×3)
            ===================================================== */
         .label-card {
-            width: 138mm;
-            height: 95mm;
+            width: 65mm;
+            height: 93mm;
             border: 0.5pt solid #d1d5db;
             border-radius: 2.5mm;
             overflow: hidden;
@@ -120,7 +120,7 @@
 
         .label-left {
             flex: 1;
-            padding: 3mm 3mm 2mm 3.5mm;
+            padding: 2mm 2mm 1.5mm 2mm;
             overflow: hidden;
             display: flex;
             flex-direction: column;
@@ -129,13 +129,13 @@
         }
 
         .name-tr {
-            font-size: 17pt;
+            font-size: 10pt;
             font-weight: 800;
             color: #1a1a2e;
             line-height: 1.2;
         }
 
-        .name-other { font-size: 12pt; color: #4b5563; line-height: 1.35; }
+        .name-other { font-size: 7pt; color: #4b5563; line-height: 1.35; }
         .name-other span { display: block; }
 
         .cal-pill {
@@ -145,8 +145,8 @@
             background: #fff8e1;
             border: 0.5pt solid #f9a825;
             border-radius: 1.5mm;
-            padding: 0.6mm 2mm;
-            font-size: 7.5pt;
+            padding: 0.4mm 1.5mm;
+            font-size: 6pt;
             font-weight: 700;
             color: #b45309;
         }
@@ -177,15 +177,15 @@
 
         /* Sağ sütun: sadece QR */
         .label-right {
-            width: 32mm;
+            width: 20mm;
             flex-shrink: 0;
-            padding: 2mm;
+            padding: 1.5mm;
             border-left: 0.5pt solid #f3f4f6;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: flex-start;
-            padding-top: 3mm;
+            padding-top: 2mm;
         }
 
         .allergen-title {
@@ -223,8 +223,8 @@
 
         /* Alt şerit */
         .label-bottom {
-            height: 24mm;
-            padding: 2mm 3mm 2mm 3.5mm;
+            height: 16mm;
+            padding: 1.5mm 2mm 1.5mm 2mm;
             flex-shrink: 0;
             display: flex;
             align-items: flex-start;
@@ -250,17 +250,17 @@
         .bottom-right { display: flex; align-items: center; flex-shrink: 0; }
 
         .card-logo {
-            height: 14mm;
+            height: 10mm;
             width: auto;
             opacity: 0.75;
             flex-shrink: 0;
             filter: grayscale(1) brightness(0.35);
         }
 
-        .qr-container { width: 27mm; height: 27mm; flex-shrink: 0; }
+        .qr-container { width: 17mm; height: 17mm; flex-shrink: 0; }
         .qr-container canvas, .qr-container img {
-            width: 27mm !important;
-            height: 27mm !important;
+            width: 17mm !important;
+            height: 17mm !important;
             display: block;
         }
 
@@ -303,10 +303,10 @@
             .print-toolbar { display: none; }
 
             .a4-page {
-                width: 297mm;
-                height: 210mm;
+                width: 210mm;
+                height: 297mm;
                 margin: 0;
-                padding: 8mm;
+                padding: 5mm;
                 box-shadow: none;
                 page-break-after: always;
                 overflow: hidden;
@@ -347,7 +347,7 @@
             }
 
             @page {
-                size: A4 landscape;
+                size: A4 portrait;
                 margin: 0;
             }
         }
@@ -360,7 +360,7 @@
     <h5>🖨️ Yemek İsimlik Baskı Önizleme</h5>
     <div class="meta">
         {{ $labels->count() }} isimlik —
-        {{ ceil($labels->count() / 4) }} sayfa (yatay A4, sayfa başına 4 kart)
+        {{ ceil($labels->count() / 9) }} sayfa (dikey A4, sayfa başına 9 kart)
     </div>
     <button class="btn-print" onclick="window.print()">
         🖨️ Yazdır / PDF Kaydet
@@ -369,7 +369,7 @@
 </div>
 
 @php
-    $chunks = $labels->chunk(4);
+    $chunks = $labels->chunk(9);
 
     // Kategori renkleri
     $catColors = [
@@ -420,11 +420,6 @@
         ])->filter(fn($v) => !empty($v));
     @endphp
     <div class="label-card">
-
-        {{-- Üst bant --}}
-        <div class="label-top" style="background:{{ $color['bg'] }}">
-            <span class="cat-name" style="color:{{ $color['text'] }}">{{ $catName }}</span>
-        </div>
 
         {{-- Gövde: sol (isim/kalori/malzeme) + sağ (allerjenler) --}}
         <div class="label-body">
