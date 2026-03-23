@@ -120,24 +120,20 @@
 
         .label-left {
             flex: 1;
-            padding: 2mm 2mm 1.5mm 2mm;
-            overflow: hidden;
+            padding: 4mm 2mm 2mm 3mm;
             display: flex;
             flex-direction: column;
-            gap: 1.2mm;
+            gap: 1.5mm;
             min-height: 0;
+            overflow: hidden;
         }
 
         .name-tr {
             font-size: 12pt;
             font-weight: 800;
             color: #1a1a2e;
-            line-height: 1.2;
+            line-height: 1.25;
             flex-shrink: 0;
-            overflow: hidden;
-            display: -webkit-box;
-            -webkit-line-clamp: 2;
-            -webkit-box-orient: vertical;
         }
 
         .name-other {
@@ -145,8 +141,6 @@
             color: #4b5563;
             line-height: 1.35;
             flex-shrink: 0;
-            max-height: 18mm;
-            overflow: hidden;
         }
         .name-other span { display: block; }
 
