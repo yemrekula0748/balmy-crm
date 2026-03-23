@@ -39,8 +39,8 @@
 
         /* Dikey A4 sayfa - 3×3 = 9 kart */
         .a4-page {
-            width: 210mm;
-            min-height: 297mm;
+            width: 297mm;
+            min-height: 210mm;
             background: #fff;
             margin: 0 auto 20px;
             padding: 5mm;
@@ -55,11 +55,11 @@
         .a4-page:last-child { page-break-after: auto; }
 
         /* =====================================================
-           LABEL KARTI — 65mm × 93mm  (sayfa başına 9 kart, 3×3)
+           LABEL KARTI — 94mm × 63mm  (sayfa başına 9 kart, 3×3 yatay A4)
            ===================================================== */
         .label-card {
-            width: 65mm;
-            height: 93mm;
+            width: 94mm;
+            height: 63mm;
             border: 0.5pt solid #d1d5db;
             border-radius: 2.5mm;
             overflow: hidden;
@@ -177,7 +177,7 @@
 
         /* Sağ sütun: sadece QR */
         .label-right {
-            width: 20mm;
+            width: 18mm;
             flex-shrink: 0;
             padding: 1.5mm;
             border-left: 0.5pt solid #f3f4f6;
@@ -223,8 +223,8 @@
 
         /* Alt şerit */
         .label-bottom {
-            height: 16mm;
-            padding: 1.5mm 2mm 1.5mm 2mm;
+            height: 13mm;
+            padding: 1mm 2mm 1mm 2mm;
             flex-shrink: 0;
             display: flex;
             align-items: flex-start;
@@ -250,17 +250,17 @@
         .bottom-right { display: flex; align-items: center; flex-shrink: 0; }
 
         .card-logo {
-            height: 10mm;
+            height: 8mm;
             width: auto;
             opacity: 0.75;
             flex-shrink: 0;
             filter: grayscale(1) brightness(0.35);
         }
 
-        .qr-container { width: 17mm; height: 17mm; flex-shrink: 0; }
+        .qr-container { width: 14mm; height: 14mm; flex-shrink: 0; }
         .qr-container canvas, .qr-container img {
-            width: 17mm !important;
-            height: 17mm !important;
+            width: 14mm !important;
+            height: 14mm !important;
             display: block;
         }
 
@@ -303,8 +303,8 @@
             .print-toolbar { display: none; }
 
             .a4-page {
-                width: 210mm;
-                height: 297mm;
+                width: 297mm;
+                height: 210mm;
                 margin: 0;
                 padding: 5mm;
                 box-shadow: none;
@@ -347,7 +347,7 @@
             }
 
             @page {
-                size: A4 portrait;
+                size: A4 landscape;
                 margin: 0;
             }
         }
@@ -360,7 +360,7 @@
     <h5>🖨️ Yemek İsimlik Baskı Önizleme</h5>
     <div class="meta">
         {{ $labels->count() }} isimlik —
-        {{ ceil($labels->count() / 9) }} sayfa (dikey A4, sayfa başına 9 kart)
+        {{ ceil($labels->count() / 9) }} sayfa (yatay A4, sayfa başına 9 kart)
     </div>
     <button class="btn-print" onclick="window.print()">
         🖨️ Yazdır / PDF Kaydet
