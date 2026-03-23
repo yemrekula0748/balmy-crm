@@ -89,7 +89,7 @@
         .label-top .diet-badges { display: flex; gap: 1mm; align-items: center; }
         .diet-badge { font-size: 10pt; line-height: 1; }
 
-        .diet-pills { display: flex; flex-wrap: wrap; gap: 0.8mm; }
+        .diet-pills { display: flex; flex-wrap: wrap; gap: 0.8mm; flex-shrink: 0; }
         .diet-pill {
             display: inline-flex;
             align-items: center;
@@ -133,9 +133,21 @@
             font-weight: 800;
             color: #1a1a2e;
             line-height: 1.2;
+            flex-shrink: 0;
+            overflow: hidden;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
         }
 
-        .name-other { font-size: 12pt; color: #4b5563; line-height: 1.35; }
+        .name-other {
+            font-size: 12pt;
+            color: #4b5563;
+            line-height: 1.35;
+            flex-shrink: 0;
+            max-height: 18mm;
+            overflow: hidden;
+        }
         .name-other span { display: block; }
 
         .cal-pill {
@@ -149,6 +161,7 @@
             font-size: 6pt;
             font-weight: 700;
             color: #b45309;
+            flex-shrink: 0;
         }
 
         .ing-title {
@@ -158,6 +171,7 @@
             text-transform: uppercase;
             letter-spacing: 0.3px;
             margin-bottom: 0.5mm;
+            flex-shrink: 0;
         }
 
         .ing-text {
