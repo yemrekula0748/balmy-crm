@@ -40,7 +40,7 @@
         /* Dikey A4 sayfa - 3×3 = 9 kart */
         .a4-page {
             width: 297mm;
-            min-height: 210mm;
+            height: 210mm;
             background: #fff;
             margin: 0 auto 20px;
             padding: 5mm;
@@ -223,8 +223,8 @@
 
         /* Alt şerit */
         .label-bottom {
-            height: 20mm;
-            padding: 2mm 3mm 2mm 3mm;
+            height: 30mm;
+            padding: 3mm 3mm 20mm 3mm;
             flex-shrink: 0;
             display: flex;
             align-items: flex-start;
