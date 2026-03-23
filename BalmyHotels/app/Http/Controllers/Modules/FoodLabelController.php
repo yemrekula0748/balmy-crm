@@ -41,10 +41,14 @@ class FoodLabelController extends BaseModuleController
             $query->where('category', $request->category);
         }
         if ($request->filled('search')) {
-            $search = $request->search;
+            $search = mb_strtolower($request->search, 'UTF-8');
             $query->where(function ($q) use ($search) {
-                $q->whereRaw("JSON_EXTRACT(name, '$.tr') LIKE ?", ["%$search%"])
-                  ->orWhereRaw("JSON_EXTRACT(name, '$.en') LIKE ?", ["%$search%"]);
+                foreach (['tr', 'en', 'de', 'ru', 'ar', 'fr'] as $lang) {
+                    $q->orWhereRaw(
+                        "LOWER(JSON_UNQUOTE(JSON_EXTRACT(name, '$.$lang'))) LIKE ?",
+                        ["%{$search}%"]
+                    );
+                }
             });
         }
         if ($request->filled('is_active')) {
