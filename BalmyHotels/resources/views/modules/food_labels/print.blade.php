@@ -459,17 +459,7 @@
                 @if($label->calories)
                 <div><span class="cal-pill">🔥 {{ $label->calories }} kcal</span></div>
                 @endif
-                @if($ingByLang->isNotEmpty())
-                <div class="ing-title">İçindekiler / Ingredients / Zutaten / Состав</div>
-                <div class="ing-text">
-                    @foreach($ingByLang as $langCode => $ing)
-                    <div class="lang-row">
-                        <span class="lang-code">{{ $langCode }}</span>
-                        <span>{{ implode(', ', array_slice($ing, 0, 10)) }}{{ count($ing) > 10 ? '…' : '' }}</span>
-                    </div>
-                    @endforeach
-                </div>
-                @endif
+
             </div>
 
             {{-- Sağ sütun: sadece QR --}}
