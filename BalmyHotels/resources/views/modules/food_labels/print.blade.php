@@ -129,13 +129,13 @@
         }
 
         .name-tr {
-            font-size: 10pt;
+            font-size: 12pt;
             font-weight: 800;
             color: #1a1a2e;
             line-height: 1.2;
         }
 
-        .name-other { font-size: 7pt; color: #4b5563; line-height: 1.35; }
+        .name-other { font-size: 12pt; color: #4b5563; line-height: 1.35; }
         .name-other span { display: block; }
 
         .cal-pill {
