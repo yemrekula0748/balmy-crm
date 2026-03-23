@@ -445,27 +445,24 @@
                 <div class="name-other">
                     @foreach($nameOthers as $lang => $n)
                         @php $info = \App\Models\FoodLabel::LANGUAGES[$lang] ?? ['flag'=>'🌐']; @endphp
-                        <span>{{ $info['flag'] }} {{ $n }}</span>
+                        <span style="display:block;margin-bottom:1.5mm">{{ $info['flag'] }} {{ $n }}</span>
                     @endforeach
                 </div>
                 @endif
-                @if($label->is_vegan || $label->is_vegetarian || $label->is_halal)
-                <div class="diet-pills">
-                    @if($label->is_vegan)<span class="diet-pill">🌱 Vegan</span>@endif
-                    @if($label->is_vegetarian && !$label->is_vegan)<span class="diet-pill">🥗 Vejetaryen</span>@endif
-                    @if($label->is_halal)<span class="diet-pill halal">☪ Helal</span>@endif
-                </div>
-                @endif
-                @if($label->calories)
-                <div><span class="cal-pill">🔥 {{ $label->calories }} kcal</span></div>
-                @endif
-
             </div>
 
-            {{-- Sağ sütun: sadece QR --}}
+            {{-- Sağ sütun: QR + diyet/kalori --}}
             <div class="label-right">
                 <div class="qr-container" id="qr-{{ $label->id }}"
                      data-url="{{ route('food-labels.public', $label->qr_token) }}"></div>
+                @if($label->is_vegan || $label->is_vegetarian || $label->is_halal || $label->calories)
+                <div style="margin-top:2mm;display:flex;flex-direction:column;align-items:center;gap:1mm;width:100%">
+                    @if($label->is_vegan)<span class="diet-pill" style="justify-content:center">🌱 Vegan</span>@endif
+                    @if($label->is_vegetarian && !$label->is_vegan)<span class="diet-pill" style="justify-content:center">🥗 Vejetaryen</span>@endif
+                    @if($label->is_halal)<span class="diet-pill halal" style="justify-content:center">☪ Helal</span>@endif
+                    @if($label->calories)<span class="cal-pill" style="justify-content:center">🔥 {{ $label->calories }} kcal</span>@endif
+                </div>
+                @endif
             </div>
 
         </div>
