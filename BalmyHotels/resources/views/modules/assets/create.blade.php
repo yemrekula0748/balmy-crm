@@ -410,15 +410,28 @@
                             </div>
                             <input type="hidden" name="category_id" id="finalCategoryId" value="{{ old('category_id') }}">
                             <div class="col-md-4">
-                                <label class="form-label">Şube <span class="text-danger">*</span></label>
+                                <label class="form-label">
+                                    Şube <span class="text-danger">*</span>
+                                    @if(!($isSuperAdmin ?? false))
+                                        <span class="ms-1" style="font-size:.72rem;color:#9ca3af;font-weight:400">
+                                            <i class="fas fa-lock"></i> kendi şubeniz
+                                        </span>
+                                    @endif
+                                </label>
                                 <div class="input-with-icon">
                                     <i class="fas fa-building field-icon"></i>
-                                    <select name="branch_id" class="form-select @error('branch_id') is-invalid @enderror" required>
-                                        <option value="">Şube seçin…</option>
-                                        @foreach($branches as $b)
-                                            <option value="{{ $b->id }}" @selected(old('branch_id') == $b->id)>{{ $b->name }}</option>
-                                        @endforeach
-                                    </select>
+                                    @if($isSuperAdmin ?? false)
+                                        <select name="branch_id" class="form-select @error('branch_id') is-invalid @enderror" required>
+                                            <option value="">Şube seçin…</option>
+                                            @foreach($branches as $b)
+                                                <option value="{{ $b->id }}" @selected(old('branch_id') == $b->id)>{{ $b->name }}</option>
+                                            @endforeach
+                                        </select>
+                                    @else
+                                        <input type="hidden" name="branch_id" value="{{ $lockedBranchId }}">
+                                        <input type="text" class="form-control" value="{{ $branches->first()?->name ?? '—' }}"
+                                               readonly style="background:#f3f4f6;color:#6b7280;cursor:not-allowed">
+                                    @endif
                                     @error('branch_id')<div class="invalid-feedback">{{ $message }}</div>@enderror
                                 </div>
                             </div>

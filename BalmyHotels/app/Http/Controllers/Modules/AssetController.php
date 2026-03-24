@@ -69,15 +69,29 @@ class AssetController extends BaseModuleController
 
     public function create()
     {
+        $user       = auth()->user();
+        $isSuperAdmin = $user->isSuperAdmin();
+
         $categories = AssetCategory::whereNull('parent_id')
             ->withCount('children')
             ->orderBy('name')
             ->get();
-        $branches   = Branch::orderBy('name')->get();
-        $page_title = 'Demirbaş Ekle';
-        $nextCode   = Asset::generateCode();
+
+        // Super admin tüm şubeleri görebilir; diğerleri sadece kendi şubesini
+        $branches = $isSuperAdmin
+            ? Branch::orderBy('name')->get()
+            : Branch::where('id', $user->branch_id)->get();
+
+        $lockedBranchId = $isSuperAdmin ? null : $user->branch_id;
+
+        $page_title  = 'Demirbaş Ekle';
+        $nextCode    = Asset::generateCode();
         $showSubSelect = false;
-        return view('modules.assets.create', compact('categories', 'branches', 'page_title', 'nextCode', 'showSubSelect'));
+
+        return view('modules.assets.create', compact(
+            'categories', 'branches', 'page_title', 'nextCode',
+            'showSubSelect', 'isSuperAdmin', 'lockedBranchId'
+        ));
     }
 
     public function store(Request $request)
@@ -126,10 +140,15 @@ class AssetController extends BaseModuleController
             $photoPath = $request->file('photo')->store('assets', 'public');
         }
 
+        // Şube kilidi: super admin değilse kendi şubesini zorla
+        $branchId = auth()->user()->isSuperAdmin()
+            ? $request->branch_id
+            : auth()->user()->branch_id;
+
         Asset::create([
             'asset_code'    => strtoupper($request->asset_code),
             'category_id'   => $request->category_id,
-            'branch_id'     => $request->branch_id,
+            'branch_id'     => $branchId,
             'name'          => $request->name,
             'description'   => $request->description,
             'location'      => $request->location,
