@@ -4,27 +4,57 @@
 <style>
 /* ─── Page header ─────────────────────────────────────────── */
 .cat-hero {
-    background: linear-gradient(135deg, #c19b77 0%, #a07850 100%);
+    background: #fff;
     border-radius: 16px;
-    padding: 28px 32px;
+    padding: 0;
     margin-bottom: 24px;
-    color: #fff;
-    position: relative;
+    box-shadow: 0 2px 10px rgba(0,0,0,.07);
+    border: 1px solid rgba(0,0,0,.05);
     overflow: hidden;
+    display: flex;
+    align-items: stretch;
 }
-.cat-hero::before {
-    content: '\f07b';
-    font-family: 'Font Awesome 5 Free';
-    font-weight: 900;
-    position: absolute;
-    right: 28px; top: 50%;
-    transform: translateY(-50%);
-    font-size: 88px;
-    opacity: .12;
-    line-height: 1;
+.cat-hero-stripe {
+    width: 6px;
+    flex-shrink: 0;
+    background: linear-gradient(180deg, #c19b77, #a07850);
+    border-radius: 16px 0 0 16px;
 }
-.cat-hero h3 { font-size: 1.6rem; font-weight: 700; margin: 0 0 4px; }
-.cat-hero p  { margin: 0; opacity: .85; font-size: .93rem; }
+.cat-hero-icon {
+    width: 68px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    background: linear-gradient(135deg, #c19b77, #a07850);
+    font-size: 1.6rem;
+    color: #fff;
+}
+.cat-hero-body {
+    flex: 1;
+    padding: 18px 22px;
+    min-width: 0;
+}
+.cat-hero-body h3 {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: #1f2937;
+    margin: 0 0 3px;
+    letter-spacing: -.01em;
+}
+.cat-hero-body p {
+    margin: 0;
+    font-size: .82rem;
+    color: #6b7280;
+}
+.cat-hero-actions {
+    display: flex;
+    align-items: center;
+    padding: 0 20px;
+    gap: 8px;
+    flex-shrink: 0;
+    border-left: 1px solid #f3f4f6;
+}
 
 /* ─── Stat chips ──────────────────────────────────────────── */
 .stat-chip {
@@ -275,8 +305,23 @@ mark.hl { background: #fef9c3; border-radius: 2px; padding: 0 1px; }
         $totalAssets  = $categories->sum(fn($c) => $c->assets_count + $c->children->sum('assets_count'));
     @endphp
     <div class="cat-hero">
-        <h3><i class="fas fa-layer-group me-2" style="opacity:.9"></i>Demirbaş Kategorileri</h3>
-        <p>Ana kategorileri ve alt kategorileri buradan yönetin</p>
+        <div class="cat-hero-stripe"></div>
+        <div class="cat-hero-icon">
+            <i class="fas fa-layer-group"></i>
+        </div>
+        <div class="cat-hero-body">
+            <h3>Demirbaş Kategorileri</h3>
+            <p>Ana kategoriler ve alt kategoriler &mdash; toplam
+                <strong style="color:#c19b77">{{ $categories->count() }}</strong> ana,
+                <strong style="color:#4361ee">{{ $totalSubs }}</strong> alt kategori
+            </p>
+        </div>
+        <div class="cat-hero-actions">
+            <a href="{{ route('asset-categories.create') }}" class="btn btn-sm"
+               style="background:linear-gradient(135deg,#c19b77,#a07850);color:#fff;border:0;box-shadow:0 2px 8px rgba(193,155,119,.4);border-radius:8px;font-size:.82rem;font-weight:600;padding:8px 16px;white-space:nowrap">
+                <i class="fas fa-plus me-1"></i>Yeni Kategori
+            </a>
+        </div>
     </div>
 
     {{-- ── Stat chips ── --}}
@@ -331,10 +376,6 @@ mark.hl { background: #fef9c3; border-radius: 2px; padding: 0 1px; }
         <button class="btn btn-sm btn-outline-secondary" id="collapseAll" title="Tümünü Kapat">
             <i class="fas fa-compress-alt me-1"></i>Kapat
         </button>
-        <a href="{{ route('asset-categories.create') }}" class="btn btn-sm"
-           style="background:linear-gradient(135deg,#c19b77,#a07850);color:#fff;border:0;box-shadow:0 2px 8px rgba(193,155,119,.45)">
-            <i class="fas fa-plus me-1"></i>Yeni Kategori
-        </a>
     </div>
 
     {{-- ── Category list ── --}}
