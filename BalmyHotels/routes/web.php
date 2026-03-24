@@ -379,12 +379,13 @@ Route::middleware('auth')->group(function () {
     */
     // Kategori yönetimi
     Route::prefix('demirbaslar/kategoriler')->name('asset-categories.')->group(function () {
-        Route::get('/',                              [AssetCategoryController::class, 'index'])->name('index');
-        Route::get('/ekle',                          [AssetCategoryController::class, 'create'])->name('create');
-        Route::post('/ekle',                         [AssetCategoryController::class, 'store'])->name('store');
-        Route::get('/{assetCategory}/duzenle',       [AssetCategoryController::class, 'edit'])->name('edit');
-        Route::put('/{assetCategory}',               [AssetCategoryController::class, 'update'])->name('update');
-        Route::delete('/{assetCategory}',            [AssetCategoryController::class, 'destroy'])->name('destroy');
+        Route::get('/',                                          [AssetCategoryController::class, 'index'])->name('index');
+        Route::get('/ekle',                                      [AssetCategoryController::class, 'create'])->name('create');
+        Route::post('/ekle',                                     [AssetCategoryController::class, 'store'])->name('store');
+        Route::get('/{assetCategory}/alt-kategoriler',           [AssetCategoryController::class, 'subcategories'])->name('subcategories');
+        Route::get('/{assetCategory}/duzenle',                   [AssetCategoryController::class, 'edit'])->name('edit');
+        Route::put('/{assetCategory}',                           [AssetCategoryController::class, 'update'])->name('update');
+        Route::delete('/{assetCategory}',                        [AssetCategoryController::class, 'destroy'])->name('destroy');
     });
 
     // Eşya çıkış formları  (assets'ten önce tanımlanmalı — prefix çakışmasını önlemek için)

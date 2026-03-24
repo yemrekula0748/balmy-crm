@@ -23,15 +23,30 @@
                     <form action="{{ route('asset-categories.store') }}" method="POST">
                         @csrf
                         <div class="mb-3">
+                            <label class="form-label fw-semibold">Ana Kategori <small class="text-muted">(boş bırakırsanız bu bir ana kategori olur)</small></label>
+                            <select name="parent_id" id="parentCatSelect" class="form-select @error('parent_id') is-invalid @enderror">
+                                <option value="">— Ana Kategori (bağımsız) —</option>
+                                @foreach($parentCats as $p)
+                                    <option value="{{ $p->id }}"
+                                        data-color="{{ $p->color }}"
+                                        @selected(old('parent_id', request('parent_id')) == $p->id)>
+                                        {{ $p->name }}
+                                    </option>
+                                @endforeach
+                            </select>
+                            @error('parent_id')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                            <small class="text-muted">Bir ana kategori seçerseniz bu bir <strong>alt kategori</strong> olur.</small>
+                        </div>
+                        <div class="mb-3">
                             <label class="form-label fw-semibold">Kategori Adı <span class="text-danger">*</span></label>
                             <input type="text" name="name" class="form-control @error('name') is-invalid @enderror"
-                                   value="{{ old('name') }}" placeholder="ör. Mobilya, Elektronik...">
+                                   value="{{ old('name') }}" placeholder="ör. Notebook, Sandalye, Klima...">
                             @error('name')<div class="invalid-feedback">{{ $message }}</div>@enderror
                         </div>
                         <div class="mb-3">
                             <label class="form-label fw-semibold">Renk</label>
                             <div class="d-flex align-items-center gap-2">
-                                <input type="color" name="color" class="form-control form-control-color"
+                                <input type="color" name="color" id="colorPicker" class="form-control form-control-color"
                                        value="{{ old('color', '#c19b77') }}" style="width:60px;height:38px">
                                 <small class="text-muted">Kategori rozeti rengi</small>
                             </div>
@@ -86,6 +101,23 @@
 
 @push('scripts')
 <script>
+// Inherit parent color when parent is chosen
+const parentSelect = document.getElementById('parentCatSelect');
+const colorPicker  = document.getElementById('colorPicker');
+if (parentSelect) {
+    parentSelect.addEventListener('change', function() {
+        const opt = this.options[this.selectedIndex];
+        if (opt && opt.dataset.color) {
+            colorPicker.value = opt.dataset.color;
+        }
+    });
+    // Apply on load if already selected (old input)
+    if (parentSelect.value) {
+        const opt = parentSelect.options[parentSelect.selectedIndex];
+        if (opt && opt.dataset.color) colorPicker.value = opt.dataset.color;
+    }
+}
+
 let fieldIndex = 0;
 const fieldTypes = @json($fieldTypes);
 

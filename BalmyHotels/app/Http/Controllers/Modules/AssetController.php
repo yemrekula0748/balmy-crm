@@ -68,12 +68,15 @@ class AssetController extends BaseModuleController
 
     public function create()
     {
-        $categories = AssetCategory::orderBy('name')->get();
+        $categories = AssetCategory::whereNull('parent_id')
+            ->withCount('children')
+            ->orderBy('name')
+            ->get();
         $branches   = Branch::orderBy('name')->get();
         $page_title = 'Demirbaş Ekle';
         $nextCode   = Asset::generateCode();
-
-        return view('modules.assets.create', compact('categories', 'branches', 'page_title', 'nextCode'));
+        $showSubSelect = false;
+        return view('modules.assets.create', compact('categories', 'branches', 'page_title', 'nextCode', 'showSubSelect'));
     }
 
     public function store(Request $request)
@@ -130,10 +133,12 @@ class AssetController extends BaseModuleController
 
     public function edit(Asset $asset)
     {
-        $categories = AssetCategory::orderBy('name')->get();
+        $categories = AssetCategory::whereNull('parent_id')
+            ->withCount('children')
+            ->orderBy('name')
+            ->get();
         $branches   = Branch::orderBy('name')->get();
         $page_title = 'Demirbaş Düzenle';
-
         return view('modules.assets.edit', compact('asset', 'categories', 'branches', 'page_title'));
     }
 
