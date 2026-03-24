@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>QR — {{ $asset->asset_code }}</title>
-<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body {
@@ -107,7 +106,7 @@ body {
         <div class="label-name">{{ $asset->name }}</div>
 
         <div class="label-qr">
-            <canvas id="qrCanvas"></canvas>
+            {!! QrCode::size(160)->margin(1)->generate($asset->publicQrUrl()) !!}
         </div>
 
         <div class="label-meta">
@@ -129,13 +128,5 @@ body {
 
 </div>
 
-<script>
-QRCode.toCanvas(document.getElementById('qrCanvas'), '{{ $asset->publicQrUrl() }}', {
-    width: 160,
-    margin: 1,
-    color: { dark: '#1f2937', light: '#ffffff' },
-    errorCorrectionLevel: 'M'
-}, function(err) { if (err) console.error(err); });
-</script>
 </body>
 </html>

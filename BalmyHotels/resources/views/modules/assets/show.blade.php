@@ -77,7 +77,9 @@
                     </a>
                 </div>
                 <div class="card-body text-center py-4">
-                    <canvas id="qrCanvas"></canvas>
+                    <div style="display:inline-block;line-height:0;border-radius:6px;overflow:hidden">
+                        {!! QrCode::size(160)->margin(1)->generate($asset->publicQrUrl()) !!}
+                    </div>
                     <div class="mt-2" style="font-size:.72rem;color:#9ca3af;word-break:break-all">
                         {{ $asset->publicQrUrl() }}
                     </div>
@@ -273,12 +275,4 @@
 @endsection
 
 @push('scripts')
-<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
-<script>
-QRCode.toCanvas(document.getElementById('qrCanvas'), '{{ $asset->publicQrUrl() }}', {
-    width: 160, margin: 1,
-    color: { dark: '#1f2937', light: '#ffffff' },
-    errorCorrectionLevel: 'M'
-});
-</script>
 @endpush
