@@ -4,27 +4,66 @@
 <style>
 /* ── Hero ──────────────────────────────────────────────────── */
 .form-hero {
-    background: linear-gradient(135deg, #c19b77 0%, #a07850 100%);
+    background: #fff;
     border-radius: 16px;
-    padding: 26px 32px;
     margin-bottom: 28px;
-    color: #fff;
-    position: relative;
+    box-shadow: 0 2px 10px rgba(0,0,0,.07);
+    border: 1px solid rgba(0,0,0,.05);
     overflow: hidden;
+    display: flex;
+    align-items: stretch;
 }
-.form-hero::before {
-    content: '\f187';
-    font-family: 'Font Awesome 5 Free';
-    font-weight: 900;
-    position: absolute;
-    right: 28px; top: 50%;
-    transform: translateY(-50%);
-    font-size: 82px;
-    opacity: .12;
-    line-height: 1;
+.form-hero-stripe {
+    width: 6px;
+    flex-shrink: 0;
+    background: linear-gradient(180deg, #c19b77, #a07850);
+    border-radius: 16px 0 0 16px;
 }
-.form-hero h3 { font-size: 1.5rem; font-weight: 700; margin: 0 0 4px; }
-.form-hero p  { margin: 0; opacity: .85; font-size: .9rem; }
+.form-hero-icon {
+    width: 68px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    background: linear-gradient(135deg, #c19b77, #a07850);
+    font-size: 1.55rem;
+    color: #fff;
+}
+.form-hero-body {
+    flex: 1;
+    padding: 18px 22px;
+    min-width: 0;
+}
+.form-hero-body h3 {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: #1f2937;
+    margin: 0 0 3px;
+    letter-spacing: -.01em;
+}
+.form-hero-body p {
+    margin: 0;
+    font-size: .82rem;
+    color: #6b7280;
+}
+.form-hero-meta {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 0 22px;
+    flex-shrink: 0;
+    border-left: 1px solid #f3f4f6;
+}
+.form-hero-meta .meta-chip {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: .78rem;
+    font-weight: 600;
+    padding: 6px 12px;
+    border-radius: 8px;
+    white-space: nowrap;
+}
 
 /* ── Section card ──────────────────────────────────────────── */
 .form-section {
@@ -233,8 +272,23 @@
 
     {{-- Hero --}}
     <div class="form-hero">
-        <h3><i class="fas fa-plus-circle me-2" style="opacity:.9"></i>Yeni Demirbaş Kaydı</h3>
-        <p>Aşağıdaki bilgileri doldurarak yeni bir demirbaş ekleyin</p>
+        <div class="form-hero-stripe"></div>
+        <div class="form-hero-icon">
+            <i class="fas fa-plus-circle"></i>
+        </div>
+        <div class="form-hero-body">
+            <h3>Yeni Demirbaş Kaydı</h3>
+            <p>Aşağıdaki bilgileri doldurarak envantere yeni bir demirbaş ekleyin</p>
+        </div>
+        <div class="form-hero-meta">
+            <span class="meta-chip" style="background:rgba(193,155,119,.1);color:#a07850">
+                <i class="fas fa-hashtag"></i>{{ $nextCode }}
+            </span>
+            <a href="{{ route('assets.index') }}" class="meta-chip text-decoration-none"
+               style="background:#f3f4f6;color:#6b7280">
+                <i class="fas fa-arrow-left"></i>Geri Dön
+            </a>
+        </div>
     </div>
 
     <form action="{{ route('assets.store') }}" method="POST" id="assetCreateForm">
