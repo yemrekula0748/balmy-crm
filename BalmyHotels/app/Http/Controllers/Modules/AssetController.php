@@ -7,6 +7,7 @@ use App\Models\Asset;
 use App\Models\AssetCategory;
 use App\Models\Branch;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 
 class AssetController extends BaseModuleController
 {
@@ -82,7 +83,7 @@ class AssetController extends BaseModuleController
     public function store(Request $request)
     {
         $request->validate([
-            'asset_code'   => 'required|string|max:50|unique:assets,asset_code',
+            'asset_code'    => 'required|string|max:50|unique:assets,asset_code',
             'category_id'  => 'required|exists:asset_categories,id',
             'branch_id'    => 'required|exists:branches,id',
             'name'         => 'required|string|max:255',
@@ -93,15 +94,36 @@ class AssetController extends BaseModuleController
             'purchase_price'=> 'nullable|numeric|min:0',
             'serial_no'    => 'nullable|string|max:255',
             'warranty_until'=> 'nullable|date',
+            'photo'        => 'nullable|image|mimes:jpeg,png,jpg,webp|max:4096',
         ]);
 
-        // Dinamik alanları işle
+        // Kategori dinamik alanları
         $category = AssetCategory::find($request->category_id);
         $properties = [];
         if ($category && $category->field_definitions) {
             foreach ($category->field_definitions as $field) {
                 $properties[$field['name']] = $request->input('prop_' . $field['name']);
             }
+        }
+
+        // Per-asset custom fields
+        $customFields = [];
+        if ($request->has('cf_label')) {
+            foreach ($request->cf_label as $i => $label) {
+                $label = trim($label ?? '');
+                if ($label === '') continue;
+                $customFields[] = [
+                    'label' => $label,
+                    'value' => $request->cf_value[$i] ?? '',
+                    'unit'  => $request->cf_unit[$i] ?? '',
+                ];
+            }
+        }
+
+        // Fotoğraf yükle
+        $photoPath = null;
+        if ($request->hasFile('photo')) {
+            $photoPath = $request->file('photo')->store('assets', 'public');
         }
 
         Asset::create([
@@ -116,7 +138,10 @@ class AssetController extends BaseModuleController
             'purchase_price'=> $request->purchase_price,
             'serial_no'     => $request->serial_no,
             'warranty_until'=> $request->warranty_until,
+            'photo'         => $photoPath,
             'properties'    => $properties ?: null,
+            'custom_fields' => $customFields ?: null,
+            'qr_token'      => Str::uuid()->toString(),
         ]);
 
         return redirect()->route('assets.index')
@@ -156,6 +181,7 @@ class AssetController extends BaseModuleController
             'purchase_price'=> 'nullable|numeric|min:0',
             'serial_no'     => 'nullable|string|max:255',
             'warranty_until'=> 'nullable|date',
+            'photo'         => 'nullable|image|mimes:jpeg,png,jpg,webp|max:4096',
         ]);
 
         $category = AssetCategory::find($request->category_id);
@@ -164,6 +190,32 @@ class AssetController extends BaseModuleController
             foreach ($category->field_definitions as $field) {
                 $properties[$field['name']] = $request->input('prop_' . $field['name']);
             }
+        }
+
+        // Per-asset custom fields
+        $customFields = [];
+        if ($request->has('cf_label')) {
+            foreach ($request->cf_label as $i => $label) {
+                $label = trim($label ?? '');
+                if ($label === '') continue;
+                $customFields[] = [
+                    'label' => $label,
+                    'value' => $request->cf_value[$i] ?? '',
+                    'unit'  => $request->cf_unit[$i] ?? '',
+                ];
+            }
+        }
+
+        // Fotoğraf güncelle
+        $photoPath = $asset->photo;
+        if ($request->hasFile('photo')) {
+            if ($asset->photo) {
+                \Storage::disk('public')->delete($asset->photo);
+            }
+            $photoPath = $request->file('photo')->store('assets', 'public');
+        } elseif ($request->input('remove_photo') === '1' && $asset->photo) {
+            \Storage::disk('public')->delete($asset->photo);
+            $photoPath = null;
         }
 
         $asset->update([
@@ -178,7 +230,9 @@ class AssetController extends BaseModuleController
             'purchase_price'=> $request->purchase_price,
             'serial_no'     => $request->serial_no,
             'warranty_until'=> $request->warranty_until,
+            'photo'         => $photoPath,
             'properties'    => $properties ?: null,
+            'custom_fields' => $customFields ?: null,
         ]);
 
         return redirect()->route('assets.show', $asset)
@@ -201,5 +255,13 @@ class AssetController extends BaseModuleController
     public function categoryFields(AssetCategory $assetCategory)
     {
         return response()->json($assetCategory->field_definitions ?? []);
+    }
+
+    /**
+     * 80mm termal yazıcı için QR yazdırma sayfası
+     */
+    public function qrPrint(Asset $asset)
+    {
+        return view('modules.assets.qr-print', compact('asset'));
     }
 }

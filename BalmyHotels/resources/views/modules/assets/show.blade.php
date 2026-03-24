@@ -41,6 +41,9 @@
                     </div>
                 </div>
                 <div class="d-flex gap-2">
+                    <a href="{{ route('assets.qrPrint', $asset) }}" target="_blank" class="btn btn-sm btn-outline-dark">
+                        <i class="fas fa-qrcode me-1"></i>QR Yazdır
+                    </a>
                     <a href="{{ route('asset-exits.create', ['asset_id' => $asset->id]) }}" class="btn btn-sm btn-warning">
                         → Çıkış Formu
                     </a>
@@ -54,6 +57,33 @@
     <div class="row g-4 align-items-start">
         {{-- Sol: Bilgiler --}}
         <div class="col-md-5">
+
+            {{-- Fotoğraf --}}
+            @if($asset->photo)
+                <div class="card mb-4">
+                    <div class="card-body p-0">
+                        <img src="{{ asset('storage/' . $asset->photo) }}" alt="{{ $asset->name }}"
+                             style="width:100%;max-height:260px;object-fit:cover;border-radius:calc(var(--bs-card-border-radius) - 1px)">
+                    </div>
+                </div>
+            @endif
+
+            {{-- QR Kodu --}}
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0"><i class="fas fa-qrcode me-2 text-muted"></i>QR Kodu</h5>
+                    <a href="{{ route('assets.qrPrint', $asset) }}" target="_blank" class="btn btn-sm btn-outline-secondary">
+                        <i class="fas fa-print me-1"></i>Yazdır
+                    </a>
+                </div>
+                <div class="card-body text-center py-4">
+                    <canvas id="qrCanvas"></canvas>
+                    <div class="mt-2" style="font-size:.72rem;color:#9ca3af;word-break:break-all">
+                        {{ $asset->publicQrUrl() }}
+                    </div>
+                </div>
+            </div>
+
             {{-- Temel Bilgiler --}}
             <div class="card mb-4">
                 <div class="card-header"><h5 class="card-title mb-0">Temel Bilgiler</h5></div>
@@ -110,6 +140,25 @@
                     </div>
                 </div>
             @endif
+
+            {{-- Per-asset custom fields --}}
+            @if($asset->custom_fields && count($asset->custom_fields) > 0)
+                <div class="card mb-4">
+                    <div class="card-header"><h5 class="card-title mb-0"><i class="fas fa-sliders-h me-2" style="color:#6366f1"></i>Ek Özellikler</h5></div>
+                    <div class="card-body p-0">
+                        <table class="table table-sm mb-0">
+                            <tbody>
+                                @foreach($asset->custom_fields as $cf)
+                                    <tr>
+                                        <td class="text-muted" style="width:45%">{{ $cf['label'] }}</td>
+                                        <td><strong>{{ $cf['value'] }}{{ $cf['unit'] ? ' '.$cf['unit'] : '' }}</strong></td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            @endif
         </div>
 
         {{-- Sağ: Çıkış Geçmişi --}}
@@ -158,3 +207,14 @@
     </div>
 </div>
 @endsection
+
+@push('scripts')
+<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+<script>
+QRCode.toCanvas(document.getElementById('qrCanvas'), '{{ $asset->publicQrUrl() }}', {
+    width: 160, margin: 1,
+    color: { dark: '#1f2937', light: '#ffffff' },
+    errorCorrectionLevel: 'M'
+});
+</script>
+@endpush

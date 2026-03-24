@@ -217,6 +217,59 @@
 }
 #subCategoryWrapper.fading { opacity: 0; }
 
+/* ── Photo upload ───────────────────────────────────────────── */
+.photo-drop {
+    border: 2px dashed #e5e7eb;
+    border-radius: 12px;
+    background: #fafafa;
+    padding: 24px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color .2s, background .2s;
+    position: relative;
+}
+.photo-drop:hover { border-color: #c19b77; background: #fdf7f1; }
+.photo-drop input[type=file] { position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%; }
+.photo-preview {
+    border-radius: 12px;
+    overflow: hidden;
+    border: 2px solid #e5e7eb;
+    position: relative;
+    display: none;
+}
+.photo-preview img { width:100%;max-height:220px;object-fit:cover;display:block; }
+.photo-preview .photo-remove {
+    position: absolute; top: 8px; right: 8px;
+    background: rgba(220,53,69,.9); color: #fff;
+    border: none; border-radius: 6px; padding: 4px 8px;
+    font-size: .75rem; cursor: pointer;
+}
+
+/* ── Custom fields builder ──────────────────────────────────── */
+.cf-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    background: #fff;
+    border: 1.5px solid #e5e7eb;
+    border-radius: 9px;
+    padding: 8px 10px;
+    margin-bottom: 8px;
+}
+.cf-row input { border:none;outline:none;background:transparent;font-size:.85rem;color:#1f2937; }
+.cf-row .cf-label { flex:2;border-right:1px solid #e5e7eb;padding-right:8px;font-weight:600; }
+.cf-row .cf-value { flex:3;padding:0 8px; }
+.cf-row .cf-unit  { flex:1;border-left:1px solid #e5e7eb;padding-left:8px;color:#9ca3af; }
+.cf-row .cf-del   { width:28px;height:28px;border:none;background:rgba(220,53,69,.1);color:#dc3545;border-radius:6px;cursor:pointer;flex-shrink:0;font-size:.8rem; }
+.cf-add-btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 7px 16px; border-radius: 8px;
+    border: 1.5px dashed #c19b77; background: transparent;
+    color: #c19b77; font-size: .82rem; font-weight: 600;
+    cursor: pointer; transition: all .15s;
+}
+.cf-add-btn:hover { background: rgba(193,155,119,.08); }
+
 /* ── Submit zone ─────────────────────────────────────────────── */
 .submit-zone {
     background: #fff;
@@ -291,7 +344,7 @@
         </div>
     </div>
 
-    <form action="{{ route('assets.store') }}" method="POST" id="assetCreateForm">
+    <form action="{{ route('assets.store') }}" method="POST" id="assetCreateForm" enctype="multipart/form-data">
         @csrf
         <div class="row g-4">
 
@@ -479,6 +532,54 @@
                     </div>
                     <div class="form-section-body">
                         <div id="dynamicFields" class="row g-3"></div>
+                    </div>
+                </div>
+
+                {{-- Section 5: Fotoğraf --}}
+                <div class="form-section">
+                    <div class="form-section-header">
+                        <div class="sec-icon" style="background:rgba(16,185,129,.12);color:#059669">
+                            <i class="fas fa-camera"></i>
+                        </div>
+                        <div>
+                            <h6>Fotoğraf</h6>
+                            <span class="sub">İsteğe bağlı — max 4 MB, JPG/PNG/WebP</span>
+                        </div>
+                    </div>
+                    <div class="form-section-body">
+                        <div class="photo-drop" id="photoDrop">
+                            <input type="file" name="photo" id="photoInput" accept="image/jpeg,image/png,image/jpg,image/webp">
+                            <i class="fas fa-cloud-upload-alt fa-2x mb-2" style="color:#d1d5db"></i>
+                            <p class="mb-0" style="font-size:.85rem;color:#9ca3af">Tıklayın veya sürükleyip bırakın</p>
+                        </div>
+                        <div class="photo-preview mt-2" id="photoPreview">
+                            <img id="photoPreviewImg" src="" alt="Önizleme">
+                            <button type="button" class="photo-remove" id="photoPreviewRemove">
+                                <i class="fas fa-times me-1"></i>Kaldır
+                            </button>
+                        </div>
+                        @error('photo')<div class="text-danger mt-1" style="font-size:.8rem">{{ $message }}</div>@enderror
+                    </div>
+                </div>
+
+                {{-- Section 6: Özel Alanlar (per-asset) --}}
+                <div class="form-section">
+                    <div class="form-section-header">
+                        <div class="sec-icon" style="background:rgba(99,102,241,.12);color:#6366f1">
+                            <i class="fas fa-sliders-h"></i>
+                        </div>
+                        <div>
+                            <h6>Ek Özellikler</h6>
+                            <span class="sub">Bu demirbaşa özgü bilgiler — ör. RAM: 16 GB</span>
+                        </div>
+                    </div>
+                    <div class="form-section-body">
+                        <div id="cfRows">
+                            {{-- JS ile doldurulur --}}
+                        </div>
+                        <button type="button" class="cf-add-btn" id="cfAddBtn">
+                            <i class="fas fa-plus"></i>Alan Ekle
+                        </button>
                     </div>
                 </div>
 
@@ -676,6 +777,61 @@ document.getElementById('assetCreateForm').addEventListener('submit', function()
     }
     subSelect.removeAttribute('name');
 });
+
+/* ── Photo upload preview ── */
+const photoInput   = document.getElementById('photoInput');
+const photoDrop    = document.getElementById('photoDrop');
+const photoPreview = document.getElementById('photoPreview');
+const photoPreviewImg = document.getElementById('photoPreviewImg');
+const photoPreviewRemove = document.getElementById('photoPreviewRemove');
+
+photoInput.addEventListener('change', function () {
+    const file = this.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = e => {
+        photoPreviewImg.src = e.target.result;
+        photoDrop.style.display = 'none';
+        photoPreview.style.display = 'block';
+    };
+    reader.readAsDataURL(file);
+});
+
+photoPreviewRemove.addEventListener('click', function () {
+    photoInput.value = '';
+    photoPreview.style.display = 'none';
+    photoDrop.style.display = 'block';
+    photoPreviewImg.src = '';
+});
+
+/* ── Custom fields builder ── */
+const cfRows  = document.getElementById('cfRows');
+const cfAddBtn = document.getElementById('cfAddBtn');
+
+function addCfRow(label='', value='', unit='') {
+    const div = document.createElement('div');
+    div.className = 'cf-row';
+    div.innerHTML = `
+        <input class="cf-label" type="text" name="cf_label[]"
+               placeholder="Alan adı (ör. RAM)" value="${label.replace(/"/g,'&quot;')}">
+        <input class="cf-value" type="text" name="cf_value[]"
+               placeholder="Değer (ör. 16)" value="${value.replace(/"/g,'&quot;')}">
+        <input class="cf-unit"  type="text" name="cf_unit[]"
+               placeholder="Birim (ör. GB)" value="${unit.replace(/"/g,'&quot;')}">
+        <button type="button" class="cf-del" title="Kaldır"><i class="fas fa-times"></i></button>
+    `;
+    div.querySelector('.cf-del').addEventListener('click', () => div.remove());
+    cfRows.appendChild(div);
+}
+
+cfAddBtn.addEventListener('click', () => addCfRow());
+
+// Restore old values on validation error
+@if(old('cf_label'))
+    @foreach(old('cf_label', []) as $i => $lbl)
+    addCfRow('{{ addslashes($lbl) }}', '{{ addslashes(old('cf_value.'.$i, '')) }}', '{{ addslashes(old('cf_unit.'.$i, '')) }}');
+    @endforeach
+@endif
 </script>
 @endpush
 

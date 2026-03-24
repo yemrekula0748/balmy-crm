@@ -59,7 +59,7 @@ use App\Http\Controllers\Modules\AgencyContractController;
 use App\Http\Controllers\Modules\FrontDeskBedTypeController;
 use App\Http\Controllers\Modules\FrontDeskRoomTypeController;
 use App\Http\Controllers\Modules\FrontDeskRoomController;
-use App\Http\Controllers\Modules\FrontDeskReservationController;
+use App\Http\Controllers\AssetPublicController;
 
 /*
 |--------------------------------------------------------------------------
@@ -97,6 +97,13 @@ Route::middleware('auth')->group(function () {
         return response("Tamam: {$fixed} dosya 0644, klasörler 0755 yapıldı.");
     })->middleware('auth');
 });
+
+/*
+|--------------------------------------------------------------------------
+| Demirbaş QR — Public (auth gerekmez)
+|--------------------------------------------------------------------------
+*/
+Route::get('/demirbaslar/qr/{token}', [AssetPublicController::class, 'show'])->name('assets.public.qr');
 
 /*
 |--------------------------------------------------------------------------
@@ -407,6 +414,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/ekle',                   [AssetController::class, 'store'])->name('store');
         Route::get('/kategori/{assetCategory}/alanlar', [AssetController::class, 'categoryFields'])->name('categoryFields');
         Route::get('/{asset}',                 [AssetController::class, 'show'])->name('show');
+        Route::get('/{asset}/qr-yazdir',       [AssetController::class, 'qrPrint'])->name('qrPrint');
         Route::get('/{asset}/duzenle',         [AssetController::class, 'edit'])->name('edit');
         Route::put('/{asset}',                 [AssetController::class, 'update'])->name('update');
         Route::delete('/{asset}',              [AssetController::class, 'destroy'])->name('destroy');

@@ -20,7 +20,7 @@
                     @if($errors->any())
                         <div class="alert alert-danger"><ul class="mb-0">@foreach($errors->all() as $e)<li>{{ $e }}</li>@endforeach</ul></div>
                     @endif
-                    <form action="{{ route('assets.update', $asset) }}" method="POST">
+                    <form action="{{ route('assets.update', $asset) }}" method="POST" enctype="multipart/form-data">
                         @csrf @method('PUT')
                         <div class="row g-3">
                             <div class="col-md-4">
@@ -123,6 +123,54 @@
                                     </div>
                                 </div>
                             @endif
+
+                            {{-- Fotoğraf --}}
+                            <div class="col-12">
+                                <hr>
+                                <h6 class="mb-3 text-muted">Fotoğraf</h6>
+                                @if($asset->photo)
+                                    <div class="mb-2 d-flex align-items-start gap-3">
+                                        <img src="{{ asset('storage/' . $asset->photo) }}" alt=""
+                                             style="width:120px;height:80px;object-fit:cover;border-radius:8px;border:1px solid #e5e7eb">
+                                        <div>
+                                            <label class="form-check-label small text-danger">
+                                                <input type="checkbox" name="remove_photo" value="1" class="form-check-input me-1">
+                                                Mevcut fotoğrafı kaldır
+                                            </label>
+                                        </div>
+                                    </div>
+                                @endif
+                                <input type="file" name="photo" class="form-control form-control-sm"
+                                       accept="image/jpeg,image/png,image/jpg,image/webp"
+                                       style="max-width:320px">
+                                <div class="form-text">Yeni fotoğraf yüklemek için seçin. Max 4 MB, JPG/PNG/WebP.</div>
+                                @error('photo')<div class="text-danger small mt-1">{{ $message }}</div>@enderror
+                            </div>
+
+                            {{-- Per-asset custom fields --}}
+                            <div class="col-12">
+                                <hr>
+                                <h6 class="mb-3 text-muted">Ek Özellikler <small class="fw-normal">(bu demirbaşa özgü)</small></h6>
+                                <div id="cfRows">
+                                    @if($asset->custom_fields)
+                                        @foreach($asset->custom_fields as $cf)
+                                            <div class="cf-row d-flex gap-2 align-items-center mb-2">
+                                                <input type="text" name="cf_label[]" value="{{ $cf['label'] }}"
+                                                       placeholder="Alan adı" class="form-control form-control-sm" style="max-width:180px">
+                                                <input type="text" name="cf_value[]" value="{{ $cf['value'] }}"
+                                                       placeholder="Değer" class="form-control form-control-sm" style="max-width:180px">
+                                                <input type="text" name="cf_unit[]" value="{{ $cf['unit'] ?? '' }}"
+                                                       placeholder="Birim" class="form-control form-control-sm" style="max-width:100px">
+                                                <button type="button" onclick="this.closest('.cf-row').remove()"
+                                                        class="btn btn-sm btn-outline-danger"><i class="fas fa-times"></i></button>
+                                            </div>
+                                        @endforeach
+                                    @endif
+                                </div>
+                                <button type="button" id="cfAddBtn" class="btn btn-sm btn-outline-secondary mt-1">
+                                    <i class="fas fa-plus me-1"></i>Alan Ekle
+                                </button>
+                            </div>
                         </div>
 
                         <div class="d-flex gap-2 mt-4">
@@ -136,3 +184,20 @@
     </div>
 </div>
 @endsection
+
+@push('scripts')
+<script>
+document.getElementById('cfAddBtn').addEventListener('click', function() {
+    const div = document.createElement('div');
+    div.className = 'cf-row d-flex gap-2 align-items-center mb-2';
+    div.innerHTML = `
+        <input type="text" name="cf_label[]" placeholder="Alan adı" class="form-control form-control-sm" style="max-width:180px">
+        <input type="text" name="cf_value[]" placeholder="Değer" class="form-control form-control-sm" style="max-width:180px">
+        <input type="text" name="cf_unit[]"  placeholder="Birim" class="form-control form-control-sm" style="max-width:100px">
+        <button type="button" onclick="this.closest('.cf-row').remove()" class="btn btn-sm btn-outline-danger">
+            <i class="fas fa-times"></i>
+        </button>`;
+    document.getElementById('cfRows').appendChild(div);
+});
+</script>
+@endpush
