@@ -62,7 +62,7 @@
             @if($asset->photo)
                 <div class="card mb-4">
                     <div class="card-body p-0">
-                        <img src="{{ asset('storage/' . $asset->photo) }}" alt="{{ $asset->name }}"
+                        <img src="{{ asset('uploads/' . $asset->photo) }}" alt="{{ $asset->name }}"
                              style="width:100%;max-height:260px;object-fit:cover;border-radius:calc(var(--bs-card-border-radius) - 1px)">
                     </div>
                 </div>
@@ -201,6 +201,70 @@
                     @empty
                         <div class="p-4 text-center text-muted">Henüz çıkış kaydı yok.</div>
                     @endforelse
+                </div>
+            </div>
+
+            {{-- Değişiklik Geçmişi --}}
+            <div class="card mt-4">
+                <div class="card-header d-flex align-items-center gap-2">
+                    <i class="fas fa-history text-muted"></i>
+                    <h5 class="card-title mb-0">Değişiklik Geçmişi</h5>
+                </div>
+                <div class="card-body" style="padding:0">
+                    @if($asset->histories->isEmpty())
+                        <div class="p-4 text-center" style="color:#9ca3af;font-size:.83rem">
+                            <i class="fas fa-history me-1" style="opacity:.3"></i>Henüz değişiklik kaydı yok.
+                        </div>
+                    @else
+                        <div style="position:relative;padding:8px 20px">
+                            <div style="position:absolute;left:36px;top:0;bottom:0;width:2px;background:#f3f4f6"></div>
+                            @foreach($asset->histories as $h)
+                                @php
+                                    if ($h->action === 'created') {
+                                        $hColor = '#10b981'; $hIcon = 'fa-plus';
+                                    } elseif ($h->field === 'status') {
+                                        $hColor = '#3b82f6'; $hIcon = 'fa-sync-alt';
+                                    } elseif ($h->field === 'location') {
+                                        $hColor = '#f59e0b'; $hIcon = 'fa-map-marker-alt';
+                                    } elseif ($h->field === 'branch_id') {
+                                        $hColor = '#8b5cf6'; $hIcon = 'fa-building';
+                                    } elseif ($h->field === 'photo') {
+                                        $hColor = '#c19b77'; $hIcon = 'fa-camera';
+                                    } else {
+                                        $hColor = '#6b7280'; $hIcon = 'fa-edit';
+                                    }
+                                @endphp
+                                <div style="position:relative;padding:12px 0 12px 32px;border-bottom:1px solid #f9fafb">
+                                    <div style="position:absolute;left:-4px;top:50%;transform:translateY(-50%);width:22px;height:22px;border-radius:50%;background:{{ $hColor }};display:flex;align-items:center;justify-content:center;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.15);z-index:1">
+                                        <i class="fas {{ $hIcon }}" style="font-size:.5rem;color:#fff"></i>
+                                    </div>
+                                    @if($h->action === 'created')
+                                        <div style="font-size:.84rem;font-weight:700;color:#1f2937">Demirbaş oluşturuldu</div>
+                                        @if($h->note)<div style="font-size:.77rem;color:#9ca3af">{{ $h->note }}</div>@endif
+                                    @else
+                                        <div style="font-size:.84rem;font-weight:700;color:#1f2937">
+                                            {{ \App\Models\AssetHistory::FIELD_LABELS[$h->field] ?? ($h->field ?? 'Alan') }} güncellendi
+                                        </div>
+                                        @if($h->old_value !== null || $h->new_value !== null)
+                                            <div style="font-size:.78rem;color:#6b7280;margin-top:2px;display:flex;align-items:center;gap:4px;flex-wrap:wrap">
+                                                <span style="color:#ef4444;text-decoration:line-through">{{ $h->old_value ?? '—' }}</span>
+                                                <i class="fas fa-long-arrow-alt-right" style="font-size:.65rem;color:#9ca3af"></i>
+                                                <span style="color:#059669;font-weight:600">{{ $h->new_value ?? '—' }}</span>
+                                            </div>
+                                        @endif
+                                        @if($h->note)<div style="font-size:.77rem;color:#9ca3af;margin-top:1px">{{ $h->note }}</div>@endif
+                                    @endif
+                                    <div style="font-size:.73rem;color:#9ca3af;margin-top:4px">
+                                        @if($h->user)
+                                            <strong style="color:#6b7280">{{ $h->user->name }}</strong>
+                                            <span style="margin:0 3px">·</span>
+                                        @endif
+                                        {{ $h->created_at->format('d.m.Y · H:i') }}
+                                    </div>
+                                </div>
+                            @endforeach
+                        </div>
+                    @endif
                 </div>
             </div>
         </div>

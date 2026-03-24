@@ -163,6 +163,17 @@ body {
 }
 .exit-info-row { font-size: .8rem; color: #6b7280; margin-top: 3px; }
 
+/* Change history timeline */
+.hist-timeline { position:relative; padding:8px 20px; }
+.hist-timeline::before { content:''; position:absolute; left:28px; top:0; bottom:0; width:2px; background:#f3f4f6; }
+.hist-item { position:relative; padding:12px 0 12px 28px; border-bottom:1px solid #f3f4f6; }
+.hist-item:last-child { border-bottom:none; }
+.hist-dot { position:absolute; left:-7px; top:50%; transform:translateY(-50%); width:20px; height:20px; border-radius:50%; display:flex; align-items:center; justify-content:center; border:2px solid #fff; box-shadow:0 1px 4px rgba(0,0,0,.12); z-index:1; }
+.hist-dot i { font-size:.45rem; color:#fff; }
+.hist-action { font-size:.82rem; font-weight:700; color:#1f2937; }
+.hist-change { font-size:.77rem; color:#6b7280; margin-top:2px; }
+.hist-meta { font-size:.72rem; color:#9ca3af; margin-top:3px; }
+
 /* Footer */
 .pub-footer {
     text-align: center;
@@ -207,7 +218,7 @@ body {
     {{-- Photo --}}
     @if($asset->photo)
         <div class="asset-photo">
-            <img src="{{ asset('storage/' . $asset->photo) }}" alt="{{ $asset->name }}">
+            <img src="{{ asset('uploads/' . $asset->photo) }}" alt="{{ $asset->name }}">
         </div>
     @endif
 
@@ -331,6 +342,61 @@ body {
             </div>
         @endforelse
     </div>
+
+    {{-- Değişiklik Geçmişi --}}
+    @if($asset->histories->isNotEmpty())
+    <div class="info-card">
+        <div class="info-card-header">
+            <div class="ic-icon" style="background:rgba(67,97,238,.12);color:#4361ee">
+                <i class="fas fa-history"></i>
+            </div>
+            <h6>Değişiklik Geçmişi</h6>
+        </div>
+        <div class="hist-timeline">
+            @foreach($asset->histories as $h)
+                @php
+                    if ($h->action === 'created') {
+                        $hColor = '#10b981'; $hIcon = 'fa-plus';
+                    } elseif ($h->field === 'status') {
+                        $hColor = '#3b82f6'; $hIcon = 'fa-sync-alt';
+                    } elseif ($h->field === 'location') {
+                        $hColor = '#f59e0b'; $hIcon = 'fa-map-marker-alt';
+                    } elseif ($h->field === 'branch_id') {
+                        $hColor = '#8b5cf6'; $hIcon = 'fa-building';
+                    } elseif ($h->field === 'photo') {
+                        $hColor = '#c19b77'; $hIcon = 'fa-camera';
+                    } else {
+                        $hColor = '#6b7280'; $hIcon = 'fa-edit';
+                    }
+                @endphp
+                <div class="hist-item">
+                    <div class="hist-dot" style="background:{{ $hColor }}">
+                        <i class="fas {{ $hIcon }}"></i>
+                    </div>
+                    @if($h->action === 'created')
+                        <div class="hist-action">Demirbaş kaydedildi</div>
+                    @else
+                        <div class="hist-action">
+                            {{ \App\Models\AssetHistory::FIELD_LABELS[$h->field] ?? ($h->field ?? 'Alan') }} değiştirildi
+                        </div>
+                        @if($h->old_value !== null || $h->new_value !== null)
+                            <div class="hist-change">
+                                <span style="color:#ef4444;text-decoration:line-through">{{ $h->old_value ?? '—' }}</span>
+                                <i class="fas fa-arrow-right" style="font-size:.6rem;margin:0 3px;color:#9ca3af"></i>
+                                <span style="color:#059669;font-weight:600">{{ $h->new_value ?? '—' }}</span>
+                            </div>
+                        @endif
+                        @if($h->note)<div class="hist-change">{{ $h->note }}</div>@endif
+                    @endif
+                    <div class="hist-meta">
+                        @if($h->user)<strong>{{ $h->user->name }}</strong> · @endif
+                        {{ $h->created_at->format('d.m.Y H:i') }}
+                    </div>
+                </div>
+            @endforeach
+        </div>
+    </div>
+    @endif
 
 </div>
 

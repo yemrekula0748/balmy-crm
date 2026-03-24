@@ -225,7 +225,7 @@
                         <td>
                             <div class="a-thumb">
                                 @if($asset->photo)
-                                    <img src="{{ asset('storage/'.$asset->photo) }}" alt="{{ $asset->name }}">
+                                    <img src="{{ asset('uploads/'.$asset->photo) }}" alt="{{ $asset->name }}">
                                 @else
                                     <i class="fas fa-box"></i>
                                 @endif

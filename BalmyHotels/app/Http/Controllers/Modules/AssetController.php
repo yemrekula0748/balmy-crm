@@ -145,7 +145,7 @@ class AssetController extends BaseModuleController
             ? $request->branch_id
             : auth()->user()->branch_id;
 
-        Asset::create([
+        $asset = Asset::create([
             'asset_code'    => strtoupper($request->asset_code),
             'category_id'   => $request->category_id,
             'branch_id'     => $branchId,
@@ -163,13 +163,24 @@ class AssetController extends BaseModuleController
             'qr_token'      => Str::uuid()->toString(),
         ]);
 
+        $asset->histories()->create([
+            'user_id' => auth()->id(),
+            'action'  => 'created',
+            'note'    => 'Demirbaş sisteme eklendi.',
+        ]);
+
         return redirect()->route('assets.index')
             ->with('success', 'Demirbaş kaydı oluşturuldu.');
     }
 
     public function show(Asset $asset)
     {
-        $asset->load(['category', 'branch', 'exits.staff', 'exits.approver', 'exits.branch']);
+        // Auto-generate QR token for assets created before this feature
+        if (!$asset->qr_token) {
+            $asset->update(['qr_token' => Str::uuid()->toString()]);
+        }
+
+        $asset->load(['category', 'branch', 'exits.staff', 'exits.approver', 'exits.branch', 'histories.user']);
         $page_title = $asset->name;
 
         return view('modules.assets.show', compact('asset', 'page_title'));
@@ -225,6 +236,18 @@ class AssetController extends BaseModuleController
             }
         }
 
+        // Değişiklik takibi: eski değerleri sakla
+        $watchFields = ['name', 'status', 'location', 'branch_id', 'category_id', 'serial_no', 'description', 'asset_code'];
+        $oldReadable = [];
+        foreach ($watchFields as $wf) {
+            $val = (string)($asset->$wf ?? '');
+            if ($wf === 'status')       $val = Asset::STATUSES[$val] ?? $val;
+            elseif ($wf === 'branch_id')    $val = $asset->branch?->name ?? $val;
+            elseif ($wf === 'category_id')  $val = $asset->category?->name ?? $val;
+            $oldReadable[$wf] = $val;
+        }
+        $photoChanged = false;
+
         // Fotoğraf güncelle
         $photoPath = $asset->photo;
         if ($request->hasFile('photo')) {
@@ -232,9 +255,11 @@ class AssetController extends BaseModuleController
                 \Storage::disk('public')->delete($asset->photo);
             }
             $photoPath = $request->file('photo')->store('assets', 'public');
+            $photoChanged = true;
         } elseif ($request->input('remove_photo') === '1' && $asset->photo) {
             \Storage::disk('public')->delete($asset->photo);
             $photoPath = null;
+            $photoChanged = true;
         }
 
         $asset->update([
@@ -253,6 +278,32 @@ class AssetController extends BaseModuleController
             'properties'    => $properties ?: null,
             'custom_fields' => $customFields ?: null,
         ]);
+
+        // Değişiklikleri geçmişe kaydet
+        $asset->load(['branch', 'category']);
+        foreach ($watchFields as $wf) {
+            $newVal = (string)($asset->$wf ?? '');
+            if ($wf === 'status')       $newVal = Asset::STATUSES[$newVal] ?? $newVal;
+            elseif ($wf === 'branch_id')    $newVal = $asset->branch?->name ?? $newVal;
+            elseif ($wf === 'category_id')  $newVal = $asset->category?->name ?? $newVal;
+            if ($oldReadable[$wf] !== $newVal) {
+                $asset->histories()->create([
+                    'user_id'   => auth()->id(),
+                    'action'    => 'updated',
+                    'field'     => $wf,
+                    'old_value' => $oldReadable[$wf] ?: null,
+                    'new_value' => $newVal ?: null,
+                ]);
+            }
+        }
+        if ($photoChanged) {
+            $asset->histories()->create([
+                'user_id' => auth()->id(),
+                'action'  => 'updated',
+                'field'   => 'photo',
+                'note'    => 'Fotoğraf güncellendi.',
+            ]);
+        }
 
         return redirect()->route('assets.show', $asset)
             ->with('success', 'Demirbaş güncellendi.');

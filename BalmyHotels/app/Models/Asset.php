@@ -59,6 +59,11 @@ class Asset extends Model
         return $this->hasMany(AssetExit::class);
     }
 
+    public function histories(): HasMany
+    {
+        return $this->hasMany(AssetHistory::class)->latest();
+    }
+
     public function activeExit(): ?AssetExit
     {
         return $this->exits()
