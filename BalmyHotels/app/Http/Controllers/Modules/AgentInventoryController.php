@@ -55,7 +55,17 @@ class AgentInventoryController extends BaseModuleController
         $domains = AgentComputer::whereNotNull('domain_name')->distinct()->pluck('domain_name');
         $osList  = AgentComputer::whereNotNull('os_product_name')->distinct()->pluck('os_product_name');
 
-        return view('modules.bilgi_islem.agent_inventory.index', compact('computers', 'domains', 'osList'));
+        $stats = [
+            'total'      => AgentComputer::count(),
+            'online'     => AgentComputer::where('last_seen_at', '>=', now()->subMinutes(10))->count(),
+            'recent'     => AgentComputer::where('last_seen_at', '>=', now()->subHours(24))
+                                          ->where('last_seen_at', '<', now()->subMinutes(10))->count(),
+            'av_issue'   => AgentComputer::whereDoesntHave('antivirus', fn($q) => $q->where('is_enabled', true))->count(),
+            'disk_warn'  => AgentComputer::whereHas('disks', fn($q) => $q->where('usage_percent', '>', 85))->count(),
+            'rdp_open'   => AgentComputer::whereHas('security', fn($q) => $q->where('rdp_enabled', true))->count(),
+        ];
+
+        return view('modules.bilgi_islem.agent_inventory.index', compact('computers', 'domains', 'osList', 'stats'));
     }
 
     public function show(AgentComputer $agentComputer)
