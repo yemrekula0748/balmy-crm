@@ -24,6 +24,9 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 |--------------------------------------------------------------------------
 */
 use App\Http\Controllers\Api\AgentReportController;
+use App\Http\Controllers\Api\FileEventController;
 
-Route::middleware(['agent.key', 'throttle:60,1'])
-     ->post('/agent/report', [AgentReportController::class, 'store']);
+Route::middleware(['agent.key', 'throttle:60,1'])->group(function () {
+    Route::post('/agent/report',       [AgentReportController::class, 'store']);
+    Route::post('/agent/file-events',  [FileEventController::class,   'store']);
+});

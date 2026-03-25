@@ -73,6 +73,10 @@
                         <i class="fas fa-list me-1"></i>Kurulu Programlar
                         <span class="badge bg-primary rounded-pill ms-1">{{ $programCount }}</span>
                     </a>
+                    <a href="{{ route('it.agent.file-events', $agentComputer) }}"
+                       class="btn btn-sm btn-outline-danger ms-1">
+                        <i class="fas fa-trash-alt me-1"></i>Dosya Silme Logları
+                    </a>
                     <a href="{{ route('it.agent.index') }}" class="btn btn-sm btn-outline-secondary ms-1">
                         <i class="fas fa-arrow-left me-1"></i>Listeye Dön
                     </a>

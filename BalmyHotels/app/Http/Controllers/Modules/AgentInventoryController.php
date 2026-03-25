@@ -82,6 +82,31 @@ class AgentInventoryController extends BaseModuleController
         return view('modules.bilgi_islem.agent_inventory.programs', compact('agentComputer', 'programs'));
     }
 
+    public function fileEvents(Request $request, AgentComputer $agentComputer)
+    {
+        $query = $agentComputer->fileEvents()->orderBy('event_time', 'desc');
+
+        if ($search = $request->input('search')) {
+            $query->where(function ($q) use ($search) {
+                $q->where('object_name', 'like', "%{$search}%")
+                  ->orWhere('subject_user', 'like', "%{$search}%")
+                  ->orWhere('process_name', 'like', "%{$search}%");
+            });
+        }
+
+        if ($from = $request->input('from')) {
+            $query->where('event_time', '>=', $from);
+        }
+
+        if ($to = $request->input('to')) {
+            $query->where('event_time', '<=', $to . ' 23:59:59');
+        }
+
+        $events = $query->paginate(100)->withQueryString();
+
+        return view('modules.bilgi_islem.agent_inventory.file_events', compact('agentComputer', 'events'));
+    }
+
     public function stats()
     {
         $total       = AgentComputer::count();

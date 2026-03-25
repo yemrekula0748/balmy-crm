@@ -73,6 +73,11 @@ class AgentComputer extends Model
         return $this->hasMany(AgentComputerMailAccount::class, 'agent_computer_id');
     }
 
+    public function fileEvents()
+    {
+        return $this->hasMany(AgentComputerFileEvent::class, 'agent_computer_id');
+    }
+
     /** IP adresi — ilk aktif ağ adaptöründen */
     public function getIpAddressAttribute(): ?string
     {
