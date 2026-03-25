@@ -2,13 +2,12 @@
 
 @push('styles')
 <style>
-/* â”€â”€ Manuel KayÄ±t â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* Manuel Kayit */
 .mc-card {
     background: #fff;
     border-radius: 20px;
     box-shadow: 0 1px 3px rgba(0,0,0,.06), 0 8px 24px rgba(79,70,229,.08);
     overflow: hidden;
-    height: 100%;
 }
 .mc-header {
     background: linear-gradient(135deg, #1e1b4b 0%, #4338ca 60%, #6366f1 100%);
@@ -27,42 +26,6 @@
 .mc-header-text h5 { margin: 0; font-size: 1.1rem; font-weight: 700; color: #fff; }
 .mc-header-text p  { margin: 0; font-size: .8rem; color: rgba(255,255,255,.65); }
 .mc-body { padding: 2rem; }
-
-/* Info panel */
-.mc-info-panel {
-    background: linear-gradient(160deg, #f8f9ff 0%, #eef0ff 100%);
-    border-radius: 20px;
-    border: 1.5px solid #e0e3ff;
-    padding: 2rem 1.75rem;
-    height: 100%;
-}
-.mc-info-panel h6 {
-    font-size: .75rem; font-weight: 700;
-    color: #6366f1; text-transform: uppercase; letter-spacing: .06em;
-    margin-bottom: 1.25rem;
-}
-.mc-info-item {
-    display: flex; align-items: flex-start; gap: .875rem;
-    margin-bottom: 1.5rem;
-}
-.mc-info-item:last-child { margin-bottom: 0; }
-.mc-info-icon {
-    width: 38px; height: 38px; border-radius: 10px;
-    display: flex; align-items: center; justify-content: center;
-    flex-shrink: 0;
-}
-.mc-info-item-text strong { display: block; font-size: .875rem; font-weight: 600; color: #1e1b4b; margin-bottom: 2px; }
-.mc-info-item-text span   { font-size: .8rem; color: #64748b; line-height: 1.4; }
-
-.mc-back-link {
-    display: inline-flex; align-items: center; gap: .375rem;
-    font-size: .82rem; font-weight: 500; color: #6366f1;
-    text-decoration: none; margin-bottom: 1.5rem;
-    transition: gap .15s;
-}
-.mc-back-link:hover { gap: .6rem; color: #4338ca; }
-
-/* Field groups */
 .mc-field { margin-bottom: 1.25rem; }
 .mc-label {
     display: flex; align-items: center; gap: .375rem;
@@ -91,8 +54,6 @@
 .mc-input.is-invalid { border-color: #ef4444; background: #fff5f5; }
 .mc-input.is-invalid:focus { box-shadow: 0 0 0 3px rgba(239,68,68,.12); }
 .mc-error { margin-top: .375rem; font-size: .8rem; color: #ef4444; display: flex; align-items: center; gap: .25rem; }
-
-/* Type cards */
 .mc-type-grid { display: grid; grid-template-columns: 1fr 1fr; gap: .75rem; }
 .mc-type-card {
     position: relative; border-radius: 14px;
@@ -110,25 +71,19 @@
 .mc-type-card .mc-type-label { font-size: .95rem; font-weight: 600; color: #334155; }
 .mc-type-card .mc-type-sub   { font-size: .75rem; color: #94a3b8; margin-top: 2px; }
 .mc-type-card:hover { border-color: #a5b4fc; background: #fafafa; }
-
 .mc-type-card.is-giris-active {
     border-color: #22c55e; background: #f0fdf4;
     box-shadow: 0 0 0 3px rgba(34,197,94,.1);
 }
 .mc-type-card.is-giris-active .mc-type-icon { background: #dcfce7; }
 .mc-type-card.is-giris-active .mc-type-label { color: #15803d; }
-
 .mc-type-card.is-cikis-active {
     border-color: #ef4444; background: #fff5f5;
     box-shadow: 0 0 0 3px rgba(239,68,68,.1);
 }
 .mc-type-card.is-cikis-active .mc-type-icon { background: #fee2e2; }
 .mc-type-card.is-cikis-active .mc-type-label { color: #dc2626; }
-
-/* Divider */
 .mc-divider { height: 1px; background: #f1f5f9; margin: 1.5rem 0; }
-
-/* Actions */
 .mc-actions { display: flex; gap: .75rem; }
 .mc-btn-primary {
     flex: 1; padding: .75rem 1.5rem;
@@ -150,8 +105,6 @@
     transition: background .15s;
 }
 .mc-btn-cancel:hover { background: #e2e8f0; color: #475569; }
-
-/* Alert */
 .mc-alert {
     background: #fff5f5; border: 1.5px solid #fecaca;
     border-radius: 12px; padding: .875rem 1rem;
@@ -159,8 +112,6 @@
     font-size: .85rem; color: #dc2626;
 }
 .mc-alert ul { margin: 0; padding-left: 1.25rem; }
-
-/* Page header */
 .mc-page-header {
     display: flex; align-items: center; justify-content: space-between;
     flex-wrap: wrap; gap: .5rem;
@@ -178,7 +129,6 @@
 @section('content')
 <div class="container-fluid px-4">
 
-    {{-- Page header --}}
     <div class="mc-page-header">
         <h4>
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none"
@@ -187,94 +137,19 @@
                 <path d="M15 3H19a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H15"/>
                 <polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/>
             </svg>
-            Manuel GiriÅŸ/Ã‡Ä±kÄ±ÅŸ KaydÄ±
+            Manuel Giriş/Çıkış Kaydı
         </h4>
         <ol class="mc-breadcrumb">
             <li><a href="{{ url('/') }}">Anasayfa</a></li>
-            <li><a href="{{ route('door-logs.index') }}">KapÄ± GiriÅŸ/Ã‡Ä±kÄ±ÅŸ</a></li>
-            <li>Manuel KayÄ±t</li>
+            <li><a href="{{ route('door-logs.index') }}">Kapı Giriş/Çıkış</a></li>
+            <li>Manuel Kayıt</li>
         </ol>
     </div>
 
-    <div class="row g-4 align-items-start">
-
-        {{-- â”€â”€ Sol: Bilgi Paneli â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ --}}
-        <div class="col-xl-4 col-lg-4 d-none d-lg-block">
-            <div class="mc-info-panel">
-                <h6>Bu Sayfa HakkÄ±nda</h6>
-
-                <div class="mc-info-item">
-                    <div class="mc-info-icon" style="background:#e0e3ff;">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none"
-                             stroke="#6366f1" stroke-width="2" viewBox="0 0 24 24">
-                            <path d="M15 3H19a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H15"/>
-                            <polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/>
-                        </svg>
-                    </div>
-                    <div class="mc-info-item-text">
-                        <strong>Manuel KayÄ±t</strong>
-                        <span>QR okutma yerine elle giriÅŸ/Ã§Ä±kÄ±ÅŸ kaydÄ± oluÅŸturabilirsiniz.</span>
-                    </div>
-                </div>
-
-                <div class="mc-info-item">
-                    <div class="mc-info-icon" style="background:#dcfce7;">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none"
-                             stroke="#16a34a" stroke-width="2" viewBox="0 0 24 24">
-                            <circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
-                        </svg>
-                    </div>
-                    <div class="mc-info-item-text">
-                        <strong>Personel SeÃ§imi</strong>
-                        <span>Listede departman mÃ¼dÃ¼rleri, ÅŸube mÃ¼dÃ¼rleri ve yÃ¶neticiler gÃ¶rÃ¼nÃ¼r.</span>
-                    </div>
-                </div>
-
-                <div class="mc-info-item">
-                    <div class="mc-info-icon" style="background:#fef9c3;">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none"
-                             stroke="#ca8a04" stroke-width="2" viewBox="0 0 24 24">
-                            <circle cx="12" cy="12" r="10"/>
-                            <polyline points="12 6 12 12 16 14"/>
-                        </svg>
-                    </div>
-                    <div class="mc-info-item-text">
-                        <strong>Tarih & Saat</strong>
-                        <span>Geriye dÃ¶nÃ¼k kayÄ±t girebilirsiniz; varsayÄ±lan ÅŸimdiki zamandÄ±r.</span>
-                    </div>
-                </div>
-
-                <div class="mc-info-item">
-                    <div class="mc-info-icon" style="background:#fee2e2;">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none"
-                             stroke="#dc2626" stroke-width="2" viewBox="0 0 24 24">
-                            <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/>
-                            <line x1="12" y1="16" x2="12.01" y2="16"/>
-                        </svg>
-                    </div>
-                    <div class="mc-info-item-text">
-                        <strong>Ã–nlem</strong>
-                        <span>Ä°Ã§erideyken tekrar giriÅŸ veya dÄ±ÅŸarÄ±dayken Ã§Ä±kÄ±ÅŸ kaydÄ± oluÅŸturulamaz.</span>
-                    </div>
-                </div>
-
-                <div class="mc-divider"></div>
-
-                <a href="{{ route('door-logs.index') }}" class="mc-back-link">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none"
-                         stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
-                        <polyline points="15 18 9 12 15 6"/>
-                    </svg>
-                    KayÄ±tlara dÃ¶n
-                </a>
-            </div>
-        </div>
-
-        {{-- â”€â”€ SaÄŸ: Form KartÄ± â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ --}}
-        <div class="col-xl-8 col-lg-8 col-12">
+    <div class="row justify-content-center">
+        <div class="col-xl-8 col-lg-10 col-12">
             <div class="mc-card">
 
-                {{-- Header --}}
                 <div class="mc-header">
                     <div class="mc-header-icon">
                         <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none"
@@ -284,12 +159,11 @@
                         </svg>
                     </div>
                     <div class="mc-header-text">
-                        <h5>KayÄ±t Bilgileri</h5>
-                        <p>AÅŸaÄŸÄ±daki alanlarÄ± doldurun ve kaydedin</p>
+                        <h5>Kayıt Bilgileri</h5>
+                        <p>Aşağıdaki alanları doldurun ve kaydedin</p>
                     </div>
                 </div>
 
-                {{-- Body --}}
                 <div class="mc-body">
 
                     @if($errors->any())
@@ -305,7 +179,6 @@
 
                         <div class="row g-3">
 
-                            {{-- ÅUBE FÄ°LTRESÄ° --}}
                             @if($branches->count() > 1)
                             <div class="col-md-6">
                                 <div class="mc-label">
@@ -314,10 +187,10 @@
                                         <rect x="3" y="3" width="18" height="18" rx="2"/>
                                         <path d="M3 9h18M9 21V9"/>
                                     </svg>
-                                    Åube Filtrele
+                                    Şube Filtrele
                                 </div>
                                 <select id="branchFilter" class="mc-input">
-                                    <option value="">â€” TÃ¼m ÅŸubeler â€”</option>
+                                    <option value="">— Tüm şubeler —</option>
                                     @foreach($branches as $b)
                                         <option value="{{ $b->id }}">{{ $b->name }}</option>
                                     @endforeach
@@ -325,7 +198,6 @@
                             </div>
                             @endif
 
-                            {{-- PERSONEL --}}
                             <div class="{{ $branches->count() > 1 ? 'col-md-6' : 'col-12' }}">
                                 <div class="mc-label">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" fill="none"
@@ -336,13 +208,13 @@
                                 </div>
                                 <select id="userSelect" name="user_id"
                                         class="mc-input {{ $errors->has('user_id') ? 'is-invalid' : '' }}" required>
-                                    <option value="">Personel seÃ§in...</option>
+                                    <option value="">Personel seçin...</option>
                                     @foreach($managers as $manager)
                                         <option value="{{ $manager->id }}"
                                                 data-branch="{{ $manager->branch_id }}"
                                                 @selected(old('user_id') == $manager->id)>
                                             {{ $manager->name }}
-                                            @if($manager->department) â€” {{ $manager->department->name }}@endif
+                                            @if($manager->department) &mdash; {{ $manager->department->name }}@endif
                                             ({{ $manager->branch->name ?? '' }})
                                         </option>
                                     @endforeach
@@ -359,9 +231,8 @@
                                 @enderror
                             </div>
 
-                        </div>{{-- /row --}}
+                        </div>
 
-                        {{-- Ä°ÅLEM TÄ°PÄ° --}}
                         <div class="mc-field mt-3">
                             <div class="mc-label">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" fill="none"
@@ -371,7 +242,7 @@
                                     <polyline points="7 23 3 19 7 15"/>
                                     <path d="M21 13v2a4 4 0 0 1-4 4H3"/>
                                 </svg>
-                                Ä°ÅŸlem Tipi <span class="dot"></span>
+                                İşlem Tipi <span class="dot"></span>
                             </div>
                             <div class="mc-type-grid">
 
@@ -388,8 +259,8 @@
                                             <line x1="15" y1="12" x2="3" y2="12"/>
                                         </svg>
                                     </div>
-                                    <div class="mc-type-label">GiriÅŸ</div>
-                                    <div class="mc-type-sub">Binaya giriÅŸ kaydÄ±</div>
+                                    <div class="mc-type-label">Giriş</div>
+                                    <div class="mc-type-sub">Binaya giriş kaydı</div>
                                 </label>
 
                                 <label class="mc-type-card {{ old('type') === 'cikis' ? 'is-cikis-active' : '' }}" id="card-cikis">
@@ -405,8 +276,8 @@
                                             <line x1="21" y1="12" x2="9" y2="12"/>
                                         </svg>
                                     </div>
-                                    <div class="mc-type-label">Ã‡Ä±kÄ±ÅŸ</div>
-                                    <div class="mc-type-sub">Binadan Ã§Ä±kÄ±ÅŸ kaydÄ±</div>
+                                    <div class="mc-type-label">Çıkış</div>
+                                    <div class="mc-type-sub">Binadan çıkış kaydı</div>
                                 </label>
 
                             </div>
@@ -419,7 +290,6 @@
 
                         <div class="row g-3">
 
-                            {{-- TARÄ°H & SAAT --}}
                             <div class="col-md-6">
                                 <div class="mc-label">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" fill="none"
@@ -427,7 +297,7 @@
                                         <circle cx="12" cy="12" r="10"/>
                                         <polyline points="12 6 12 12 16 14"/>
                                     </svg>
-                                    Tarih & Saat <span class="dot"></span>
+                                    Tarih &amp; Saat <span class="dot"></span>
                                 </div>
                                 <input type="datetime-local" name="logged_at"
                                        class="mc-input {{ $errors->has('logged_at') ? 'is-invalid' : '' }}"
@@ -438,7 +308,6 @@
                                 @enderror
                             </div>
 
-                            {{-- NOT --}}
                             <div class="col-md-6">
                                 <div class="mc-label" style="justify-content:space-between;">
                                     <span style="display:flex;align-items:center;gap:.375rem;">
@@ -454,38 +323,36 @@
                                 <input type="text" name="notes"
                                        class="mc-input {{ $errors->has('notes') ? 'is-invalid' : '' }}"
                                        value="{{ old('notes') }}"
-                                       placeholder="KÄ±sa aÃ§Ä±klama...">
+                                       placeholder="Kısa açıklama...">
                                 @error('notes')
                                     <div class="mc-error">{{ $message }}</div>
                                 @enderror
                             </div>
 
-                        </div>{{-- /row --}}
+                        </div>
 
-                        {{-- ACTIONS --}}
                         <div class="mc-actions mt-4">
                             <button type="submit" class="mc-btn-primary">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none"
                                      stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
                                     <polyline points="20 6 9 17 4 12"/>
                                 </svg>
-                                KaydÄ± OluÅŸtur
+                                Kaydı Oluştur
                             </button>
                             <a href="{{ route('door-logs.index') }}" class="mc-btn-cancel">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" fill="none"
                                      stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                                     <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
                                 </svg>
-                                Ä°ptal
+                                İptal
                             </a>
                         </div>
 
                     </form>
-                </div>{{-- /mc-body --}}
-            </div>{{-- /mc-card --}}
+                </div>
+            </div>
         </div>
-
-    </div>{{-- /row --}}
+    </div>
 
 </div>
 @endsection
@@ -493,7 +360,6 @@
 @push('scripts')
 <script>
 (function () {
-    /* â”€â”€ Åube filtresi â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
     const branchFilter = document.getElementById('branchFilter');
     const userSelect   = document.getElementById('userSelect');
 
@@ -511,7 +377,6 @@
         });
     }
 
-    /* â”€â”€ Ä°ÅŸlem tipi kartlarÄ± â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
     const cardGiris = document.getElementById('card-giris');
     const cardCikis = document.getElementById('card-cikis');
     const iconGiris = document.getElementById('icon-giris');
