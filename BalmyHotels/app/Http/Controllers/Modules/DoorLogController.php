@@ -116,7 +116,7 @@ class DoorLogController extends BaseModuleController
         $insideUserIds  = $insideUsers->pluck('user_id');
         $neverLoggedQuery = User::with('department', 'branch')
             ->where('is_active', true)
-            ->where('role', 'dept_manager')
+            ->whereHas('userRoles', fn ($q) => $q->where('role_name', 'dept_manager'))
             ->whereNotIn('id', $todayLoggedIds)
             ->whereNotIn('id', $insideUserIds)
             ->orderBy('name');
@@ -134,7 +134,7 @@ class DoorLogController extends BaseModuleController
 
         // Hızlı kayıt dropdown: yalnızca aynı şube(ler)deki personel
         $managersQuery = User::with('department', 'branch')
-            ->whereIn('role', ['dept_manager', 'branch_manager', 'super_admin'])
+            ->whereHas('userRoles', fn ($q) => $q->whereIn('role_name', ['dept_manager', 'branch_manager', 'super_admin']))
             ->where('is_active', true)
             ->orderBy('name');
         if (!$authUser->isSuperAdmin()) {
@@ -163,7 +163,7 @@ class DoorLogController extends BaseModuleController
             : Branch::whereIn('id', $branchIds)->orderBy('name')->get();
 
         $managersQuery = User::with('department', 'branch')
-            ->whereIn('role', ['dept_manager', 'branch_manager', 'super_admin'])
+            ->whereHas('userRoles', fn ($q) => $q->whereIn('role_name', ['dept_manager', 'branch_manager', 'super_admin']))
             ->where('is_active', true)
             ->orderBy('name');
         if (!$authUser->isSuperAdmin()) {
