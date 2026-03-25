@@ -366,6 +366,84 @@
             </div>
         </div>
 
+        {{-- ---- Mail / Outlook ---- --}}
+        @if($agentComputer->mail || $agentComputer->mailAccounts->isNotEmpty())
+        <div class="col-12">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white border-bottom-0 pb-0 pt-3 px-4">
+                    <h6 class="fw-bold mb-0">
+                        <i class="fas fa-envelope me-2 text-primary"></i>Mail / Outlook
+                    </h6>
+                </div>
+                <div class="card-body px-4 py-3">
+
+                    @if($agentComputer->mail)
+                    @php $m = $agentComputer->mail; @endphp
+                    <div class="row g-3 mb-3">
+                        @if($m->default_mail_client)
+                        <div class="col-auto">
+                            <span class="text-muted small">Varsayılan İstemci:</span>
+                            <span class="fw-semibold ms-1 small">{{ $m->default_mail_client }}</span>
+                        </div>
+                        @endif
+                        @if($m->outlook_version)
+                        <div class="col-auto">
+                            <span class="text-muted small">Outlook Sürümü:</span>
+                            <span class="fw-semibold ms-1 small">{{ $m->outlook_version }}</span>
+                        </div>
+                        @endif
+                        @if($m->is_new_outlook !== null)
+                        <div class="col-auto">
+                            <span class="badge {{ $m->is_new_outlook ? 'bg-info bg-opacity-10 text-info' : 'bg-secondary bg-opacity-10 text-secondary' }}">
+                                <i class="fas fa-envelope me-1"></i>
+                                {{ $m->is_new_outlook ? 'Yeni Outlook' : 'Klasik Outlook' }}
+                            </span>
+                        </div>
+                        @endif
+                    </div>
+                    @endif
+
+                    @if($agentComputer->mailAccounts->isNotEmpty())
+                    <div class="table-responsive">
+                        <table class="table table-sm align-middle mb-0">
+                            <thead style="background:#f8f9fa;">
+                                <tr>
+                                    <th class="ps-3 py-2 small text-muted">E-POSTA ADRESİ</th>
+                                    <th class="py-2 small text-muted">GÖRÜNEN AD</th>
+                                    <th class="py-2 small text-muted">HESAP TÜRÜ</th>
+                                    <th class="py-2 small text-muted">EXCHANGE SUNUCU</th>
+                                    <th class="py-2 small text-muted">KAYNAK</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach($agentComputer->mailAccounts as $account)
+                                <tr>
+                                    <td class="ps-3 small fw-semibold">
+                                        <i class="fas fa-at me-1 text-muted"></i>{{ $account->smtp_address }}
+                                    </td>
+                                    <td class="small">{{ $account->display_name ?? '—' }}</td>
+                                    <td class="small">
+                                        @if($account->account_type)
+                                            <span class="badge bg-light text-dark border">{{ $account->account_type }}</span>
+                                        @else —
+                                        @endif
+                                    </td>
+                                    <td class="small text-muted">{{ $account->exchange_server ?? '—' }}</td>
+                                    <td class="small text-muted">{{ $account->source ?? '—' }}</td>
+                                </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                    @else
+                        <p class="text-muted small mb-0">Mail hesabı kaydı bulunamadı.</p>
+                    @endif
+
+                </div>
+            </div>
+        </div>
+        @endif
+
     </div>{{-- /row --}}
 </div>
 @endsection

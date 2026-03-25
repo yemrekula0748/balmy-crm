@@ -60,7 +60,7 @@ class AgentInventoryController extends BaseModuleController
 
     public function show(AgentComputer $agentComputer)
     {
-        $agentComputer->load(['hardware', 'security', 'networkAdapters', 'disks', 'antivirus']);
+        $agentComputer->load(['hardware', 'security', 'networkAdapters', 'disks', 'antivirus', 'mail', 'mailAccounts']);
         $programCount = AgentComputerInstalledProgram::where('agent_computer_id', $agentComputer->id)->count();
 
         return view('modules.bilgi_islem.agent_inventory.show', compact('agentComputer', 'programCount'));
