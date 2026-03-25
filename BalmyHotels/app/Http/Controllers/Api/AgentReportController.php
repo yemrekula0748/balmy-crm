@@ -34,7 +34,7 @@ class AgentReportController extends Controller
                     'agent_version'        => $request->input('agent_version'),
                     'reported_at'          => $request->input('reported_at'),
                     'last_boot_time'       => $request->input('last_boot_time'),
-                    'current_users'        => $request->input('current_users', []),
+                    'current_users'        => json_encode($request->input('current_users', [])),
                     'os_product_name'      => $osData['product_name'] ?? null,
                     'os_version'           => $osData['version'] ?? null,
                     'os_release'           => $osData['release'] ?? null,
@@ -64,7 +64,7 @@ class AgentReportController extends Controller
                         'total_ram_gb'        => $hw['total_ram_gb'] ?? null,
                         'available_ram_gb'    => $hw['available_ram_gb'] ?? null,
                         'ram_usage_percent'   => $hw['ram_usage_percent'] ?? null,
-                        'ram_slots'           => $hw['ram_slots'] ?? null,
+                        'ram_slots'           => isset($hw['ram_slots']) ? json_encode($hw['ram_slots']) : null,
                         'motherboard'         => $hw['motherboard'] ?? null,
                         'bios_version'        => $hw['bios_version'] ?? null,
                         'bios_date'           => $hw['bios_date'] ?? null,
@@ -84,7 +84,7 @@ class AgentReportController extends Controller
                         'firewall_public'     => $sec['firewall_public'] ?? null,
                         'auto_update'         => $sec['auto_update'] ?? null,
                         'last_windows_update' => $sec['last_windows_update'] ?? null,
-                        'bitlocker'           => $sec['bitlocker'] ?? null,
+                        'bitlocker'           => isset($sec['bitlocker']) ? json_encode($sec['bitlocker']) : null,
                     ]
                 );
             }
@@ -92,11 +92,23 @@ class AgentReportController extends Controller
             // 4) Ağ adaptörleri — sil + yeniden ekle
             AgentComputerNetworkAdapter::where('agent_computer_id', $computer->id)->delete();
             if ($adapters = $request->input('network_adapters', [])) {
-                $rows = array_map(fn($a) => array_merge($a, [
-                    'agent_computer_id' => $computer->id,
-                    'created_at'        => now(),
-                    'updated_at'        => now(),
-                ]), $adapters);
+                $rows = array_map(function ($a) use ($computer) {
+                    return [
+                        'agent_computer_id' => $computer->id,
+                        'adapter_name'      => $a['adapter_name'] ?? '',
+                        'mac_address'       => $a['mac_address'] ?? null,
+                        'ip_address'        => $a['ip_address'] ?? null,
+                        'ip_address_v6'     => $a['ip_address_v6'] ?? null,
+                        'subnet_mask'       => $a['subnet_mask'] ?? null,
+                        'gateway'           => $a['gateway'] ?? null,
+                        'dns_servers'       => isset($a['dns_servers']) ? json_encode($a['dns_servers']) : null,
+                        'dhcp_enabled'      => $a['dhcp_enabled'] ?? null,
+                        'dhcp_server'       => $a['dhcp_server'] ?? null,
+                        'is_active'         => $a['is_active'] ?? true,
+                        'created_at'        => now(),
+                        'updated_at'        => now(),
+                    ];
+                }, $adapters);
                 AgentComputerNetworkAdapter::insert($rows);
             }
 
