@@ -17,3 +17,13 @@ use Illuminate\Support\Facades\Route;
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
 });
+
+/*
+|--------------------------------------------------------------------------
+| IT Envanter Agent
+|--------------------------------------------------------------------------
+*/
+use App\Http\Controllers\Api\AgentReportController;
+
+Route::middleware(['agent.key', 'throttle:60,1'])
+     ->post('/agent/report', [AgentReportController::class, 'store']);

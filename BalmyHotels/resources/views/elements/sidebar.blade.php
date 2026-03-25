@@ -552,7 +552,7 @@
             @endif
 
             {{-- BİLGİ İŞLEM --}}
-            @if($user->hasPermission('it_computers','index') || $user->hasPermission('it_backup','index') || $user->hasPermission('login_logs','index'))
+            @if($user->hasPermission('it_computers','index') || $user->hasPermission('it_backup','index') || $user->hasPermission('login_logs','index') || $user->hasPermission('it_agent_inventory','index'))
             <li @class(['mm-active' => request()->is('bilgi-islem*')])>
                 <a class="has-arrow ai-icon" href="javascript:void()" aria-expanded="false">
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
@@ -568,6 +568,11 @@
                     @if($user->hasPermission('it_computers','index'))
                     <li @class(['mm-active' => request()->is('bilgi-islem/bilgisayarlar*')])>
                         <a href="{{ route('it.computers.index') }}">Bilgisayarlar</a>
+                    </li>
+                    @endif
+                    @if($user->hasPermission('it_agent_inventory','index'))
+                    <li @class(['mm-active' => request()->is('bilgi-islem/ajan-envanter*')])>
+                        <a href="{{ route('it.agent.index') }}">Ajan Envanter</a>
                     </li>
                     @endif
                     @if($user->hasPermission('it_backup','index'))

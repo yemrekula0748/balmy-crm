@@ -738,11 +738,18 @@ Route::middleware('auth')->group(function () {
     |--------------------------------------------------------------------------
     */
     Route::prefix('bilgi-islem')->name('it.')->group(function () {
-        // Bilgisayarlar
+        // Bilgisayarlar (manuel envanter)
         Route::get('bilgisayarlar',             [ItComputerController::class, 'index'])->name('computers.index');
         Route::post('bilgisayarlar',            [ItComputerController::class, 'store'])->name('computers.store');
         Route::put('bilgisayarlar/{computer}',  [ItComputerController::class, 'update'])->name('computers.update');
         Route::delete('bilgisayarlar/{computer}', [ItComputerController::class, 'destroy'])->name('computers.destroy');
+
+        // Ajan Envanter (Windows Agent otomatik toplama)
+        Route::get('ajan-envanter',                        [\App\Http\Controllers\Modules\AgentInventoryController::class, 'index'])->name('agent.index');
+        Route::get('ajan-envanter/istatistikler',          [\App\Http\Controllers\Modules\AgentInventoryController::class, 'stats'])->name('agent.stats');
+        Route::get('ajan-envanter/{agentComputer}',        [\App\Http\Controllers\Modules\AgentInventoryController::class, 'show'])->name('agent.show');
+        Route::get('ajan-envanter/{agentComputer}/programlar', [\App\Http\Controllers\Modules\AgentInventoryController::class, 'programs'])->name('agent.programs');
+        Route::delete('ajan-envanter/{agentComputer}',     [\App\Http\Controllers\Modules\AgentInventoryController::class, 'destroy'])->name('agent.destroy');
 
         // Yedekleme
         Route::get('yedekleme',            [ItBackupController::class, 'index'])->name('backup.index');

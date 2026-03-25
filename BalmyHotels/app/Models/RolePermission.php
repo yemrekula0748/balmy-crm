@@ -93,9 +93,10 @@ class RolePermission extends Model
             'audit_analytics'        => 'Denetim Analiz & İstatistik',
         ],
         'Bilgi İşlem' => [
-            'it_computers' => 'Bilgisayar Envanteri',
-            'it_backup'    => 'Veritabanı Yedekleme',
-            'login_logs'   => 'Giriş Logları',
+            'it_computers'       => 'Bilgisayar Envanteri (Manuel)',
+            'it_agent_inventory' => 'Ajan Envanter (Windows Agent)',
+            'it_backup'          => 'Veritabanı Yedekleme',
+            'login_logs'         => 'Giriş Logları',
         ],
         'İşlerim' => [
             'my_tasks' => 'Görevlerim',
