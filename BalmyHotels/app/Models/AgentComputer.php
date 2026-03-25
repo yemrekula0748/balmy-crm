@@ -63,6 +63,16 @@ class AgentComputer extends Model
         return $this->hasMany(AgentComputerInstalledProgram::class, 'agent_computer_id');
     }
 
+    public function mail()
+    {
+        return $this->hasOne(AgentComputerMail::class, 'agent_computer_id');
+    }
+
+    public function mailAccounts()
+    {
+        return $this->hasMany(AgentComputerMailAccount::class, 'agent_computer_id');
+    }
+
     /** IP adresi — ilk aktif ağ adaptöründen */
     public function getIpAddressAttribute(): ?string
     {

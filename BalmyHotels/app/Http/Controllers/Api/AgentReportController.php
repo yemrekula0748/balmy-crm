@@ -10,6 +10,8 @@ use App\Models\AgentComputerDisk;
 use App\Models\AgentComputerAntivirus;
 use App\Models\AgentComputerSecurity;
 use App\Models\AgentComputerInstalledProgram;
+use App\Models\AgentComputerMail;
+use App\Models\AgentComputerMailAccount;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -151,6 +153,35 @@ class AgentReportController extends Controller
                         'updated_at'        => $now,
                     ], $chunk);
                     DB::table('agent_computer_installed_programs')->insert($rows);
+                }
+            }
+
+            // 8) Mail bilgileri
+            if ($mail = $request->input('mail')) {
+                AgentComputerMail::updateOrCreate(
+                    ['agent_computer_id' => $computer->id],
+                    [
+                        'default_mail_client' => $mail['default_mail_client'] ?? null,
+                        'default_mail_progid' => $mail['default_mail_progid'] ?? null,
+                        'is_new_outlook'      => (bool) ($mail['is_new_outlook'] ?? false),
+                        'outlook_version'     => $mail['outlook_version'] ?? null,
+                    ]
+                );
+
+                AgentComputerMailAccount::where('agent_computer_id', $computer->id)->delete();
+                if (!empty($mail['outlook_accounts'])) {
+                    $now  = now();
+                    $rows = array_map(fn($a) => [
+                        'agent_computer_id' => $computer->id,
+                        'smtp_address'      => $a['smtp_address'] ?? null,
+                        'display_name'      => $a['display_name'] ?? null,
+                        'account_type'      => $a['account_type'] ?? null,
+                        'exchange_server'   => $a['exchange_server'] ?? null,
+                        'source'            => $a['source'] ?? null,
+                        'created_at'        => $now,
+                        'updated_at'        => $now,
+                    ], $mail['outlook_accounts']);
+                    AgentComputerMailAccount::insert($rows);
                 }
             }
 
