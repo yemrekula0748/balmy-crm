@@ -77,6 +77,10 @@
                        class="btn btn-sm btn-outline-danger ms-1">
                         <i class="fas fa-trash-alt me-1"></i>Dosya Silme Logları
                     </a>
+                    <a href="{{ route('it.agent.browser-history', $agentComputer) }}"
+                       class="btn btn-sm btn-outline-info ms-1">
+                        <i class="fas fa-globe me-1"></i>Tarayıcı Geçmişi
+                    </a>
                     <a href="{{ route('it.agent.index') }}" class="btn btn-sm btn-outline-secondary ms-1">
                         <i class="fas fa-arrow-left me-1"></i>Listeye Dön
                     </a>

@@ -107,6 +107,40 @@ class AgentInventoryController extends BaseModuleController
         return view('modules.bilgi_islem.agent_inventory.file_events', compact('agentComputer', 'events'));
     }
 
+    public function browserHistory(Request $request, AgentComputer $agentComputer)
+    {
+        $query = $agentComputer->browserHistory()->orderBy('visit_time', 'desc');
+
+        if ($search = $request->input('search')) {
+            $query->where(function ($q) use ($search) {
+                $q->where('url', 'like', "%{$search}%")
+                  ->orWhere('title', 'like', "%{$search}%");
+            });
+        }
+
+        if ($user = $request->input('username')) {
+            $query->where('username', 'like', "%{$user}%");
+        }
+
+        if ($browser = $request->input('browser')) {
+            $query->where('browser', $browser);
+        }
+
+        if ($from = $request->input('from')) {
+            $query->where('visit_time', '>=', $from);
+        }
+
+        if ($to = $request->input('to')) {
+            $query->where('visit_time', '<=', $to . ' 23:59:59');
+        }
+
+        $history  = $query->paginate(100)->withQueryString();
+        $browsers = $agentComputer->browserHistory()->distinct()->pluck('browser');
+        $users    = $agentComputer->browserHistory()->distinct()->pluck('username');
+
+        return view('modules.bilgi_islem.agent_inventory.browser_history', compact('agentComputer', 'history', 'browsers', 'users'));
+    }
+
     public function stats()
     {
         $total       = AgentComputer::count();

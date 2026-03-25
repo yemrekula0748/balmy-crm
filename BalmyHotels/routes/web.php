@@ -749,8 +749,9 @@ Route::middleware('auth')->group(function () {
         Route::get('ajan-envanter/istatistikler',          [\App\Http\Controllers\Modules\AgentInventoryController::class, 'stats'])->name('agent.stats');
         Route::get('ajan-envanter/{agentComputer}',        [\App\Http\Controllers\Modules\AgentInventoryController::class, 'show'])->name('agent.show');
         Route::get('ajan-envanter/{agentComputer}/programlar',    [\App\Http\Controllers\Modules\AgentInventoryController::class, 'programs'])->name('agent.programs');
-        Route::get('ajan-envanter/{agentComputer}/dosya-olaylari', [\App\Http\Controllers\Modules\AgentInventoryController::class, 'fileEvents'])->name('agent.file-events');
-        Route::delete('ajan-envanter/{agentComputer}',             [\App\Http\Controllers\Modules\AgentInventoryController::class, 'destroy'])->name('agent.destroy');
+        Route::get('ajan-envanter/{agentComputer}/dosya-olaylari',    [\App\Http\Controllers\Modules\AgentInventoryController::class, 'fileEvents'])->name('agent.file-events');
+        Route::get('ajan-envanter/{agentComputer}/tarayici-gecmisi',   [\App\Http\Controllers\Modules\AgentInventoryController::class, 'browserHistory'])->name('agent.browser-history');
+        Route::delete('ajan-envanter/{agentComputer}',                 [\App\Http\Controllers\Modules\AgentInventoryController::class, 'destroy'])->name('agent.destroy');
 
         // Yedekleme
         Route::get('yedekleme',            [ItBackupController::class, 'index'])->name('backup.index');
