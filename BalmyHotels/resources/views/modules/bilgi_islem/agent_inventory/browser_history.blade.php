@@ -1,9 +1,9 @@
-@extends('layouts.default')
+﻿@extends('layouts.default')
 
 @section('title', $agentComputer->hostname . ' — Tarayıcı Geçmişi')
 
 @section('content')
-<div class="container-fluid pb-4">
+<div class="container-fluid pb-5">
 
     {{-- Breadcrumb --}}
     <div class="row page-titles mx-0">
@@ -23,151 +23,220 @@
         </div>
     </div>
 
-    {{-- Filtreler --}}
-    <div class="card border-0 shadow-sm mb-3">
-        <div class="card-body py-3 px-4">
-            <form method="GET" class="row g-2 align-items-end">
-                <div class="col-md-3">
-                    <label class="form-label small text-muted mb-1">URL / Başlık</label>
-                    <input type="text" name="search" class="form-control form-control-sm"
-                           value="{{ request('search') }}" placeholder="google.com, youtube ...">
-                </div>
-                <div class="col-md-2">
-                    <label class="form-label small text-muted mb-1">Kullanıcı</label>
-                    <select name="username" class="form-select form-select-sm">
-                        <option value="">Tümü</option>
-                        @foreach($users as $u)
-                            <option value="{{ $u }}" {{ request('username') == $u ? 'selected' : '' }}>{{ $u }}</option>
-                        @endforeach
-                    </select>
-                </div>
-                <div class="col-md-2">
-                    <label class="form-label small text-muted mb-1">Tarayıcı</label>
-                    <select name="browser" class="form-select form-select-sm">
-                        <option value="">Tümü</option>
-                        @foreach($browsers as $b)
-                            <option value="{{ $b }}" {{ request('browser') == $b ? 'selected' : '' }}>{{ ucfirst($b) }}</option>
-                        @endforeach
-                    </select>
-                </div>
-                <div class="col-md-2">
-                    <label class="form-label small text-muted mb-1">Başlangıç</label>
-                    <input type="date" name="from" class="form-control form-control-sm" value="{{ request('from') }}">
-                </div>
-                <div class="col-md-2">
-                    <label class="form-label small text-muted mb-1">Bitiş</label>
-                    <input type="date" name="to" class="form-control form-control-sm" value="{{ request('to') }}">
-                </div>
-                <div class="col-md-auto">
-                    <button type="submit" class="btn btn-sm btn-primary">
-                        <i class="fas fa-search me-1"></i>Filtrele
-                    </button>
-                    <a href="{{ route('it.agent.browser-history', $agentComputer) }}"
-                       class="btn btn-sm btn-outline-secondary ms-1">Temizle</a>
-                </div>
-                <div class="col-md-auto ms-auto">
-                    <a href="{{ route('it.agent.show', $agentComputer) }}"
-                       class="btn btn-sm btn-outline-secondary">
-                        <i class="fas fa-arrow-left me-1"></i>Bilgisayar Detayı
-                    </a>
+    @php
+        $browserMeta = [
+            'chrome'  => ['label'=>'Chrome',  'color'=>'#4285F4', 'icon'=>'🌐'],
+            'edge'    => ['label'=>'Edge',    'color'=>'#0078D4', 'icon'=>'🔷'],
+            'firefox' => ['label'=>'Firefox', 'color'=>'#FF7139', 'icon'=>'🦊'],
+            'brave'   => ['label'=>'Brave',   'color'=>'#FB542B', 'icon'=>'🦁'],
+            'opera'   => ['label'=>'Opera',   'color'=>'#FF1B2D', 'icon'=>'🔴'],
+            'vivaldi' => ['label'=>'Vivaldi', 'color'=>'#EF3939', 'icon'=>'🎵'],
+        ];
+    @endphp
+
+    {{-- Filtre Kartı --}}
+    <div class="card border-0 shadow-sm mb-4" style="border-radius:14px;overflow:hidden">
+        <div class="card-body p-4">
+            <form method="GET">
+                <div class="row g-3 align-items-end">
+                    <div class="col-lg-4 col-md-6">
+                        <label class="form-label fw-semibold small mb-1 text-muted">
+                            <i class="fas fa-search me-1"></i>URL veya Sayfa Başlığı
+                        </label>
+                        <div class="input-group input-group-sm">
+                            <span class="input-group-text bg-light border-end-0">
+                                <i class="fas fa-link text-muted"></i>
+                            </span>
+                            <input type="text" name="search"
+                                   class="form-control border-start-0 ps-0"
+                                   value="{{ request('search') }}"
+                                   placeholder="google.com, youtube.com ...">
+                        </div>
+                    </div>
+                    <div class="col-lg-2 col-md-6 col-sm-6">
+                        <label class="form-label fw-semibold small mb-1 text-muted">
+                            <i class="fas fa-user me-1"></i>Kullanıcı
+                        </label>
+                        <select name="username" class="form-select form-select-sm">
+                            <option value="">Tümü</option>
+                            @foreach($users as $u)
+                                <option value="{{ $u }}" {{ request('username') == $u ? 'selected' : '' }}>{{ $u }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="col-lg-2 col-md-4 col-sm-6">
+                        <label class="form-label fw-semibold small mb-1 text-muted">
+                            <i class="fas fa-globe me-1"></i>Tarayıcı
+                        </label>
+                        <select name="browser" class="form-select form-select-sm">
+                            <option value="">Tümü</option>
+                            @foreach($browsers as $b)
+                                <option value="{{ $b }}" {{ request('browser') == $b ? 'selected' : '' }}>
+                                    {{ $browserMeta[$b]['label'] ?? ucfirst($b) }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="col-lg-2 col-md-4 col-sm-6">
+                        <label class="form-label fw-semibold small mb-1 text-muted">
+                            <i class="fas fa-calendar me-1"></i>Başlangıç
+                        </label>
+                        <input type="date" name="from" class="form-control form-control-sm" value="{{ request('from') }}">
+                    </div>
+                    <div class="col-lg-2 col-md-4 col-sm-6">
+                        <label class="form-label fw-semibold small mb-1 text-muted">
+                            <i class="fas fa-calendar me-1"></i>Bitiş
+                        </label>
+                        <input type="date" name="to" class="form-control form-control-sm" value="{{ request('to') }}">
+                    </div>
+                    <div class="col-12 d-flex gap-2 justify-content-between align-items-center">
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary btn-sm px-4">
+                                <i class="fas fa-filter me-1"></i>Filtrele
+                            </button>
+                            @if(request()->hasAny(['search','username','browser','from','to']))
+                            <a href="{{ route('it.agent.browser-history', $agentComputer) }}"
+                               class="btn btn-outline-secondary btn-sm">
+                                <i class="fas fa-times me-1"></i>Temizle
+                            </a>
+                            @endif
+                        </div>
+                        <a href="{{ route('it.agent.show', $agentComputer) }}"
+                           class="btn btn-outline-secondary btn-sm">
+                            <i class="fas fa-arrow-left me-1"></i>Geri Dön
+                        </a>
+                    </div>
                 </div>
             </form>
         </div>
     </div>
 
-    {{-- Tablo --}}
-    <div class="card border-0 shadow-sm">
-        <div class="card-header bg-white border-bottom-0 pt-3 pb-0 px-4 d-flex align-items-center justify-content-between">
-            <h6 class="fw-bold mb-0">
-                <i class="fas fa-globe me-2 text-info"></i>
-                Tarayıcı Geçmişi
-                <span class="badge bg-secondary rounded-pill ms-2 fw-normal">{{ $history->total() }}</span>
-            </h6>
-            <span class="small text-muted">Sayfa {{ $history->currentPage() }} / {{ $history->lastPage() }}</span>
+    {{-- Sonuç Başlığı --}}
+    <div class="d-flex align-items-center justify-content-between mb-3 px-1">
+        <div class="d-flex align-items-center gap-2">
+            <span class="fw-bold" style="font-size:1.05rem">
+                <i class="fas fa-history me-2 text-info"></i>Tarayıcı Geçmişi
+            </span>
+            <span class="badge rounded-pill bg-secondary fw-normal">
+                {{ number_format($history->total()) }} kayıt
+            </span>
         </div>
-        <div class="card-body p-0">
-            <div class="table-responsive">
-                <table class="table table-sm align-middle mb-0" style="font-size:.82rem">
-                    <thead style="background:#f8f9fa;">
-                        <tr>
-                            <th class="ps-4 py-2 text-muted">ZAMAN</th>
-                            <th class="py-2 text-muted">KULLANICI</th>
-                            <th class="py-2 text-muted">TARAYICI</th>
-                            <th class="py-2 text-muted">BAŞLIK / URL</th>
-                            <th class="py-2 text-muted text-center">ZİYARET</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @forelse($history as $row)
-                        @php
-                            $browserColors = [
-                                'chrome'   => '#4285F4',
-                                'edge'     => '#0078D4',
-                                'firefox'  => '#FF7139',
-                                'brave'    => '#FB542B',
-                                'opera'    => '#FF1B2D',
-                                'vivaldi'  => '#EF3939',
-                            ];
-                            $color = $browserColors[$row->browser] ?? '#6c757d';
-                            $domain = parse_url($row->url, PHP_URL_HOST) ?: $row->url;
-                        @endphp
-                        <tr>
-                            <td class="ps-4 text-nowrap">
-                                <span class="text-muted">{{ $row->visit_time->format('d.m.Y') }}</span><br>
-                                <strong>{{ $row->visit_time->format('H:i:s') }}</strong>
-                            </td>
-                            <td>
-                                <i class="fas fa-user me-1 text-muted"></i>
-                                <span class="fw-semibold">{{ $row->username }}</span>
-                                @if($row->profile && $row->profile !== 'Default')
-                                    <br><span class="text-muted" style="font-size:.75rem">{{ $row->profile }}</span>
-                                @endif
-                            </td>
-                            <td>
-                                <span class="badge rounded-pill px-2 py-1"
-                                      style="background:{{ $color }}20;color:{{ $color }};border:1px solid {{ $color }}40">
-                                    {{ ucfirst($row->browser) }}
-                                </span>
-                            </td>
-                            <td style="max-width:420px;">
-                                @if($row->title)
-                                    <div class="fw-semibold text-truncate" style="max-width:400px" title="{{ $row->title }}">
-                                        {{ $row->title }}
-                                    </div>
-                                @endif
-                                <a href="{{ $row->url }}" target="_blank" rel="noopener noreferrer"
-                                   class="text-muted text-truncate d-block" style="max-width:400px;font-size:.75rem"
-                                   title="{{ $row->url }}">
-                                    {{ $domain }}
-                                </a>
-                            </td>
-                            <td class="text-center">
-                                <span class="badge bg-light text-dark border">{{ $row->visit_count }}x</span>
-                            </td>
-                        </tr>
-                        @empty
-                        <tr>
-                            <td colspan="5" class="text-center py-4 text-muted">
-                                <i class="fas fa-globe fa-2x mb-2 d-block opacity-25"></i>
-                                Kayıt bulunamadı.
-                                @if(request()->hasAny(['search','username','browser','from','to']))
-                                    <br><small>Filtreleri temizlemeyi deneyin.</small>
-                                @else
-                                    <br><small>Agent henüz tarayıcı geçmişi göndermemiş.</small>
-                                @endif
-                            </td>
-                        </tr>
-                        @endforelse
-                    </tbody>
-                </table>
+        <span class="text-muted small">
+            Sayfa {{ $history->currentPage() }} / {{ $history->lastPage() }}
+            &nbsp;·&nbsp; Her sayfada 100 kayıt
+        </span>
+    </div>
+
+    {{-- Kayıt Listesi --}}
+    <div class="d-flex flex-column gap-2">
+
+        @forelse($history as $row)
+        @php
+            $meta       = $browserMeta[$row->browser] ?? ['label'=>ucfirst($row->browser),'color'=>'#6c757d','icon'=>'🌐'];
+            $domain     = parse_url($row->url, PHP_URL_HOST) ?: $row->url;
+            $scheme     = parse_url($row->url, PHP_URL_SCHEME) ?: 'https';
+            $faviconUrl = $scheme . '://' . $domain . '/favicon.ico';
+            $isToday    = $row->visit_time->isToday();
+            $isYest     = $row->visit_time->isYesterday();
+            $dateStr    = $isToday ? 'Bugün' : ($isYest ? 'Dün' : $row->visit_time->format('d.m.Y'));
+        @endphp
+
+        <div class="card border-0 shadow-sm" style="border-radius:12px;transition:box-shadow .15s"
+             onmouseenter="this.style.boxShadow='0 4px 20px rgba(0,0,0,.10)'"
+             onmouseleave="this.style.boxShadow=''">
+            <div class="card-body py-3 px-4">
+                <div class="row align-items-center g-3">
+
+                    {{-- Favicon --}}
+                    <div class="col-auto">
+                        <div class="rounded-3 d-flex align-items-center justify-content-center bg-light"
+                             style="width:42px;height:42px;flex-shrink:0">
+                            <img src="{{ $faviconUrl }}"
+                                 width="22" height="22"
+                                 onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"
+                                 style="object-fit:contain">
+                            <span style="display:none;font-size:18px">🌐</span>
+                        </div>
+                    </div>
+
+                    {{-- Başlık + URL --}}
+                    <div class="col">
+                        <div class="fw-semibold mb-0"
+                             style="font-size:.9rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:520px"
+                             title="{{ $row->title ?? $row->url }}">
+                            {{ $row->title ?: $domain }}
+                        </div>
+                        <a href="{{ $row->url }}" target="_blank" rel="noopener noreferrer"
+                           class="text-decoration-none"
+                           style="font-size:.78rem;color:#6c757d;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block;max-width:520px"
+                           title="{{ $row->url }}">
+                            <i class="fas fa-external-link-alt me-1" style="font-size:.65rem"></i>{{ $row->url }}
+                        </a>
+                    </div>
+
+                    {{-- Kullanıcı --}}
+                    <div class="col-auto d-none d-md-flex align-items-center gap-2">
+                        <div class="rounded-circle d-flex align-items-center justify-content-center"
+                             style="width:32px;height:32px;background:#f1f3f5;flex-shrink:0">
+                            <i class="fas fa-user text-muted" style="font-size:.7rem"></i>
+                        </div>
+                        <div>
+                            <div class="fw-semibold" style="font-size:.82rem;line-height:1.2">{{ $row->username }}</div>
+                            @if($row->profile && $row->profile !== 'Default')
+                                <div class="text-muted" style="font-size:.72rem">{{ $row->profile }}</div>
+                            @endif
+                        </div>
+                    </div>
+
+                    {{-- Tarayıcı --}}
+                    <div class="col-auto d-none d-lg-block">
+                        <span class="badge rounded-pill px-3 py-2"
+                              style="background:{{ $meta['color'] }}18;color:{{ $meta['color'] }};border:1px solid {{ $meta['color'] }}35;font-size:.75rem">
+                            {{ $meta['icon'] }} {{ $meta['label'] }}
+                        </span>
+                    </div>
+
+                    {{-- Zaman --}}
+                    <div class="col-auto text-end" style="min-width:90px">
+                        <div class="fw-semibold" style="font-size:.82rem">{{ $row->visit_time->format('H:i:s') }}</div>
+                        <div class="text-muted" style="font-size:.72rem">{{ $dateStr }}</div>
+                        @if($row->visit_count > 1)
+                            <span class="badge bg-light text-muted border mt-1" style="font-size:.68rem">
+                                {{ $row->visit_count }}x ziyaret
+                            </span>
+                        @endif
+                    </div>
+
+                </div>
             </div>
         </div>
-        @if($history->hasPages())
-        <div class="card-footer bg-white py-2 px-4">
-            {{ $history->links() }}
+
+        @empty
+        <div class="card border-0 shadow-sm" style="border-radius:14px">
+            <div class="card-body text-center py-5">
+                <div class="mb-3" style="font-size:3rem;opacity:.25">🌐</div>
+                <p class="text-muted mb-1 fw-semibold">Kayıt bulunamadı</p>
+                @if(request()->hasAny(['search','username','browser','from','to']))
+                    <p class="text-muted small mb-2">Filtreleri temizlemeyi deneyin.</p>
+                    <a href="{{ route('it.agent.browser-history', $agentComputer) }}"
+                       class="btn btn-outline-secondary btn-sm">
+                        <i class="fas fa-times me-1"></i>Filtreleri Temizle
+                    </a>
+                @else
+                    <p class="text-muted small mb-0">Agent henüz tarayıcı geçmişi göndermemiş.</p>
+                @endif
+            </div>
         </div>
-        @endif
+        @endforelse
+
     </div>
+
+    {{-- Pagination --}}
+    @if($history->hasPages())
+    <div class="d-flex justify-content-center mt-4">
+        {{ $history->links() }}
+    </div>
+    @endif
 
 </div>
 @endsection
