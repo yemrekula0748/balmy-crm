@@ -158,12 +158,26 @@ class AgentReportController extends Controller
 
             // 8) Mail bilgileri
             if ($mail = $request->input('mail')) {
+                // Yeni Outlook tespiti: agent açıkça gönderiyorsa kullan,
+                // yoksa default_mail_progid veya outlook_version'dan çıkar.
+                // Yeni Outlook progid örneği: Microsoft.OutlookForWindows_8wekyb3d8bbwe!...
+                $progid  = strtolower($mail['default_mail_progid'] ?? '');
+                $version = strtolower($mail['outlook_version'] ?? '');
+                if (isset($mail['is_new_outlook'])) {
+                    $isNewOutlook = (bool) $mail['is_new_outlook'];
+                } else {
+                    $isNewOutlook = str_contains($progid, 'outlookforwindows')
+                        || str_contains($version, 'new outlook')
+                        || str_contains($version, 'yeni outlook')
+                        || str_contains($version, 'microsoft outlook for windows');
+                }
+
                 AgentComputerMail::updateOrCreate(
                     ['agent_computer_id' => $computer->id],
                     [
                         'default_mail_client' => $mail['default_mail_client'] ?? null,
                         'default_mail_progid' => $mail['default_mail_progid'] ?? null,
-                        'is_new_outlook'      => (bool) ($mail['is_new_outlook'] ?? false),
+                        'is_new_outlook'      => $isNewOutlook,
                         'outlook_version'     => $mail['outlook_version'] ?? null,
                     ]
                 );
