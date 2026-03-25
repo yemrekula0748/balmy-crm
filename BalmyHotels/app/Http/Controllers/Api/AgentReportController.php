@@ -34,7 +34,7 @@ class AgentReportController extends Controller
                     'agent_version'        => $request->input('agent_version'),
                     'reported_at'          => $request->input('reported_at'),
                     'last_boot_time'       => $request->input('last_boot_time'),
-                    'current_users'        => json_encode($request->input('current_users', [])),
+                    'current_users'        => $request->input('current_users', []),
                     'os_product_name'      => $osData['product_name'] ?? null,
                     'os_version'           => $osData['version'] ?? null,
                     'os_release'           => $osData['release'] ?? null,
@@ -64,7 +64,7 @@ class AgentReportController extends Controller
                         'total_ram_gb'        => $hw['total_ram_gb'] ?? null,
                         'available_ram_gb'    => $hw['available_ram_gb'] ?? null,
                         'ram_usage_percent'   => $hw['ram_usage_percent'] ?? null,
-                        'ram_slots'           => isset($hw['ram_slots']) ? json_encode($hw['ram_slots']) : null,
+                        'ram_slots'           => $hw['ram_slots'] ?? null,
                         'motherboard'         => $hw['motherboard'] ?? null,
                         'bios_version'        => $hw['bios_version'] ?? null,
                         'bios_date'           => $hw['bios_date'] ?? null,
@@ -84,7 +84,7 @@ class AgentReportController extends Controller
                         'firewall_public'     => $sec['firewall_public'] ?? null,
                         'auto_update'         => $sec['auto_update'] ?? null,
                         'last_windows_update' => $sec['last_windows_update'] ?? null,
-                        'bitlocker'           => isset($sec['bitlocker']) ? json_encode($sec['bitlocker']) : null,
+                        'bitlocker'           => $sec['bitlocker'] ?? null,
                     ]
                 );
             }
