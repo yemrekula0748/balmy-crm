@@ -16,12 +16,22 @@ class AgentComputer extends Model
 
     protected $casts = [
         'is_domain_joined' => 'boolean',
-        'current_users'    => 'array',
         'last_boot_time'   => 'datetime',
         'reported_at'      => 'datetime',
         'last_seen_at'     => 'datetime',
         'os_install_date'  => 'date',
     ];
+
+    /** Safely decode current_users regardless of encoding depth */
+    public function getCurrentUsersAttribute($value): array
+    {
+        return self::decodeJsonArray($value);
+    }
+
+    public function setCurrentUsersAttribute($value): void
+    {
+        $this->attributes['current_users'] = is_array($value) ? json_encode($value) : $value;
+    }
 
     public function hardware()
     {
@@ -59,15 +69,36 @@ class AgentComputer extends Model
         return $this->networkAdapters->where('is_active', true)->first()?->ip_address;
     }
 
-    /** Herhangi bir disk >85% doluysa true */
+    /** Disk warning accessor */
     public function getDiskWarningAttribute(): bool
     {
         return $this->disks->contains(fn($d) => ($d->usage_percent ?? 0) > 85);
     }
 
-    /** Tüm antivirüsler kapalıysa true */
+    /** AV disabled accessor */
     public function getAvDisabledAttribute(): bool
     {
         return $this->antivirus->isNotEmpty() && $this->antivirus->every(fn($a) => !$a->is_enabled);
+    }
+
+    /** Decode a value that may be a plain array, a JSON string, or a double-encoded JSON string */
+    public static function decodeJsonArray(mixed $value): array
+    {
+        if (is_array($value)) {
+            return $value;
+        }
+        if ($value === null || $value === '') {
+            return [];
+        }
+        $decoded = json_decode($value, true);
+        if (is_array($decoded)) {
+            return $decoded;
+        }
+        // double-encoded: decoded is still a string
+        if (is_string($decoded)) {
+            $decoded2 = json_decode($decoded, true);
+            return is_array($decoded2) ? $decoded2 : [];
+        }
+        return [];
     }
 }

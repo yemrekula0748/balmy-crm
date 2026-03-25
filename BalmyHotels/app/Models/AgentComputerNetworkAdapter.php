@@ -15,10 +15,19 @@ class AgentComputerNetworkAdapter extends Model
     ];
 
     protected $casts = [
-        'dns_servers'  => 'array',
         'dhcp_enabled' => 'boolean',
         'is_active'    => 'boolean',
     ];
+
+    public function getDnsServersAttribute($value): array
+    {
+        return AgentComputer::decodeJsonArray($value);
+    }
+
+    public function setDnsServersAttribute($value): void
+    {
+        $this->attributes['dns_servers'] = is_array($value) ? json_encode($value) : $value;
+    }
 
     public function computer()
     {

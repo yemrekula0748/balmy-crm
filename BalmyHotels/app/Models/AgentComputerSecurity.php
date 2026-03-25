@@ -21,8 +21,17 @@ class AgentComputerSecurity extends Model
         'firewall_domain'  => 'boolean',
         'firewall_private' => 'boolean',
         'firewall_public'  => 'boolean',
-        'bitlocker'        => 'array',
     ];
+
+    public function getBitlockerAttribute($value): array
+    {
+        return AgentComputer::decodeJsonArray($value);
+    }
+
+    public function setBitlockerAttribute($value): void
+    {
+        $this->attributes['bitlocker'] = is_array($value) ? json_encode($value) : $value;
+    }
 
     public function computer()
     {

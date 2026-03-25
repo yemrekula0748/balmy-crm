@@ -15,9 +15,17 @@ class AgentComputerHardware extends Model
         'motherboard', 'bios_version', 'bios_date',
     ];
 
-    protected $casts = [
-        'ram_slots' => 'array',
-    ];
+    protected $casts = [];
+
+    public function getRamSlotsAttribute($value): array
+    {
+        return AgentComputer::decodeJsonArray($value);
+    }
+
+    public function setRamSlotsAttribute($value): void
+    {
+        $this->attributes['ram_slots'] = is_array($value) ? json_encode($value) : $value;
+    }
 
     public function computer()
     {
