@@ -21,7 +21,7 @@ class AgentInventoryController extends BaseModuleController
 
     public function index(Request $request)
     {
-        $query = AgentComputer::with(['networkAdapters' => fn($q) => $q->where('is_active', true), 'disks', 'antivirus']);
+        $query = AgentComputer::with(['networkAdapters' => fn($q) => $q->where('is_active', true), 'disks', 'antivirus', 'hardware']);
 
         if ($search = $request->input('search')) {
             $query->where(function ($q) use ($search) {
