@@ -20,9 +20,16 @@ class AgentComputerBrowserHistory extends Model
     ];
 
     protected $casts = [
-        'visit_time'  => 'datetime',
         'visit_count' => 'integer',
     ];
+
+    /**
+     * Agent UTC olarak gönderiyor; Europe/Istanbul (UTC+3) olarak dönüştür.
+     */
+    public function getVisitTimeAttribute($value)
+    {
+        return \Carbon\Carbon::parse($value, 'UTC')->setTimezone(config('app.timezone'));
+    }
 
     public function computer()
     {

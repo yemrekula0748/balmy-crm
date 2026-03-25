@@ -134,8 +134,7 @@
         @php
             $meta       = $browserMeta[$row->browser] ?? ['label'=>ucfirst($row->browser),'color'=>'#6c757d','icon'=>'🌐'];
             $domain     = parse_url($row->url, PHP_URL_HOST) ?: $row->url;
-            $scheme     = parse_url($row->url, PHP_URL_SCHEME) ?: 'https';
-            $faviconUrl = $scheme . '://' . $domain . '/favicon.ico';
+            $faviconUrl = 'https://www.google.com/s2/favicons?domain=' . urlencode($domain) . '&sz=32';
             $isToday    = $row->visit_time->isToday();
             $isYest     = $row->visit_time->isYesterday();
             $dateStr    = $isToday ? 'Bugün' : ($isYest ? 'Dün' : $row->visit_time->format('d.m.Y'));
@@ -152,10 +151,8 @@
                         <div class="rounded-3 d-flex align-items-center justify-content-center bg-light"
                              style="width:42px;height:42px;flex-shrink:0">
                             <img src="{{ $faviconUrl }}"
-                                 width="22" height="22"
-                                 onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"
+                                 width="32" height="32"
                                  style="object-fit:contain">
-                            <span style="display:none;font-size:18px">🌐</span>
                         </div>
                     </div>
 
