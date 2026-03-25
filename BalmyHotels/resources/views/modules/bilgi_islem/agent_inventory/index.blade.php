@@ -209,7 +209,6 @@
             $activeIp  = $c->networkAdapters->where('is_active', true)->first()?->ip_address ?? null;
             $avOk      = $c->antivirus->where('is_enabled', true)->isNotEmpty();
             $avExists  = $c->antivirus->isNotEmpty();
-            $diskWarn  = $c->disks->contains(fn($d) => ($d->usage_percent ?? 0) > 85);
 
             $isOnline  = $c->last_seen_at && $c->last_seen_at->diffInMinutes(now()) < 10;
             $isRecent  = $c->last_seen_at && $c->last_seen_at->diffInHours(now()) < 24;
@@ -223,23 +222,25 @@
             $ramTot = $hw?->total_ram_gb ?? null;
             $ramAv  = $hw?->available_ram_gb ?? null;
 
-            $cpuColor = $cpu >= 90 ? '#ef4444' : ($cpu >= 70 ? '#f59e0b' : '#10b981');
-            $ramColor = $ram >= 90 ? '#ef4444' : ($ram >= 70 ? '#f59e0b' : '#6366f1');
+            $cpuColor = ($cpu !== null && $cpu >= 90) ? '#ef4444' : (($cpu !== null && $cpu >= 70) ? '#f59e0b' : '#10b981');
+            $ramColor = ($ram !== null && $ram >= 90) ? '#ef4444' : (($ram !== null && $ram >= 70) ? '#f59e0b' : '#6366f1');
 
             $os = $c->os_product_name ?? '';
             if (str_contains($os, 'Server')) { $osIcon = 'fas fa-server';  $osColor = '#6366f1'; }
             elseif (str_contains($os, '11')) { $osIcon = 'fab fa-windows'; $osColor = '#0078D4'; }
             else                             { $osIcon = 'fab fa-windows'; $osColor = '#0078D4'; }
+
+            $agentVer = $c->agent_version ?? null;
         @endphp
 
         <div class="card border-0 shadow-sm" style="border-radius:10px;transition:box-shadow .15s"
              onmouseenter="this.style.boxShadow='0 3px 16px rgba(0,0,0,.09)'"
              onmouseleave="this.style.boxShadow=''">
             <div class="card-body py-2 px-3">
-                <div class="row align-items-center g-2">
+                <div class="row align-items-center g-0">
 
-                    {{-- İkon + Hostname + Durum --}}
-                    <div class="col-xl-2 col-lg-3 col-md-4">
+                    {{-- İkon + Hostname + OS + Agent Versiyon --}}
+                    <div class="col-xl-2 col-lg-3 col-md-5 pe-3">
                         <div class="d-flex align-items-center gap-2">
                             <div class="position-relative flex-shrink-0">
                                 <div class="rounded-3 d-flex align-items-center justify-content-center"
@@ -253,125 +254,137 @@
                                 <a href="{{ route('it.agent.show', $c) }}"
                                    class="fw-semibold text-dark text-decoration-none d-block text-truncate"
                                    style="font-size:.83rem" title="{{ $c->hostname }}">{{ $c->hostname }}</a>
-                                <span style="font-size:.68rem;color:{{ $dotColor }}">{{ $dotLabel }}</span>
+                                <div class="text-truncate" style="font-size:.68rem;color:#64748b;max-width:140px" title="{{ $os }}">
+                                    {{ $os ?: '—' }}
+                                </div>
+                                @if($agentVer)
+                                <div style="font-size:.62rem;color:#94a3b8">
+                                    <i class="fas fa-robot me-1" style="font-size:.55rem"></i>v{{ $agentVer }}
+                                </div>
+                                @endif
                             </div>
                         </div>
                     </div>
 
-                    {{-- CPU + RAM Bar --}}
-                    <div class="col-xl-3 col-lg-3 d-none d-lg-block">
+                    {{-- CPU + RAM + Disk Barları --}}
+                    <div class="col-xl-4 col-lg-4 d-none d-lg-block border-start ps-3 pe-3" style="border-color:#f1f5f9!important">
                         @if($hw)
                         <div class="d-flex flex-column gap-1">
                             {{-- CPU --}}
                             <div class="d-flex align-items-center gap-2">
-                                <span class="text-muted" style="font-size:.66rem;width:26px;flex-shrink:0">CPU</span>
-                                <div class="flex-grow-1 rounded-pill" style="height:5px;background:#f1f5f9;overflow:hidden">
-                                    <div class="h-100 rounded-pill" style="width:{{ min($cpu ?? 0, 100) }}%;background:{{ $cpuColor }};transition:width .3s"></div>
+                                <span style="font-size:.63rem;width:28px;flex-shrink:0;color:#94a3b8;font-weight:600">CPU</span>
+                                <div class="flex-grow-1 rounded-pill" style="height:4px;background:#f1f5f9;overflow:hidden">
+                                    <div class="h-100 rounded-pill" style="width:{{ min($cpu ?? 0, 100) }}%;background:{{ $cpuColor }}"></div>
                                 </div>
-                                <span style="font-size:.68rem;width:30px;text-align:right;color:{{ $cpuColor }};font-weight:600">
+                                <span style="font-size:.65rem;width:28px;text-align:right;color:{{ $cpuColor }};font-weight:700;flex-shrink:0">
                                     {{ $cpu !== null ? $cpu.'%' : '—' }}
                                 </span>
                             </div>
                             {{-- RAM --}}
                             <div class="d-flex align-items-center gap-2">
-                                <span class="text-muted" style="font-size:.66rem;width:26px;flex-shrink:0">RAM</span>
-                                <div class="flex-grow-1 rounded-pill" style="height:5px;background:#f1f5f9;overflow:hidden">
-                                    <div class="h-100 rounded-pill" style="width:{{ min($ram ?? 0, 100) }}%;background:{{ $ramColor }};transition:width .3s"></div>
+                                <span style="font-size:.63rem;width:28px;flex-shrink:0;color:#94a3b8;font-weight:600">RAM</span>
+                                <div class="flex-grow-1 rounded-pill" style="height:4px;background:#f1f5f9;overflow:hidden">
+                                    <div class="h-100 rounded-pill" style="width:{{ min($ram ?? 0, 100) }}%;background:{{ $ramColor }}"></div>
                                 </div>
-                                <span style="font-size:.68rem;width:30px;text-align:right;color:{{ $ramColor }};font-weight:600">
+                                <span style="font-size:.65rem;width:28px;text-align:right;color:{{ $ramColor }};font-weight:700;flex-shrink:0">
                                     {{ $ram !== null ? $ram.'%' : '—' }}
                                 </span>
                             </div>
+                            {{-- Diskler --}}
+                            @foreach($c->disks->sortBy('drive_letter')->take(3) as $disk)
+                            @php
+                                $dp = $disk->usage_percent ?? 0;
+                                $dc = $dp >= 90 ? '#ef4444' : ($dp >= 70 ? '#f59e0b' : '#14b8a6');
+                                $dl = $disk->drive_letter ?: $disk->mount_point;
+                            @endphp
+                            <div class="d-flex align-items-center gap-2">
+                                <span style="font-size:.63rem;width:28px;flex-shrink:0;color:#94a3b8;font-weight:600;text-transform:uppercase">{{ $dl }}</span>
+                                <div class="flex-grow-1 rounded-pill" style="height:4px;background:#f1f5f9;overflow:hidden">
+                                    <div class="h-100 rounded-pill" style="width:{{ min($dp, 100) }}%;background:{{ $dc }}"></div>
+                                </div>
+                                <span style="font-size:.65rem;width:28px;text-align:right;color:{{ $dc }};font-weight:700;flex-shrink:0">
+                                    {{ $dp.'%' }}
+                                </span>
+                            </div>
+                            @endforeach
+                            {{-- Alt bilgi: RAM --}}
                             @if($ramTot)
-                            <div style="font-size:.66rem;color:#94a3b8;padding-left:34px">
-                                {{ $ramTot }} GB toplam
+                            <div style="font-size:.6rem;color:#cbd5e1;padding-left:36px;margin-top:1px">
+                                RAM: {{ $ramTot }} GB
                                 @if($ramAv) · {{ number_format($ramAv, 1) }} GB boş @endif
                             </div>
                             @endif
                         </div>
                         @else
-                        <span class="text-muted" style="font-size:.72rem">Donanım verisi yok</span>
+                        <span style="font-size:.7rem;color:#cbd5e1"><i class="fas fa-circle-xmark me-1"></i>Veri yok</span>
                         @endif
-                    </div>
-
-                    {{-- İşletim Sistemi --}}
-                    <div class="col-xl-2 col-lg-2 d-none d-lg-block">
-                        <div class="text-muted" style="font-size:.65rem;letter-spacing:.3px;text-transform:uppercase">İşletim Sistemi</div>
-                        <div class="text-truncate" style="font-size:.78rem;font-weight:500;max-width:160px" title="{{ $os }}">
-                            {{ $os ?: '—' }}
-                        </div>
                     </div>
 
                     {{-- IP + Domain --}}
-                    <div class="col-xl-2 col-lg-2 d-none d-lg-block">
-                        <div class="text-muted" style="font-size:.65rem;letter-spacing:.3px;text-transform:uppercase">IP / Domain</div>
+                    <div class="col-xl-2 col-lg-2 d-none d-lg-block border-start ps-3 pe-3" style="border-color:#f1f5f9!important">
+                        <div style="font-size:.63rem;color:#94a3b8;letter-spacing:.3px;text-transform:uppercase;margin-bottom:2px">IP / Domain</div>
                         @if($activeIp)
-                            <code style="font-size:.75rem;background:#f1f5f9;padding:1px 5px;border-radius:4px;color:#334155">{{ $activeIp }}</code>
+                            <code style="font-size:.73rem;background:#f8fafc;padding:1px 5px;border-radius:4px;color:#334155;border:1px solid #e2e8f0">{{ $activeIp }}</code>
                         @else
-                            <span class="text-muted" style="font-size:.78rem">—</span>
+                            <span style="font-size:.75rem;color:#cbd5e1">—</span>
                         @endif
                         <div class="mt-1">
                             @if($c->is_domain_joined)
-                                <span style="font-size:.66rem;background:#eff6ff;color:#3b82f6;border:1px solid #bfdbfe;border-radius:4px;padding:1px 5px">
-                                    {{ $c->domain_name }}
+                                <span style="font-size:.63rem;background:#eff6ff;color:#3b82f6;border:1px solid #bfdbfe;border-radius:4px;padding:1px 5px">
+                                    <i class="fas fa-building me-1" style="font-size:.55rem"></i>{{ $c->domain_name }}
                                 </span>
                             @else
-                                <span class="text-muted" style="font-size:.68rem">Workgroup</span>
+                                <span style="font-size:.65rem;color:#94a3b8">Workgroup</span>
                             @endif
                         </div>
                     </div>
 
-                    {{-- Durum Rozetleri --}}
-                    <div class="col-xl-1 col-lg-1 d-none d-xl-flex flex-column gap-1">
+                    {{-- AV Durumu --}}
+                    <div class="col-xl-1 d-none d-xl-flex flex-column gap-1 border-start ps-3 pe-2" style="border-color:#f1f5f9!important">
                         @if($avExists)
                             @if($avOk)
-                                <span style="font-size:.65rem;background:#f0fdf4;color:#16a34a;border:1px solid #bbf7d0;border-radius:5px;padding:2px 6px;white-space:nowrap">
+                                <span style="font-size:.63rem;background:#f0fdf4;color:#16a34a;border:1px solid #bbf7d0;border-radius:5px;padding:2px 5px;white-space:nowrap">
                                     <i class="fas fa-shield-alt me-1"></i>AV Aktif
                                 </span>
                             @else
-                                <span style="font-size:.65rem;background:#fef2f2;color:#dc2626;border:1px solid #fecaca;border-radius:5px;padding:2px 6px;white-space:nowrap">
+                                <span style="font-size:.63rem;background:#fef2f2;color:#dc2626;border:1px solid #fecaca;border-radius:5px;padding:2px 5px;white-space:nowrap">
                                     <i class="fas fa-shield-virus me-1"></i>AV Kapalı
                                 </span>
                             @endif
                         @endif
-                        @if($diskWarn)
-                            <span style="font-size:.65rem;background:#fffbeb;color:#d97706;border:1px solid #fde68a;border-radius:5px;padding:2px 6px;white-space:nowrap">
-                                <i class="fas fa-hdd me-1"></i>Disk Dolu
-                            </span>
-                        @endif
                     </div>
 
-                    {{-- Son görülme --}}
-                    <div class="col-auto d-none d-xl-block">
-                        <div class="text-muted" style="font-size:.65rem;letter-spacing:.3px;text-transform:uppercase">Son Görülme</div>
-                        <div style="font-size:.75rem;font-weight:500;color:#475569">
-                            @if($c->last_seen_at)
-                                <span title="{{ $c->last_seen_at->format('d.m.Y H:i') }}">
-                                    {{ $c->last_seen_at->diffForHumans() }}
-                                </span>
-                            @else
-                                <span class="text-muted">—</span>
+                    {{-- Son görülme + aksiyon --}}
+                    <div class="col-auto ms-auto d-flex align-items-center gap-3 ps-2">
+                        <div class="d-none d-xl-block text-end">
+                            <div style="font-size:.63rem;color:#94a3b8;letter-spacing:.3px;text-transform:uppercase;margin-bottom:2px">Son Görülme</div>
+                            <div style="font-size:.72rem;font-weight:500;color:#475569">
+                                @if($c->last_seen_at)
+                                    <span title="{{ $c->last_seen_at->format('d.m.Y H:i') }}">
+                                        {{ $c->last_seen_at->diffForHumans() }}
+                                    </span>
+                                @else
+                                    <span style="color:#cbd5e1">—</span>
+                                @endif
+                            </div>
+                        </div>
+                        <div class="d-flex gap-1">
+                            <a href="{{ route('it.agent.show', $c) }}"
+                               class="btn btn-sm d-inline-flex align-items-center gap-1"
+                               style="background:#f8faff;border:1px solid #e0e7ff;color:#4f46e5;border-radius:7px;font-size:.73rem;padding:4px 10px">
+                                <i class="fas fa-eye" style="font-size:.68rem"></i>
+                                <span class="d-none d-sm-inline">Detay</span>
+                            </a>
+                            @if(auth()->user()->hasPermission('it_agent_inventory', 'delete'))
+                            <button type="button"
+                                    class="btn btn-sm d-inline-flex align-items-center"
+                                    style="background:#fff5f5;border:1px solid #fecaca;color:#dc2626;border-radius:7px;font-size:.68rem;padding:4px 8px"
+                                    onclick="confirmDelete({{ $c->id }}, '{{ addslashes($c->hostname) }}')"
+                                    title="Sil">
+                                <i class="fas fa-trash"></i>
+                            </button>
                             @endif
                         </div>
-                    </div>
-
-                    {{-- Aksiyon --}}
-                    <div class="col-auto ms-auto d-flex gap-1">
-                        <a href="{{ route('it.agent.show', $c) }}"
-                           class="btn btn-sm d-inline-flex align-items-center gap-1"
-                           style="background:#f8faff;border:1px solid #e0e7ff;color:#4f46e5;border-radius:7px;font-size:.75rem;padding:4px 10px">
-                            <i class="fas fa-eye" style="font-size:.7rem"></i>
-                            <span class="d-none d-sm-inline">Detay</span>
-                        </a>
-                        @if(auth()->user()->hasPermission('it_agent_inventory', 'delete'))
-                        <button type="button"
-                                class="btn btn-sm d-inline-flex align-items-center"
-                                style="background:#fff5f5;border:1px solid #fecaca;color:#dc2626;border-radius:7px;font-size:.7rem;padding:4px 8px"
-                                onclick="confirmDelete({{ $c->id }}, '{{ addslashes($c->hostname) }}')"
-                                title="Sil">
-                            <i class="fas fa-trash"></i>
-                        </button>
-                        @endif
                     </div>
 
                 </div>
