@@ -395,4 +395,33 @@ class FoodLibraryController extends BaseModuleController
 
         return response()->json(['products' => $mapped, 'categories' => $categories]);
     }
+
+    public function apiProduct(Request $request, FoodProduct $product)
+    {
+        $user      = Auth::user();
+        $branchIds = $user->visibleBranchIds();
+
+        if (!in_array($product->branch_id, $branchIds)) {
+            abort(403);
+        }
+
+        return response()->json([
+            'id'               => $product->id,
+            'branch_id'        => $product->branch_id,
+            'food_category_id' => $product->food_category_id,
+            'printer_id'       => $product->printer_id,
+            'title'            => $product->title ?? [],
+            'description'      => $product->description ?? [],
+            'ingredients'      => $product->ingredients ?? [],
+            'price'            => $product->price,
+            'badges'           => $product->badges ?? [],
+            'allergens'        => $product->allergens ?? [],
+            'options'          => $product->options ?? [],
+            'calories'         => $product->calories,
+            'protein'          => $product->protein,
+            'carbs'            => $product->carbs,
+            'fat'              => $product->fat,
+            'sort_order'       => $product->sort_order,
+        ]);
+    }
 }

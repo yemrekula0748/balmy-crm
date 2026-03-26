@@ -510,6 +510,7 @@ Route::middleware('auth')->group(function () {
         Route::put('/urunler/{product}', [FoodLibraryController::class, 'updateProduct'])->name('product.update');
         Route::delete('/urunler/{product}', [FoodLibraryController::class, 'destroyProduct'])->name('product.destroy');
         Route::get('/api/urunler', [FoodLibraryController::class, 'apiProducts'])->name('api.products');
+        Route::get('/api/urunler/{product}', [FoodLibraryController::class, 'apiProduct'])->name('api.product');
     });
 
     // Yazıcılar

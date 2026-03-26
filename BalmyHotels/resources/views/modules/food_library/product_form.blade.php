@@ -37,6 +37,36 @@
                     </div>
                     @endif
 
+                    @if(!isset($product))
+                    {{-- Başka Üründen Doldur --}}
+                    <div class="mb-4 p-3 rounded" style="background:#f0f4ff;border:1.5px dashed #b0bedd">
+                        <div class="d-flex align-items-center gap-2 mb-2">
+                            <i class="fas fa-clone" style="color:#1e2d3d"></i>
+                            <span class="fw-semibold" style="font-size:.9rem;color:#1e2d3d">Başka Üründen Doldur</span>
+                            <span class="text-muted" style="font-size:.78rem">(opsiyonel — mevcut bir ürünü şablon olarak kullan)</span>
+                        </div>
+                        <div class="d-flex gap-2 align-items-start flex-wrap">
+                            <div class="flex-grow-1" style="position:relative;min-width:220px">
+                                <input type="text" id="productSearchInput" class="form-control form-control-sm"
+                                       placeholder="Ürün adını yazın..." autocomplete="off">
+                                <div id="productSearchDropdown"
+                                     style="display:none;position:absolute;top:100%;left:0;right:0;z-index:999;background:#fff;border:1px solid #d0d8ef;border-radius:6px;box-shadow:0 4px 16px rgba(0,0,0,.12);max-height:220px;overflow-y:auto">
+                                </div>
+                            </div>
+                            <button type="button" id="fillFromProductBtn" class="btn btn-sm" disabled
+                                    style="background:#1e2d3d;color:#fff;border-radius:6px;white-space:nowrap">
+                                <i class="fas fa-fill-drip me-1"></i> Formu Doldur
+                            </button>
+                        </div>
+                        <div id="selectedProductInfo" class="mt-2" style="display:none">
+                            <span class="badge" style="background:#d6e4ff;color:#1e2d3d;font-size:.78rem;padding:4px 10px;border-radius:20px">
+                                <i class="fas fa-check-circle me-1"></i>
+                                <span id="selectedProductName"></span>
+                            </span>
+                        </div>
+                    </div>
+                    @endif
+
                     <form method="POST"
                           action="{{ isset($product) ? route('food-library.product.update', $product) : route('food-library.product.store') }}"
                           enctype="multipart/form-data">
@@ -505,5 +535,171 @@ document.getElementById('branchSelect')?.addEventListener('change', function() {
 });
 // trigger on load
 document.getElementById('branchSelect')?.dispatchEvent(new Event('change'));
+
+// ──────────────────────────────────────────────
+// Başka Üründen Doldur
+// ──────────────────────────────────────────────
+(function () {
+    const searchInput    = document.getElementById('productSearchInput');
+    if (!searchInput) return; // sadece create modunda çalışır
+
+    const dropdown       = document.getElementById('productSearchDropdown');
+    const fillBtn        = document.getElementById('fillFromProductBtn');
+    const infoBox        = document.getElementById('selectedProductInfo');
+    const selectedName   = document.getElementById('selectedProductName');
+    const apiSearchUrl   = '{{ route("food-library.api.products") }}';
+    const apiProductBase = '{{ url("yemek-kutuphane/api/urunler") }}';
+
+    let selectedProductId = null;
+    let searchTimer = null;
+
+    searchInput.addEventListener('input', function () {
+        clearTimeout(searchTimer);
+        const q = this.value.trim();
+        if (q.length < 2) { dropdown.style.display = 'none'; return; }
+        searchTimer = setTimeout(() => fetchProducts(q), 300);
+    });
+
+    searchInput.addEventListener('blur', function () {
+        setTimeout(() => { dropdown.style.display = 'none'; }, 200);
+    });
+
+    function fetchProducts(q) {
+        fetch(`${apiSearchUrl}?search=${encodeURIComponent(q)}`)
+            .then(r => r.json())
+            .then(data => {
+                const products = data.products ?? [];
+                dropdown.innerHTML = '';
+                if (!products.length) {
+                    dropdown.innerHTML = '<div class="px-3 py-2 text-muted" style="font-size:.82rem">Sonuç bulunamadı</div>';
+                } else {
+                    products.forEach(p => {
+                        const item = document.createElement('div');
+                        item.style.cssText = 'padding:8px 12px;cursor:pointer;font-size:.83rem;border-bottom:1px solid #f0f0f0';
+                        item.textContent = p.title_tr + (p.category_name ? ` — ${p.category_name}` : '');
+                        item.addEventListener('mousedown', () => selectProduct(p.id, p.title_tr));
+                        item.addEventListener('mouseover', () => item.style.background = '#f0f4ff');
+                        item.addEventListener('mouseout',  () => item.style.background = '');
+                        dropdown.appendChild(item);
+                    });
+                }
+                dropdown.style.display = 'block';
+            });
+    }
+
+    function selectProduct(id, name) {
+        selectedProductId = id;
+        searchInput.value = name;
+        selectedName.textContent = name;
+        infoBox.style.display = 'block';
+        fillBtn.disabled = false;
+        dropdown.style.display = 'none';
+    }
+
+    fillBtn.addEventListener('click', function () {
+        if (!selectedProductId) return;
+        this.disabled = true;
+        this.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Dolduruluyor...';
+
+        fetch(`${apiProductBase}/${selectedProductId}`)
+            .then(r => r.json())
+            .then(p => {
+                // Şube & Kategori
+                setSelectValue('branchSelect', p.branch_id);
+                document.getElementById('branchSelect').dispatchEvent(new Event('change'));
+                setTimeout(() => setSelectValue('categorySelect', p.food_category_id), 100);
+
+                // Yazıcı
+                setSelectValue(document.querySelector('select[name="printer_id"]'), p.printer_id);
+
+                // Çok dilli başlık
+                const langs = ['tr','en','de','ru','fr','ar'];
+                langs.forEach(l => {
+                    setField(`title_${l}`, (p.title ?? {})[l] ?? '');
+                    setField(`description_${l}`, (p.description ?? {})[l] ?? '');
+                    setField(`ingredients_${l}`, (p.ingredients ?? {})[l] ?? '');
+                });
+
+                // Fiyat & Sıralama
+                setField('price',      p.price ?? '');
+                setField('sort_order', p.sort_order ?? 0);
+
+                // Besin değerleri
+                setField('calories', p.calories ?? '');
+                setField('protein',  p.protein  ?? '');
+                setField('carbs',    p.carbs    ?? '');
+                setField('fat',      p.fat      ?? '');
+
+                // Alerjenler — hepsini sıfırla, sonra işaretle
+                document.querySelectorAll('input[name="allergens[]"]').forEach(cb => {
+                    cb.checked = (p.allergens ?? []).includes(cb.value);
+                    cb.closest('.allergen-toggle')?.dispatchEvent(new Event('mousedown'));
+                });
+                document.querySelectorAll('.allergen-toggle').forEach(label => {
+                    const cb = label.querySelector('.allergen-cb');
+                    if (cb.checked) {
+                        label.style.background = '#fff8e6';
+                        label.style.borderColor = '#e8a020';
+                        label.style.outline = '2px solid #e8a020';
+                    } else {
+                        label.style.background = '#fafbfd';
+                        label.style.borderColor = '#dde3ef';
+                        label.style.outline = 'none';
+                    }
+                });
+
+                // Badges — hepsini sıfırla, sonra işaretle
+                document.querySelectorAll('input[name="badges[]"]').forEach(cb => {
+                    cb.checked = (p.badges ?? []).includes(cb.value);
+                });
+                document.querySelectorAll('.badge-toggle').forEach(label => {
+                    const cb = label.querySelector('.badge-cb');
+                    const chip = label.querySelector('.badge-chip');
+                    chip.style.opacity = cb.checked ? '1' : '0.45';
+                    chip.style.outline = cb.checked ? '2px solid #1e2d3d' : 'none';
+                });
+
+                // Opsiyonlar
+                const container = document.getElementById('optionsContainer');
+                container.innerHTML = '';
+                (p.options ?? []).forEach(opt => {
+                    const label = opt.label ?? {};
+                    container.appendChild(buildOptionRow(
+                        label.tr ?? '', label.en ?? '', label.de ?? '', label.ru ?? '',
+                        opt.type ?? 'text', opt.value ?? ''
+                    ));
+                });
+
+                fillBtn.innerHTML = '<i class="fas fa-check me-1"></i> Dolduruldu';
+                fillBtn.style.background = '#2ecc71';
+                setTimeout(() => {
+                    fillBtn.innerHTML = '<i class="fas fa-fill-drip me-1"></i> Formu Doldur';
+                    fillBtn.style.background = '#1e2d3d';
+                    fillBtn.disabled = false;
+                }, 2000);
+            })
+            .catch(() => {
+                fillBtn.innerHTML = '<i class="fas fa-exclamation-triangle me-1"></i> Hata';
+                fillBtn.style.background = '#e74c3c';
+                setTimeout(() => {
+                    fillBtn.innerHTML = '<i class="fas fa-fill-drip me-1"></i> Formu Doldur';
+                    fillBtn.style.background = '#1e2d3d';
+                    fillBtn.disabled = false;
+                }, 2000);
+            });
+    });
+
+    function setField(nameOrEl, val) {
+        const el = typeof nameOrEl === 'string'
+            ? document.querySelector(`[name="${nameOrEl}"]`)
+            : nameOrEl;
+        if (el) el.value = val ?? '';
+    }
+
+    function setSelectValue(idOrEl, val) {
+        const el = typeof idOrEl === 'string' ? document.getElementById(idOrEl) : idOrEl;
+        if (el && val != null) el.value = val;
+    }
+})();
 </script>
 @endsection
