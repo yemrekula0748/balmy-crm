@@ -1,178 +1,233 @@
 @extends('layouts.default')
 
-@push('styles')
-<script src="https://cdn.tailwindcss.com"></script>
-<script>tailwind.config={corePlugins:{preflight:false}}</script>
-@endpush
+@section('title', 'Bildirdiklerim')
 
 @section('content')
-<div class="pb-6">
+<div class="container-fluid pb-5">
 
-    {{-- BAŞLIK --}}
-    <div class="rounded-2xl p-6 mb-5 text-white" style="background:linear-gradient(135deg,#4f46e5 0%,#7c3aed 100%)">
-        <div class="flex items-center justify-between flex-wrap gap-4">
-            <div>
-                <h3 class="text-xl font-bold mb-1 flex items-center gap-2">
-                    <i class="fas fa-clipboard-list"></i> Bildirdiklerim
-                </h3>
-                <nav class="text-sm" style="color:rgba(255,255,255,.7)">
-                    <a href="{{ url('/') }}" style="color:rgba(255,255,255,.7);text-decoration:none">Anasayfa</a>
-                    <span class="opacity-50 mx-1">/</span>
-                    <a href="{{ route('faults.index') }}" style="color:rgba(255,255,255,.7);text-decoration:none">Teknik Arıza</a>
-                    <span class="opacity-50 mx-1">/</span>
-                    <span>Bildirdiklerim</span>
-                </nav>
+    {{-- Başlık --}}
+    <div class="row page-titles mx-0 mb-0">
+        <div class="col-sm-6 p-md-0">
+            <div class="welcome-text">
+                <h4 class="mb-0">Bildirdiklerim</h4>
+                <span class="text-muted" style="font-size:.82rem">Departmanınızın arıza bildirimleri</span>
             </div>
-            <a href="{{ route('faults.create') }}"
-               class="inline-flex items-center gap-2 px-5 py-2 rounded-xl text-sm font-semibold"
-               style="background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.35);color:#fff;text-decoration:none">
-                <i class="fas fa-plus"></i> Yeni Arıza Bildir
+        </div>
+        <div class="col-sm-6 p-md-0 justify-content-sm-end mt-2 mt-sm-0 d-flex align-items-center gap-2">
+            <ol class="breadcrumb mb-0">
+                <li class="breadcrumb-item"><a href="{{ url('/') }}">Anasayfa</a></li>
+                <li class="breadcrumb-item"><a href="{{ route('faults.index') }}">Teknik Arıza</a></li>
+                <li class="breadcrumb-item active">Bildirdiklerim</li>
+            </ol>
+            <a href="{{ route('faults.create') }}" class="btn btn-danger btn-sm fw-semibold">
+                <i class="fas fa-plus me-1"></i> Yeni Arıza Bildir
             </a>
         </div>
     </div>
 
     @if(session('success'))
-    <div class="flex items-center gap-3 p-4 mb-4 rounded-xl text-sm font-medium"
-         style="background:#f0fdf4;border:1px solid #bbf7d0;color:#166534">
-        <i class="fas fa-check-circle"></i>
-        {{ session('success') }}
+    <div class="alert alert-success alert-dismissible fade show border-0 shadow-sm my-3">
+        <i class="fas fa-check-circle me-2"></i>{{ session('success') }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     </div>
     @endif
 
-    {{-- DURUM FİLTRESİ --}}
-    <div class="bg-white rounded-2xl shadow-sm mb-5 px-5 py-3 flex items-center gap-2 flex-wrap"
-         style="border:1px solid #f1f5f9">
-        <span class="text-xs font-bold text-gray-400 uppercase tracking-widest mr-1">Durum</span>
-        <a href="{{ route('faults.my-reports') }}"
-           class="px-4 py-1 rounded-full text-xs font-bold"
-           style="{{ !request('status') ? 'background:#4f46e5;color:#fff' : 'background:#f1f5f9;color:#64748b' }}">
-            Tümü ({{ $faults->total() }})
-        </a>
+    {{-- Durum Filtresi --}}
+    <div class="card border-0 shadow-sm mb-3 mt-2" style="border-radius:12px">
+        <div class="card-body py-2 px-4">
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+                <span class="text-muted fw-semibold" style="font-size:.8rem">Durum:</span>
+                <a href="{{ route('faults.my-reports') }}"
+                   class="btn btn-sm rounded-pill {{ !request('status') ? 'btn-dark' : 'btn-outline-secondary' }}"
+                   style="font-size:.75rem;padding:3px 14px">
+                    Tümü ({{ $faults->total() }})
+                </a>
+                @php
+                    $fMap = ['open'=>'btn-danger','in_progress'=>'btn-warning','resolved'=>'btn-success','closed'=>'btn-secondary'];
+                    $foMap= ['open'=>'btn-outline-danger','in_progress'=>'btn-outline-warning','resolved'=>'btn-outline-success','closed'=>'btn-outline-secondary'];
+                @endphp
+                @foreach(\App\Models\Fault::STATUSES as $val => $lbl)
+                <a href="{{ route('faults.my-reports', ['status'=>$val]) }}"
+                   class="btn btn-sm rounded-pill {{ request('status') === $val ? ($fMap[$val] ?? 'btn-dark') : ($foMap[$val] ?? 'btn-outline-secondary') }}"
+                   style="font-size:.75rem;padding:3px 14px">
+                    {{ $lbl }}
+                </a>
+                @endforeach
+            </div>
+        </div>
+    </div>
+
+    {{-- Şekerleme sayaçlar --}}
+    <div class="row g-2 mb-3">
         @php
-            $palette = [
-                'open'        => ['#dc2626', '#fef2f2'],
-                'in_progress' => ['#d97706', '#fffbeb'],
-                'resolved'    => ['#16a34a', '#f0fdf4'],
-                'closed'      => ['#6b7280', '#f1f5f9'],
-            ];
+            $counts = $faults->getCollection()->groupBy('status');
+            $countsAll = \App\Models\Fault::STATUSES;
         @endphp
-        @foreach(\App\Models\Fault::STATUSES as $val => $lbl)
-        @php [$fg, $bg] = $palette[$val] ?? ['#6b7280','#f1f5f9']; @endphp
-        <a href="{{ route('faults.my-reports', ['status'=>$val]) }}"
-           class="px-4 py-1 rounded-full text-xs font-bold"
-           style="{{ request('status') === $val ? "background:{$fg};color:#fff" : "background:{$bg};color:{$fg}" }}">
-            {{ $lbl }}
-        </a>
+        @foreach($countsAll as $val => $lbl)
+        @php
+            $cMap = ['open'=>['#ef4444','#fef2f2','fa-circle-exclamation'],'in_progress'=>['#f59e0b','#fffbeb','fa-rotate'],'resolved'=>['#10b981','#f0fdf4','fa-circle-check'],'closed'=>['#6b7280','#f1f5f9','fa-circle-xmark']];
+            [$fg,$bg,$ico] = $cMap[$val] ?? ['#6b7280','#f1f5f9','fa-circle'];
+        @endphp
+        <div class="col-xl-3 col-md-6 col-sm-6">
+            <div class="card border-0" style="border-radius:10px;background:{{ $bg }};border-left:4px solid {{ $fg }}!important">
+                <div class="card-body py-2 px-3 d-flex align-items-center gap-2">
+                    <i class="fas {{ $ico }}" style="color:{{ $fg }};font-size:1.1rem"></i>
+                    <div>
+                        <div class="fw-bold lh-1" style="font-size:1.1rem;color:{{ $fg }}">{{ $counts->get($val, collect())->count() }}</div>
+                        <div style="font-size:.68rem;color:{{ $fg }};opacity:.8;font-weight:600">{{ $lbl }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
         @endforeach
     </div>
 
-    {{-- ARIZA LİSTESİ --}}
-    @php
-        $stripCol  = ['open'=>'#dc2626','in_progress'=>'#f59e0b','resolved'=>'#22c55e','closed'=>'#94a3b8'];
-        $badgeBg   = ['open'=>'#fef2f2','in_progress'=>'#fffbeb','resolved'=>'#f0fdf4','closed'=>'#f1f5f9'];
-        $badgeFg   = ['open'=>'#dc2626','in_progress'=>'#d97706','resolved'=>'#15803d','closed'=>'#64748b'];
-    @endphp
+    {{-- Arıza Kartları --}}
+    <div class="d-flex flex-column gap-2">
+        @forelse($faults as $fault)
+        @php
+            $isMine = $fault->reported_by === auth()->id();
+            $scMap  = ['open'=>['#ef4444','#fef2f2'],'in_progress'=>['#f59e0b','#fffbeb'],'resolved'=>['#10b981','#f0fdf4'],'closed'=>['#6b7280','#f1f5f9']];
+            [$sFg,$sBg] = $scMap[$fault->status] ?? ['#6b7280','#f1f5f9'];
+            $deptColor  = $fault->department?->color ?? '#6366f1';
+        @endphp
+        <div class="card border-0 shadow-sm" style="border-radius:10px;border-left:4px solid {{ $sFg }}!important;transition:box-shadow .15s"
+             onmouseenter="this.style.boxShadow='0 4px 18px rgba(0,0,0,.1)'"
+             onmouseleave="this.style.boxShadow='0 1px 6px rgba(0,0,0,.06)'">
+            <div class="card-body py-2 px-3">
+                <div class="row align-items-center g-0">
 
-    @forelse($faults as $fault)
-    @php $isMine = $fault->reported_by === auth()->id(); @endphp
-    <div class="bg-white rounded-2xl shadow-sm mb-3 flex overflow-hidden"
-         style="border:1px solid #f1f5f9;border-left:4px solid {{ $stripCol[$fault->status] ?? '#94a3b8' }}">
+                    {{-- Başlık + Meta --}}
+                    <div class="col-xl-4 col-lg-5 col-md-6 pe-3">
+                        <div class="d-flex align-items-start gap-2">
+                            <div class="rounded-3 d-flex align-items-center justify-content-center flex-shrink-0 mt-1"
+                                 style="width:34px;height:34px;background:{{ $sBg }}">
+                                <i class="fas fa-wrench" style="font-size:.75rem;color:{{ $sFg }}"></i>
+                            </div>
+                            <div style="min-width:0">
+                                <a href="{{ route('faults.show', $fault) }}"
+                                   class="fw-semibold text-dark text-decoration-none d-block text-truncate"
+                                   style="font-size:.83rem" title="{{ $fault->title }}">{{ $fault->title }}</a>
+                                <div class="d-flex flex-wrap align-items-center gap-1 mt-1">
+                                    <span class="badge" style="font-size:.65rem;background:{{ $sBg }};color:{{ $sFg }};border-radius:5px">
+                                        {{ \App\Models\Fault::STATUSES[$fault->status] }}
+                                    </span>
+                                    @if($isMine)
+                                    <span class="badge" style="font-size:.65rem;background:#eef2ff;color:#4f46e5;border-radius:5px">
+                                        Ben bildirdim
+                                    </span>
+                                    @endif
+                                    @if($fault->department)
+                                    <span class="badge" style="font-size:.65rem;background:{{ $deptColor }};color:#fff;border-radius:5px">
+                                        {{ $fault->department->name }}
+                                    </span>
+                                    @endif
+                                </div>
+                            </div>
+                        </div>
+                    </div>
 
-        {{-- İÇERİK --}}
-        <div class="flex-1 p-5">
-            <div class="flex flex-wrap items-center gap-2 mb-2">
-                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold"
-                      style="background:{{ $badgeBg[$fault->status] ?? '#f1f5f9' }};color:{{ $badgeFg[$fault->status] ?? '#64748b' }}">
-                    {{ \App\Models\Fault::STATUSES[$fault->status] }}
-                </span>
-                @if($isMine)
-                <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold"
-                      style="background:#eff6ff;color:#2563eb">
-                    <i class="fas fa-user" style="font-size:0.6rem"></i> Ben bildirdim
-                </span>
-                @else
-                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold"
-                      style="background:#f8fafc;color:#94a3b8">Departmanım</span>
-                @endif
-                <span class="text-xs text-gray-400">#{{ $fault->id }} &middot; {{ $fault->created_at->format('d.m.Y H:i') }}</span>
-            </div>
-
-            <h5 class="font-bold text-gray-800 mb-2">
-                <a href="{{ route('faults.show', $fault) }}" style="text-decoration:none;color:inherit">
-                    {{ $fault->title }}
-                </a>
-            </h5>
-
-            <div class="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-400 mb-2">
-                @if($fault->branch)
-                <span><i class="fas fa-building mr-1"></i>{{ $fault->branch->name }}</span>
-                @endif
-                @if($fault->department)
-                <span><i class="fas fa-users mr-1"></i>{{ $fault->department->name }}</span>
-                @endif
-                @if($fault->faultLocation)
-                <span>
-                    <i class="fas fa-map-marker-alt mr-1"></i>{{ $fault->faultLocation->name }}
-                    {{ $fault->faultArea ? ' / '.$fault->faultArea->name : '' }}
-                </span>
-                @endif
-                @if($fault->faultType)
-                <span><i class="fas fa-tag mr-1"></i>{{ $fault->faultType->name }}</span>
-                @endif
-            </div>
-
-            <p class="text-sm text-gray-500 leading-relaxed">{{ Str::limit($fault->description, 140) }}</p>
-        </div>
-
-        {{-- EYLEMLER --}}
-        <div class="flex flex-col justify-center p-4 gap-2" style="min-width:210px;border-left:1px solid #f1f5f9">
-            @if($isMine && $fault->status !== 'closed')
-            <div class="rounded-xl p-3" style="background:#f8fafc;border:1px solid #e2e8f0">
-                <p class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">Güncelle</p>
-                <form action="{{ route('faults.updateStatus', $fault) }}" method="POST">
-                    @csrf
-                    <select name="status" class="w-full text-sm rounded-lg px-2 py-1.5 mb-2"
-                            style="border:1px solid #e2e8f0;outline:none">
-                        @foreach(\App\Models\Fault::STATUSES as $val => $lbl)
-                        @if($val !== $fault->status)
-                        <option value="{{ $val }}">{{ $lbl }}</option>
+                    {{-- Konum + Tür --}}
+                    <div class="col-xl-3 col-lg-3 col-md-6 d-none d-md-block border-start ps-3 pe-3" style="border-color:#f1f5f9!important">
+                        @if($fault->faultLocation)
+                        <div class="text-truncate mb-1" style="font-size:.72rem;color:#374151;font-weight:600">
+                            <i class="fas fa-map-marker-alt me-1" style="color:#94a3b8"></i>
+                            {{ $fault->faultLocation->name }}{{ $fault->faultArea ? ' / '.$fault->faultArea->name : '' }}
+                        </div>
                         @endif
-                        @endforeach
-                    </select>
-                    <textarea name="note" rows="2" required placeholder="Not yazın..."
-                              class="w-full text-sm rounded-lg px-2 py-1.5 mb-2 resize-none"
-                              style="border:1px solid #e2e8f0;outline:none"></textarea>
-                    <button class="w-full py-1.5 rounded-lg text-xs font-bold text-white"
-                            style="background:#4f46e5">Güncelle</button>
-                </form>
+                        @if($fault->faultType)
+                        <div style="font-size:.68rem;color:#64748b">
+                            <i class="fas fa-tag me-1" style="color:#94a3b8"></i>{{ $fault->faultType->name }}
+                        </div>
+                        @endif
+                        <div style="font-size:.65rem;color:#94a3b8" class="mt-1">
+                            {{ $fault->created_at->format('d.m.Y H:i') }}
+                            &middot; {{ $fault->created_at->diffForHumans() }}
+                        </div>
+                    </div>
+
+                    {{-- Açıklama --}}
+                    <div class="col-xl-3 col-lg-2 d-none d-lg-block border-start ps-3 pe-3" style="border-color:#f1f5f9!important">
+                        <p class="mb-0 text-muted" style="font-size:.73rem;line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">
+                            {{ $fault->description }}
+                        </p>
+                    </div>
+
+                    {{-- Güncelle / Kapalı / Eylem --}}
+                    <div class="col-xl-2 col-lg-2 col-md-12 d-flex justify-content-end align-items-center gap-1 mt-2 mt-lg-0">
+                        @if($isMine && $fault->status !== 'closed')
+                        <button class="btn btn-sm btn-outline-warning fw-semibold" style="border-radius:7px;font-size:.72rem;padding:3px 10px"
+                                data-bs-toggle="modal" data-bs-target="#updateModal{{ $fault->id }}">
+                            <i class="fas fa-pen me-1"></i>Güncelle
+                        </button>
+                        @elseif($fault->status === 'closed')
+                        <span class="text-muted" style="font-size:.7rem">
+                            <i class="fas fa-lock me-1"></i>{{ $fault->closed_at?->format('d.m.Y') }}
+                        </span>
+                        @endif
+                        <a href="{{ route('faults.show', $fault) }}"
+                           class="btn btn-sm btn-outline-primary" style="border-radius:7px;padding:3px 8px">
+                            <i class="fas fa-eye" style="font-size:.75rem"></i>
+                        </a>
+                    </div>
+                </div>
             </div>
-            @elseif($fault->status === 'closed')
-            <div class="text-center py-2">
-                <i class="fas fa-check-circle text-2xl block mb-1" style="color:#94a3b8"></i>
-                <span class="text-xs text-gray-400">Kapalı · {{ $fault->closed_at?->format('d.m.Y') }}</span>
-            </div>
-            @endif
-            <a href="{{ route('faults.show', $fault) }}"
-               class="flex items-center justify-center gap-1 py-1.5 rounded-lg text-xs font-bold"
-               style="background:#f1f5f9;color:#374151;text-decoration:none">
-                <i class="fas fa-eye"></i> Detay
-            </a>
         </div>
+
+        {{-- Güncelle Modal --}}
+        @if($isMine && $fault->status !== 'closed')
+        <div class="modal fade" id="updateModal{{ $fault->id }}" tabindex="-1">
+            <div class="modal-dialog modal-dialog-centered" style="max-width:420px">
+                <div class="modal-content border-0 shadow" style="border-radius:14px">
+                    <div class="modal-header border-0 pb-0">
+                        <h6 class="modal-title fw-bold">Durumu Güncelle</h6>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <form action="{{ route('faults.updateStatus', $fault) }}" method="POST">
+                        @csrf
+                        <div class="modal-body pt-2">
+                            <p class="text-muted small mb-3">{{ $fault->title }}</p>
+                            <div class="mb-3">
+                                <label class="form-label small fw-semibold">Yeni Durum</label>
+                                <select name="status" class="form-select form-select-sm" style="border-radius:8px" required>
+                                    @foreach(\App\Models\Fault::STATUSES as $val => $lbl)
+                                    @if($val !== $fault->status)
+                                    <option value="{{ $val }}">{{ $lbl }}</option>
+                                    @endif
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div class="mb-1">
+                                <label class="form-label small fw-semibold">Not</label>
+                                <textarea name="note" class="form-control form-control-sm" rows="3"
+                                          style="border-radius:8px;resize:none" required
+                                          placeholder="Güncelleme notu yazın..."></textarea>
+                            </div>
+                        </div>
+                        <div class="modal-footer border-0 pt-0">
+                            <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">İptal</button>
+                            <button type="submit" class="btn btn-sm btn-primary fw-semibold px-4" style="border-radius:8px">Güncelle</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        @endif
+        @empty
+        <div class="card border-0 shadow-sm text-center py-5" style="border-radius:12px">
+            <div class="card-body">
+                <i class="fas fa-clipboard-list fa-3x mb-3 d-block opacity-25"></i>
+                <h5 class="text-muted mb-3">Henüz bildirim yapmadınız.</h5>
+                <a href="{{ route('faults.create') }}" class="btn btn-danger fw-semibold px-4">
+                    <i class="fas fa-plus me-2"></i>İlk Arızayı Bildir
+                </a>
+            </div>
+        </div>
+        @endforelse
     </div>
-    @empty
-    <div class="bg-white rounded-2xl shadow-sm py-16 text-center" style="border:1px solid #f1f5f9">
-        <i class="fas fa-clipboard-list text-5xl block mb-4" style="color:#e2e8f0"></i>
-        <h5 class="font-semibold text-gray-400 mb-3">Henüz bildirim yapmadınız.</h5>
-        <a href="{{ route('faults.create') }}"
-           class="inline-flex items-center gap-2 px-5 py-2 rounded-xl text-sm font-bold text-white"
-           style="background:#4f46e5;text-decoration:none">
-            <i class="fas fa-plus"></i> İlk Arızayı Bildir
-        </a>
-    </div>
-    @endforelse
 
     @if($faults->hasPages())
-    <div class="mt-4">{{ $faults->links() }}</div>
+    <div class="mt-3">{{ $faults->links() }}</div>
     @endif
 
 </div>

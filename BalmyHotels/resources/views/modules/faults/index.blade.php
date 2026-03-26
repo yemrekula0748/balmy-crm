@@ -1,389 +1,332 @@
-﻿@extends('layouts.default')
+@extends('layouts.default')
 
-@push('styles')
-<style>
-/* â”€â”€ Stat kartlarÄ± â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
-.fault-stat-card {
-    border: none;
-    border-radius: 14px;
-    box-shadow: 0 2px 16px rgba(0,0,0,.07);
-    overflow: hidden;
-    transition: transform .15s, box-shadow .15s;
-}
-.fault-stat-card:hover { transform: translateY(-2px); box-shadow: 0 6px 24px rgba(0,0,0,.11); }
-.fault-stat-card .stat-icon {
-    width: 52px; height: 52px; border-radius: 12px;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 1.3rem; flex-shrink: 0;
-}
-.fault-stat-card .stat-value { font-size: 1.8rem; font-weight: 700; line-height: 1.1; }
-.fault-stat-card .stat-label { font-size: 0.75rem; color: #6c757d; margin-top: 2px; }
-
-/* â”€â”€ Grafik kartlarÄ± â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
-.chart-card {
-    border: none; border-radius: 14px;
-    box-shadow: 0 2px 16px rgba(0,0,0,.07);
-}
-.chart-card .card-header {
-    background: transparent;
-    border-bottom: 1px solid #f1f3f5;
-    font-weight: 600;
-    font-size: 0.9rem;
-    padding: 1rem 1.25rem 0.75rem;
-}
-
-/* â”€â”€ Filtre bar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
-.filter-bar {
-    background: #fff;
-    border-radius: 12px;
-    box-shadow: 0 2px 12px rgba(0,0,0,.06);
-    padding: 1rem 1.25rem;
-    margin-bottom: 1.25rem;
-}
-.filter-bar .form-select,
-.filter-bar .form-control {
-    border-radius: 8px; border-color: #d0d5dd; font-size: 0.85rem;
-}
-
-/* â”€â”€ Tablo â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
-.faults-table { border-collapse: separate; border-spacing: 0; }
-.faults-table thead th {
-    background: #f8f9fc;
-    font-size: 0.72rem;
-    font-weight: 700;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    color: #667085;
-    border-bottom: 2px solid #e9ecef;
-    padding: 0.75rem 1rem;
-    white-space: nowrap;
-}
-.faults-table tbody tr {
-    transition: background .12s;
-}
-.faults-table tbody tr:hover { background: #f8f9fc; }
-.faults-table td { padding: 0.7rem 1rem; vertical-align: middle; }
-.faults-table tbody tr:last-child td { border-bottom: none; }
-
-.priority-pill {
-    display: inline-flex; align-items: center; gap: 5px;
-    padding: 3px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 600;
-}
-.status-pill {
-    display: inline-flex; align-items: center; gap: 5px;
-    padding: 3px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 600;
-}
-.status-dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; }
-
-/* Departman badge */
-.dept-badge {
-    padding: 3px 8px; border-radius: 6px; font-size: 0.72rem; font-weight: 600;
-    color: #fff;
-}
-
-/* BaÅŸlÄ±k + Breadcrumb kutusu */
-.page-header-card {
-    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-    border-radius: 14px;
-    padding: 1.5rem 1.75rem;
-    margin-bottom: 1.5rem;
-    color: #fff;
-}
-.page-header-card .breadcrumb-item a { color: rgba(255,255,255,0.6); }
-.page-header-card .breadcrumb-item.active { color: rgba(255,255,255,0.9); }
-.page-header-card .breadcrumb-item + .breadcrumb-item::before { color: rgba(255,255,255,0.4); }
-</style>
-@endpush
+@section('title', 'Teknik Arıza Takip')
 
 @section('content')
-<div class="container-fluid">
+<div class="container-fluid pb-5">
 
-    {{-- PAGE HEADER --}}
-    <div class="page-header-card">
-        <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
-            <div>
-                <h4 class="mb-1 fw-bold"><i class="fas fa-tools me-2" style="color:#f97316"></i>Teknik ArÄ±za Takip</h4>
-                <ol class="breadcrumb mb-0" style="background:transparent;padding:0;">
-                    <li class="breadcrumb-item"><a href="{{ url('/') }}">Anasayfa</a></li>
-                    <li class="breadcrumb-item active">Teknik ArÄ±za</li>
-                </ol>
+    {{-- Başlık --}}
+    <div class="row page-titles mx-0 mb-0">
+        <div class="col-sm-6 p-md-0">
+            <div class="welcome-text">
+                <h4 class="mb-0">Teknik Arıza Takip</h4>
+                <span class="text-muted" style="font-size:.82rem">Tüm arıza bildirimleri ve durum takibi</span>
             </div>
-            <a href="{{ route('faults.create') }}" class="btn btn-danger fw-semibold px-4">
-                <i class="fas fa-plus me-2"></i>ArÄ±za Bildir
-            </a>
+        </div>
+        <div class="col-sm-6 p-md-0 justify-content-sm-end mt-2 mt-sm-0 d-flex">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ url('/') }}">Anasayfa</a></li>
+                <li class="breadcrumb-item active">Teknik Arıza</li>
+            </ol>
         </div>
     </div>
 
     @if(session('success'))
-        <div class="alert alert-success alert-dismissible fade show border-0 rounded-3 mb-4"
-             style="background:#e8f5e9;">
-            <i class="fas fa-check-circle text-success me-2"></i>{{ session('success') }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
+    <div class="alert alert-success alert-dismissible fade show border-0 shadow-sm mb-3 mt-2">
+        <i class="fas fa-check-circle me-2"></i>{{ session('success') }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
     @endif
 
-    {{-- â”€â”€ Ä°STATÄ°STÄ°K KARTLARI â”€â”€ --}}
-    <div class="row g-3 mb-4">
-        @php
-        $statCards = [
-            ['label'=>'AÃ§Ä±k ArÄ±zalar',    'value'=>$statsByStatus['open'] ?? 0,        'color'=>'#dc3545','bg'=>'#fdecea','icon'=>'fa-exclamation-circle'],
-            ['label'=>'Ä°ÅŸlemdeki',        'value'=>$statsByStatus['in_progress'] ?? 0,  'color'=>'#f97316','bg'=>'#fff3e0','icon'=>'fa-sync-alt'],
-            ['label'=>'Ã‡Ã¶zÃ¼len',          'value'=>$statsByStatus['resolved'] ?? 0,     'color'=>'#28a745','bg'=>'#e8f5e9','icon'=>'fa-check-circle'],
-            ['label'=>'KapalÄ±',           'value'=>$statsByStatus['closed'] ?? 0,       'color'=>'#6c757d','bg'=>'#f0f0f0','icon'=>'fa-times-circle'],
-            ['label'=>'Ort. Ã‡Ã¶zÃ¼m (sa)',  'value'=>($avgResolution ?? null) ? round($avgResolution).' sa.' : 'â€”', 'color'=>'#c19b77','bg'=>'#fdf5ee','icon'=>'fa-clock'],
-        ];
-        @endphp
-        @foreach($statCards as $sc)
-        <div class="col-xl col-md-4 col-sm-6 col-12">
-            <div class="fault-stat-card card h-100">
-                <div class="card-body d-flex align-items-center gap-3 py-3 px-3">
-                    <div class="stat-icon" style="background:{{ $sc['bg'] }}">
-                        <i class="fas {{ $sc['icon'] }}" style="color:{{ $sc['color'] }}"></i>
+    {{-- Özet Stat Kartları --}}
+    <div class="row g-2 mb-3 mt-1">
+        <div class="col-xl col-md-4 col-sm-6">
+            <div class="card border-0" style="border-radius:12px;background:linear-gradient(135deg,#ef4444,#f87171);box-shadow:0 2px 12px rgba(239,68,68,.22)">
+                <div class="card-body py-3 px-3 d-flex align-items-center gap-3">
+                    <div class="rounded-3 d-flex align-items-center justify-content-center flex-shrink-0"
+                         style="width:40px;height:40px;background:rgba(255,255,255,.18)">
+                        <i class="fas fa-circle-exclamation text-white" style="font-size:1rem"></i>
                     </div>
                     <div>
-                        <div class="stat-value" style="color:{{ $sc['color'] }}">{{ $sc['value'] }}</div>
-                        <div class="stat-label">{{ $sc['label'] }}</div>
+                        <div class="text-white fw-bold lh-1" style="font-size:1.4rem">{{ $statsByStatus['open'] ?? 0 }}</div>
+                        <div class="text-white-50" style="font-size:.7rem;letter-spacing:.4px">AÇIK ARIZA</div>
                     </div>
                 </div>
-                <div style="height:3px;background:{{ $sc['color'] }};opacity:.7"></div>
             </div>
         </div>
-        @endforeach
-    </div>
-
-    {{-- â”€â”€ GRAFÄ°KLER â”€â”€ --}}
-    <div class="row g-3 mb-4">
-        <div class="col-xl-4 col-lg-6">
-            <div class="chart-card card h-100">
-                <div class="card-header d-flex align-items-center gap-2">
-                    <i class="fas fa-chart-pie text-warning"></i> Ã–ncelik DaÄŸÄ±lÄ±mÄ±
-                </div>
-                <div class="card-body d-flex align-items-center justify-content-center" style="min-height:200px">
-                    <canvas id="priorityChart" height="200"></canvas>
-                </div>
-            </div>
-        </div>
-        <div class="col-xl-4 col-lg-6">
-            <div class="chart-card card h-100">
-                <div class="card-header d-flex align-items-center gap-2">
-                    <i class="fas fa-chart-donut text-info" style="color:#4361ee!important"></i> Durum DaÄŸÄ±lÄ±mÄ±
-                </div>
-                <div class="card-body d-flex align-items-center justify-content-center" style="min-height:200px">
-                    <canvas id="statusChart" height="200"></canvas>
-                </div>
-            </div>
-        </div>
-        <div class="col-xl-4 col-lg-12">
-            <div class="chart-card card h-100">
-                <div class="card-header d-flex align-items-center gap-2">
-                    <i class="fas fa-chart-bar text-primary"></i> AylÄ±k Trend (6 Ay)
-                </div>
-                <div class="card-body" style="min-height:200px">
-                    <canvas id="trendChart" height="200"></canvas>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    {{-- â”€â”€ DEPARTMAN BAZLI â”€â”€ --}}
-    <div class="chart-card card mb-4">
-        <div class="card-header d-flex align-items-center gap-2">
-            <i class="fas fa-sitemap" style="color:#4361ee"></i> Departmana GÃ¶re ArÄ±zalar
-        </div>
-        <div class="card-body">
-            @forelse($statsByDept->sortByDesc('total') as $row)
-                @php $pct = $row->total / max($statsByDept->sum('total'), 1) * 100; @endphp
-                <div class="d-flex align-items-center gap-3 mb-2">
-                    <div class="small fw-semibold text-truncate" style="width:160px;flex-shrink:0">
-                        {{ $row->department?->name ?? 'AtanmamÄ±ÅŸ' }}
+        <div class="col-xl col-md-4 col-sm-6">
+            <div class="card border-0" style="border-radius:12px;background:linear-gradient(135deg,#f59e0b,#fbbf24);box-shadow:0 2px 12px rgba(245,158,11,.22)">
+                <div class="card-body py-3 px-3 d-flex align-items-center gap-3">
+                    <div class="rounded-3 d-flex align-items-center justify-content-center flex-shrink-0"
+                         style="width:40px;height:40px;background:rgba(255,255,255,.18)">
+                        <i class="fas fa-rotate text-white" style="font-size:1rem"></i>
                     </div>
-                    <div class="flex-fill">
-                        <div class="progress" style="height:10px;border-radius:6px;">
-                            <div class="progress-bar" role="progressbar"
-                                 style="width:{{ $pct }}%;background-color:{{ $row->department?->color ?? '#c19b77' }};border-radius:6px;">
-                            </div>
+                    <div>
+                        <div class="text-white fw-bold lh-1" style="font-size:1.4rem">{{ $statsByStatus['in_progress'] ?? 0 }}</div>
+                        <div class="text-white-50" style="font-size:.7rem;letter-spacing:.4px">İŞLEMDE</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl col-md-4 col-sm-6">
+            <div class="card border-0" style="border-radius:12px;background:linear-gradient(135deg,#10b981,#34d399);box-shadow:0 2px 12px rgba(16,185,129,.22)">
+                <div class="card-body py-3 px-3 d-flex align-items-center gap-3">
+                    <div class="rounded-3 d-flex align-items-center justify-content-center flex-shrink-0"
+                         style="width:40px;height:40px;background:rgba(255,255,255,.18)">
+                        <i class="fas fa-circle-check text-white" style="font-size:1rem"></i>
+                    </div>
+                    <div>
+                        <div class="text-white fw-bold lh-1" style="font-size:1.4rem">{{ $statsByStatus['resolved'] ?? 0 }}</div>
+                        <div class="text-white-50" style="font-size:.7rem;letter-spacing:.4px">ÇÖZÜLDÜ</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl col-md-4 col-sm-6">
+            <div class="card border-0" style="border-radius:12px;background:linear-gradient(135deg,#6b7280,#9ca3af);box-shadow:0 2px 12px rgba(107,114,128,.22)">
+                <div class="card-body py-3 px-3 d-flex align-items-center gap-3">
+                    <div class="rounded-3 d-flex align-items-center justify-content-center flex-shrink-0"
+                         style="width:40px;height:40px;background:rgba(255,255,255,.18)">
+                        <i class="fas fa-circle-xmark text-white" style="font-size:1rem"></i>
+                    </div>
+                    <div>
+                        <div class="text-white fw-bold lh-1" style="font-size:1.4rem">{{ $statsByStatus['closed'] ?? 0 }}</div>
+                        <div class="text-white-50" style="font-size:.7rem;letter-spacing:.4px">KAPALI</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl col-md-4 col-sm-6">
+            <div class="card border-0" style="border-radius:12px;background:linear-gradient(135deg,#6366f1,#818cf8);box-shadow:0 2px 12px rgba(99,102,241,.22)">
+                <div class="card-body py-3 px-3 d-flex align-items-center gap-3">
+                    <div class="rounded-3 d-flex align-items-center justify-content-center flex-shrink-0"
+                         style="width:40px;height:40px;background:rgba(255,255,255,.18)">
+                        <i class="fas fa-clock text-white" style="font-size:1rem"></i>
+                    </div>
+                    <div>
+                        <div class="text-white fw-bold lh-1" style="font-size:1.4rem">
+                            {{ $avgResolution ? round($avgResolution).'sa' : '—' }}
+                        </div>
+                        <div class="text-white-50" style="font-size:.7rem;letter-spacing:.4px">ORT. ÇÖZÜM</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {{-- Grafik + Departman --}}
+    <div class="row g-3 mb-3">
+        <div class="col-lg-5">
+            <div class="card border-0 shadow-sm h-100" style="border-radius:12px">
+                <div class="card-body">
+                    <div class="d-flex align-items-center gap-2 mb-3">
+                        <i class="fas fa-chart-donut" style="color:#6366f1"></i>
+                        <span class="fw-semibold" style="font-size:.88rem">Durum Dağılımı</span>
+                    </div>
+                    <canvas id="statusChart" height="160"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4">
+            <div class="card border-0 shadow-sm h-100" style="border-radius:12px">
+                <div class="card-body">
+                    <div class="d-flex align-items-center gap-2 mb-3">
+                        <i class="fas fa-chart-bar" style="color:#f59e0b"></i>
+                        <span class="fw-semibold" style="font-size:.88rem">Aylık Trend (6 Ay)</span>
+                    </div>
+                    <canvas id="trendChart" height="160"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3">
+            <div class="card border-0 shadow-sm h-100" style="border-radius:12px">
+                <div class="card-body">
+                    <div class="d-flex align-items-center gap-2 mb-3">
+                        <i class="fas fa-sitemap" style="color:#10b981"></i>
+                        <span class="fw-semibold" style="font-size:.88rem">Departman Bazında</span>
+                    </div>
+                    @php $deptTotal = $statsByDept->sum('total'); @endphp
+                    @forelse($statsByDept->sortByDesc('total')->take(6) as $row)
+                    @php
+                        $dept = $departments->firstWhere('id', $row->assigned_department_id);
+                        $pct  = $deptTotal > 0 ? round($row->total / $deptTotal * 100) : 0;
+                        $col  = $dept?->color ?? '#6366f1';
+                    @endphp
+                    <div class="mb-2">
+                        <div class="d-flex justify-content-between mb-1">
+                            <span class="text-truncate" style="font-size:.72rem;font-weight:600;color:#374151;max-width:120px">
+                                {{ $dept?->name ?? 'Atanmamış' }}
+                            </span>
+                            <span style="font-size:.68rem;color:#94a3b8">{{ $row->total }}</span>
+                        </div>
+                        <div class="rounded-pill" style="height:5px;background:#f1f5f9">
+                            <div class="rounded-pill h-100" style="width:{{ $pct }}%;background:{{ $col }}"></div>
                         </div>
                     </div>
-                    <span class="badge rounded-pill" style="background:#f0f0f0;color:#344054;min-width:28px">{{ $row->total }}</span>
+                    @empty
+                    <p class="text-muted small text-center mb-0">Kayıt yok.</p>
+                    @endforelse
                 </div>
-            @empty
-                <p class="text-muted text-center mb-0">HenÃ¼z kayÄ±t yok.</p>
-            @endforelse
+            </div>
         </div>
     </div>
 
-    {{-- â”€â”€ ARIZA LÄ°STESÄ° â”€â”€ --}}
-    <div class="chart-card card">
-        <div class="card-header d-flex justify-content-between align-items-center py-3">
-            <span class="fw-bold" style="font-size:0.95rem"><i class="fas fa-list me-2 text-muted"></i>ArÄ±za KayÄ±tlarÄ±</span>
+    {{-- Filtre + Tablo Kartı --}}
+    <div class="card border-0 shadow-sm" style="border-radius:12px">
+        <div class="card-header bg-white d-flex justify-content-between align-items-center py-3 px-4"
+             style="border-bottom:1px solid #f1f5f9;border-radius:12px 12px 0 0">
+            <div class="d-flex align-items-center gap-2">
+                <i class="fas fa-list" style="color:#6366f1"></i>
+                <span class="fw-bold" style="font-size:.9rem">Arıza Kayıtları</span>
+                <span class="badge rounded-pill bg-light text-secondary border" style="font-size:.7rem">
+                    {{ number_format($faults->total()) }} kayıt
+                </span>
+            </div>
             <a href="{{ route('faults.create') }}" class="btn btn-danger btn-sm fw-semibold">
-                <i class="fas fa-plus me-1"></i> ArÄ±za Bildir
+                <i class="fas fa-plus me-1"></i> Arıza Bildir
             </a>
         </div>
-        <div class="card-body p-0">
 
-            {{-- FÄ°LTRELER --}}
-            <div class="filter-bar border-bottom rounded-0" style="border-radius:0!important">
-                <form method="GET" class="row g-2 align-items-end">
-                    <div class="col-md-2 col-sm-6">
-                        <label class="form-label small fw-semibold mb-1">Åube</label>
-                        <select name="branch_id" class="form-select form-select-sm">
-                            <option value="">TÃ¼mÃ¼</option>
+        {{-- Filtreler --}}
+        <div class="px-4 py-3" style="background:#fafbff;border-bottom:1px solid #f1f5f9">
+            <form method="GET">
+                <div class="row g-2 align-items-end">
+                    <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6">
+                        <select name="branch_id" class="form-select form-select-sm" style="border-radius:8px">
+                            <option value="">Tüm Şubeler</option>
                             @foreach($branches as $b)
-                                <option value="{{ $b->id }}" @selected(request('branch_id') == $b->id)>{{ $b->name }}</option>
+                            <option value="{{ $b->id }}" @selected(request('branch_id') == $b->id)>{{ $b->name }}</option>
                             @endforeach
                         </select>
                     </div>
-                    <div class="col-md-2 col-sm-6">
-                        <label class="form-label small fw-semibold mb-1">Departman</label>
-                        <select name="department_id" class="form-select form-select-sm">
-                            <option value="">TÃ¼mÃ¼</option>
+                    <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6">
+                        <select name="department_id" class="form-select form-select-sm" style="border-radius:8px">
+                            <option value="">Tüm Departmanlar</option>
                             @foreach($departments as $d)
-                                <option value="{{ $d->id }}" @selected(request('department_id') == $d->id)>{{ $d->name }}</option>
+                            <option value="{{ $d->id }}" @selected(request('department_id') == $d->id)>{{ $d->name }}</option>
                             @endforeach
                         </select>
                     </div>
-                    <div class="col-md-2 col-sm-6">
-                        <label class="form-label small fw-semibold mb-1">Durum</label>
-                        <select name="status" class="form-select form-select-sm">
-                            <option value="">TÃ¼mÃ¼</option>
-                            @foreach(\App\Models\Fault::STATUSES as $val => $label)
-                                <option value="{{ $val }}" @selected(request('status') === $val)>{{ $label }}</option>
+                    <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6">
+                        <select name="status" class="form-select form-select-sm" style="border-radius:8px">
+                            <option value="">Tüm Durumlar</option>
+                            @foreach(\App\Models\Fault::STATUSES as $val => $lbl)
+                            <option value="{{ $val }}" @selected(request('status') === $val)>{{ $lbl }}</option>
                             @endforeach
                         </select>
                     </div>
-                    <div class="col-md-2 col-sm-6">
-                        <label class="form-label small fw-semibold mb-1">Ã–ncelik</label>
-                        <select name="priority" class="form-select form-select-sm">
-                            <option value="">TÃ¼mÃ¼</option>
-                            @foreach(\App\Models\Fault::PRIORITIES as $val => $label)
-                                <option value="{{ $val }}" @selected(request('priority') === $val)>{{ $label }}</option>
-                            @endforeach
-                        </select>
+                    <div class="col-xl-3 col-lg-3 col-md-6">
+                        <div class="input-group input-group-sm">
+                            <span class="input-group-text bg-light border-end-0 text-muted"><i class="fas fa-search" style="font-size:.75rem"></i></span>
+                            <input type="text" name="search" class="form-control border-start-0 ps-0" style="border-radius:0 8px 8px 0"
+                                   placeholder="Başlık veya açıklama..." value="{{ request('search') }}">
+                        </div>
                     </div>
-                    <div class="col-md-3">
-                        <label class="form-label small fw-semibold mb-1">Arama</label>
-                        <input type="text" name="search" class="form-control form-control-sm"
-                               placeholder="BaÅŸlÄ±k, konum, aÃ§Ä±klama..." value="{{ request('search') }}">
-                    </div>
-                    <div class="col-md-1 d-flex gap-1">
-                        <button type="submit" class="btn btn-primary btn-sm flex-fill fw-semibold">
-                            <i class="fas fa-search"></i>
+                    <div class="col-xl-3 col-lg-12 d-flex gap-2">
+                        <button type="submit" class="btn btn-primary btn-sm px-3" style="border-radius:8px">
+                            <i class="fas fa-search me-1"></i>Filtrele
                         </button>
-                        @if(request()->hasAny(['branch_id','department_id','status','priority','search']))
-                            <a href="{{ route('faults.index') }}" class="btn btn-outline-secondary btn-sm" title="Temizle">
-                                <i class="fas fa-times"></i>
-                            </a>
+                        @if(request()->hasAny(['branch_id','department_id','status','search']))
+                        <a href="{{ route('faults.index') }}" class="btn btn-outline-secondary btn-sm" style="border-radius:8px">
+                            <i class="fas fa-xmark me-1"></i>Temizle
+                        </a>
                         @endif
+                        <a href="{{ route('faults.stats') }}" class="btn btn-outline-secondary btn-sm ms-auto" style="border-radius:8px">
+                            <i class="fas fa-chart-bar me-1"></i>İstatistikler
+                        </a>
                     </div>
-                </form>
-            </div>
+                </div>
+            </form>
+        </div>
 
-            <div class="table-responsive">
-                <table class="table faults-table mb-0">
-                    <thead>
-                        <tr>
-                            <th>#</th>
-                            <th>BaÅŸlÄ±k</th>
-                            <th>Ã–ncelik</th>
-                            <th>Durum</th>
-                            <th>Departman</th>
-                            <th>Konum</th>
-                            <th>Bildiren</th>
-                            <th>Åube</th>
-                            <th>Tarih</th>
-                            <th class="text-end">Ä°ÅŸlem</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @forelse($faults as $fault)
-                        @php
-                            $pc = \App\Models\Fault::PRIORITY_COLORS[$fault->priority];
-                            $sc = \App\Models\Fault::STATUS_COLORS[$fault->status];
-                            $priorityColors = ['danger'=>['#fdecea','#dc3545'],'warning'=>['#fff8e1','#f97316'],'success'=>['#e8f5e9','#28a745'],'dark'=>['#f0f0f0','#212529'],'secondary'=>['#f0f0f0','#6c757d']];
-                            $statusColors  = ['danger'=>['#fdecea','#dc3545'],'warning'=>['#fff8e1','#f97316'],'success'=>['#e8f5e9','#28a745'],'secondary'=>['#f0f0f0','#6c757d']];
-                            $pBg = $priorityColors[$pc][0] ?? '#f0f0f0';
-                            $pFg = $priorityColors[$pc][1] ?? '#333';
-                            $sBg = $statusColors[$sc][0]   ?? '#f0f0f0';
-                            $sFg = $statusColors[$sc][1]   ?? '#333';
-                        @endphp
-                            <tr>
-                                <td class="text-muted small fw-semibold">#{{ $fault->id }}</td>
-                                <td>
+        {{-- Arıza Satırları --}}
+        <div class="p-3 d-flex flex-column gap-2">
+            @forelse($faults as $fault)
+            @php
+                $scMap  = ['open'=>['#ef4444','#fef2f2'],'in_progress'=>['#f59e0b','#fffbeb'],'resolved'=>['#10b981','#f0fdf4'],'closed'=>['#6b7280','#f1f5f9']];
+                [$sFg,$sBg] = $scMap[$fault->status] ?? ['#6b7280','#f1f5f9'];
+                $deptColor  = $fault->department?->color ?? '#6366f1';
+            @endphp
+            <div class="card border-0" style="border-radius:10px;border-left:4px solid {{ $sFg }}!important;box-shadow:0 1px 8px rgba(0,0,0,.06);transition:box-shadow .15s"
+                 onmouseenter="this.style.boxShadow='0 3px 16px rgba(0,0,0,.1)'"
+                 onmouseleave="this.style.boxShadow='0 1px 8px rgba(0,0,0,.06)'">
+                <div class="card-body py-2 px-3">
+                    <div class="row align-items-center g-0">
+
+                        {{-- ID + Başlık + Departman --}}
+                        <div class="col-xl-4 col-lg-4 col-md-6 pe-3">
+                            <div class="d-flex align-items-start gap-2">
+                                <div class="rounded-3 d-flex align-items-center justify-content-center flex-shrink-0 mt-1"
+                                     style="width:30px;height:30px;background:{{ $sBg }}">
+                                    <i class="fas fa-wrench" style="font-size:.7rem;color:{{ $sFg }}"></i>
+                                </div>
+                                <div style="min-width:0">
                                     <a href="{{ route('faults.show', $fault) }}"
-                                       class="fw-semibold text-decoration-none"
-                                       style="color:#1a1a2e">
-                                        {{ Str::limit($fault->title, 38) }}
-                                    </a>
-                                    @if($fault->updates->count() > 0)
-                                        <span class="badge bg-light text-muted border ms-1" style="font-size:0.68rem">
-                                            {{ $fault->updates->count() }} gÃ¼ncelleme
-                                        </span>
-                                    @endif
-                                </td>
-                                <td>
-                                    <span class="priority-pill" style="background:{{ $pBg }};color:{{ $pFg }}">
-                                        {{ \App\Models\Fault::PRIORITIES[$fault->priority] }}
-                                    </span>
-                                </td>
-                                <td>
-                                    <span class="status-pill" style="background:{{ $sBg }};color:{{ $sFg }}">
-                                        <span class="status-dot" style="background:{{ $sFg }}"></span>
-                                        {{ \App\Models\Fault::STATUSES[$fault->status] }}
-                                    </span>
-                                </td>
-                                <td>
-                                    @if($fault->department)
-                                        <span class="dept-badge"
-                                              style="background:{{ $fault->department->color }}">
+                                       class="fw-semibold text-dark text-decoration-none d-block text-truncate"
+                                       style="font-size:.83rem" title="{{ $fault->title }}">{{ $fault->title }}</a>
+                                    <div class="d-flex align-items-center gap-1 mt-1">
+                                        @if($fault->department)
+                                        <span class="badge" style="font-size:.65rem;background:{{ $deptColor }};color:#fff;border-radius:5px">
                                             {{ $fault->department->name }}
                                         </span>
-                                    @else
-                                        <span class="text-muted">â€”</span>
-                                    @endif
-                                </td>
-                                <td class="small text-muted">{{ $fault->faultLocation?->name ?? 'â€”' }}</td>
-                                <td class="small">{{ $fault->reporter?->name ?? 'â€”' }}</td>
-                                <td class="small text-muted">{{ $fault->branch?->name ?? 'â€”' }}</td>
-                                <td>
-                                    <span class="small">{{ $fault->created_at->format('d.m.Y') }}</span>
-                                    <br><span class="text-muted" style="font-size:0.72rem">{{ $fault->created_at->diffForHumans() }}</span>
-                                </td>
-                                <td class="text-end" style="white-space:nowrap">
-                                    <a href="{{ route('faults.show', $fault) }}"
-                                       class="btn btn-sm btn-outline-primary py-1 px-2 me-1">
-                                        <i class="fas fa-eye"></i>
-                                    </a>
-                                    <button class="btn btn-sm btn-outline-danger py-1 px-2 btn-sil"
-                                            data-id="{{ $fault->id }}"
-                                            data-name="{{ $fault->title }}">
-                                        <i class="fas fa-trash-alt"></i>
-                                    </button>
-                                    <form id="form-sil-{{ $fault->id }}"
-                                          action="{{ route('faults.destroy', $fault) }}"
-                                          method="POST" class="d-none">
-                                        @csrf @method('DELETE')
-                                    </form>
-                                </td>
-                            </tr>
-                        @empty
-                            <tr>
-                                <td colspan="10" class="text-center text-muted py-5">
-                                    <i class="fas fa-inbox fa-2x mb-2 d-block opacity-25"></i>
-                                    ArÄ±za kaydÄ± bulunamadÄ±.
-                                </td>
-                            </tr>
-                        @endforelse
-                    </tbody>
-                </table>
-            </div>
+                                        @endif
+                                        <span class="text-muted" style="font-size:.65rem">#{{ $fault->id }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
 
-            @if($faults->hasPages())
-            <div class="px-3 py-3 border-top">
-                {{ $faults->links() }}
+                        {{-- Durum + Konum --}}
+                        <div class="col-xl-3 col-lg-3 col-md-6 d-none d-md-block border-start ps-3 pe-3" style="border-color:#f1f5f9!important">
+                            <span class="badge rounded-pill mb-1" style="font-size:.72rem;background:{{ $sBg }};color:{{ $sFg }}">
+                                <span class="rounded-circle d-inline-block me-1" style="width:6px;height:6px;background:{{ $sFg }}"></span>
+                                {{ \App\Models\Fault::STATUSES[$fault->status] }}
+                            </span>
+                            @if($fault->faultLocation)
+                            <div class="text-truncate" style="font-size:.68rem;color:#64748b">
+                                <i class="fas fa-map-marker-alt me-1" style="color:#94a3b8"></i>
+                                {{ $fault->faultLocation->name }}{{ $fault->faultArea ? ' / '.$fault->faultArea->name : '' }}
+                            </div>
+                            @endif
+                            @if($fault->faultType)
+                            <div class="text-truncate" style="font-size:.65rem;color:#94a3b8">
+                                <i class="fas fa-tag me-1"></i>{{ $fault->faultType->name }}
+                            </div>
+                            @endif
+                        </div>
+
+                        {{-- Şube + Bildiren --}}
+                        <div class="col-xl-3 col-lg-3 d-none d-lg-block border-start ps-3 pe-3" style="border-color:#f1f5f9!important">
+                            <div style="font-size:.72rem;color:#374151;font-weight:600" class="mb-1">
+                                <i class="fas fa-building me-1" style="color:#94a3b8"></i>{{ $fault->branch?->name ?? '—' }}
+                            </div>
+                            <div style="font-size:.68rem;color:#64748b">
+                                <i class="fas fa-user me-1" style="color:#94a3b8"></i>{{ $fault->reporter?->name ?? '—' }}
+                            </div>
+                            <div style="font-size:.65rem;color:#94a3b8" class="mt-1">
+                                {{ $fault->created_at->format('d.m.Y H:i') }}
+                                &middot; {{ $fault->created_at->diffForHumans() }}
+                            </div>
+                        </div>
+
+                        {{-- Eylemler --}}
+                        <div class="col-xl-2 col-lg-2 col-md-12 d-flex justify-content-end align-items-center gap-1 mt-2 mt-lg-0">
+                            <a href="{{ route('faults.show', $fault) }}"
+                               class="btn btn-sm btn-outline-primary" style="border-radius:7px;padding:3px 8px">
+                                <i class="fas fa-eye" style="font-size:.75rem"></i>
+                            </a>
+                            <button class="btn btn-sm btn-outline-danger btn-sil"
+                                    style="border-radius:7px;padding:3px 8px"
+                                    data-id="{{ $fault->id }}" data-name="{{ $fault->title }}">
+                                <i class="fas fa-trash-alt" style="font-size:.75rem"></i>
+                            </button>
+                            <form id="form-sil-{{ $fault->id }}" action="{{ route('faults.destroy', $fault) }}"
+                                  method="POST" class="d-none">@csrf @method('DELETE')</form>
+                        </div>
+                    </div>
+                </div>
             </div>
-            @endif
+            @empty
+            <div class="text-center text-muted py-5">
+                <i class="fas fa-inbox fa-3x mb-3 d-block opacity-25"></i>
+                <span>Arıza kaydı bulunamadı.</span>
+            </div>
+            @endforelse
         </div>
+
+        @if($faults->hasPages())
+        <div class="px-4 py-3 border-top">{{ $faults->links() }}</div>
+        @endif
     </div>
 
 </div>
@@ -393,56 +336,51 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
 <script src="{{ asset('vendor/sweetalert2/dist/sweetalert2.min.js') }}"></script>
 <script>
-const chartDefaults = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, padding: 12, font: { size: 11 } } } }
-};
-
-new Chart(document.getElementById('priorityChart'), {
+var statusChart = new Chart(document.getElementById('statusChart'), {
     type: 'doughnut',
     data: {
-        labels: ['DÃ¼ÅŸÃ¼k','Orta','YÃ¼ksek','Kritik'],
-        datasets: [{ data: [{{ $statsByPriority['low'] ?? 0 }},{{ $statsByPriority['medium'] ?? 0 }},{{ $statsByPriority['high'] ?? 0 }},{{ $statsByPriority['critical'] ?? 0 }}], backgroundColor: ['#28a745','#ffc107','#dc3545','#212529'], borderWidth: 2 }]
+        labels: ['Açık','İşlemde','Çözüldü','Kapalı'],
+        datasets: [{
+            data: [{{ $statsByStatus['open'] ?? 0 }},{{ $statsByStatus['in_progress'] ?? 0 }},{{ $statsByStatus['resolved'] ?? 0 }},{{ $statsByStatus['closed'] ?? 0 }}],
+            backgroundColor: ['#ef4444','#f59e0b','#10b981','#9ca3af'],
+            borderWidth: 2, borderColor: '#fff'
+        }]
     },
-    options: chartDefaults
+    options: { responsive:true, maintainAspectRatio:false, plugins:{ legend:{ position:'bottom', labels:{ boxWidth:10, padding:10, font:{ size:11 } } } } }
 });
 
-new Chart(document.getElementById('statusChart'), {
-    type: 'doughnut',
-    data: {
-        labels: ['AÃ§Ä±k','Ä°ÅŸlemde','Ã‡Ã¶zÃ¼ldÃ¼','KapalÄ±'],
-        datasets: [{ data: [{{ $statsByStatus['open'] ?? 0 }},{{ $statsByStatus['in_progress'] ?? 0 }},{{ $statsByStatus['resolved'] ?? 0 }},{{ $statsByStatus['closed'] ?? 0 }}], backgroundColor: ['#dc3545','#f97316','#28a745','#6c757d'], borderWidth: 2 }]
-    },
-    options: chartDefaults
-});
-
-new Chart(document.getElementById('trendChart'), {
+var trendChart = new Chart(document.getElementById('trendChart'), {
     type: 'bar',
     data: {
         labels: {!! json_encode($monthlyTrend->pluck('month')) !!},
         datasets: [{
-            label: 'Bildirilen ArÄ±za',
+            label: 'Arıza',
             data: {!! json_encode($monthlyTrend->pluck('total')) !!},
-            backgroundColor: 'rgba(193,155,119,0.7)',
-            borderColor: '#c19b77', borderWidth: 1, borderRadius: 5
+            backgroundColor: 'rgba(99,102,241,.7)',
+            borderRadius: 5, borderWidth: 0
         }]
     },
-    options: { ...chartDefaults, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } }
+    options: {
+        responsive:true, maintainAspectRatio:false,
+        plugins:{ legend:{ display:false } },
+        scales:{ y:{ beginAtZero:true, ticks:{ stepSize:1 } }, x:{ grid:{ display:false } } }
+    }
 });
 
-document.querySelectorAll('.btn-sil').forEach(btn => {
-    btn.addEventListener('click', function () {
+document.querySelectorAll('.btn-sil').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+        var name = this.dataset.name;
+        var id   = this.dataset.id;
         Swal.fire({
             title: 'Emin misiniz?',
-            text: `"${this.dataset.name}" silinecek!`,
+            text: '"' + name + '" silinecek!',
             icon: 'warning',
             showCancelButton: true,
-            confirmButtonColor: '#dc3545',
-            cancelButtonColor: '#6c757d',
+            confirmButtonColor: '#ef4444',
+            cancelButtonColor: '#6b7280',
             confirmButtonText: 'Sil',
-            cancelButtonText: 'Ä°ptal'
-        }).then(r => { if (r.isConfirmed) document.getElementById('form-sil-' + this.dataset.id).submit(); });
+            cancelButtonText: 'İptal'
+        }).then(function(r) { if (r.isConfirmed) document.getElementById('form-sil-' + id).submit(); });
     });
 });
 </script>
