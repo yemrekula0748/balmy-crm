@@ -154,10 +154,13 @@ class FoodLibraryController extends BaseModuleController
             ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
             ->whereIn('branch_id', $branchIds)
             ->when($request->category_id, fn($q) => $q->where('food_category_id', $request->category_id))
-            ->when($request->search, fn($q) => $q->where(function ($q2) use ($request) {
-                $q2->whereJsonContains('title->tr', $request->search)
-                   ->orWhereJsonContains('title->en', $request->search);
-            }))
+            ->when($request->search, function ($q) use ($request) {
+                $s = strtolower($request->search);
+                $q->where(function ($q2) use ($s) {
+                    $q2->whereRaw("LOWER(JSON_UNQUOTE(JSON_EXTRACT(title, '$.tr'))) LIKE ?", ["%{$s}%"])
+                       ->orWhereRaw("LOWER(JSON_UNQUOTE(JSON_EXTRACT(title, '$.en'))) LIKE ?", ["%{$s}%"]);
+                });
+            })
             ->orderBy('food_category_id')
             ->orderBy('sort_order')
             ->paginate(24);
@@ -365,10 +368,10 @@ class FoodLibraryController extends BaseModuleController
             ->when($request->branch_id, fn($q) => $q->where('branch_id', $request->branch_id))
             ->when($request->category_id, fn($q) => $q->where('food_category_id', $request->category_id))
             ->when($request->search, function ($q) use ($request) {
-                $s = $request->search;
+                $s = strtolower($request->search);
                 $q->where(function ($q2) use ($s) {
-                    $q2->whereRaw("JSON_EXTRACT(title, '$.tr') LIKE ?", ["%{$s}%"])
-                       ->orWhereRaw("JSON_EXTRACT(title, '$.en') LIKE ?", ["%{$s}%"]);
+                    $q2->whereRaw("LOWER(JSON_UNQUOTE(JSON_EXTRACT(title, '$.tr'))) LIKE ?", ["%{$s}%"])
+                       ->orWhereRaw("LOWER(JSON_UNQUOTE(JSON_EXTRACT(title, '$.en'))) LIKE ?", ["%{$s}%"]);
                 });
             })
             ->orderBy('food_category_id')
