@@ -107,29 +107,33 @@
     {{-- Grafik + Departman --}}
     <div class="row g-3 mb-3">
         <div class="col-lg-5">
-            <div class="card border-0 shadow-sm h-100" style="border-radius:12px">
+            <div class="card border-0 shadow-sm" style="border-radius:12px">
                 <div class="card-body">
                     <div class="d-flex align-items-center gap-2 mb-3">
                         <i class="fas fa-chart-donut" style="color:#6366f1"></i>
                         <span class="fw-semibold" style="font-size:.88rem">Durum Dağılımı</span>
                     </div>
-                    <canvas id="statusChart" height="160"></canvas>
+                    <div style="position:relative;height:200px">
+                        <canvas id="statusChart"></canvas>
+                    </div>
                 </div>
             </div>
         </div>
         <div class="col-lg-4">
-            <div class="card border-0 shadow-sm h-100" style="border-radius:12px">
+            <div class="card border-0 shadow-sm" style="border-radius:12px">
                 <div class="card-body">
                     <div class="d-flex align-items-center gap-2 mb-3">
                         <i class="fas fa-chart-bar" style="color:#f59e0b"></i>
                         <span class="fw-semibold" style="font-size:.88rem">Aylık Trend (6 Ay)</span>
                     </div>
-                    <canvas id="trendChart" height="160"></canvas>
+                    <div style="position:relative;height:200px">
+                        <canvas id="trendChart"></canvas>
+                    </div>
                 </div>
             </div>
         </div>
         <div class="col-lg-3">
-            <div class="card border-0 shadow-sm h-100" style="border-radius:12px">
+            <div class="card border-0 shadow-sm" style="border-radius:12px">
                 <div class="card-body">
                     <div class="d-flex align-items-center gap-2 mb-3">
                         <i class="fas fa-sitemap" style="color:#10b981"></i>
