@@ -36,6 +36,8 @@ class AgentReportController extends Controller
                     'agent_version'        => $request->input('agent_version'),
                     'reported_at'          => $request->input('reported_at'),
                     'last_boot_time'       => $request->input('last_boot_time'),
+                    'uptime_seconds'       => $request->input('uptime_seconds'),
+                    'uptime_display'       => $request->input('uptime_display'),
                     'current_users'        => $request->input('current_users', []),
                     'os_product_name'      => $osData['product_name'] ?? null,
                     'os_version'           => $osData['version'] ?? null,

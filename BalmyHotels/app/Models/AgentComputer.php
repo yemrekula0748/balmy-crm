@@ -11,7 +11,8 @@ class AgentComputer extends Model
         'os_product_name', 'os_version', 'os_release', 'os_build_number',
         'os_architecture', 'os_install_date', 'os_registered_owner', 'os_serial_number',
         'is_domain_joined', 'domain_name', 'workgroup_name', 'domain_controller',
-        'current_users', 'last_boot_time', 'agent_version', 'reported_at', 'last_seen_at',
+        'current_users', 'last_boot_time', 'uptime_seconds', 'uptime_display',
+        'agent_version', 'reported_at', 'last_seen_at',
     ];
 
     protected $casts = [

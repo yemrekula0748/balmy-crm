@@ -367,6 +367,12 @@
                                     <span style="color:#cbd5e1">—</span>
                                 @endif
                             </div>
+                            @if($c->uptime_display)
+                            <div style="font-size:.63rem;color:#94a3b8;letter-spacing:.3px;text-transform:uppercase;margin-top:4px;margin-bottom:2px">Açık Kalma</div>
+                            <div style="font-size:.72rem;font-weight:500;color:#475569" title="{{ $c->uptime_seconds ? number_format($c->uptime_seconds).' sn' : '' }}">
+                                {{ $c->uptime_display }}
+                            </div>
+                            @endif
                         </div>
                         <div class="d-flex gap-1">
                             <a href="{{ route('it.agent.show', $c) }}"

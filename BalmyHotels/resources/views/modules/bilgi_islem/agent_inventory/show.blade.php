@@ -111,6 +111,7 @@
                             'Kayıtlı Kullanıcı' => $agentComputer->os_registered_owner,
                             'Seri No'         => $agentComputer->os_serial_number,
                             'Son Açılış'      => $agentComputer->last_boot_time?->format('d.m.Y H:i'),
+                            'Çalışma Süresi'  => $agentComputer->uptime_display,
                         ];
                     @endphp
                     <dl class="row mb-0 small">
@@ -554,9 +555,8 @@
                             <tbody>
                                 @foreach($recentCommands as $cmd)
                                 @php
-                                    use App\Models\AgentComputerCommand;
-                                    $statusColor = AgentComputerCommand::STATUS_COLORS[$cmd->status] ?? 'secondary';
-                                    $statusLabel = AgentComputerCommand::STATUS_LABELS[$cmd->status] ?? $cmd->status;
+                                    $statusColor = \App\Models\AgentComputerCommand::STATUS_COLORS[$cmd->status] ?? 'secondary';
+                                    $statusLabel = \App\Models\AgentComputerCommand::STATUS_LABELS[$cmd->status] ?? $cmd->status;
                                 @endphp
                                 <tr>
                                     <td class="ps-4 small text-nowrap">
