@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Modules;
 
 use App\Models\AgentComputer;
+use App\Models\AgentComputerCommand;
 use App\Models\AgentComputerInstalledProgram;
 use Illuminate\Http\Request;
 
@@ -72,8 +73,13 @@ class AgentInventoryController extends BaseModuleController
     {
         $agentComputer->load(['hardware', 'security', 'networkAdapters', 'disks', 'antivirus', 'mail', 'mailAccounts']);
         $programCount = AgentComputerInstalledProgram::where('agent_computer_id', $agentComputer->id)->count();
+        $recentCommands = $agentComputer->commands()
+            ->with('createdBy')
+            ->orderByDesc('created_at')
+            ->limit(20)
+            ->get();
 
-        return view('modules.bilgi_islem.agent_inventory.show', compact('agentComputer', 'programCount'));
+        return view('modules.bilgi_islem.agent_inventory.show', compact('agentComputer', 'programCount', 'recentCommands'));
     }
 
     public function programs(Request $request, AgentComputer $agentComputer)
@@ -173,6 +179,27 @@ class AgentInventoryController extends BaseModuleController
             'total', 'domain', 'avDisabled', 'diskWarning', 'rdpEnabled',
             'seenLastHour', 'seenLast24h', 'neverSeen', 'osBreakdown'
         ));
+    }
+
+    public function sendCommand(Request $request, AgentComputer $agentComputer)
+    {
+        $request->validate([
+            'type'       => 'required|in:shutdown,restart,logoff,cmd,msgbox',
+            'payload'    => 'nullable|string|max:1024',
+            'expires_in' => 'nullable|integer|min:0|max:1440', // dakika
+        ]);
+
+        $agentComputer->commands()->create([
+            'type'       => $request->type,
+            'payload'    => $request->payload,
+            'status'     => 'pending',
+            'expires_at' => $request->filled('expires_in')
+                                ? now()->addMinutes((int) $request->expires_in)
+                                : null,
+            'created_by' => auth()->id(),
+        ]);
+
+        return back()->with('cmd_success', AgentComputerCommand::TYPES[$request->type] . ' komutu gönderildi.');
     }
 
     public function destroy(AgentComputer $agentComputer)

@@ -452,6 +452,194 @@
         </div>
         @endif
 
+
+        {{-- ---- Uzak Komut ---- --}}
+        <div class="col-12">
+
+            {{-- Flash --}}
+            @if(session('cmd_success'))
+                <div class="alert alert-success alert-dismissible fade show mb-3" role="alert">
+                    <i class="fas fa-check-circle me-2"></i>{{ session('cmd_success') }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            @endif
+            @if(session('cmd_error'))
+                <div class="alert alert-danger alert-dismissible fade show mb-3" role="alert">
+                    <i class="fas fa-exclamation-triangle me-2"></i>{{ session('cmd_error') }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            @endif
+
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white border-bottom pb-0 pt-3 px-4 d-flex align-items-center justify-content-between">
+                    <h6 class="fw-bold mb-0">
+                        <i class="fas fa-terminal me-2 text-dark"></i>Uzak Komut
+                    </h6>
+                    <button class="btn btn-sm btn-outline-secondary" type="button"
+                            data-bs-toggle="collapse" data-bs-target="#cmdFormCollapse">
+                        <i class="fas fa-plus me-1"></i>Komut Gönder
+                    </button>
+                </div>
+
+                {{-- Komut gönder formu --}}
+                <div class="collapse" id="cmdFormCollapse">
+                    <div class="card-body border-bottom px-4 py-3"
+                         style="background:linear-gradient(135deg,#f8f9ff 0%,#eef0ff 100%);">
+                        <form method="POST" action="{{ route('it.agent.send-command', $agentComputer) }}">
+                            @csrf
+                            <div class="row g-3 align-items-end">
+
+                                {{-- Komut türü --}}
+                                <div class="col-md-3">
+                                    <label class="form-label small fw-semibold mb-1">Komut Türü</label>
+                                    <select name="type" id="cmdType" class="form-select form-select-sm"
+                                            onchange="updateCmdForm(this.value)" required>
+                                        <option value="">— Seçin —</option>
+                                        <option value="shutdown">⏻  Kapat (Shutdown)</option>
+                                        <option value="restart">🔄  Yeniden Başlat (Restart)</option>
+                                        <option value="logoff">🚪  Kullanıcı Çıkışı (Logoff)</option>
+                                        <option value="cmd">💻  Komut Çalıştır (CMD)</option>
+                                        <option value="msgbox">💬  Mesaj Göster (MsgBox)</option>
+                                    </select>
+                                </div>
+
+                                {{-- Payload --}}
+                                <div class="col-md-5" id="payloadGroup" style="display:none">
+                                    <label class="form-label small fw-semibold mb-1" id="payloadLabel">Komut / Mesaj</label>
+                                    <textarea name="payload" id="payload" class="form-control form-control-sm"
+                                              rows="2" placeholder=""></textarea>
+                                </div>
+
+                                {{-- Gecikme (shutdown/restart) --}}
+                                <div class="col-md-2" id="delayGroup" style="display:none">
+                                    <label class="form-label small fw-semibold mb-1">Gecikme (sn)</label>
+                                    <input type="number" name="delay_seconds" class="form-control form-control-sm"
+                                           min="0" max="3600" value="0" placeholder="0">
+                                </div>
+
+                                {{-- Zaman aşımı --}}
+                                <div class="col-md-2">
+                                    <label class="form-label small fw-semibold mb-1">Zaman Aşımı (dk)</label>
+                                    <input type="number" name="expires_in" class="form-control form-control-sm"
+                                           min="1" max="10080" value="60" placeholder="60">
+                                </div>
+
+                                <div class="col-auto">
+                                    <button type="submit" class="btn btn-sm btn-primary px-3">
+                                        <i class="fas fa-paper-plane me-1"></i>Gönder
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                {{-- Son komutlar tablosu --}}
+                <div class="card-body p-0">
+                    @if($recentCommands->isEmpty())
+                        <p class="text-muted small text-center py-4 mb-0">Henüz komut gönderilmedi.</p>
+                    @else
+                    <div class="table-responsive">
+                        <table class="table table-sm align-middle mb-0">
+                            <thead style="background:#f8f9fa;">
+                                <tr>
+                                    <th class="ps-4 py-2 small text-muted">ZAMAN</th>
+                                    <th class="py-2 small text-muted">TÜR</th>
+                                    <th class="py-2 small text-muted">PAYLOAD</th>
+                                    <th class="py-2 small text-muted">GÖNDEREN</th>
+                                    <th class="py-2 small text-muted">DURUM</th>
+                                    <th class="py-2 small text-muted">ÇIKTI</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach($recentCommands as $cmd)
+                                @php
+                                    use App\Models\AgentComputerCommand;
+                                    $statusColor = AgentComputerCommand::STATUS_COLORS[$cmd->status] ?? 'secondary';
+                                    $statusLabel = AgentComputerCommand::STATUS_LABELS[$cmd->status] ?? $cmd->status;
+                                @endphp
+                                <tr>
+                                    <td class="ps-4 small text-nowrap">
+                                        {{ $cmd->created_at->format('d.m.Y H:i') }}
+                                        @if($cmd->executed_at)
+                                            <br><span class="text-muted" style="font-size:11px">
+                                                <i class="fas fa-check me-1"></i>{{ $cmd->executed_at->format('H:i:s') }}
+                                            </span>
+                                        @endif
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-dark bg-opacity-75 small text-uppercase">
+                                            {{ $cmd->type }}
+                                        </span>
+                                    </td>
+                                    <td class="small text-muted" style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
+                                        {{ $cmd->payload ?? '—' }}
+                                    </td>
+                                    <td class="small">
+                                        {{ $cmd->createdBy?->name ?? '<sistem>' }}
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-{{ $statusColor }} bg-opacity-10 text-{{ $statusColor }} border border-{{ $statusColor }} border-opacity-25">
+                                            {{ $statusLabel }}
+                                        </span>
+                                        @if($cmd->isExpired() && $cmd->status === 'pending')
+                                            <br><span class="badge bg-secondary bg-opacity-10 text-secondary" style="font-size:10px">Süresi Doldu</span>
+                                        @endif
+                                    </td>
+                                    <td class="small" style="max-width:250px">
+                                        @if($cmd->output)
+                                            <button class="btn btn-link btn-sm p-0 text-muted"
+                                                    data-bs-toggle="collapse"
+                                                    data-bs-target="#output-{{ $cmd->id }}">
+                                                <i class="fas fa-chevron-down"></i> Çıktı
+                                            </button>
+                                            <div class="collapse mt-1" id="output-{{ $cmd->id }}">
+                                                <pre class="mb-0 p-2 rounded small"
+                                                     style="background:#1e1e1e;color:#d4d4d4;max-height:150px;overflow-y:auto;font-size:11px">{{ $cmd->output }}</pre>
+                                            </div>
+                                        @else
+                                            <span class="text-muted">—</span>
+                                        @endif
+                                    </td>
+                                </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                    @endif
+                </div>
+            </div>
+        </div>
+
     </div>{{-- /row --}}
 </div>
+
+@push('scripts')
+<script>
+function updateCmdForm(type) {
+    const payloadGroup = document.getElementById('payloadGroup');
+    const delayGroup   = document.getElementById('delayGroup');
+    const payloadLabel = document.getElementById('payloadLabel');
+    const payloadTA    = document.getElementById('payload');
+
+    payloadGroup.style.display = 'none';
+    delayGroup.style.display   = 'none';
+    payloadTA.required         = false;
+
+    if (type === 'cmd') {
+        payloadGroup.style.display = '';
+        payloadLabel.textContent   = 'Komut Satırı';
+        payloadTA.placeholder      = 'Örn: ipconfig /all';
+        payloadTA.required         = true;
+    } else if (type === 'msgbox') {
+        payloadGroup.style.display = '';
+        payloadLabel.textContent   = 'Gösterilecek Mesaj';
+        payloadTA.placeholder      = 'Örn: Sisteminiz 5 dakika içinde yeniden başlatılacak.';
+        payloadTA.required         = true;
+    } else if (type === 'shutdown' || type === 'restart') {
+        delayGroup.style.display = '';
+    }
+}
+</script>
+@endpush
 @endsection

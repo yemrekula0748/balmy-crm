@@ -752,6 +752,7 @@ Route::middleware('auth')->group(function () {
         Route::get('ajan-envanter/{agentComputer}/programlar',    [\App\Http\Controllers\Modules\AgentInventoryController::class, 'programs'])->name('agent.programs');
         Route::get('ajan-envanter/{agentComputer}/dosya-olaylari',    [\App\Http\Controllers\Modules\AgentInventoryController::class, 'fileEvents'])->name('agent.file-events');
         Route::get('ajan-envanter/{agentComputer}/tarayici-gecmisi',   [\App\Http\Controllers\Modules\AgentInventoryController::class, 'browserHistory'])->name('agent.browser-history');
+        Route::post('ajan-envanter/{agentComputer}/komut',             [\App\Http\Controllers\Modules\AgentInventoryController::class, 'sendCommand'])->name('agent.send-command');
         Route::delete('ajan-envanter/{agentComputer}',                 [\App\Http\Controllers\Modules\AgentInventoryController::class, 'destroy'])->name('agent.destroy');
 
         // Yedekleme
