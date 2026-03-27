@@ -3,7 +3,6 @@
 @section('title', 'Arıza İstatistikleri')
 
 @push('styles')
-<script src="https://cdn.tailwindcss.com"></script>
 <style>
 .tw-stat-card{background:#fff;border-radius:.875rem;border:1px solid #e8ecf0;box-shadow:0 1px 6px rgba(15,23,42,.06)}
 .tw-table-head th{font-size:.65rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#94a3b8;padding:.6rem 1rem;border-bottom:2px solid #f1f5f9}
@@ -23,7 +22,7 @@
                     <i class="fas fa-chart-line text-primary" style="font-size:1rem"></i>
                     Arıza İstatistikleri
                 </h4>
-                <span class="text-muted" style="font-size:.8rem">Performans · KPI · SLA Analizi</span>
+                <span class="text-muted" style="font-size:.8rem">Departman performansı · Arıza türü analizi · SLA uyum takibi</span>
             </div>
         </div>
         <div class="col-sm-6 p-md-0 justify-content-sm-end mt-2 mt-sm-0 d-flex align-items-center">
@@ -126,72 +125,87 @@
     ════════════════════════════════════════════════════ --}}
     @if($deptScoreboard->count())
     <div class="tw-stat-card mb-3 overflow-hidden">
-        <div class="d-flex align-items-center gap-2 px-4 py-3" style="background:#1e293b">
-            <i class="fas fa-trophy" style="color:#f59e0b"></i>
-            <span class="fw-bold text-white" style="font-size:.85rem">Departman Performans Analizi — Scoreboard</span>
-            <span class="ms-auto text-white opacity-50" style="font-size:.72rem">SLA hedef: ≥80% = iyi · ≥50% = orta · &lt;50% = kritik</span>
+        <div class="d-flex align-items-center gap-3 px-4 py-3" style="background:#1e293b">
+            <i class="fas fa-trophy" style="color:#f59e0b;font-size:1rem"></i>
+            <div>
+                <div class="fw-bold text-white" style="font-size:.88rem">Departman Performans Sıralaması</div>
+                <div style="font-size:.7rem;color:#94a3b8;margin-top:2px">
+                    SLA Uyum Hedefi: &nbsp;
+                    <span style="color:#4ade80">&#9632;</span> ≥80% İyi &nbsp;&nbsp;
+                    <span style="color:#fbbf24">&#9632;</span> ≥50% Orta &nbsp;&nbsp;
+                    <span style="color:#f87171">&#9632;</span> &lt;50% Kritik
+                </div>
+            </div>
         </div>
-        <div class="table-responsive">
-            <table class="table mb-0">
-                <thead><tr class="tw-table-head">
-                    <th>#</th>
-                    <th>Departman</th>
-                    <th class="text-center">Toplam</th>
-                    <th class="text-center">Açık</th>
-                    <th class="text-center">İşlemde</th>
-                    <th class="text-center">Kapalı</th>
-                    <th class="text-end">Ort. Çözüm</th>
-                    <th class="text-end">SLA %</th>
-                    <th class="text-end">SLA Skor</th>
-                </tr></thead>
-                <tbody>
-                    @foreach($deptScoreboard as $i => $row)
-                    @php
-                        $slaBg = $row['sla_pct'] >= 80 ? '#f0fdf4' : ($row['sla_pct'] >= 50 ? '#fffbeb' : '#fef2f2');
-                        $slaFg = $row['sla_pct'] >= 80 ? '#16a34a' : ($row['sla_pct'] >= 50 ? '#d97706' : '#dc2626');
-                        $slaIcon = $row['sla_pct'] >= 80 ? 'fa-circle-check' : ($row['sla_pct'] >= 50 ? 'fa-triangle-exclamation' : 'fa-circle-xmark');
-                        $deptColor = $row['dept']?->color ?? '#6366f1';
-                    @endphp
-                    <tr style="{{ $i===0 ? 'background:#fffbeb' : '' }}">
-                        <td class="tw-table-body" style="color:#94a3b8;font-weight:700">
-                            @if($i===0)<i class="fas fa-crown" style="color:#f59e0b"></i>
-                            @else{{ $i+1 }}@endif
-                        </td>
-                        <td class="tw-table-body">
-                            <div class="d-flex align-items-center gap-2">
-                                <span class="rounded-circle flex-shrink-0" style="width:9px;height:9px;background:{{ $deptColor }};display:inline-block"></span>
-                                <span class="fw-semibold" style="color:#1e293b">{{ $row['dept']?->name ?? '—' }}</span>
-                            </div>
-                        </td>
-                        <td class="tw-table-body text-center fw-bold" style="color:#1e293b">{{ $row['total'] }}</td>
-                        <td class="tw-table-body text-center">
-                            <span class="kpi-pill" style="background:#fef2f2;color:#dc2626">{{ $row['open'] }}</span>
-                        </td>
-                        <td class="tw-table-body text-center">
-                            <span class="kpi-pill" style="background:#fffbeb;color:#d97706">{{ $row['in_progress'] }}</span>
-                        </td>
-                        <td class="tw-table-body text-center">
-                            <span class="kpi-pill" style="background:#f0fdf4;color:#16a34a">{{ $row['closed'] }}</span>
-                        </td>
-                        <td class="tw-table-body text-end" style="color:#64748b">
-                            {{ $row['avg_hours'] !== null ? $row['avg_hours'].' s' : '—' }}
-                        </td>
-                        <td class="tw-table-body text-end">
-                            @if($row['sla_pct'] !== null)
-                            <span class="kpi-pill" style="background:{{ $slaBg }};color:{{ $slaFg }}">
-                                %{{ $row['sla_pct'] }}
-                            </span>
-                            @else<span class="text-muted">—</span>@endif
-                        </td>
-                        <td class="tw-table-body text-end">
-                            @if($row['sla_pct'] !== null)
-                            <i class="fas {{ $slaIcon }}" style="color:{{ $slaFg }};font-size:.8rem"></i>
-                            @endif
-                        </td>
-                    </tr>
-                    @endforeach
-                </tbody>
-            </table>
+        @php $maxTotal = $deptScoreboard->max('total') ?: 1; @endphp
+        <div class="p-3">
+            @foreach($deptScoreboard as $i => $row)
+            @php
+                $slaFg2       = $row['sla_pct'] >= 80 ? '#15803d' : ($row['sla_pct'] >= 50 ? '#a16207' : '#dc2626');
+                $slaBarColor  = $row['sla_pct'] >= 80 ? '#22c55e' : ($row['sla_pct'] >= 50 ? '#eab308' : '#ef4444');
+                $deptColor    = $row['dept']?->color ?? '#6366f1';
+                $deptInitial  = strtoupper(substr($row['dept']?->name ?? '?', 0, 2));
+                $rankMedal    = $i === 0 ? '🥇' : ($i === 1 ? '🥈' : ($i === 2 ? '🥉' : ''));
+                $rowBg        = $i === 0 ? '#fffceb' : ($i % 2 === 0 ? '#f9fafb' : '#fff');
+                $rowBorder    = $i === 0 ? '#fde68a' : '#f1f5f9';
+                $closedPct    = $row['total'] > 0 ? round($row['closed']      / $row['total'] * 100) : 0;
+                $openPct      = $row['total'] > 0 ? round($row['open']        / $row['total'] * 100) : 0;
+                $progressPct  = $row['total'] > 0 ? round($row['in_progress'] / $row['total'] * 100) : 0;
+            @endphp
+            <div class="d-flex align-items-center gap-3 p-3 mb-2 rounded-3"
+                 style="background:{{ $rowBg }};border:1px solid {{ $rowBorder }}">
+
+                {{-- Rank --}}
+                <div style="width:32px;text-align:center;flex-shrink:0">
+                    @if($rankMedal)
+                    <span style="font-size:1.4rem;line-height:1">{{ $rankMedal }}</span>
+                    @else
+                    <span style="font-size:.95rem;font-weight:700;color:#94a3b8">{{ $i+1 }}</span>
+                    @endif
+                </div>
+
+                {{-- Avatar --}}
+                <div style="width:42px;height:42px;border-radius:10px;background:{{ $deptColor }};display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 2px 8px {{ $deptColor }}55">
+                    <span style="font-size:.8rem;font-weight:800;color:#fff;letter-spacing:1px">{{ $deptInitial }}</span>
+                </div>
+
+                {{-- Info + bar --}}
+                <div style="flex:1;min-width:0">
+                    <div style="font-size:.875rem;font-weight:700;color:#1e293b;margin-bottom:5px">{{ $row['dept']?->name ?? '—' }}</div>
+                    {{-- Stacked progress bar --}}
+                    <div style="height:7px;border-radius:99px;overflow:hidden;background:#e8ecf0;display:flex;margin-bottom:5px">
+                        <div style="width:{{ $closedPct }}%;background:#22c55e" title="Kapalı: {{ $row['closed'] }}"></div>
+                        <div style="width:{{ $progressPct }}%;background:#f59e0b" title="İşlemde: {{ $row['in_progress'] }}"></div>
+                        <div style="width:{{ $openPct }}%;background:#ef4444" title="Açık: {{ $row['open'] }}"></div>
+                    </div>
+                    <div class="d-flex gap-2" style="font-size:.68rem;color:#94a3b8;flex-wrap:wrap">
+                        <span><span style="color:#22c55e">●</span> Kapalı: <strong style="color:#374151">{{ $row['closed'] }}</strong></span>
+                        <span><span style="color:#f59e0b">●</span> İşlemde: <strong style="color:#374151">{{ $row['in_progress'] }}</strong></span>
+                        <span><span style="color:#ef4444">●</span> Açık: <strong style="color:#374151">{{ $row['open'] }}</strong></span>
+                        <span class="ms-auto">Toplam: <strong style="color:#1e293b">{{ $row['total'] }}</strong></span>
+                    </div>
+                </div>
+
+                {{-- Avg hours --}}
+                <div style="text-align:center;flex-shrink:0;width:58px">
+                    <div style="font-size:.65rem;color:#94a3b8;margin-bottom:2px;text-transform:uppercase;letter-spacing:.04em">Süre</div>
+                    <div style="font-size:.95rem;font-weight:700;color:#1e293b">{{ $row['avg_hours'] !== null ? $row['avg_hours'].'s' : '—' }}</div>
+                </div>
+
+                {{-- SLA gauge --}}
+                <div style="flex-shrink:0;text-align:center;width:68px">
+                    <div style="font-size:.65rem;color:#94a3b8;margin-bottom:3px;text-transform:uppercase;letter-spacing:.04em">SLA</div>
+                    @if($row['sla_pct'] !== null)
+                    <div style="font-size:1.1rem;font-weight:800;color:{{ $slaFg2 }};line-height:1.1">%{{ $row['sla_pct'] }}</div>
+                    <div style="height:3px;border-radius:99px;background:#e8ecf0;overflow:hidden;margin-top:4px">
+                        <div style="width:{{ $row['sla_pct'] }}%;height:100%;background:{{ $slaBarColor }}"></div>
+                    </div>
+                    @else
+                    <div style="font-size:.85rem;color:#94a3b8">—</div>
+                    @endif
+                </div>
+            </div>
+            @endforeach
         </div>
     </div>
     @endif
@@ -216,9 +230,12 @@
     ════════════════════════════════════════════════════ --}}
     @if($typeStats->count())
     <div class="tw-stat-card mb-3 overflow-hidden">
-        <div class="d-flex align-items-center gap-2 px-4 py-3" style="background:#065f46">
-            <i class="fas fa-tags" style="color:#6ee7b7"></i>
-            <span class="fw-bold text-white" style="font-size:.85rem">Arıza Türü KPI & SLA Analizi</span>
+        <div class="d-flex align-items-center gap-3 px-4 py-3" style="background:#065f46">
+            <i class="fas fa-tags" style="color:#6ee7b7;font-size:1rem"></i>
+            <div>
+                <div class="fw-bold text-white" style="font-size:.88rem">Arıza Türü KPI & SLA Performansı</div>
+                <div style="font-size:.7rem;color:#6ee7b7;margin-top:2px">SLA = arızanın belirlenen hedef süre içinde kapatılma oranı</div>
+            </div>
         </div>
         <div class="table-responsive">
             <table class="table mb-0">
