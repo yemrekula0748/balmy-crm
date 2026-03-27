@@ -1,10 +1,15 @@
 @extends('layouts.default')
 
+@push('styles')
+<script src="https://cdn.tailwindcss.com"></script>
+@endpush
+
 @section('content')
+{{-- Bootstrap breadcrumb --}}
 <div class="container-fluid">
-    <div class="row page-titles mx-0">
+    <div class="row page-titles mx-0 mb-0">
         <div class="col-sm-6 p-md-0">
-            <div class="welcome-text"><h4>Arıza Detayı</h4></div>
+            <div class="welcome-text"><h4>Arıza Detayı <span style="color:#94a3b8;font-size:.85rem">#{{ $fault->id }}</span></h4></div>
         </div>
         <div class="col-sm-6 p-md-0 justify-content-sm-end mt-2 mt-sm-0 d-flex">
             <ol class="breadcrumb">
@@ -14,329 +19,361 @@
             </ol>
         </div>
     </div>
+</div>
 
-    {{-- SESSION MESSAGES --}}
+@php
+    $statusMeta = [
+        'open'        => ['bg'=>'bg-red-100','text'=>'text-red-700','border'=>'border-red-300','dot'=>'bg-red-500','label'=>'Açık'],
+        'in_progress' => ['bg'=>'bg-amber-100','text'=>'text-amber-700','border'=>'border-amber-300','dot'=>'bg-amber-500','label'=>'Devam Ediyor'],
+        'resolved'    => ['bg'=>'bg-emerald-100','text'=>'text-emerald-700','border'=>'border-emerald-300','dot'=>'bg-emerald-500','label'=>'Çözüldü'],
+        'closed'      => ['bg'=>'bg-slate-100','text'=>'text-slate-600','border'=>'border-slate-300','dot'=>'bg-slate-400','label'=>'Kapalı'],
+    ];
+    $priorityMeta = [
+        'low'      => ['bg'=>'bg-sky-100','text'=>'text-sky-700','label'=>'Düşük'],
+        'medium'   => ['bg'=>'bg-amber-100','text'=>'text-amber-700','label'=>'Orta'],
+        'high'     => ['bg'=>'bg-orange-100','text'=>'text-orange-700','label'=>'Yüksek'],
+        'critical' => ['bg'=>'bg-red-100','text'=>'text-red-700','label'=>'Kritik'],
+    ];
+    $sm = $statusMeta[$fault->status] ?? $statusMeta['open'];
+    $pm = $priorityMeta[$fault->priority] ?? $priorityMeta['medium'];
+    $isClosed = in_array($fault->status, ['resolved', 'closed']);
+@endphp
+
+<div class="px-4 pb-10" style="font-family:'Inter',system-ui,-apple-system,sans-serif;">
+
+    {{-- Session alerts --}}
     @if(session('success'))
-        <div class="alert alert-success alert-dismissible fade show" role="alert">
-            {{ session('success') }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
+    <div class="flex items-center gap-3 bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm rounded-xl px-4 py-3 mb-4">
+        <i class="fas fa-check-circle text-emerald-500"></i>
+        {{ session('success') }}
+    </div>
     @endif
     @if(session('error'))
-        <div class="alert alert-danger alert-dismissible fade show" role="alert">
-            {{ session('error') }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
+    <div class="flex items-center gap-3 bg-red-50 border border-red-200 text-red-800 text-sm rounded-xl px-4 py-3 mb-4">
+        <i class="fas fa-exclamation-circle text-red-500"></i>
+        {{ session('error') }}
+    </div>
     @endif
 
-    {{-- HEADER CARD --}}
-    <div class="card border-0 shadow-sm mb-4">
-        <div class="card-body p-4">
-            <div class="d-flex flex-wrap align-items-start gap-3">
-                <div class="flex-grow-1">
-                    <div class="d-flex flex-wrap gap-2 mb-2">
-                        <span class="badge bg-{{ \App\Models\Fault::PRIORITY_COLORS[$fault->priority] }} fs-6">
-                            ▲ {{ \App\Models\Fault::PRIORITIES[$fault->priority] }}
+    {{-- Hero Header --}}
+    <div class="bg-white rounded-2xl border border-gray-100 shadow-sm mb-5 overflow-hidden">
+        {{-- Status stripe --}}
+        <div class="h-1 {{ $sm['dot'] }} w-full"></div>
+        <div class="p-6">
+            <div class="flex flex-wrap items-start justify-between gap-4">
+                <div class="flex-1 min-w-0">
+                    {{-- Badges --}}
+                    <div class="flex flex-wrap gap-2 mb-3">
+                        <span class="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full {{ $pm['bg'] }} {{ $pm['text'] }}">
+                            <i class="fas fa-flag text-xs"></i>
+                            {{ $pm['label'] }}
                         </span>
-                        <span class="badge bg-{{ \App\Models\Fault::STATUS_COLORS[$fault->status] }} fs-6">
-                            {{ \App\Models\Fault::STATUSES[$fault->status] }}
+                        <span class="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full {{ $sm['bg'] }} {{ $sm['text'] }} border {{ $sm['border'] }}">
+                            <span class="w-1.5 h-1.5 rounded-full {{ $sm['dot'] }} inline-block"></span>
+                            {{ $sm['label'] }}
                         </span>
-                        @if($fault->location)
-                            <span class="badge bg-light text-dark border fs-6">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="currentColor" class="me-1" viewBox="0 0 16 16">
-                                    <path d="M8 16s6-5.686 6-10A6 6 0 0 0 2 6c0 4.314 6 10 6 10m0-7a3 3 0 1 1 0-6 3 3 0 0 1 0 6"/>
-                                </svg>
-                                {{ $fault->location }}
-                            </span>
+                        @if($fault->faultType)
+                        <span class="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full bg-violet-100 text-violet-700">
+                            <i class="fas fa-tag text-xs"></i>
+                            {{ $fault->faultType->name }}
+                        </span>
                         @endif
                     </div>
-                    <h2 class="mb-2">{{ $fault->title }}</h2>
-                    <div class="d-flex flex-wrap gap-3 text-muted small">
-                        <span>
-                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" class="me-1" viewBox="0 0 16 16">
-                                <path d="M8 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6m2-3a2 2 0 1 1-4 0 2 2 0 0 1 4 0m4 8c0 1-1 1-1 1H3s-1 0-1-1 1-4 6-4 6 3 6 4"/>
-                            </svg>
-                            Bildiren: <strong>{{ $fault->reporter->name ?? '-' }}</strong>
+                    {{-- Title --}}
+                    <h1 class="text-xl font-bold text-gray-900 tracking-tight leading-snug mb-3">{{ $fault->title }}</h1>
+                    {{-- Meta row --}}
+                    <div class="flex flex-wrap gap-x-5 gap-y-1.5 text-sm text-gray-500">
+                        <span class="flex items-center gap-1.5">
+                            <i class="fas fa-user text-gray-300 text-xs"></i>
+                            <span class="text-gray-400">Bildiren:</span>
+                            <span class="font-semibold text-gray-700">{{ $fault->reporter->name ?? '—' }}</span>
                         </span>
-                        <span>
-                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" class="me-1" viewBox="0 0 16 16">
-                                <path d="M1 2.5A1.5 1.5 0 0 1 2.5 1h3A1.5 1.5 0 0 1 7 2.5v3A1.5 1.5 0 0 1 5.5 7h-3A1.5 1.5 0 0 1 1 5.5zm8 0A1.5 1.5 0 0 1 10.5 1h3A1.5 1.5 0 0 1 15 2.5v3A1.5 1.5 0 0 1 13.5 7h-3A1.5 1.5 0 0 1 9 5.5zm-8 8A1.5 1.5 0 0 1 2.5 9h3A1.5 1.5 0 0 1 7 10.5v3A1.5 1.5 0 0 1 5.5 15h-3A1.5 1.5 0 0 1 1 13.5zm8 0A1.5 1.5 0 0 1 10.5 9h3A1.5 1.5 0 0 1 15 10.5v3A1.5 1.5 0 0 1 13.5 15h-3A1.5 1.5 0 0 1 9 13.5z"/>
-                            </svg>
-                            Departman: <strong>{{ $fault->department->name ?? '-' }}</strong>
+                        @if($fault->department)
+                        <span class="flex items-center gap-1.5">
+                            <i class="fas fa-users text-gray-300 text-xs"></i>
+                            <span class="text-gray-400">Departman:</span>
+                            <span class="font-semibold text-gray-700">{{ $fault->department->name }}</span>
                         </span>
-                        <span>
-                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" class="me-1" viewBox="0 0 16 16">
-                                <path d="M14.763.075A.5.5 0 0 1 15 .5v15a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1-.5-.5V14h-1v1.5a.5.5 0 0 1-.5.5h-9a.5.5 0 0 1-.5-.5V10a.5.5 0 0 1 .342-.474L6 7.64V4.5a.5.5 0 0 1 .276-.447l8-4a.5.5 0 0 1 .487.022"/>
-                            </svg>
-                            Şube: <strong>{{ $fault->branch->name ?? '-' }}</strong>
+                        @endif
+                        @if($fault->branch)
+                        <span class="flex items-center gap-1.5">
+                            <i class="fas fa-building text-gray-300 text-xs"></i>
+                            <span class="text-gray-400">Şube:</span>
+                            <span class="font-semibold text-gray-700">{{ $fault->branch->name }}</span>
                         </span>
-                        <span>
-                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" class="me-1" viewBox="0 0 16 16">
-                                <path d="M11 6.5a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-1a.5.5 0 0 1-.5-.5zm-3 0a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-1a.5.5 0 0 1-.5-.5zm-5 3a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-1a.5.5 0 0 1-.5-.5zm3 0a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-1a.5.5 0 0 1-.5-.5z"/>
-                                <path d="M3.5 0a.5.5 0 0 1 .5.5V1h8V.5a.5.5 0 0 1 1 0V1h1a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V3a2 2 0 0 1 2-2h1V.5a.5.5 0 0 1 .5-.5M1 4v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V4z"/>
-                            </svg>
-                            Kayıt: {{ $fault->created_at->format('d.m.Y H:i') }}
+                        @endif
+                        @if($fault->faultLocation)
+                        <span class="flex items-center gap-1.5">
+                            <i class="fas fa-map-marker-alt text-gray-300 text-xs"></i>
+                            <span class="font-semibold text-gray-700">{{ $fault->faultLocation->name }}{{ $fault->faultArea ? ' / '.$fault->faultArea->name : '' }}</span>
+                        </span>
+                        @endif
+                        <span class="flex items-center gap-1.5">
+                            <i class="fas fa-calendar text-gray-300 text-xs"></i>
+                            <span class="text-gray-400">Kayıt:</span>
+                            <span class="font-medium text-gray-600">{{ $fault->created_at->format('d.m.Y H:i') }}</span>
                         </span>
                         @if($fault->resolved_at)
-                            <span class="text-success">
-                                ✓ Çözüm: {{ \Carbon\Carbon::parse($fault->resolved_at)->format('d.m.Y H:i') }}
-                                ({{ round($fault->resolutionTimeHours(), 1) }} sa.)
-                            </span>
+                        <span class="flex items-center gap-1.5 text-emerald-600">
+                            <i class="fas fa-check-circle text-xs"></i>
+                            <span>Çözüldü: {{ \Carbon\Carbon::parse($fault->resolved_at)->format('d.m.Y H:i') }}</span>
+                            <span class="font-semibold">({{ round($fault->resolutionTimeHours(), 1) }} sa.)</span>
+                        </span>
                         @endif
                     </div>
                 </div>
-                <div class="d-flex gap-2">
-                    <a href="{{ route('faults.index') }}" class="btn btn-sm btn-outline-secondary">← Listeye Dön</a>
-                    @if(!in_array($fault->status, ['resolved','closed']))
-                        <form action="{{ route('faults.destroy', $fault) }}" method="POST" id="deleteForm">
-                            @csrf @method('DELETE')
-                            <button type="button" class="btn btn-sm btn-outline-danger" id="deleteBtn">Sil</button>
-                        </form>
+                {{-- Actions --}}
+                <div class="flex items-center gap-2 flex-shrink-0">
+                    <a href="{{ route('faults.index') }}"
+                       class="inline-flex items-center gap-2 text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 px-4 py-2 rounded-xl transition-colors no-underline">
+                        <i class="fas fa-arrow-left text-xs"></i>
+                        Listeye Dön
+                    </a>
+                    @if(!$isClosed)
+                    <form action="{{ route('faults.destroy', $fault) }}" method="POST" id="deleteForm">
+                        @csrf @method('DELETE')
+                        <button type="button" id="deleteBtn"
+                                class="inline-flex items-center gap-2 text-sm font-medium text-red-600 bg-red-50 hover:bg-red-100 px-4 py-2 rounded-xl transition-colors border border-red-200">
+                            <i class="fas fa-trash text-xs"></i>
+                            Sil
+                        </button>
+                    </form>
                     @endif
                 </div>
             </div>
         </div>
     </div>
 
-    <div class="row g-4 align-items-start">
-        {{-- LEFT: Detay + Atama --}}
-        <div class="col-md-7">
+    {{-- Main grid --}}
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
 
-            {{-- Açıklama --}}
-            <div class="card mb-4">
-                <div class="card-header"><h5 class="card-title mb-0">Arıza Açıklaması</h5></div>
-                <div class="card-body">
-                    <p class="mb-0" style="white-space: pre-wrap;">{{ $fault->description }}</p>
+        {{-- LEFT column --}}
+        <div class="lg:col-span-7 flex flex-col gap-5">
+
+            {{-- Description --}}
+            <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                <div class="flex items-center gap-3 px-6 py-4 border-b border-gray-50">
+                    <div class="w-9 h-9 bg-indigo-100 rounded-xl flex items-center justify-center">
+                        <i class="fas fa-align-left text-indigo-600 text-sm"></i>
+                    </div>
+                    <h2 class="text-sm font-semibold text-gray-800">Arıza Açıklaması</h2>
+                </div>
+                <div class="px-6 py-5">
+                    <p class="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{{ $fault->description ?: '—' }}</p>
                 </div>
             </div>
 
-            {{-- Arıza Fotoğrafı --}}
+            {{-- Photo --}}
             @if($fault->image_path)
-                <div class="card mb-4">
-                    <div class="card-header">
-                        <h5 class="card-title mb-0">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="me-2" viewBox="0 0 16 16">
-                                <path d="M6.002 5.5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0"/>
-                                <path d="M2.002 1a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V3a2 2 0 0 0-2-2zm12 1a1 1 0 0 1 1 1v6.5l-3.777-1.947a.5.5 0 0 0-.577.093l-3.71 3.71-2.66-1.772a.5.5 0 0 0-.63.062L1.002 12V3a1 1 0 0 1 1-1z"/>
-                            </svg>
-                            Arıza Fotoğrafı
-                        </h5>
+            <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                <div class="flex items-center gap-3 px-6 py-4 border-b border-gray-50">
+                    <div class="w-9 h-9 bg-blue-100 rounded-xl flex items-center justify-center">
+                        <i class="fas fa-image text-blue-600 text-sm"></i>
                     </div>
-                    <div class="card-body text-center">
-                        <a href="{{ asset('uploads/'.$fault->image_path) }}" target="_blank">
-                            <img src="{{ asset('uploads/'.$fault->image_path) }}"
-                                 class="img-fluid rounded"
-                                 style="max-height:400px;object-fit:contain;"
-                                 alt="Arıza fotoğrafı">
-                        </a>
-                        <div class="mt-2">
-                            <a href="{{ asset('uploads/'.$fault->image_path) }}" target="_blank" class="btn btn-sm btn-outline-secondary">
-                                Tam boyutta aç
-                            </a>
-                        </div>
-                    </div>
+                    <h2 class="text-sm font-semibold text-gray-800">Arıza Fotoğrafı</h2>
                 </div>
+                <div class="p-4 flex flex-col items-center gap-3">
+                    <a href="{{ asset('uploads/'.$fault->image_path) }}" target="_blank" class="block rounded-xl overflow-hidden border border-gray-100">
+                        <img src="{{ asset('uploads/'.$fault->image_path) }}"
+                             class="max-h-80 object-contain w-full"
+                             alt="Arıza fotoğrafı">
+                    </a>
+                    <a href="{{ asset('uploads/'.$fault->image_path) }}" target="_blank"
+                       class="inline-flex items-center gap-2 text-xs text-gray-500 hover:text-gray-700 no-underline">
+                        <i class="fas fa-external-link-alt text-xs"></i>Tam boyutta aç
+                    </a>
+                </div>
+            </div>
             @endif
 
-            {{-- Atama Paneli --}}
-            <div class="card mb-4">
-                <div class="card-header"><h5 class="card-title mb-0">Atama</h5></div>
-                <div class="card-body">
-                    <div class="mb-3">
-                        @if($fault->assignedTo)
-                            <div class="d-flex align-items-center gap-2">
-                                <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center fw-bold"
-                                     style="width:38px;height:38px;font-size:15px;">
-                                    {{ strtoupper(substr($fault->assignedTo->name, 0, 1)) }}
-                                </div>
-                                <div>
-                                    <div class="fw-semibold">{{ $fault->assignedTo->name }}</div>
-                                    <div class="text-muted small">{{ $fault->assignedTo->department?->name ?? '' }}</div>
-                                </div>
-                            </div>
-                        @else
-                            <p class="text-muted mb-0">Henüz kimseye atanmadı.</p>
-                        @endif
+            {{-- Timeline --}}
+            <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                <div class="flex items-center gap-3 px-6 py-4 border-b border-gray-50">
+                    <div class="w-9 h-9 bg-amber-100 rounded-xl flex items-center justify-center">
+                        <i class="fas fa-history text-amber-600 text-sm"></i>
                     </div>
-                    @if(!in_array($fault->status, ['resolved','closed']))
-                        <form action="{{ route('faults.assign', $fault) }}" method="POST" class="d-flex gap-2">
-                            @csrf
-                            <select name="assigned_to" class="form-select form-select-sm">
-                                <option value="">-- Atanacak kişi seçin --</option>
-                                @foreach($users as $user)
-                                    <option value="{{ $user->id }}" @selected($fault->assigned_to == $user->id)>
-                                        {{ $user->name }} ({{ $user->department?->name ?? '' }})
-                                    </option>
-                                @endforeach
-                            </select>
-                            <button type="submit" class="btn btn-sm btn-primary" style="white-space:nowrap">Ata</button>
-                        </form>
-                    @endif
+                    <h2 class="text-sm font-semibold text-gray-800">Güncelleme Geçmişi</h2>
+                    <span class="ml-auto text-xs bg-gray-100 text-gray-500 font-semibold px-2 py-0.5 rounded-full">
+                        {{ $fault->updates->count() }}
+                    </span>
                 </div>
-            </div>
-
-            {{-- Zaman Çizelgesi --}}
-            <div class="card">
-                <div class="card-header"><h5 class="card-title mb-0">Güncelleme Geçmişi</h5></div>
-                <div class="card-body p-0">
+                <div class="divide-y divide-gray-50">
                     @forelse($fault->updates as $update)
-                        <div class="d-flex gap-3 p-3 border-bottom">
-                            <div class="rounded-circle d-flex align-items-center justify-content-center text-white fw-bold flex-shrink-0"
-                                 style="width:36px;height:36px;background:{{ ($update->status_to && $update->status_to !== $update->status_from) ? '#c19b77' : '#6c757d' }};font-size:13px;">
-                                {{ strtoupper(substr($update->user?->name ?? '?', 0, 1)) }}
-                            </div>
-                            <div class="flex-grow-1">
-                                <div class="d-flex justify-content-between align-items-start">
-                                    <strong class="small">{{ $update->user?->name ?? 'Sistem' }}</strong>
-                                    <span class="text-muted" style="font-size:11px;">{{ $update->created_at->format('d.m.Y H:i') }}</span>
-                                </div>
-                                @if($update->status_from && $update->status_to && $update->status_from !== $update->status_to)
-                                    <div class="mb-1">
-                                        <span class="badge bg-{{ \App\Models\Fault::STATUS_COLORS[$update->status_from] ?? 'secondary' }} me-1">
-                                            {{ \App\Models\Fault::STATUSES[$update->status_from] ?? $update->status_from }}
-                                        </span>
-                                        → 
-                                        <span class="badge bg-{{ \App\Models\Fault::STATUS_COLORS[$update->status_to] ?? 'secondary' }}">
-                                            {{ \App\Models\Fault::STATUSES[$update->status_to] ?? $update->status_to }}
-                                        </span>
-                                    </div>
-                                @endif
-                                <p class="mb-0 text-muted small">{{ $update->note }}</p>
-                            </div>
+                    @php
+                        $hasChange = $update->status_from && $update->status_to && $update->status_from !== $update->status_to;
+                        $avatarBg  = $hasChange ? '#f59e0b' : '#94a3b8';
+                        $fromMeta  = $statusMeta[$update->status_from] ?? null;
+                        $toMeta    = $statusMeta[$update->status_to] ?? null;
+                    @endphp
+                    <div class="flex gap-4 px-6 py-4 hover:bg-gray-50/50 transition-colors">
+                        <div class="w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0 mt-0.5"
+                             style="background:{{ $avatarBg }}">
+                            {{ strtoupper(substr($update->user?->name ?? '?', 0, 1)) }}
                         </div>
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center justify-between gap-2 mb-1">
+                                <span class="text-sm font-semibold text-gray-800">{{ $update->user?->name ?? 'Sistem' }}</span>
+                                <span class="text-xs text-gray-400 flex-shrink-0">{{ $update->created_at->format('d.m.Y H:i') }}</span>
+                            </div>
+                            @if($hasChange && $fromMeta && $toMeta)
+                            <div class="flex items-center gap-2 mb-1.5">
+                                <span class="inline-flex items-center text-xs font-semibold px-2 py-0.5 rounded-full {{ $fromMeta['bg'] }} {{ $fromMeta['text'] }}">
+                                    {{ $fromMeta['label'] }}
+                                </span>
+                                <i class="fas fa-arrow-right text-gray-300 text-xs"></i>
+                                <span class="inline-flex items-center text-xs font-semibold px-2 py-0.5 rounded-full {{ $toMeta['bg'] }} {{ $toMeta['text'] }}">
+                                    {{ $toMeta['label'] }}
+                                </span>
+                            </div>
+                            @endif
+                            @if($update->note)
+                            <p class="text-sm text-gray-600 leading-relaxed">{{ $update->note }}</p>
+                            @endif
+                        </div>
+                    </div>
                     @empty
-                        <div class="p-4 text-center text-muted">Henüz güncelleme kaydı yok.</div>
+                    <div class="px-6 py-10 text-center text-gray-400 text-sm">
+                        <i class="fas fa-inbox text-2xl opacity-30 block mb-2"></i>
+                        Henüz güncelleme kaydı yok.
+                    </div>
                     @endforelse
                 </div>
             </div>
+
         </div>
 
-        {{-- RIGHT: Durum Güncelle + Yorum --}}
-        <div class="col-md-5">
+        {{-- RIGHT column --}}
+        <div class="lg:col-span-5 flex flex-col gap-5">
 
-            {{-- Durum Güncelle --}}
-            @if(!in_array($fault->status, ['resolved','closed']))
-                <div class="card mb-4">
-                    <div class="card-header bg-warning bg-opacity-10 border-warning">
-                        <h5 class="card-title mb-0 text-warning-emphasis">Durum Güncelle</h5>
+            {{-- Status update / resolved badge --}}
+            @if(!$isClosed)
+            <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                <div class="flex items-center gap-3 px-6 py-4 border-b border-gray-50">
+                    <div class="w-9 h-9 bg-orange-100 rounded-xl flex items-center justify-center">
+                        <i class="fas fa-sync-alt text-orange-600 text-sm"></i>
                     </div>
-                    <div class="card-body">
-                        <form action="{{ route('faults.updateStatus', $fault) }}" method="POST">
-                            @csrf
-                            <div class="mb-3">
-                                <label class="form-label fw-semibold">Yeni Durum</label>
-                                <div class="d-flex flex-column gap-2">
-                                    @foreach(\App\Models\Fault::STATUSES as $val => $label)
-                                        @if($val !== $fault->status && $val !== 'resolved')
-                                            <div class="form-check">
-                                                <input class="form-check-input" type="radio" name="status"
-                                                       id="status_{{ $val }}" value="{{ $val }}"
-                                                       @checked(old('status') === $val)>
-                                                <label class="form-check-label" for="status_{{ $val }}">
-                                                    <span class="badge bg-{{ \App\Models\Fault::STATUS_COLORS[$val] }}">{{ $label }}</span>
-                                                </label>
-                                            </div>
-                                        @endif
-                                    @endforeach
-                                </div>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label fw-semibold">Açıklama / Not <span class="text-danger">*</span></label>
-                                <textarea name="note" rows="3" class="form-control @error('note') is-invalid @enderror"
-                                          placeholder="Durum değişikliği hakkında açıklama...">{{ old('note') }}</textarea>
-                                @error('note')<div class="invalid-feedback">{{ $message }}</div>@enderror
-                            </div>
-                            <button type="submit" class="btn btn-warning w-100">Durumu Güncelle</button>
-                        </form>
-                    </div>
+                    <h2 class="text-sm font-semibold text-gray-800">Durum Güncelle</h2>
                 </div>
+                <div class="px-6 py-5">
+                    <form action="{{ route('faults.updateStatus', $fault) }}" method="POST" class="space-y-4">
+                        @csrf
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Yeni Durum</label>
+                            <div class="grid grid-cols-2 gap-2">
+                                @foreach(\App\Models\Fault::STATUSES as $val => $lbl)
+                                @if($val !== $fault->status && $val !== 'resolved')
+                                @php $opt = $statusMeta[$val] ?? []; @endphp
+                                <label class="flex items-center gap-2 p-2.5 rounded-xl border-2 cursor-pointer transition-all
+                                             {{ old('status') === $val ? 'border-blue-500 '.$opt['bg'] : 'border-gray-100 hover:border-gray-200' }}">
+                                    <input type="radio" name="status" value="{{ $val }}"
+                                           @checked(old('status') === $val)
+                                           class="accent-blue-600">
+                                    <span class="text-xs font-semibold {{ $opt['text'] ?? 'text-gray-700' }}">{{ $lbl }}</span>
+                                </label>
+                                @endif
+                                @endforeach
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
+                                Not / Açıklama <span class="text-red-400">*</span>
+                            </label>
+                            <textarea name="note" rows="3"
+                                      class="w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 resize-none @error('note') border-red-400 @enderror"
+                                      placeholder="Durum değişikliği hakkında not...">{{ old('note') }}</textarea>
+                            @error('note')
+                            <p class="text-xs text-red-500 mt-1">{{ $message }}</p>
+                            @enderror
+                        </div>
+                        <button type="submit"
+                                class="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white text-sm font-semibold py-2.5 rounded-xl transition-all shadow-sm">
+                            <i class="fas fa-check text-xs"></i>
+                            Durumu Güncelle
+                        </button>
+                    </form>
+                </div>
+            </div>
             @else
-                <div class="card mb-4 border-success">
-                    <div class="card-body text-center p-4">
-                        <div class="display-4 mb-2">{{ $fault->status === 'resolved' ? '✓' : '⊠' }}</div>
-                        <h5 class="text-success mb-1">{{ \App\Models\Fault::STATUSES[$fault->status] }}</h5>
-                        @if($fault->resolved_at)
-                            <p class="text-muted small mb-0">
-                                Çözüm süresi: {{ round($fault->resolutionTimeHours(), 1) }} saat
-                            </p>
-                        @endif
+            <div class="bg-white rounded-2xl border border-emerald-200 shadow-sm overflow-hidden">
+                <div class="flex flex-col items-center justify-center py-8 px-6 text-center">
+                    <div class="w-14 h-14 bg-emerald-100 rounded-full flex items-center justify-center mb-3">
+                        <i class="fas fa-check-double text-xl text-emerald-600"></i>
                     </div>
+                    <h3 class="font-bold text-gray-800 text-base">{{ \App\Models\Fault::STATUSES[$fault->status] }}</h3>
+                    @if($fault->resolved_at)
+                    <p class="text-sm text-gray-500 mt-1">
+                        Çözüm süresi: <strong class="text-emerald-600">{{ round($fault->resolutionTimeHours(), 1) }} saat</strong>
+                    </p>
+                    @endif
                 </div>
+            </div>
             @endif
 
-            {{-- Yorum Ekle --}}
-            <div class="card mb-4">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">Yorum / Not Ekle</h5>
+            {{-- Add comment --}}
+            <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                <div class="flex items-center gap-3 px-6 py-4 border-b border-gray-50">
+                    <div class="w-9 h-9 bg-sky-100 rounded-xl flex items-center justify-center">
+                        <i class="fas fa-comment-dots text-sky-600 text-sm"></i>
+                    </div>
+                    <h2 class="text-sm font-semibold text-gray-800">Yorum / Not Ekle</h2>
                 </div>
-                <div class="card-body">
-                    <form action="{{ route('faults.addComment', $fault) }}" method="POST">
+                <div class="px-6 py-5">
+                    <form action="{{ route('faults.addComment', $fault) }}" method="POST" class="space-y-3">
                         @csrf
-                        <textarea name="note" rows="3" class="form-control mb-3"
+                        <textarea name="note" rows="3"
+                                  class="w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 resize-none"
                                   placeholder="Arıza hakkında notunuzu yazın..."></textarea>
-                        <button type="submit" class="btn btn-outline-primary w-100">Yorum Ekle</button>
+                        <button type="submit"
+                                class="w-full flex items-center justify-center gap-2 bg-sky-600 hover:bg-sky-700 text-white text-sm font-semibold py-2.5 rounded-xl transition-colors">
+                            <i class="fas fa-paper-plane text-xs"></i>
+                            Yorum Ekle
+                        </button>
                     </form>
                 </div>
             </div>
 
-            {{-- Özet Bilgiler --}}
-            <div class="card">
-                <div class="card-header"><h5 class="card-title mb-0">Özet Bilgiler</h5></div>
-                <div class="card-body p-0">
-                    <table class="table table-sm mb-0">
-                        <tbody>
-                            <tr>
-                                <td class="text-muted" style="width:40%">Arıza No</td>
-                                <td><strong>#{{ $fault->id }}</strong></td>
-                            </tr>
-                            <tr>
-                                <td class="text-muted">Öncelik</td>
-                                <td><span class="badge bg-{{ \App\Models\Fault::PRIORITY_COLORS[$fault->priority] }}">{{ \App\Models\Fault::PRIORITIES[$fault->priority] }}</span></td>
-                            </tr>
-                            <tr>
-                                <td class="text-muted">Durum</td>
-                                <td><span class="badge bg-{{ \App\Models\Fault::STATUS_COLORS[$fault->status] }}">{{ \App\Models\Fault::STATUSES[$fault->status] }}</span></td>
-                            </tr>
-                            <tr>
-                                <td class="text-muted">Şube</td>
-                                <td>{{ $fault->branch->name ?? '-' }}</td>
-                            </tr>
-                            <tr>
-                                <td class="text-muted">Departman</td>
-                                <td>{{ $fault->department->name ?? '-' }}</td>
-                            </tr>
-                            <tr>
-                                <td class="text-muted">Konum</td>
-                                <td>{{ $fault->location ?? '-' }}</td>
-                            </tr>
-                            <tr>
-                                <td class="text-muted">Bildiren</td>
-                                <td>{{ $fault->reporter->name ?? '-' }}</td>
-                            </tr>
-                            <tr>
-                                <td class="text-muted">Atanan</td>
-                                <td>{{ $fault->assignedTo->name ?? 'Atanmadı' }}</td>
-                            </tr>
-                            <tr>
-                                <td class="text-muted">Kayıt Tarihi</td>
-                                <td>{{ $fault->created_at->format('d.m.Y H:i') }}</td>
-                            </tr>
-                            @if($fault->resolved_at)
-                                <tr>
-                                    <td class="text-muted">Çözüm Tarihi</td>
-                                    <td>{{ \Carbon\Carbon::parse($fault->resolved_at)->format('d.m.Y H:i') }}</td>
-                                </tr>
-                                <tr>
-                                    <td class="text-muted">Çözüm Süresi</td>
-                                    <td class="text-success fw-semibold">{{ round($fault->resolutionTimeHours(), 1) }} saat</td>
-                                </tr>
-                            @endif
-                            <tr>
-                                <td class="text-muted">Güncelleme</td>
-                                <td>{{ $fault->updates->count() }} adet</td>
-                            </tr>
-                        </tbody>
-                    </table>
+            {{-- Summary card --}}
+            <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                <div class="flex items-center gap-3 px-6 py-4 border-b border-gray-50">
+                    <div class="w-9 h-9 bg-gray-100 rounded-xl flex items-center justify-center">
+                        <i class="fas fa-info-circle text-gray-500 text-sm"></i>
+                    </div>
+                    <h2 class="text-sm font-semibold text-gray-800">Özet Bilgiler</h2>
+                </div>
+                <div class="divide-y divide-gray-50">
+                    @php
+                    $rows = [
+                        ['label'=>'Arıza No',  'value'=>'#'.$fault->id, 'mono'=>true],
+                        ['label'=>'Öncelik',   'value'=>$pm['label'], 'badge'=>$pm['bg'].' '.$pm['text']],
+                        ['label'=>'Durum',     'value'=>$sm['label'],  'badge'=>$sm['bg'].' '.$sm['text']],
+                        ['label'=>'Şube',      'value'=>$fault->branch->name ?? '—'],
+                        ['label'=>'Departman', 'value'=>$fault->department->name ?? '—'],
+                        ['label'=>'Bildiren',  'value'=>$fault->reporter->name ?? '—'],
+                        ['label'=>'Kayıt',     'value'=>$fault->created_at->format('d.m.Y H:i')],
+                    ];
+                    if($fault->resolved_at) {
+                        $rows[] = ['label'=>'Çözüm Tarihi','value'=>\Carbon\Carbon::parse($fault->resolved_at)->format('d.m.Y H:i')];
+                        $rows[] = ['label'=>'Çözüm Süresi','value'=>round($fault->resolutionTimeHours(),1).' saat','green'=>true];
+                    }
+                    $rows[] = ['label'=>'Güncellemeler','value'=>$fault->updates->count().' adet'];
+                    @endphp
+                    @foreach($rows as $row)
+                    <div class="flex items-center justify-between px-6 py-3">
+                        <span class="text-xs text-gray-400 font-medium">{{ $row['label'] }}</span>
+                        @if(isset($row['badge']))
+                        <span class="inline-flex text-xs font-semibold px-2 py-0.5 rounded-full {{ $row['badge'] }}">{{ $row['value'] }}</span>
+                        @elseif(isset($row['mono']))
+                        <span class="font-mono text-sm font-bold text-gray-700">{{ $row['value'] }}</span>
+                        @elseif(isset($row['green']))
+                        <span class="text-sm font-bold text-emerald-600">{{ $row['value'] }}</span>
+                        @else
+                        <span class="text-sm font-medium text-gray-700">{{ $row['value'] }}</span>
+                        @endif
+                    </div>
+                    @endforeach
                 </div>
             </div>
+
         </div>
     </div>
 </div>
@@ -355,6 +392,15 @@ document.getElementById('deleteBtn')?.addEventListener('click', function () {
         confirmButtonText: 'Evet, sil!'
     }).then(result => {
         if (result.isConfirmed) document.getElementById('deleteForm').submit();
+    });
+});
+// Highlight selected status radio
+document.querySelectorAll('input[name="status"]').forEach(radio => {
+    radio.addEventListener('change', function() {
+        document.querySelectorAll('input[name="status"]').forEach(r => {
+            r.closest('label').classList.remove('border-blue-500');
+        });
+        this.closest('label').classList.add('border-blue-500');
     });
 });
 </script>

@@ -236,7 +236,7 @@ class FaultController extends BaseModuleController
     {
         $user = auth()->user();
 
-        $query = Fault::with(['department', 'branch', 'faultType', 'faultLocation', 'faultArea']);
+        $query = Fault::with(['department', 'branch', 'faultType', 'faultLocation', 'faultArea', 'reporter']);
 
         if ($user->department_id) {
             // Aynı departmandaki tüm kullanıcıların bildirdiği arızalar

@@ -114,7 +114,11 @@
                                     </span>
                                     @if($isMine)
                                     <span class="badge" style="font-size:.65rem;background:#eef2ff;color:#4f46e5;border-radius:5px">
-                                        Ben bildirdim
+                                        <i class="fas fa-user me-1" style="font-size:.55rem"></i>Ben bildirdim
+                                    </span>
+                                    @elseif($fault->reporter)
+                                    <span class="badge" style="font-size:.65rem;background:#f0fdf4;color:#15803d;border-radius:5px">
+                                        <i class="fas fa-user me-1" style="font-size:.55rem"></i>{{ $fault->reporter->name }}
                                     </span>
                                     @endif
                                     @if($fault->department)
