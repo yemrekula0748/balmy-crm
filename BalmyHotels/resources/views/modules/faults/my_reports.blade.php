@@ -87,9 +87,11 @@
         @forelse($faults as $fault)
         @php
             $isMine = $fault->reported_by === auth()->id();
-            $scMap  = ['open'=>['#ef4444','#fef2f2'],'in_progress'=>['#f59e0b','#fffbeb'],'resolved'=>['#10b981','#f0fdf4'],'closed'=>['#6b7280','#f1f5f9']];
+            $scMap  = ['open'=>['#ef4444','#fef2f2'],'in_progress'=>['#f59e0b','#fffbeb'],'winter_plan'=>['#0ea5e9','#eff6ff'],'waiting_material'=>['#4361ee','#eff6ff'],'resolved'=>['#10b981','#f0fdf4'],'closed'=>['#6b7280','#f1f5f9']];
             [$sFg,$sBg] = $scMap[$fault->status] ?? ['#6b7280','#f1f5f9'];
             $deptColor  = $fault->department?->color ?? '#6366f1';
+            $prioMap    = ['low'=>['Normal','#10b981','#f0fdf4'],'medium'=>['Orta','#d97706','#fffbeb'],'high'=>['Acil','#dc2626','#fef2f2'],'critical'=>['Kritik','#1e293b','#f1f5f9']];
+            [$prioLabel,$prioFg,$prioBg] = $prioMap[$fault->priority] ?? ['—','#6b7280','#f1f5f9'];
         @endphp
         <div class="card border-0 shadow-sm" style="border-radius:10px;border-left:4px solid {{ $sFg }}!important;transition:box-shadow .15s"
              onmouseenter="this.style.boxShadow='0 4px 18px rgba(0,0,0,.1)'"
@@ -111,6 +113,9 @@
                                 <div class="d-flex flex-wrap align-items-center gap-1 mt-1">
                                     <span class="badge" style="font-size:.65rem;background:{{ $sBg }};color:{{ $sFg }};border-radius:5px">
                                         {{ \App\Models\Fault::STATUSES[$fault->status] }}
+                                    </span>
+                                    <span class="badge" style="font-size:.65rem;background:{{ $prioBg }};color:{{ $prioFg }};border-radius:5px">
+                                        <i class="fas fa-flag me-1" style="font-size:.5rem"></i>{{ $prioLabel }}
                                     </span>
                                     @if($isMine)
                                     <span class="badge" style="font-size:.65rem;background:#eef2ff;color:#4f46e5;border-radius:5px">

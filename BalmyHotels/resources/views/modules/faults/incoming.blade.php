@@ -116,6 +116,8 @@
                 $statusBorderColors = ['danger'=>'#dc3545','warning'=>'#f97316','info'=>'#0ea5e9','success'=>'#10b981','secondary'=>'#6c757d','primary'=>'#4361ee'];
                 $borderHex = $statusBorderColors[$statusColor] ?? '#6c757d';
                 $isOld = $fault->created_at->diffInHours(now()) > 24;
+                $prioMap = ['low'=>['Normal','#10b981','#f0fdf4'],'medium'=>['Orta','#d97706','#fffbeb'],'high'=>['Acil','#dc2626','#fef2f2'],'critical'=>['Kritik','#1e293b','#f1f5f9']];
+                [$prioLabel,$prioFg,$prioBg] = $prioMap[$fault->priority] ?? ['—','#6b7280','#f1f5f9'];
             @endphp
             <div class="{{ $loop->last ? '' : 'border-bottom' }}" style="border-left:4px solid {{ $borderHex }}">
                 <div class="p-3 p-md-4">
@@ -126,6 +128,9 @@
                             <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
                                 <span class="badge" style="background:{{ $borderHex }}">
                                     {{ \App\Models\Fault::STATUSES[$fault->status] }}
+                                </span>
+                                <span class="badge" style="background:{{ $prioBg }};color:{{ $prioFg }};font-size:.72rem">
+                                    <i class="fas fa-flag me-1" style="font-size:.6rem"></i>{{ $prioLabel }}
                                 </span>
                                 @if($fault->faultType)
                                 <span class="badge bg-light text-dark border" style="font-weight:500">

@@ -224,6 +224,37 @@
                             </div>
                         </div>
 
+                        {{-- ── BÖLÜM 2.5: Aciliyet Durumu ── --}}
+                        <p class="fault-section-label"><i class="fas fa-exclamation-circle me-1"></i>Aciliyet Durumu</p>
+                        <div class="row g-3 mb-4">
+                            <div class="col-12">
+                                <div class="d-flex gap-3 flex-wrap" id="prioritySelector">
+                                    @php
+                                        $priorities = [
+                                            'low'    => ['Normal', '#10b981', 'fa-circle-check', 'Standart öncelik, normal sürede çözülebilir.'],
+                                            'medium' => ['Orta',   '#f59e0b', 'fa-triangle-exclamation', 'Yakın takip gerektirir, orta öncelikli.'],
+                                            'high'   => ['Acil',   '#ef4444', 'fa-bolt', 'İvedi müdahale gerektirir, yüksek öncelikli.'],
+                                        ];
+                                    @endphp
+                                    @foreach($priorities as $val => [$lbl, $clr, $ico, $desc])
+                                    <label class="priority-option flex-fill" style="cursor:pointer;min-width:160px">
+                                        <input type="radio" name="priority" value="{{ $val }}" class="d-none priority-radio"
+                                               {{ old('priority','medium') === $val ? 'checked' : '' }}>
+                                        <div class="priority-opt-box rounded-3 p-3 border-2 text-center transition-all"
+                                             style="border:2px solid {{ old('priority','medium') === $val ? $clr : '#e5e7eb' }};
+                                                    background:{{ old('priority','medium') === $val ? $clr.'18' : '#fafafa' }};
+                                                    border-radius:12px;">
+                                            <i class="fas {{ $ico }} fa-lg mb-1 d-block" style="color:{{ $clr }}"></i>
+                                            <div class="fw-bold" style="font-size:.85rem;color:{{ $clr }}">{{ $lbl }}</div>
+                                            <div class="text-muted mt-1" style="font-size:.68rem;line-height:1.3">{{ $desc }}</div>
+                                        </div>
+                                    </label>
+                                    @endforeach
+                                </div>
+                                @error('priority')<div class="text-danger small mt-1">{{ $message }}</div>@enderror
+                            </div>
+                        </div>
+
                         {{-- ── BÖLÜM 3: Açıklama & Fotoğraf ── --}}
                         <p class="fault-section-label"><i class="fas fa-align-left me-1"></i>Detaylar</p>
                         <div class="row g-3 mb-4">
@@ -402,6 +433,22 @@
 
     // Sayfa yüklenince konum önceki değere göre alanları doldur
     if (locationSel.value) locationSel.dispatchEvent(new Event('change'));
+
+    // Aciliyet seçici highlight
+    document.querySelectorAll('.priority-radio').forEach(function(radio) {
+        radio.addEventListener('change', function() {
+            const colors = { low: '#10b981', medium: '#f59e0b', high: '#ef4444' };
+            document.querySelectorAll('.priority-radio').forEach(function(r) {
+                const box = r.closest('label').querySelector('.priority-opt-box');
+                box.style.borderColor = '#e5e7eb';
+                box.style.background = '#fafafa';
+            });
+            const box = this.closest('label').querySelector('.priority-opt-box');
+            const c = colors[this.value] || '#6b7280';
+            box.style.borderColor = c;
+            box.style.background = c + '18';
+        });
+    });
 })();
 </script>
 @endpush

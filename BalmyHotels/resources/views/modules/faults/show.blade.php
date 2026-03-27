@@ -1,15 +1,25 @@
-@extends('layouts.default')
+﻿@extends('layouts.default')
 
 @push('styles')
 <script src="https://cdn.tailwindcss.com"></script>
+<style>
+.tw-card{background:#fff;border-radius:1rem;border:1px solid #e8ecf0;box-shadow:0 1px 6px rgba(15,23,42,.06)}
+.tw-section-head{display:flex;align-items:center;gap:.75rem;padding:1rem 1.5rem;border-bottom:1px solid #f1f5f9}
+</style>
 @endpush
 
 @section('content')
-{{-- Bootstrap breadcrumb --}}
+{{-- Breadcrumb --}}
 <div class="container-fluid">
     <div class="row page-titles mx-0 mb-0">
         <div class="col-sm-6 p-md-0">
-            <div class="welcome-text"><h4>Arıza Detayı <span style="color:#94a3b8;font-size:.85rem">#{{ $fault->id }}</span></h4></div>
+            <div class="welcome-text">
+                <h4 class="mb-0 d-flex align-items-center gap-2">
+                    <i class="fas fa-tools text-danger" style="font-size:1rem"></i>
+                    Arıza Detayı
+                    <span style="color:#94a3b8;font-size:.8rem;font-weight:400">#{{ $fault->id }}</span>
+                </h4>
+            </div>
         </div>
         <div class="col-sm-6 p-md-0 justify-content-sm-end mt-2 mt-sm-0 d-flex">
             <ol class="breadcrumb">
@@ -22,120 +32,83 @@
 </div>
 
 @php
-    $statusMeta = [
-        'open'        => ['bg'=>'bg-red-100','text'=>'text-red-700','border'=>'border-red-300','dot'=>'bg-red-500','label'=>'Açık'],
-        'in_progress' => ['bg'=>'bg-amber-100','text'=>'text-amber-700','border'=>'border-amber-300','dot'=>'bg-amber-500','label'=>'Devam Ediyor'],
-        'resolved'    => ['bg'=>'bg-emerald-100','text'=>'text-emerald-700','border'=>'border-emerald-300','dot'=>'bg-emerald-500','label'=>'Çözüldü'],
-        'closed'      => ['bg'=>'bg-slate-100','text'=>'text-slate-600','border'=>'border-slate-300','dot'=>'bg-slate-400','label'=>'Kapalı'],
-    ];
-    $priorityMeta = [
-        'low'      => ['bg'=>'bg-sky-100','text'=>'text-sky-700','label'=>'Düşük'],
-        'medium'   => ['bg'=>'bg-amber-100','text'=>'text-amber-700','label'=>'Orta'],
-        'high'     => ['bg'=>'bg-orange-100','text'=>'text-orange-700','label'=>'Yüksek'],
-        'critical' => ['bg'=>'bg-red-100','text'=>'text-red-700','label'=>'Kritik'],
-    ];
-    $sm = $statusMeta[$fault->status] ?? $statusMeta['open'];
-    $pm = $priorityMeta[$fault->priority] ?? $priorityMeta['medium'];
-    $isClosed = in_array($fault->status, ['resolved', 'closed']);
+$statusMeta = [
+    'open'             => ['stripe'=>'#ef4444','bg'=>'bg-red-100','text'=>'text-red-700','dot'=>'bg-red-500','label'=>'Açık',            'icon'=>'fa-circle-exclamation'],
+    'in_progress'      => ['stripe'=>'#f59e0b','bg'=>'bg-amber-100','text'=>'text-amber-700','dot'=>'bg-amber-500','label'=>'İşlemde',       'icon'=>'fa-rotate'],
+    'winter_plan'      => ['stripe'=>'#0ea5e9','bg'=>'bg-sky-100','text'=>'text-sky-700','dot'=>'bg-sky-500','label'=>'Kış Planı',       'icon'=>'fa-snowflake'],
+    'waiting_material' => ['stripe'=>'#7c3aed','bg'=>'bg-violet-100','text'=>'text-violet-700','dot'=>'bg-violet-500','label'=>'Malzeme Bekliyor','icon'=>'fa-box'],
+    'resolved'         => ['stripe'=>'#10b981','bg'=>'bg-emerald-100','text'=>'text-emerald-700','dot'=>'bg-emerald-500','label'=>'Çözüldü',         'icon'=>'fa-check-circle'],
+    'closed'           => ['stripe'=>'#64748b','bg'=>'bg-slate-100','text'=>'text-slate-600','dot'=>'bg-slate-400','label'=>'Kapalı',          'icon'=>'fa-lock'],
+];
+$priorityMeta = [
+    'low'      => ['icon'=>'fa-circle-check',       'stripe'=>'#10b981','bg'=>'bg-emerald-100','text'=>'text-emerald-700','label'=>'Normal'],
+    'medium'   => ['icon'=>'fa-triangle-exclamation','stripe'=>'#f59e0b','bg'=>'bg-amber-100',  'text'=>'text-amber-700',  'label'=>'Orta'],
+    'high'     => ['icon'=>'fa-bolt',               'stripe'=>'#ef4444','bg'=>'bg-red-100',    'text'=>'text-red-700',    'label'=>'Acil'],
+    'critical' => ['icon'=>'fa-skull-crossbones',   'stripe'=>'#1e293b','bg'=>'bg-slate-800',  'text'=>'text-white',      'label'=>'Kritik'],
+];
+$sm       = $statusMeta[$fault->status]    ?? $statusMeta['open'];
+$pm       = $priorityMeta[$fault->priority] ?? $priorityMeta['medium'];
+$isClosed = in_array($fault->status, ['resolved','closed']);
 @endphp
 
-<div class="px-4 pb-10" style="font-family:'Inter',system-ui,-apple-system,sans-serif;">
+<div class="px-3 pb-10" style="font-family:'Inter',system-ui,-apple-system,sans-serif">
 
-    {{-- Session alerts --}}
     @if(session('success'))
-    <div class="flex items-center gap-3 bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm rounded-xl px-4 py-3 mb-4">
-        <i class="fas fa-check-circle text-emerald-500"></i>
-        {{ session('success') }}
+    <div class="flex items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800 mb-4">
+        <i class="fas fa-check-circle text-emerald-500"></i>{{ session('success') }}
     </div>
     @endif
     @if(session('error'))
-    <div class="flex items-center gap-3 bg-red-50 border border-red-200 text-red-800 text-sm rounded-xl px-4 py-3 mb-4">
-        <i class="fas fa-exclamation-circle text-red-500"></i>
-        {{ session('error') }}
+    <div class="flex items-center gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 mb-4">
+        <i class="fas fa-exclamation-circle text-red-500"></i>{{ session('error') }}
     </div>
     @endif
 
-    {{-- Hero Header --}}
-    <div class="bg-white rounded-2xl border border-gray-100 shadow-sm mb-5 overflow-hidden">
-        {{-- Status stripe --}}
-        <div class="h-1 {{ $sm['dot'] }} w-full"></div>
+    {{-- ══ HERO ══ --}}
+    <div class="rounded-2xl overflow-hidden mb-5" style="background:#0f172a;box-shadow:0 4px 24px rgba(0,0,0,.18)">
+        <div style="height:4px;background:{{ $sm['stripe'] }}"></div>
         <div class="p-6">
             <div class="flex flex-wrap items-start justify-between gap-4">
                 <div class="flex-1 min-w-0">
-                    {{-- Badges --}}
-                    <div class="flex flex-wrap gap-2 mb-3">
-                        <span class="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full {{ $pm['bg'] }} {{ $pm['text'] }}">
-                            <i class="fas fa-flag text-xs"></i>
-                            {{ $pm['label'] }}
+                    <div class="text-xs font-semibold uppercase tracking-widest mb-2" style="color:#64748b">
+                        Arıza Kaydı &nbsp;·&nbsp; <span style="color:#94a3b8">#{{ $fault->id }}</span>
+                    </div>
+                    <h1 class="font-bold leading-tight mb-3" style="font-size:1.3rem;color:#f1f5f9">{{ $fault->title }}</h1>
+                    <div class="flex flex-wrap gap-2 mb-4">
+                        <span class="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-full {{ $pm['bg'] }} {{ $pm['text'] }}">
+                            <i class="fas {{ $pm['icon'] }} text-xs"></i>{{ $pm['label'] }} Öncelik
                         </span>
-                        <span class="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full {{ $sm['bg'] }} {{ $sm['text'] }} border {{ $sm['border'] }}">
-                            <span class="w-1.5 h-1.5 rounded-full {{ $sm['dot'] }} inline-block"></span>
-                            {{ $sm['label'] }}
+                        <span class="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-full {{ $sm['bg'] }} {{ $sm['text'] }}">
+                            <span class="w-2 h-2 rounded-full {{ $sm['dot'] }} inline-block"></span>{{ $sm['label'] }}
                         </span>
                         @if($fault->faultType)
-                        <span class="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full bg-violet-100 text-violet-700">
-                            <i class="fas fa-tag text-xs"></i>
-                            {{ $fault->faultType->name }}
+                        <span class="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full bg-violet-100 text-violet-700">
+                            <i class="fas fa-tag text-xs"></i>{{ $fault->faultType->name }}
                         </span>
                         @endif
                     </div>
-                    {{-- Title --}}
-                    <h1 class="text-xl font-bold text-gray-900 tracking-tight leading-snug mb-3">{{ $fault->title }}</h1>
-                    {{-- Meta row --}}
-                    <div class="flex flex-wrap gap-x-5 gap-y-1.5 text-sm text-gray-500">
-                        <span class="flex items-center gap-1.5">
-                            <i class="fas fa-user text-gray-300 text-xs"></i>
-                            <span class="text-gray-400">Bildiren:</span>
-                            <span class="font-semibold text-gray-700">{{ $fault->reporter->name ?? '—' }}</span>
-                        </span>
-                        @if($fault->department)
-                        <span class="flex items-center gap-1.5">
-                            <i class="fas fa-users text-gray-300 text-xs"></i>
-                            <span class="text-gray-400">Departman:</span>
-                            <span class="font-semibold text-gray-700">{{ $fault->department->name }}</span>
-                        </span>
-                        @endif
-                        @if($fault->branch)
-                        <span class="flex items-center gap-1.5">
-                            <i class="fas fa-building text-gray-300 text-xs"></i>
-                            <span class="text-gray-400">Şube:</span>
-                            <span class="font-semibold text-gray-700">{{ $fault->branch->name }}</span>
-                        </span>
-                        @endif
-                        @if($fault->faultLocation)
-                        <span class="flex items-center gap-1.5">
-                            <i class="fas fa-map-marker-alt text-gray-300 text-xs"></i>
-                            <span class="font-semibold text-gray-700">{{ $fault->faultLocation->name }}{{ $fault->faultArea ? ' / '.$fault->faultArea->name : '' }}</span>
-                        </span>
-                        @endif
-                        <span class="flex items-center gap-1.5">
-                            <i class="fas fa-calendar text-gray-300 text-xs"></i>
-                            <span class="text-gray-400">Kayıt:</span>
-                            <span class="font-medium text-gray-600">{{ $fault->created_at->format('d.m.Y H:i') }}</span>
-                        </span>
-                        @if($fault->resolved_at)
-                        <span class="flex items-center gap-1.5 text-emerald-600">
-                            <i class="fas fa-check-circle text-xs"></i>
-                            <span>Çözüldü: {{ \Carbon\Carbon::parse($fault->resolved_at)->format('d.m.Y H:i') }}</span>
-                            <span class="font-semibold">({{ round($fault->resolutionTimeHours(), 1) }} sa.)</span>
-                        </span>
-                        @endif
+                    <div class="flex flex-wrap gap-x-6 gap-y-2" style="font-size:.76rem;color:#94a3b8">
+                        <span><i class="fas fa-user me-1"></i><span style="color:#64748b">Bildiren:</span> <strong style="color:#cbd5e1">{{ $fault->reporter->name ?? '—' }}</strong></span>
+                        @if($fault->department)<span><i class="fas fa-users me-1"></i><span style="color:#64748b">Dept:</span> <strong style="color:#cbd5e1">{{ $fault->department->name }}</strong></span>@endif
+                        @if($fault->branch)<span><i class="fas fa-building me-1"></i><strong style="color:#cbd5e1">{{ $fault->branch->name }}</strong></span>@endif
+                        @if($fault->faultLocation)<span><i class="fas fa-map-marker-alt me-1"></i><strong style="color:#cbd5e1">{{ $fault->faultLocation->name }}{{ $fault->faultArea ? ' / '.$fault->faultArea->name : '' }}</strong></span>@endif
+                        <span><i class="fas fa-calendar me-1"></i><span style="color:#64748b">Kayıt:</span> <strong style="color:#cbd5e1">{{ $fault->created_at->format('d.m.Y H:i') }}</strong></span>
+                        @if($fault->resolved_at)<span style="color:#10b981"><i class="fas fa-check-double me-1"></i>Çözüldü: <strong>{{ \Carbon\Carbon::parse($fault->resolved_at)->format('d.m.Y H:i') }}</strong> ({{ round($fault->resolutionTimeHours(),1) }} sa.)</span>@endif
                     </div>
                 </div>
-                {{-- Actions --}}
                 <div class="flex items-center gap-2 flex-shrink-0">
                     <a href="{{ route('faults.index') }}"
-                       class="inline-flex items-center gap-2 text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 px-4 py-2 rounded-xl transition-colors no-underline">
-                        <i class="fas fa-arrow-left text-xs"></i>
-                        Listeye Dön
+                       class="inline-flex items-center gap-2 text-sm font-medium px-4 py-2 rounded-xl no-underline transition-colors"
+                       style="background:rgba(255,255,255,.08);color:#cbd5e1">
+                        <i class="fas fa-arrow-left text-xs"></i>Geri
                     </a>
                     @if(!$isClosed)
                     <form action="{{ route('faults.destroy', $fault) }}" method="POST" id="deleteForm">
                         @csrf @method('DELETE')
                         <button type="button" id="deleteBtn"
-                                class="inline-flex items-center gap-2 text-sm font-medium text-red-600 bg-red-50 hover:bg-red-100 px-4 py-2 rounded-xl transition-colors border border-red-200">
-                            <i class="fas fa-trash text-xs"></i>
-                            Sil
+                                class="inline-flex items-center gap-2 text-sm font-medium px-4 py-2 rounded-xl border"
+                                style="background:rgba(239,68,68,.15);color:#fca5a5;border-color:rgba(239,68,68,.3)">
+                            <i class="fas fa-trash text-xs"></i>Sil
                         </button>
                     </form>
                     @endif
@@ -144,42 +117,42 @@
         </div>
     </div>
 
-    {{-- Main grid --}}
-    <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+    {{-- ══ MAIN GRID ══ --}}
+    <div style="display:grid;grid-template-columns:minmax(0,7fr) minmax(0,5fr);gap:1.25rem;align-items:start">
 
-        {{-- LEFT column --}}
-        <div class="lg:col-span-7 flex flex-col gap-5">
+        {{-- LEFT --}}
+        <div style="display:flex;flex-direction:column;gap:1.25rem">
 
             {{-- Description --}}
-            <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-                <div class="flex items-center gap-3 px-6 py-4 border-b border-gray-50">
-                    <div class="w-9 h-9 bg-indigo-100 rounded-xl flex items-center justify-center">
-                        <i class="fas fa-align-left text-indigo-600 text-sm"></i>
+            <div class="tw-card">
+                <div class="tw-section-head">
+                    <div style="width:36px;height:36px;background:#eef2ff;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+                        <i class="fas fa-align-left text-sm" style="color:#4f46e5"></i>
                     </div>
-                    <h2 class="text-sm font-semibold text-gray-800">Arıza Açıklaması</h2>
+                    <span class="font-semibold text-sm" style="color:#1e293b">Arıza Açıklaması</span>
                 </div>
-                <div class="px-6 py-5">
-                    <p class="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{{ $fault->description ?: '—' }}</p>
+                <div class="px-6 py-4">
+                    <p class="text-sm leading-relaxed m-0 whitespace-pre-wrap" style="color:#475569">{{ $fault->description ?: '—' }}</p>
                 </div>
             </div>
 
             {{-- Photo --}}
             @if($fault->image_path)
-            <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-                <div class="flex items-center gap-3 px-6 py-4 border-b border-gray-50">
-                    <div class="w-9 h-9 bg-blue-100 rounded-xl flex items-center justify-center">
-                        <i class="fas fa-image text-blue-600 text-sm"></i>
+            <div class="tw-card">
+                <div class="tw-section-head">
+                    <div style="width:36px;height:36px;background:#eff6ff;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+                        <i class="fas fa-image text-sm" style="color:#2563eb"></i>
                     </div>
-                    <h2 class="text-sm font-semibold text-gray-800">Arıza Fotoğrafı</h2>
+                    <span class="font-semibold text-sm" style="color:#1e293b">Arıza Fotoğrafı</span>
                 </div>
-                <div class="p-4 flex flex-col items-center gap-3">
-                    <a href="{{ asset('uploads/'.$fault->image_path) }}" target="_blank" class="block rounded-xl overflow-hidden border border-gray-100">
+                <div class="p-4 text-center">
+                    <a href="{{ asset('uploads/'.$fault->image_path) }}" target="_blank">
                         <img src="{{ asset('uploads/'.$fault->image_path) }}"
-                             class="max-h-80 object-contain w-full"
+                             class="rounded-xl border object-contain w-full" style="max-height:280px"
                              alt="Arıza fotoğrafı">
                     </a>
                     <a href="{{ asset('uploads/'.$fault->image_path) }}" target="_blank"
-                       class="inline-flex items-center gap-2 text-xs text-gray-500 hover:text-gray-700 no-underline">
+                       class="inline-flex items-center gap-1 text-xs no-underline mt-2" style="color:#94a3b8">
                         <i class="fas fa-external-link-alt text-xs"></i>Tam boyutta aç
                     </a>
                 </div>
@@ -187,191 +160,172 @@
             @endif
 
             {{-- Timeline --}}
-            <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-                <div class="flex items-center gap-3 px-6 py-4 border-b border-gray-50">
-                    <div class="w-9 h-9 bg-amber-100 rounded-xl flex items-center justify-center">
-                        <i class="fas fa-history text-amber-600 text-sm"></i>
+            <div class="tw-card">
+                <div class="tw-section-head">
+                    <div style="width:36px;height:36px;background:#fffbeb;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+                        <i class="fas fa-history text-sm" style="color:#d97706"></i>
                     </div>
-                    <h2 class="text-sm font-semibold text-gray-800">Güncelleme Geçmişi</h2>
-                    <span class="ml-auto text-xs bg-gray-100 text-gray-500 font-semibold px-2 py-0.5 rounded-full">
-                        {{ $fault->updates->count() }}
-                    </span>
+                    <span class="font-semibold text-sm" style="color:#1e293b">Güncelleme Geçmişi</span>
+                    <span class="ml-auto text-xs font-bold px-2 py-0.5 rounded-full" style="background:#f1f5f9;color:#64748b">{{ $fault->updates->count() }}</span>
                 </div>
-                <div class="divide-y divide-gray-50">
+                <div>
                     @forelse($fault->updates as $update)
                     @php
                         $hasChange = $update->status_from && $update->status_to && $update->status_from !== $update->status_to;
-                        $avatarBg  = $hasChange ? '#f59e0b' : '#94a3b8';
                         $fromMeta  = $statusMeta[$update->status_from] ?? null;
-                        $toMeta    = $statusMeta[$update->status_to] ?? null;
+                        $toMeta    = $statusMeta[$update->status_to]   ?? null;
                     @endphp
-                    <div class="flex gap-4 px-6 py-4 hover:bg-gray-50/50 transition-colors">
-                        <div class="w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0 mt-0.5"
-                             style="background:{{ $avatarBg }}">
+                    <div class="flex gap-4 px-6 py-4" style="border-bottom:1px solid #f8fafc">
+                        <div class="flex-shrink-0 flex items-center justify-center text-white text-xs font-bold"
+                             style="width:36px;height:36px;border-radius:50%;background:{{ $hasChange ? '#f59e0b' : '#cbd5e1' }}">
                             {{ strtoupper(substr($update->user?->name ?? '?', 0, 1)) }}
                         </div>
                         <div class="flex-1 min-w-0">
                             <div class="flex items-center justify-between gap-2 mb-1">
-                                <span class="text-sm font-semibold text-gray-800">{{ $update->user?->name ?? 'Sistem' }}</span>
-                                <span class="text-xs text-gray-400 flex-shrink-0">{{ $update->created_at->format('d.m.Y H:i') }}</span>
+                                <span class="text-sm font-semibold" style="color:#1e293b">{{ $update->user?->name ?? 'Sistem' }}</span>
+                                <span class="text-xs flex-shrink-0" style="color:#94a3b8">{{ $update->created_at->format('d.m.Y H:i') }}</span>
                             </div>
                             @if($hasChange && $fromMeta && $toMeta)
-                            <div class="flex items-center gap-2 mb-1.5">
-                                <span class="inline-flex items-center text-xs font-semibold px-2 py-0.5 rounded-full {{ $fromMeta['bg'] }} {{ $fromMeta['text'] }}">
-                                    {{ $fromMeta['label'] }}
-                                </span>
-                                <i class="fas fa-arrow-right text-gray-300 text-xs"></i>
-                                <span class="inline-flex items-center text-xs font-semibold px-2 py-0.5 rounded-full {{ $toMeta['bg'] }} {{ $toMeta['text'] }}">
-                                    {{ $toMeta['label'] }}
-                                </span>
+                            <div class="flex items-center gap-2 mb-1">
+                                <span class="inline-flex text-xs font-semibold px-2 py-0.5 rounded-full {{ $fromMeta['bg'] }} {{ $fromMeta['text'] }}">{{ $fromMeta['label'] }}</span>
+                                <i class="fas fa-arrow-right text-xs" style="color:#cbd5e1"></i>
+                                <span class="inline-flex text-xs font-semibold px-2 py-0.5 rounded-full {{ $toMeta['bg'] }} {{ $toMeta['text'] }}">{{ $toMeta['label'] }}</span>
                             </div>
                             @endif
-                            @if($update->note)
-                            <p class="text-sm text-gray-600 leading-relaxed">{{ $update->note }}</p>
-                            @endif
+                            @if($update->note)<p class="text-sm m-0" style="color:#64748b">{{ $update->note }}</p>@endif
                         </div>
                     </div>
                     @empty
-                    <div class="px-6 py-10 text-center text-gray-400 text-sm">
-                        <i class="fas fa-inbox text-2xl opacity-30 block mb-2"></i>
+                    <div class="py-10 text-center text-sm" style="color:#94a3b8">
+                        <i class="fas fa-inbox d-block mb-2 opacity-30" style="font-size:1.5rem"></i>
                         Henüz güncelleme kaydı yok.
                     </div>
                     @endforelse
                 </div>
             </div>
-
         </div>
 
-        {{-- RIGHT column --}}
-        <div class="lg:col-span-5 flex flex-col gap-5">
+        {{-- RIGHT --}}
+        <div style="display:flex;flex-direction:column;gap:1.25rem">
 
-            {{-- Status update / resolved badge --}}
+            {{-- Status update / closed badge --}}
             @if(!$isClosed)
-            <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-                <div class="flex items-center gap-3 px-6 py-4 border-b border-gray-50">
-                    <div class="w-9 h-9 bg-orange-100 rounded-xl flex items-center justify-center">
-                        <i class="fas fa-sync-alt text-orange-600 text-sm"></i>
+            <div class="tw-card overflow-hidden">
+                <div style="background:linear-gradient(135deg,#1e293b,#0f172a);padding:1rem 1.5rem;display:flex;align-items:center;gap:.75rem">
+                    <div style="width:36px;height:36px;background:rgba(245,158,11,.2);border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+                        <i class="fas fa-sync-alt text-sm" style="color:#fbbf24"></i>
                     </div>
-                    <h2 class="text-sm font-semibold text-gray-800">Durum Güncelle</h2>
+                    <span class="text-sm font-semibold text-white">Durum Güncelle</span>
                 </div>
-                <div class="px-6 py-5">
-                    <form action="{{ route('faults.updateStatus', $fault) }}" method="POST" class="space-y-4">
+                <div class="px-5 py-5">
+                    <form action="{{ route('faults.updateStatus', $fault) }}" method="POST">
                         @csrf
-                        <div>
-                            <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Yeni Durum</label>
-                            <div class="grid grid-cols-2 gap-2">
-                                @foreach(\App\Models\Fault::STATUSES as $val => $lbl)
-                                @if($val !== $fault->status && $val !== 'resolved')
-                                @php $opt = $statusMeta[$val] ?? []; @endphp
-                                <label class="flex items-center gap-2 p-2.5 rounded-xl border-2 cursor-pointer transition-all
-                                             {{ old('status') === $val ? 'border-blue-500 '.$opt['bg'] : 'border-gray-100 hover:border-gray-200' }}">
-                                    <input type="radio" name="status" value="{{ $val }}"
-                                           @checked(old('status') === $val)
-                                           class="accent-blue-600">
-                                    <span class="text-xs font-semibold {{ $opt['text'] ?? 'text-gray-700' }}">{{ $lbl }}</span>
-                                </label>
-                                @endif
-                                @endforeach
-                            </div>
-                        </div>
-                        <div>
-                            <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
-                                Not / Açıklama <span class="text-red-400">*</span>
+                        <label class="d-block text-xs font-bold uppercase tracking-wider mb-2" style="color:#94a3b8">Yeni Durum Seç</label>
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:.5rem;margin-bottom:1rem">
+                            @foreach($statusMeta as $val => $meta)
+                            @if($val !== $fault->status && !in_array($val, ['resolved']))
+                            <label class="status-option d-flex align-items-center gap-2 p-2 rounded-xl cursor-pointer"
+                                   style="border:2px solid #e8ecf0;background:#f8fafc;transition:all .2s;cursor:pointer"
+                                   data-stripe="{{ $meta['stripe'] }}">
+                                <input type="radio" name="status" value="{{ $val }}"
+                                       @checked(old('status') === $val) class="status-radio d-none">
+                                <i class="fas {{ $meta['icon'] }} text-xs flex-shrink-0" style="color:{{ $meta['stripe'] }}"></i>
+                                <span style="font-size:.75rem;font-weight:600;color:#374151">{{ $meta['label'] }}</span>
                             </label>
-                            <textarea name="note" rows="3"
-                                      class="w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 resize-none @error('note') border-red-400 @enderror"
-                                      placeholder="Durum değişikliği hakkında not...">{{ old('note') }}</textarea>
-                            @error('note')
-                            <p class="text-xs text-red-500 mt-1">{{ $message }}</p>
-                            @enderror
+                            @endif
+                            @endforeach
                         </div>
+                        <label class="d-block text-xs font-bold uppercase tracking-wider mb-2" style="color:#94a3b8">
+                            Not / Açıklama <span style="color:#ef4444">*</span>
+                        </label>
+                        <textarea name="note" rows="3"
+                                  class="w-full text-sm rounded-xl px-3 py-2.5 resize-none @error('note') border-red-400 @enderror"
+                                  style="width:100%;border:1px solid #e2e8f0;border-radius:.75rem;padding:.6rem .75rem;font-size:.85rem;outline:none;resize:none;margin-bottom:.75rem;box-sizing:border-box"
+                                  placeholder="Durum değişikliği hakkında not...">{{ old('note') }}</textarea>
+                        @error('note')<p class="text-xs mb-2" style="color:#ef4444">{{ $message }}</p>@enderror
                         <button type="submit"
-                                class="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white text-sm font-semibold py-2.5 rounded-xl transition-all shadow-sm">
-                            <i class="fas fa-check text-xs"></i>
-                            Durumu Güncelle
+                                class="d-flex align-items-center justify-content-center gap-2 text-sm font-bold py-2.5 rounded-xl text-white"
+                                style="width:100%;background:linear-gradient(135deg,#f59e0b,#d97706);border:none;padding:.65rem;border-radius:.75rem;font-weight:700;font-size:.85rem;color:#fff;cursor:pointer">
+                            <i class="fas fa-check text-xs"></i> Durumu Güncelle
                         </button>
                     </form>
                 </div>
             </div>
             @else
-            <div class="bg-white rounded-2xl border border-emerald-200 shadow-sm overflow-hidden">
-                <div class="flex flex-col items-center justify-center py-8 px-6 text-center">
-                    <div class="w-14 h-14 bg-emerald-100 rounded-full flex items-center justify-center mb-3">
-                        <i class="fas fa-check-double text-xl text-emerald-600"></i>
+            <div class="tw-card">
+                <div style="padding:2rem 1.5rem;text-align:center">
+                    <div style="width:60px;height:60px;border-radius:50%;background:{{ $sm['stripe'] }}18;display:flex;align-items:center;justify-content:center;margin:0 auto 1rem">
+                        <i class="fas {{ $sm['icon'] }}" style="font-size:1.5rem;color:{{ $sm['stripe'] }}"></i>
                     </div>
-                    <h3 class="font-bold text-gray-800 text-base">{{ \App\Models\Fault::STATUSES[$fault->status] }}</h3>
+                    <div class="font-bold text-base" style="color:#1e293b">{{ $sm['label'] }}</div>
                     @if($fault->resolved_at)
-                    <p class="text-sm text-gray-500 mt-1">
-                        Çözüm süresi: <strong class="text-emerald-600">{{ round($fault->resolutionTimeHours(), 1) }} saat</strong>
+                    <p class="text-sm mt-1 m-0" style="color:#64748b">
+                        Çözüm süresi: <strong style="color:#10b981">{{ round($fault->resolutionTimeHours(), 1) }} saat</strong>
                     </p>
                     @endif
                 </div>
             </div>
             @endif
 
-            {{-- Add comment --}}
-            <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-                <div class="flex items-center gap-3 px-6 py-4 border-b border-gray-50">
-                    <div class="w-9 h-9 bg-sky-100 rounded-xl flex items-center justify-center">
-                        <i class="fas fa-comment-dots text-sky-600 text-sm"></i>
+            {{-- Comment --}}
+            <div class="tw-card">
+                <div class="tw-section-head">
+                    <div style="width:36px;height:36px;background:#f0f9ff;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+                        <i class="fas fa-comment-dots text-sm" style="color:#0284c7"></i>
                     </div>
-                    <h2 class="text-sm font-semibold text-gray-800">Yorum / Not Ekle</h2>
+                    <span class="font-semibold text-sm" style="color:#1e293b">Yorum / Not Ekle</span>
                 </div>
-                <div class="px-6 py-5">
-                    <form action="{{ route('faults.addComment', $fault) }}" method="POST" class="space-y-3">
+                <div class="px-5 py-4">
+                    <form action="{{ route('faults.addComment', $fault) }}" method="POST">
                         @csrf
                         <textarea name="note" rows="3"
-                                  class="w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 resize-none"
+                                  style="width:100%;border:1px solid #e2e8f0;border-radius:.75rem;padding:.6rem .75rem;font-size:.85rem;outline:none;resize:none;margin-bottom:.75rem;box-sizing:border-box"
                                   placeholder="Arıza hakkında notunuzu yazın..."></textarea>
                         <button type="submit"
-                                class="w-full flex items-center justify-center gap-2 bg-sky-600 hover:bg-sky-700 text-white text-sm font-semibold py-2.5 rounded-xl transition-colors">
-                            <i class="fas fa-paper-plane text-xs"></i>
-                            Yorum Ekle
+                                style="width:100%;background:#0284c7;border:none;padding:.65rem;border-radius:.75rem;font-weight:700;font-size:.85rem;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:.4rem">
+                            <i class="fas fa-paper-plane text-xs"></i> Yorum Ekle
                         </button>
                     </form>
                 </div>
             </div>
 
-            {{-- Summary card --}}
-            <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-                <div class="flex items-center gap-3 px-6 py-4 border-b border-gray-50">
-                    <div class="w-9 h-9 bg-gray-100 rounded-xl flex items-center justify-center">
-                        <i class="fas fa-info-circle text-gray-500 text-sm"></i>
-                    </div>
-                    <h2 class="text-sm font-semibold text-gray-800">Özet Bilgiler</h2>
+            {{-- Summary --}}
+            <div class="tw-card overflow-hidden">
+                <div style="background:#1e293b;padding:.75rem 1.25rem;display:flex;align-items:center;gap:.5rem">
+                    <i class="fas fa-clipboard-list" style="color:#94a3b8;font-size:.75rem"></i>
+                    <span style="color:#94a3b8;font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em">Özet Bilgiler</span>
                 </div>
-                <div class="divide-y divide-gray-50">
-                    @php
-                    $rows = [
-                        ['label'=>'Arıza No',  'value'=>'#'.$fault->id, 'mono'=>true],
-                        ['label'=>'Öncelik',   'value'=>$pm['label'], 'badge'=>$pm['bg'].' '.$pm['text']],
-                        ['label'=>'Durum',     'value'=>$sm['label'],  'badge'=>$sm['bg'].' '.$sm['text']],
-                        ['label'=>'Şube',      'value'=>$fault->branch->name ?? '—'],
-                        ['label'=>'Departman', 'value'=>$fault->department->name ?? '—'],
-                        ['label'=>'Bildiren',  'value'=>$fault->reporter->name ?? '—'],
-                        ['label'=>'Kayıt',     'value'=>$fault->created_at->format('d.m.Y H:i')],
-                    ];
-                    if($fault->resolved_at) {
-                        $rows[] = ['label'=>'Çözüm Tarihi','value'=>\Carbon\Carbon::parse($fault->resolved_at)->format('d.m.Y H:i')];
-                        $rows[] = ['label'=>'Çözüm Süresi','value'=>round($fault->resolutionTimeHours(),1).' saat','green'=>true];
-                    }
-                    $rows[] = ['label'=>'Güncellemeler','value'=>$fault->updates->count().' adet'];
-                    @endphp
-                    @foreach($rows as $row)
-                    <div class="flex items-center justify-between px-6 py-3">
-                        <span class="text-xs text-gray-400 font-medium">{{ $row['label'] }}</span>
-                        @if(isset($row['badge']))
-                        <span class="inline-flex text-xs font-semibold px-2 py-0.5 rounded-full {{ $row['badge'] }}">{{ $row['value'] }}</span>
-                        @elseif(isset($row['mono']))
-                        <span class="font-mono text-sm font-bold text-gray-700">{{ $row['value'] }}</span>
-                        @elseif(isset($row['green']))
-                        <span class="text-sm font-bold text-emerald-600">{{ $row['value'] }}</span>
-                        @else
-                        <span class="text-sm font-medium text-gray-700">{{ $row['value'] }}</span>
-                        @endif
-                    </div>
-                    @endforeach
+                @php
+                $infoRows = [
+                    ['label'=>'Arıza No',    'value'=>'#'.$fault->id,                  'type'=>'mono'],
+                    ['label'=>'Öncelik',     'value'=>$pm['label'],                    'type'=>'badge','cls'=>$pm['bg'].' '.$pm['text']],
+                    ['label'=>'Durum',       'value'=>$sm['label'],                    'type'=>'badge','cls'=>$sm['bg'].' '.$sm['text']],
+                    ['label'=>'Şube',        'value'=>$fault->branch->name ?? '—'],
+                    ['label'=>'Departman',   'value'=>$fault->department->name ?? '—'],
+                    ['label'=>'Konum',       'value'=>$fault->faultLocation ? ($fault->faultLocation->name.($fault->faultArea ? ' / '.$fault->faultArea->name : '')) : '—'],
+                    ['label'=>'Bildiren',    'value'=>$fault->reporter->name ?? '—'],
+                    ['label'=>'Kayıt',       'value'=>$fault->created_at->format('d.m.Y H:i')],
+                ];
+                if ($fault->resolved_at) {
+                    $infoRows[] = ['label'=>'Çözüm Tarihi','value'=>\Carbon\Carbon::parse($fault->resolved_at)->format('d.m.Y H:i')];
+                    $infoRows[] = ['label'=>'Çözüm Süresi','value'=>round($fault->resolutionTimeHours(),1).' saat','type'=>'green'];
+                }
+                $infoRows[] = ['label'=>'Güncellemeler','value'=>$fault->updates->count().' adet'];
+                @endphp
+                @foreach($infoRows as $row)
+                <div style="display:flex;align-items:center;justify-content:space-between;padding:.6rem 1.25rem;border-bottom:1px solid #f1f5f9">
+                    <span style="font-size:.75rem;font-weight:500;color:#94a3b8">{{ $row['label'] }}</span>
+                    @if(($row['type'] ?? '') === 'badge')
+                    <span class="text-xs font-bold px-2 py-0.5 rounded-full {{ $row['cls'] }}">{{ $row['value'] }}</span>
+                    @elseif(($row['type'] ?? '') === 'mono')
+                    <span style="font-family:monospace;font-size:.85rem;font-weight:700;color:#1e293b">{{ $row['value'] }}</span>
+                    @elseif(($row['type'] ?? '') === 'green')
+                    <span style="font-size:.85rem;font-weight:700;color:#10b981">{{ $row['value'] }}</span>
+                    @else
+                    <span style="font-size:.82rem;font-weight:500;color:#334155">{{ $row['value'] }}</span>
+                    @endif
                 </div>
+                @endforeach
             </div>
 
         </div>
@@ -394,15 +348,21 @@ document.getElementById('deleteBtn')?.addEventListener('click', function () {
         if (result.isConfirmed) document.getElementById('deleteForm').submit();
     });
 });
-// Highlight selected status radio
-document.querySelectorAll('input[name="status"]').forEach(radio => {
+document.querySelectorAll('.status-radio').forEach(function(radio) {
     radio.addEventListener('change', function() {
-        document.querySelectorAll('input[name="status"]').forEach(r => {
-            r.closest('label').classList.remove('border-blue-500');
+        document.querySelectorAll('.status-option').forEach(function(opt) {
+            opt.style.borderColor = '#e8ecf0';
+            opt.style.background  = '#f8fafc';
         });
-        this.closest('label').classList.add('border-blue-500');
+        var label = this.closest('.status-option');
+        if (label) {
+            label.style.borderColor = label.dataset.stripe;
+            label.style.background  = label.dataset.stripe + '18';
+        }
     });
+    if (this.checked) this.dispatchEvent(new Event('change'));
 });
 </script>
 @endpush
 @endsection
+

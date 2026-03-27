@@ -9,7 +9,7 @@ class Fault extends Model
     protected $fillable = [
         'branch_id', 'reported_by', 'assigned_department_id',
         'fault_type_id', 'fault_location_id', 'fault_area_id',
-        'title', 'description', 'image_path', 'status',
+        'title', 'description', 'image_path', 'status', 'priority',
         'resolved_at', 'closed_at',
     ];
 
@@ -19,17 +19,19 @@ class Fault extends Model
     ];
 
     const PRIORITIES = [
-        'low'      => 'Düşük',
+        'low'      => 'Normal',
         'medium'   => 'Orta',
-        'high'     => 'Yüksek',
+        'high'     => 'Acil',
         'critical' => 'Kritik',
     ];
 
     const STATUSES = [
-        'open'        => 'Açık',
-        'in_progress' => 'İşlemde',
-        'resolved'    => 'Çözüldü',
-        'closed'      => 'Kapalı',
+        'open'             => 'Açık',
+        'in_progress'      => 'İşlemde',
+        'winter_plan'      => 'Kış Planı',
+        'waiting_material' => 'Malzeme Bekliyor',
+        'resolved'         => 'Çözüldü',
+        'closed'           => 'Kapalı',
     ];
 
     const PRIORITY_COLORS = [
@@ -40,10 +42,12 @@ class Fault extends Model
     ];
 
     const STATUS_COLORS = [
-        'open'        => 'danger',
-        'in_progress' => 'warning',
-        'resolved'    => 'success',
-        'closed'      => 'secondary',
+        'open'             => 'danger',
+        'in_progress'      => 'warning',
+        'winter_plan'      => 'info',
+        'waiting_material' => 'primary',
+        'resolved'         => 'success',
+        'closed'           => 'secondary',
     ];
 
     public function branch()      { return $this->belongsTo(Branch::class); }

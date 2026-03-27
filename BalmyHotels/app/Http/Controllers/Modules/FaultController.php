@@ -122,6 +122,7 @@ class FaultController extends BaseModuleController
             'fault_type_id'          => 'required|exists:fault_types,id',
             'fault_location_id'      => 'required|exists:fault_locations,id',
             'fault_area_id'          => 'nullable|exists:fault_areas,id',
+            'priority'               => 'required|in:low,medium,high,critical',
             'description'            => 'required|string',
             'image'                  => 'nullable|image|max:4096',
         ]);
@@ -152,6 +153,7 @@ class FaultController extends BaseModuleController
             'title'                  => $faultType->name,
             'description'            => $request->description,
             'image_path'             => $imagePath,
+            'priority'               => $request->priority ?? 'medium',
             'status'                 => 'open',
         ]);
 
@@ -325,7 +327,7 @@ class FaultController extends BaseModuleController
     public function updateStatus(Request $request, Fault $fault)
     {
         $request->validate([
-            'status' => 'required|in:open,in_progress,closed',
+            'status' => 'required|in:open,in_progress,winter_plan,waiting_material,closed',
             'note'   => 'required|string|max:1000',
         ]);
 
@@ -552,10 +554,86 @@ class FaultController extends BaseModuleController
             })->sortByDesc('total')->values()
             : null;
 
+        // Detaylı Konum × Tür tablosu
+        $locationTypeStats = $allFaults->groupBy('fault_location_id')
+            ->map(function ($locFaults) {
+                $locName = $locFaults->first()->faultLocation?->name ?? 'Belirtilmemiş';
+                $byType  = $locFaults->groupBy('fault_type_id')
+                    ->map(function ($tFaults) {
+                        $typeName = $tFaults->first()->faultType?->name ?? '—';
+                        return [
+                            'type_name' => $typeName,
+                            'total'     => $tFaults->count(),
+                            'open'      => $tFaults->where('status', 'open')->count(),
+                            'closed'    => $tFaults->whereIn('status', ['resolved', 'closed'])->count(),
+                        ];
+                    })->sortByDesc('total')->values();
+                $topType = $byType->first()['type_name'] ?? '—';
+                return [
+                    'location'   => $locName,
+                    'total'      => $locFaults->count(),
+                    'open'       => $locFaults->where('status', 'open')->count(),
+                    'closed'     => $locFaults->whereIn('status', ['resolved', 'closed'])->count(),
+                    'top_type'   => $topType,
+                    'by_type'    => $byType,
+                ];
+            })->sortByDesc('total')->values();
+
+        // Detaylı Alan × Tür tablosu
+        $areaTypeStats = $allFaults->filter(fn($f) => $f->fault_area_id)
+            ->groupBy('fault_area_id')
+            ->map(function ($aFaults) {
+                $areaName = $aFaults->first()->faultArea?->name ?? '—';
+                $locName  = $aFaults->first()->faultLocation?->name ?? '—';
+                $topType  = $aFaults->groupBy('fault_type_id')
+                    ->map(fn($g) => ['name' => $g->first()->faultType?->name ?? '—', 'count' => $g->count()])
+                    ->sortByDesc('count')->first()['name'] ?? '—';
+                return [
+                    'area'     => $areaName,
+                    'location' => $locName,
+                    'total'    => $aFaults->count(),
+                    'open'     => $aFaults->where('status', 'open')->count(),
+                    'closed'   => $aFaults->whereIn('status', ['resolved', 'closed'])->count(),
+                    'top_type' => $topType,
+                ];
+            })->sortByDesc('total')->values();
+
+        // Departman aylık çözüm süreleri (son 12 ay)
+        $deptMonthlyResolution = Fault::with(['department', 'faultType'])
+            ->whereIn('branch_id', $branchIds)
+            ->whereNotNull('resolved_at')
+            ->where('created_at', '>=', now()->subMonths(12))
+            ->get()
+            ->groupBy('assigned_department_id')
+            ->map(function ($faults) {
+                $dept = $faults->first()->department;
+                $monthly = $faults->groupBy(fn($f) => $f->created_at->format('Y-m'))
+                    ->map(fn($g, $m) => [
+                        'month'     => $m,
+                        'avg_hours' => round($g->avg(fn($f) => $f->created_at->diffInHours($f->resolved_at)), 1),
+                        'count'     => $g->count(),
+                    ])->sortKeys()->values();
+                return [
+                    'dept'    => $dept,
+                    'monthly' => $monthly,
+                ];
+            })->values();
+
+        // Öncelik bazında dağılım
+        $priorityStats = $allFaults->groupBy('priority')
+            ->map(fn($g, $k) => [
+                'priority' => $k,
+                'label'    => \App\Models\Fault::PRIORITIES[$k] ?? $k,
+                'total'    => $g->count(),
+                'open'     => $g->where('status', 'open')->count(),
+                'closed'   => $g->whereIn('status', ['resolved', 'closed'])->count(),
+            ])->sortByDesc('total')->values();
+
         $page_title = 'Arıza İstatistikleri';
         return view('modules.faults.stats', compact(
             'summary', 'deptScoreboard', 'typeStats',
             'locationStats', 'areaStats', 'monthlyTrend', 'branchStats',
+            'locationTypeStats', 'areaTypeStats', 'deptMonthlyResolution', 'priorityStats',
             'period', 'page_title'
         ));
     }
