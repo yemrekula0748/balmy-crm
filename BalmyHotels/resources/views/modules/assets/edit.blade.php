@@ -48,6 +48,16 @@
                                 </select>
                                 @error('branch_id')<div class="invalid-feedback">{{ $message }}</div>@enderror
                             </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-semibold">Departman</label>
+                                <select name="department_id" class="form-select @error('department_id') is-invalid @enderror">
+                                    <option value="">— Seçin (opsiyonel) —</option>
+                                    @foreach($departments as $d)
+                                        <option value="{{ $d->id }}" @selected(old('department_id', $asset->department_id) == $d->id)>{{ $d->name }}</option>
+                                    @endforeach
+                                </select>
+                                @error('department_id')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                            </div>
                             <div class="col-md-8">
                                 <label class="form-label fw-semibold">Demirbaş Adı <span class="text-danger">*</span></label>
                                 <input type="text" name="name" class="form-control" value="{{ old('name', $asset->name) }}">

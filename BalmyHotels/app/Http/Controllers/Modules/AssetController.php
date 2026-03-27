@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Asset;
 use App\Models\AssetCategory;
 use App\Models\Branch;
+use App\Models\Department;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 
@@ -26,7 +27,16 @@ class AssetController extends BaseModuleController
 
     public function index(Request $request)
     {
-        $query = Asset::with(['category', 'branch'])->latest();
+        $user         = auth()->user();
+        $isSuperAdmin = $user->isSuperAdmin();
+        $deptId       = $user->department_id;
+
+        $query = Asset::with(['category', 'branch', 'department'])->latest();
+
+        // Departman filtresi: super admin değilse yalnızca kendi departmanı
+        if (!$isSuperAdmin && $deptId) {
+            $query->where('department_id', $deptId);
+        }
 
         if ($request->branch_id) {
             $query->where('branch_id', $request->branch_id);
@@ -51,16 +61,20 @@ class AssetController extends BaseModuleController
         $branches   = Branch::orderBy('name')->get();
         $categories = AssetCategory::orderBy('name')->get();
 
-        // İstatistikler
+        // İstatistikler — departman filtreli
+        $statsBase = (!$isSuperAdmin && $deptId)
+            ? Asset::where('department_id', $deptId)
+            : Asset::query();
+
         $stats = [
-            'total'       => Asset::count(),
-            'available'   => Asset::where('status', 'available')->count(),
-            'in_use'      => Asset::where('status', 'in_use')->count(),
-            'maintenance' => Asset::where('status', 'maintenance')->count(),
-            'retired'     => Asset::where('status', 'retired')->count(),
+            'total'       => (clone $statsBase)->count(),
+            'available'   => (clone $statsBase)->where('status', 'available')->count(),
+            'in_use'      => (clone $statsBase)->where('status', 'in_use')->count(),
+            'maintenance' => (clone $statsBase)->where('status', 'maintenance')->count(),
+            'retired'     => (clone $statsBase)->where('status', 'retired')->count(),
         ];
 
-        $page_title = 'Demirbaş Yönetimi';
+        $page_title = $isSuperAdmin ? 'Demirbaş Yönetimi' : 'Demirbaşlarım';
 
         return view('modules.assets.index', compact(
             'assets', 'branches', 'categories', 'stats', 'page_title'
@@ -84,13 +98,17 @@ class AssetController extends BaseModuleController
 
         $lockedBranchId = $isSuperAdmin ? null : $user->branch_id;
 
+        // Departmanlar
+        $departments      = Department::orderBy('name')->get();
+        $lockedDeptId     = $isSuperAdmin ? null : $user->department_id;
+
         $page_title  = 'Demirbaş Ekle';
         $nextCode    = Asset::generateCode();
         $showSubSelect = false;
 
         return view('modules.assets.create', compact(
-            'categories', 'branches', 'page_title', 'nextCode',
-            'showSubSelect', 'isSuperAdmin', 'lockedBranchId'
+            'categories', 'branches', 'departments', 'lockedDeptId',
+            'page_title', 'nextCode', 'showSubSelect', 'isSuperAdmin', 'lockedBranchId'
         ));
     }
 
@@ -145,10 +163,16 @@ class AssetController extends BaseModuleController
             ? $request->branch_id
             : auth()->user()->branch_id;
 
+        // Departman kilidi: super admin değilse kendi departmanını zorla
+        $deptId = auth()->user()->isSuperAdmin()
+            ? ($request->department_id ?: null)
+            : auth()->user()->department_id;
+
         $asset = Asset::create([
             'asset_code'    => strtoupper($request->asset_code),
             'category_id'   => $request->category_id,
             'branch_id'     => $branchId,
+            'department_id' => $deptId,
             'name'          => $request->name,
             'description'   => $request->description,
             'location'      => $request->location,
@@ -188,13 +212,14 @@ class AssetController extends BaseModuleController
 
     public function edit(Asset $asset)
     {
-        $categories = AssetCategory::whereNull('parent_id')
+        $categories  = AssetCategory::whereNull('parent_id')
             ->withCount('children')
             ->orderBy('name')
             ->get();
-        $branches   = Branch::orderBy('name')->get();
-        $page_title = 'Demirbaş Düzenle';
-        return view('modules.assets.edit', compact('asset', 'categories', 'branches', 'page_title'));
+        $branches    = Branch::orderBy('name')->get();
+        $departments = Department::orderBy('name')->get();
+        $page_title  = 'Demirbaş Düzenle';
+        return view('modules.assets.edit', compact('asset', 'categories', 'branches', 'departments', 'page_title'));
     }
 
     public function update(Request $request, Asset $asset)
@@ -266,6 +291,7 @@ class AssetController extends BaseModuleController
             'asset_code'    => strtoupper($request->asset_code),
             'category_id'   => $request->category_id,
             'branch_id'     => $request->branch_id,
+            'department_id' => $request->department_id ?: null,
             'name'          => $request->name,
             'description'   => $request->description,
             'location'      => $request->location,

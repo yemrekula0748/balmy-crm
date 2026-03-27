@@ -1,11 +1,22 @@
 @extends('layouts.default')
 
+@push('styles')
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+    /* Tailwind reset için Bootstrap çakışmalarını önle */
+    .tw-scope { all: initial; display: block; }
+    .tw-scope *, .tw-scope *::before, .tw-scope *::after { box-sizing: border-box; }
+</style>
+@endpush
+
 @section('content')
 <div class="container-fluid">
-    <div class="row page-titles mx-0">
+    {{-- Breadcrumb (Bootstrap) --}}
+    <div class="row page-titles mx-0 mb-0">
         <div class="col-sm-6 p-md-0">
             <div class="welcome-text">
-                <h4><i class="fas fa-chart-bar me-2 text-primary"></i>Departmanım
+                <h4>
+                    <i class="fas fa-chart-bar me-2 text-primary"></i>Departmanım
                     @if($dept)<small class="text-muted fs-6"> — {{ $dept->name }}</small>@endif
                 </h4>
             </div>
@@ -20,127 +31,240 @@
     </div>
 
     @if(!$dept)
-    <div class="alert alert-warning">Herhangi bir departmana atanmamışsınız.</div>
+    <div class="alert alert-warning mt-3">Herhangi bir departmana atanmamışsınız.</div>
     @else
+    @endif
+</div>
 
-    {{-- Özet Kartlar --}}
-    <div class="row g-3 mb-4">
+{{-- Main content in Tailwind --}}
+@if($dept)
+<div class="px-4 pb-8 font-sans" style="font-family: 'Inter', system-ui, -apple-system, sans-serif;">
+
+    {{-- Hero Banner --}}
+    <div class="relative overflow-hidden rounded-2xl mb-6 shadow-lg"
+         style="background: linear-gradient(135deg, #1e3a5f 0%, #2563eb 60%, #3b82f6 100%);">
+        <div class="absolute inset-0 opacity-10"
+             style="background-image: url('data:image/svg+xml,<svg xmlns=&quot;http://www.w3.org/2000/svg&quot; viewBox=&quot;0 0 100 100&quot;><circle cx=&quot;80&quot; cy=&quot;20&quot; r=&quot;40&quot; fill=&quot;white&quot;/><circle cx=&quot;10&quot; cy=&quot;80&quot; r=&quot;30&quot; fill=&quot;white&quot;/></svg>');">
+        </div>
+        <div class="relative flex items-center justify-between px-8 py-6">
+            <div>
+                <p class="text-blue-200 text-sm font-medium tracking-widest uppercase mb-1">Teknik Arıza Merkezi</p>
+                <h1 class="text-white text-2xl font-bold tracking-tight">{{ $dept->name }}</h1>
+                <p class="text-blue-200 text-sm mt-1">Departman performans özeti ve istatistikleri</p>
+            </div>
+            <div class="hidden md:flex items-center gap-3">
+                <a href="{{ route('faults.incoming') }}"
+                   class="flex items-center gap-2 bg-white/15 hover:bg-white/25 text-white text-sm font-medium px-4 py-2.5 rounded-xl transition-all duration-200 backdrop-blur-sm border border-white/20 no-underline">
+                    <i class="fas fa-inbox text-xs"></i>
+                    Gelen Arızalar
+                </a>
+                <a href="{{ route('faults.create') }}"
+                   class="flex items-center gap-2 bg-white text-blue-700 hover:bg-blue-50 text-sm font-medium px-4 py-2.5 rounded-xl transition-all duration-200 shadow no-underline">
+                    <i class="fas fa-plus text-xs"></i>
+                    Arıza Bildir
+                </a>
+            </div>
+        </div>
+    </div>
+
+    {{-- KPI Cards --}}
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
         @php
-        $cards = [
-            ['label'=>'Açık',       'key'=>'open',        'color'=>'danger',  'icon'=>'fa-exclamation-circle'],
-            ['label'=>'Devam Eden', 'key'=>'in_progress',  'color'=>'warning', 'icon'=>'fa-tools'],
-            ['label'=>'Kapalı',     'key'=>'closed',       'color'=>'success', 'icon'=>'fa-check-double'],
+        $kpis = [
+            [
+                'label'   => 'Açık',
+                'key'     => 'open',
+                'icon'    => 'fa-exclamation-circle',
+                'bg'      => 'bg-red-50',
+                'icon_bg' => 'bg-red-100',
+                'icon_cl' => 'text-red-500',
+                'num_cl'  => 'text-red-600',
+                'border'  => 'border-red-200',
+            ],
+            [
+                'label'   => 'Devam Eden',
+                'key'     => 'in_progress',
+                'icon'    => 'fa-tools',
+                'bg'      => 'bg-amber-50',
+                'icon_bg' => 'bg-amber-100',
+                'icon_cl' => 'text-amber-500',
+                'num_cl'  => 'text-amber-600',
+                'border'  => 'border-amber-200',
+            ],
+            [
+                'label'   => 'Çözüldü',
+                'key'     => 'resolved',
+                'icon'    => 'fa-check-circle',
+                'bg'      => 'bg-emerald-50',
+                'icon_bg' => 'bg-emerald-100',
+                'icon_cl' => 'text-emerald-500',
+                'num_cl'  => 'text-emerald-600',
+                'border'  => 'border-emerald-200',
+            ],
+            [
+                'label'   => 'Kapalı',
+                'key'     => 'closed',
+                'icon'    => 'fa-check-double',
+                'bg'      => 'bg-slate-50',
+                'icon_bg' => 'bg-slate-100',
+                'icon_cl' => 'text-slate-500',
+                'num_cl'  => 'text-slate-600',
+                'border'  => 'border-slate-200',
+            ],
         ];
         @endphp
-        @foreach($cards as $c)
-        <div class="col-6 col-md-3">
-            <div class="card border-bottom border-4 border-{{ $c['color'] }}">
-                <div class="card-body text-center py-3">
-                    <i class="fas {{ $c['icon'] }} fa-2x text-{{ $c['color'] }} mb-2 d-block"></i>
-                    <h3 class="fw-bold mb-0">{{ $totals[$c['key']] ?? 0 }}</h3>
-                    <small class="text-muted">{{ $c['label'] }}</small>
-                </div>
+
+        @foreach($kpis as $kpi)
+        <div class="rounded-2xl border {{ $kpi['bg'] }} {{ $kpi['border'] }} p-5 flex items-center gap-4 shadow-sm hover:shadow-md transition-shadow duration-200">
+            <div class="w-12 h-12 rounded-xl {{ $kpi['icon_bg'] }} flex items-center justify-center flex-shrink-0">
+                <i class="fas {{ $kpi['icon'] }} text-lg {{ $kpi['icon_cl'] }}"></i>
+            </div>
+            <div>
+                <div class="text-2xl font-bold {{ $kpi['num_cl'] }} leading-none">{{ $totals[$kpi['key']] ?? 0 }}</div>
+                <div class="text-xs text-gray-500 font-medium mt-1">{{ $kpi['label'] }}</div>
             </div>
         </div>
         @endforeach
     </div>
 
-    <div class="row g-3 align-items-start">
-        {{-- Arıza Türü Performans --}}
-        <div class="col-lg-7">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="card-title mb-0"><i class="fas fa-tachometer-alt me-2 text-primary"></i>Arıza Türü Performansı</h5>
-                </div>
-                <div class="card-body p-0">
-                    <div class="table-responsive">
-                        <table class="table table-hover align-middle mb-0">
-                            <thead class="table-light">
-                                <tr>
-                                    <th>Arıza Türü</th>
-                                    <th class="text-center">Toplam</th>
-                                    <th class="text-center">Hedef (sa)</th>
-                                    <th class="text-center">Ort. Süre (sa)</th>
-                                    <th class="text-center">Zamanında</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @forelse($typePerformance as $row)
-                                @php
-                                    $onTime = $row['on_time_pct'] ?? 0;
-                                    $barColor = $onTime >= 80 ? 'success' : ($onTime >= 50 ? 'warning' : 'danger');
-                                @endphp
-                                <tr>
-                                    <td>{{ $row['type_name'] }}</td>
-                                    <td class="text-center">{{ $row['total'] }}</td>
-                                    <td class="text-center">{{ $row['target_hours'] }}</td>
-                                    <td class="text-center">
-                                        @if($row['avg_hours'])
-                                            <span class="fw-semibold text-{{ $row['avg_hours'] <= $row['target_hours'] ? 'success' : 'danger' }}">
-                                                {{ number_format($row['avg_hours'], 1) }}
-                                            </span>
-                                        @else
-                                            <span class="text-muted">—</span>
-                                        @endif
-                                    </td>
-                                    <td class="text-center" style="min-width:100px">
-                                        <div class="progress" style="height:6px;margin-bottom:2px">
-                                            <div class="progress-bar bg-{{ $barColor }}" style="width:{{ $onTime }}%"></div>
-                                        </div>
-                                        <small class="text-{{ $barColor }}">%{{ number_format($onTime, 0) }}</small>
-                                    </td>
-                                </tr>
-                                @empty
-                                <tr><td colspan="5" class="text-center text-muted py-4">Henüz kaydedilmiş arıza yok.</td></tr>
-                                @endforelse
-                            </tbody>
-                        </table>
+    {{-- Avg resolution time banner --}}
+    @if($avgResolutionHours ?? null)
+    <div class="flex items-center gap-3 bg-blue-50 border border-blue-200 rounded-xl px-5 py-3 mb-6">
+        <div class="w-9 h-9 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
+            <i class="fas fa-clock text-blue-500 text-sm"></i>
+        </div>
+        <span class="text-sm text-blue-700">
+            Kapalı arızalarda ortalama çözüm süresi:
+            <strong class="font-semibold">{{ number_format($avgResolutionHours, 1) }} saat</strong>
+        </span>
+    </div>
+    @endif
+
+    {{-- Main grid --}}
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
+
+        {{-- Performance table --}}
+        <div class="lg:col-span-7">
+            <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+                    <div class="flex items-center gap-3">
+                        <div class="w-9 h-9 bg-indigo-100 rounded-xl flex items-center justify-center">
+                            <i class="fas fa-tachometer-alt text-indigo-600 text-sm"></i>
+                        </div>
+                        <h2 class="text-sm font-semibold text-gray-800 tracking-tight">Arıza Türü Performansı</h2>
                     </div>
                 </div>
-                @if($avgResolutionHours ?? null)
-                <div class="card-footer text-muted small">
-                    <i class="fas fa-clock me-1"></i> Kapalı arızalarda ortalama çözüm süresi:
-                    <strong>{{ number_format($avgResolutionHours ?? 0, 1) }} saat</strong>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm">
+                        <thead>
+                            <tr class="bg-gray-50/70">
+                                <th class="text-left text-xs font-semibold text-gray-400 uppercase tracking-wider px-5 py-3">Arıza Türü</th>
+                                <th class="text-center text-xs font-semibold text-gray-400 uppercase tracking-wider px-3 py-3">Toplam</th>
+                                <th class="text-center text-xs font-semibold text-gray-400 uppercase tracking-wider px-3 py-3">Hedef (sa)</th>
+                                <th class="text-center text-xs font-semibold text-gray-400 uppercase tracking-wider px-3 py-3">Ort. Süre</th>
+                                <th class="text-center text-xs font-semibold text-gray-400 uppercase tracking-wider px-5 py-3" style="min-width:130px">Zamanında</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-50">
+                            @forelse($typePerformance as $row)
+                            @php
+                                $pct      = $row['on_time_pct'] ?? 0;
+                                $barCl    = $pct >= 80 ? 'bg-emerald-500' : ($pct >= 50 ? 'bg-amber-400' : 'bg-red-400');
+                                $textCl   = $pct >= 80 ? 'text-emerald-600' : ($pct >= 50 ? 'text-amber-600' : 'text-red-500');
+                                $overTime = isset($row['avg_hours']) && $row['avg_hours'] > $row['target_hours'];
+                            @endphp
+                            <tr class="hover:bg-gray-50/60 transition-colors duration-100">
+                                <td class="px-5 py-3.5">
+                                    <span class="font-medium text-gray-800 text-sm">{{ $row['type_name'] }}</span>
+                                </td>
+                                <td class="px-3 py-3.5 text-center">
+                                    <span class="inline-flex items-center justify-center w-7 h-7 rounded-full bg-gray-100 text-gray-600 text-xs font-bold">{{ $row['total'] }}</span>
+                                </td>
+                                <td class="px-3 py-3.5 text-center text-xs text-gray-500 font-medium">{{ $row['target_hours'] }}sa</td>
+                                <td class="px-3 py-3.5 text-center">
+                                    @if(isset($row['avg_hours']) && $row['avg_hours'])
+                                        <span class="text-xs font-bold {{ $overTime ? 'text-red-500' : 'text-emerald-600' }}">
+                                            {{ number_format($row['avg_hours'], 1) }}sa
+                                        </span>
+                                    @else
+                                        <span class="text-gray-300 text-xs">—</span>
+                                    @endif
+                                </td>
+                                <td class="px-5 py-3.5">
+                                    <div class="flex items-center gap-2">
+                                        <div class="flex-1 bg-gray-100 rounded-full h-1.5 overflow-hidden">
+                                            <div class="{{ $barCl }} h-1.5 rounded-full transition-all duration-500"
+                                                 style="width:{{ $pct }}%"></div>
+                                        </div>
+                                        <span class="text-xs font-bold {{ $textCl }} w-9 text-right">%{{ number_format($pct, 0) }}</span>
+                                    </div>
+                                </td>
+                            </tr>
+                            @empty
+                            <tr>
+                                <td colspan="5" class="px-5 py-10 text-center text-gray-400 text-sm">
+                                    <i class="fas fa-inbox text-2xl opacity-30 block mb-2"></i>
+                                    Henüz kaydedilmiş arıza yok.
+                                </td>
+                            </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
                 </div>
-                @endif
             </div>
         </div>
 
-        {{-- Aylık Eğilim + Tür Dağılımı --}}
-        <div class="col-lg-5">
-            {{-- Aylık Eğilim --}}
-            <div class="card mb-3">
-                <div class="card-header">
-                    <h5 class="card-title mb-0"><i class="fas fa-calendar-alt me-2 text-primary"></i>Aylık Eğilim (Son 6 Ay)</h5>
-                </div>
-                <div class="card-body">
-                    <div style="position:relative;height:200px">
-                        <canvas id="monthlyChart"></canvas>
+        {{-- Right column --}}
+        <div class="lg:col-span-5 flex flex-col gap-5">
+
+            {{-- Monthly Trend Chart --}}
+            <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                <div class="flex items-center gap-3 px-6 py-4 border-b border-gray-100">
+                    <div class="w-9 h-9 bg-blue-100 rounded-xl flex items-center justify-center">
+                        <i class="fas fa-chart-bar text-blue-600 text-sm"></i>
                     </div>
+                    <h2 class="text-sm font-semibold text-gray-800 tracking-tight">Aylık Eğilim — Son 6 Ay</h2>
+                </div>
+                <div class="px-4 py-4" style="position:relative;height:200px">
+                    <canvas id="monthlyChart"></canvas>
                 </div>
             </div>
 
-            {{-- Türe Göre Dağılım --}}
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="card-title mb-0"><i class="fas fa-tags me-2 text-primary"></i>Türe Göre Dağılım</h5>
+            {{-- Type Distribution --}}
+            <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                <div class="flex items-center gap-3 px-6 py-4 border-b border-gray-100">
+                    <div class="w-9 h-9 bg-violet-100 rounded-xl flex items-center justify-center">
+                        <i class="fas fa-tags text-violet-600 text-sm"></i>
+                    </div>
+                    <h2 class="text-sm font-semibold text-gray-800 tracking-tight">Türe Göre Dağılım</h2>
                 </div>
-                <div class="card-body">
-                    @forelse($byType as $typeRow)
-                    <div class="d-flex justify-content-between align-items-center mb-2">
-                        <span class="text-muted small">{{ $typeRow['type_name'] }}</span>
-                        <span class="badge bg-secondary">{{ $typeRow['count'] }}</span>
+                <div class="px-5 py-4 space-y-3">
+                    @php
+                        $typeMax = $byType->max('count') ?: 1;
+                        $palette = ['bg-blue-500','bg-violet-500','bg-emerald-500','bg-amber-500','bg-rose-500','bg-cyan-500','bg-indigo-500'];
+                    @endphp
+                    @forelse($byType as $i => $typeRow)
+                    @php $width = round($typeRow['count'] / $typeMax * 100); $color = $palette[$i % count($palette)]; @endphp
+                    <div>
+                        <div class="flex justify-between items-center mb-1">
+                            <span class="text-xs font-medium text-gray-600 truncate max-w-[60%]">{{ $typeRow['type_name'] }}</span>
+                            <span class="text-xs font-bold text-gray-700">{{ $typeRow['count'] }}</span>
+                        </div>
+                        <div class="bg-gray-100 rounded-full h-1.5 overflow-hidden">
+                            <div class="{{ $color }} h-1.5 rounded-full" style="width:{{ $width }}%"></div>
+                        </div>
                     </div>
                     @empty
-                    <p class="text-muted text-center small">Veri yok.</p>
+                    <p class="text-center text-sm text-gray-400 py-4">Veri yok.</p>
                     @endforelse
                 </div>
             </div>
+
         </div>
     </div>
-
-    @endif
 </div>
+@endif
+
 @endsection
 
 @push('scripts')
@@ -158,21 +282,44 @@
             datasets: [{
                 label: 'Arıza Sayısı',
                 data: counts,
-                backgroundColor: 'rgba(99,120,255,0.6)',
-                borderColor: '#6378ff',
-                borderWidth: 1,
-                borderRadius: 4
+                backgroundColor: 'rgba(37,99,235,0.15)',
+                borderColor: '#2563eb',
+                borderWidth: 1.5,
+                borderRadius: 6,
+                borderSkipped: false,
             }]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            plugins: { legend: { display: false } },
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    backgroundColor: '#1e293b',
+                    titleColor: '#94a3b8',
+                    bodyColor: '#f8fafc',
+                    borderColor: '#334155',
+                    borderWidth: 1,
+                    padding: 10,
+                    cornerRadius: 8,
+                }
+            },
             scales: {
-                y: { beginAtZero: true, ticks: { stepSize: 1 } }
+                y: {
+                    beginAtZero: true,
+                    ticks: { stepSize: 1, color: '#94a3b8', font: { size: 11 } },
+                    grid: { color: 'rgba(0,0,0,0.04)' },
+                    border: { display: false }
+                },
+                x: {
+                    ticks: { color: '#94a3b8', font: { size: 11 } },
+                    grid: { display: false },
+                    border: { display: false }
+                }
             }
         }
     });
 })();
 </script>
 @endpush
+

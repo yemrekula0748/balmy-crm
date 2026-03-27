@@ -30,7 +30,7 @@ class Asset extends Model
     ];
 
     protected $fillable = [
-        'asset_code', 'category_id', 'branch_id', 'name', 'description',
+        'asset_code', 'category_id', 'branch_id', 'department_id', 'name', 'description',
         'location', 'status', 'purchase_date', 'purchase_price',
         'serial_no', 'warranty_until', 'photo', 'properties',
         'qr_token', 'custom_fields',
@@ -52,6 +52,11 @@ class Asset extends Model
     public function branch(): BelongsTo
     {
         return $this->belongsTo(Branch::class);
+    }
+
+    public function department(): BelongsTo
+    {
+        return $this->belongsTo(Department::class);
     }
 
     public function exits(): HasMany

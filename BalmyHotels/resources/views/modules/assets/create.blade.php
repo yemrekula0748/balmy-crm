@@ -436,6 +436,36 @@
                                 </div>
                             </div>
                         </div>
+
+                        {{-- Departman --}}
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="form-label">Departman
+                                    @if(!($isSuperAdmin ?? false))
+                                        <span class="ms-1" style="font-size:.72rem;color:#9ca3af;font-weight:400">
+                                            <i class="fas fa-lock"></i> kendi departmanınız
+                                        </span>
+                                    @endif
+                                </label>
+                                <div class="input-with-icon">
+                                    <i class="fas fa-users field-icon"></i>
+                                    @if($isSuperAdmin ?? false)
+                                        <select name="department_id" class="form-select @error('department_id') is-invalid @enderror">
+                                            <option value="">Departman seçin (opsiyonel)…</option>
+                                            @foreach($departments as $d)
+                                                <option value="{{ $d->id }}" @selected(old('department_id') == $d->id)>{{ $d->name }}</option>
+                                            @endforeach
+                                        </select>
+                                    @else
+                                        <input type="hidden" name="department_id" value="{{ $lockedDeptId }}">
+                                        <input type="text" class="form-control"
+                                               value="{{ $departments->find($lockedDeptId)?->name ?? '—' }}"
+                                               readonly style="background:#f3f4f6;color:#6b7280;cursor:not-allowed">
+                                    @endif
+                                    @error('department_id')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
