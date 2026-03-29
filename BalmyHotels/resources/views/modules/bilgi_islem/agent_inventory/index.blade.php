@@ -29,6 +29,12 @@
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     </div>
     @endif
+    @if(session('error'))
+    <div class="alert alert-danger alert-dismissible fade show border-0 shadow-sm mb-3 mt-2" role="alert">
+        <i class="fas fa-exclamation-circle me-2"></i>{{ session('error') }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    @endif
 
     {{-- Özet Kartlar --}}
     <div class="row g-2 mb-3 mt-1">
@@ -207,6 +213,7 @@
         @php
             $hw        = $c->hardware;
             $activeIp  = $c->networkAdapters->where('is_active', true)->first()?->ip_address ?? null;
+            $activeMac = $c->networkAdapters->first()?->mac_address ?? null;
             $avOk      = $c->antivirus->where('is_enabled', true)->isNotEmpty();
             $avExists  = $c->antivirus->isNotEmpty();
 
@@ -381,6 +388,15 @@
                                 <i class="fas fa-eye" style="font-size:.68rem"></i>
                                 <span class="d-none d-sm-inline">Detay</span>
                             </a>
+                            @if(!$isOnline && $activeMac)
+                            <button type="button"
+                                    class="btn btn-sm d-inline-flex align-items-center"
+                                    style="background:#f0fdf4;border:1px solid #bbf7d0;color:#16a34a;border-radius:7px;font-size:.68rem;padding:4px 8px"
+                                    onclick="sendWol({{ $c->id }}, '{{ addslashes($c->hostname) }}')"
+                                    title="Wake on LAN — {{ $activeMac }}">
+                                <i class="fas fa-power-off"></i>
+                            </button>
+                            @endif
                             @if(auth()->user()->hasPermission('it_agent_inventory', 'delete'))
                             <button type="button"
                                     class="btn btn-sm d-inline-flex align-items-center"
@@ -430,12 +446,23 @@
     @csrf @method('DELETE')
 </form>
 
+{{-- WOL formu --}}
+<form id="wolForm" method="POST" style="display:none">
+    @csrf
+</form>
+
 @push('scripts')
 <script>
 function confirmDelete(id, hostname) {
     if (!confirm('«' + hostname + '» kaydı silinecek. Emin misiniz?')) return;
     const form = document.getElementById('deleteForm');
     form.action = '/bilgi-islem/ajan-envanter/' + id;
+    form.submit();
+}
+function sendWol(id, hostname) {
+    if (!confirm('«' + hostname + '» bilgisayarına Wake-on-LAN paketi gönderilecek.\nBilgisayarda WOL etkin olmalıdır. Devam edilsin mi?')) return;
+    const form = document.getElementById('wolForm');
+    form.action = '/bilgi-islem/ajan-envanter/' + id + '/wol';
     form.submit();
 }
 document.getElementById('searchInput').addEventListener('keydown', function(e) {

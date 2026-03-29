@@ -202,6 +202,51 @@ class AgentInventoryController extends BaseModuleController
         return back()->with('cmd_success', AgentComputerCommand::TYPES[$request->type] . ' komutu gönderildi.');
     }
 
+    public function wakeOnLan(AgentComputer $agentComputer)
+    {
+        $adapter = $agentComputer->networkAdapters()
+            ->whereNotNull('mac_address')
+            ->where('is_active', true)
+            ->first()
+            ?? $agentComputer->networkAdapters()->whereNotNull('mac_address')->first();
+
+        if (!$adapter || !$adapter->mac_address) {
+            return back()->with('error', '"' . $agentComputer->hostname . '" için MAC adresi bulunamadı. WOL gönderilemedi.');
+        }
+
+        $mac = strtoupper(preg_replace('/[^0-9a-fA-F]/', '', $adapter->mac_address));
+
+        if (strlen($mac) !== 12) {
+            return back()->with('error', 'Geçersiz MAC adresi: ' . $adapter->mac_address);
+        }
+
+        // Broadcast adresini adapter'ın IP + subnet_mask'ından hesapla (directed broadcast)
+        $targetIp   = $adapter->ip_address;
+        $subnetMask = $adapter->subnet_mask;
+        if ($targetIp && $subnetMask && ip2long($subnetMask) !== false) {
+            $broadcastIp = long2ip(ip2long($targetIp) | (~ip2long($subnetMask) & 0xFFFFFFFF));
+        } else {
+            $broadcastIp = '255.255.255.255';
+        }
+
+        // Magic packet: 6×FF + MAC×16
+        $macBytes = '';
+        for ($i = 0; $i < 12; $i += 2) {
+            $macBytes .= chr(hexdec(substr($mac, $i, 2)));
+        }
+        $packet = str_repeat(chr(0xFF), 6) . str_repeat($macBytes, 16);
+
+        $sock = socket_create(AF_INET, SOCK_DGRAM, SOL_UDP);
+        if ($sock === false) {
+            return back()->with('error', 'UDP soket oluşturulamadı.');
+        }
+        socket_set_option($sock, SOL_SOCKET, SO_BROADCAST, 1);
+        socket_sendto($sock, $packet, strlen($packet), 0, $broadcastIp, 9);
+        socket_close($sock);
+
+        return back()->with('success', '"' . $agentComputer->hostname . '" için Wake-on-LAN paketi gönderildi (' . $adapter->mac_address . ').');
+    }
+
     public function destroy(AgentComputer $agentComputer)
     {
         $agentComputer->delete();
