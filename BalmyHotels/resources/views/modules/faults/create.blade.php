@@ -291,7 +291,7 @@
 
                         {{-- Butonlar --}}
                         <div class="d-flex gap-2 pt-2 border-top">
-                            <button type="submit" class="btn btn-danger px-4 py-2 fw-semibold">
+                            <button type="submit" id="faultSubmitBtn" class="btn btn-danger px-4 py-2 fw-semibold">
                                 <i class="fas fa-paper-plane me-2"></i>Arızayı Bildir
                             </button>
                             <a href="{{ route('faults.index') }}" class="btn btn-outline-secondary py-2">
@@ -448,6 +448,25 @@
             box.style.borderColor = c;
             box.style.background = c + '18';
         });
+    });
+
+    // Form submit → loading overlay
+    document.querySelector('form[action="{{ route('faults.store') }}"]').addEventListener('submit', function(e) {
+        const btn = document.getElementById('faultSubmitBtn');
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status"></span>Gönderiliyor...';
+
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                title: 'Arıza bildiriliyor...',
+                html: 'Lütfen bekleyin, arıza kaydınız oluşturuluyor ve ilgili departmana bildirim gönderiliyor.',
+                icon: 'info',
+                allowOutsideClick: false,
+                allowEscapeKey: false,
+                showConfirmButton: false,
+                didOpen: function() { Swal.showLoading(); }
+            });
+        }
     });
 })();
 </script>
