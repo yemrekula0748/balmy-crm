@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Modules;
 
 use App\Http\Controllers\Controller;
+use App\Mail\FaultReported;
 use App\Models\Branch;
 use App\Models\Department;
 use App\Models\Fault;
@@ -13,6 +14,7 @@ use App\Models\FaultUpdate;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 
 class FaultController extends BaseModuleController
@@ -164,6 +166,27 @@ class FaultController extends BaseModuleController
             'status_from' => null,
             'status_to'   => 'open',
         ]);
+
+        // Departmandaki kullanıcılara bildirim maili gönder
+        $fault->load(['reporter', 'branch', 'department', 'faultType', 'faultLocation', 'faultArea']);
+        $recipients = User::where('branch_id', $fault->branch_id)
+            ->where('department_id', $fault->assigned_department_id)
+            ->where('is_active', true)
+            ->whereNotNull('email')
+            ->where('email', '!=', '')
+            ->get();
+
+        foreach ($recipients as $recipient) {
+            try {
+                Mail::to($recipient->email)->send(new FaultReported($fault));
+            } catch (\Throwable $e) {
+                // Mail hatası arıza kaydını engellemesin
+                \Illuminate\Support\Facades\Log::error('FaultReported mail gönderilemedi: ' . $e->getMessage(), [
+                    'fault_id' => $fault->id,
+                    'to'       => $recipient->email,
+                ]);
+            }
+        }
 
         return redirect()->route('faults.show', $fault)
             ->with('success', 'Arıza bildirimi başarıyla kaydedildi.');
