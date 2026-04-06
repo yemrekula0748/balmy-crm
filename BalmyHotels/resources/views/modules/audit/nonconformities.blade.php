@@ -95,8 +95,8 @@
                             </td>
                             <td>
                                 @if($nc->photo_path)
-                                    <a href="{{ Storage::url($nc->photo_path) }}" target="_blank">
-                                        <img src="{{ Storage::url($nc->photo_path) }}"
+                                    <a href="{{ Storage::disk('public')->url($nc->photo_path) }}" target="_blank">
+                                        <img src="{{ Storage::disk('public')->url($nc->photo_path) }}"
                                              style="height:48px;width:64px;object-fit:cover;border-radius:4px;border:1px solid #dee2e6;"
                                              alt="Fotoğraf">
                                     </a>

@@ -134,8 +134,8 @@
 
                             @if($nc->photo_path)
                             <div class="mb-2">
-                                <a href="{{ Storage::url($nc->photo_path) }}" target="_blank">
-                                    <img src="{{ Storage::url($nc->photo_path) }}" alt="Uygunsuzluk Fotoğrafı"
+                                <a href="{{ Storage::disk('public')->url($nc->photo_path) }}" target="_blank">
+                                    <img src="{{ Storage::disk('public')->url($nc->photo_path) }}" alt="Uygunsuzluk Fotoğrafı"
                                          style="max-height:200px;max-width:100%;border-radius:8px;border:1px solid #dee2e6;cursor:zoom-in;">
                                 </a>
                             </div>
