@@ -127,6 +127,79 @@ class FoodLibraryController extends BaseModuleController
             ->with('success', 'Kategori güncellendi.');
     }
 
+    public function importCategoriesJson(Request $request)
+    {
+        $request->validate([
+            'json_data' => 'required|string',
+        ]);
+
+        $decoded = json_decode($request->input('json_data'), true);
+
+        if (json_last_error() !== JSON_ERROR_NONE || !is_array($decoded)) {
+            return back()->withErrors(['json_data' => 'Geçersiz JSON formatı.'])->withInput();
+        }
+
+        $user      = Auth::user();
+        $branchIds = $user->visibleBranchIds();
+
+        $added   = 0;
+        $skipped = 0;
+        $errors  = [];
+
+        foreach ($decoded as $index => $item) {
+            $rowNum = $index + 1;
+
+            if (empty($item['title']['tr'])) {
+                $errors[] = "Satır {$rowNum}: 'title.tr' (Türkçe ad) zorunludur.";
+                continue;
+            }
+
+            $branchId = $item['branch_id'] ?? null;
+
+            // Kullanıcı bu şubeye erişebilmeli
+            if ($branchId && !in_array($branchId, $branchIds)) {
+                $errors[] = "Satır {$rowNum}: branch_id={$branchId} için erişim yetkiniz yok.";
+                continue;
+            }
+
+            $titleTr = trim($item['title']['tr']);
+
+            // Aynı şube + Türkçe ad kombinasyonu var mı?
+            $exists = FoodCategory::where('branch_id', $branchId)
+                ->whereRaw("JSON_UNQUOTE(JSON_EXTRACT(title, '$.tr')) = ?", [$titleTr])
+                ->exists();
+
+            if ($exists) {
+                $skipped++;
+                continue;
+            }
+
+            $title = [];
+            foreach (['tr', 'en', 'de', 'fr', 'ar', 'ru'] as $lang) {
+                $val = trim($item['title'][$lang] ?? '');
+                if ($val !== '') $title[$lang] = $val;
+            }
+
+            FoodCategory::create([
+                'branch_id'  => $branchId,
+                'title'      => $title,
+                'icon'       => $item['icon'] ?? null,
+                'sort_order' => $item['sort_order'] ?? 0,
+                'is_active'  => true,
+            ]);
+
+            $added++;
+        }
+
+        $msg = "{$added} kategori eklendi, {$skipped} kategori atlandı (zaten mevcut).";
+        if (!empty($errors)) {
+            $msg .= ' Hatalar: ' . implode(' | ', $errors);
+        }
+
+        return redirect()->route('food-library.categories.create')
+            ->with($added > 0 || $skipped > 0 ? 'success' : 'warning', $msg);
+    }
+
     public function destroyCategory(FoodCategory $category)
     {
         // Bağlı ürünlerin kategori_id'sini null yap

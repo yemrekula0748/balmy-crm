@@ -156,5 +156,69 @@
         </div>
     </div>
 
+    @if(!isset($category))
+    {{-- JSON Toplu Kategori Aktarımı --}}
+    <div class="row justify-content-center mt-4">
+        <div class="col-xl-7 col-lg-9">
+            <div class="card border-0 shadow-sm" style="border-radius:12px;border-top:3px solid #2e7d32!important">
+                <div class="card-header border-0 px-4 py-3" style="background:#2e7d32;border-radius:12px 12px 0 0">
+                    <span class="text-white fw-semibold"><i class="fas fa-file-code me-2"></i>JSON ile Toplu Kategori Aktar</span>
+                </div>
+                <div class="card-body p-4">
+
+                    @if(session('success'))
+                        <div class="alert alert-success">{{ session('success') }}</div>
+                    @endif
+                    @if(session('warning'))
+                        <div class="alert alert-warning">{{ session('warning') }}</div>
+                    @endif
+
+                    <p class="text-muted small mb-3">
+                        Aşağıya JSON dizisi yapıştırın. Her kategori için <code>title.tr</code> zorunludur.
+                        Aynı şube + Türkçe ad kombinasyonu zaten varsa o satır atlanır.
+                    </p>
+
+                    <details class="mb-3">
+                        <summary class="text-secondary small" style="cursor:pointer">Örnek JSON formatı</summary>
+                        <pre class="mt-2 p-3 rounded" style="background:#f8f9fa;font-size:.78rem;overflow-x:auto">[
+  {
+    "branch_id": 1,
+    "title": { "tr": "Ana Yemekler", "en": "Main Courses", "de": "Hauptgerichte" },
+    "icon": "🍽️",
+    "sort_order": 1
+  },
+  {
+    "branch_id": 1,
+    "title": { "tr": "İçecekler", "en": "Beverages" },
+    "icon": "🥤",
+    "sort_order": 2
+  }
+]</pre>
+                    </details>
+
+                    <form method="POST" action="{{ route('food-library.categories.json-import') }}">
+                        @csrf
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold text-dark">JSON Verisi</label>
+                            <textarea name="json_data" rows="10"
+                                      class="form-control font-monospace @error('json_data') is-invalid @enderror"
+                                      placeholder='[{"branch_id":1,"title":{"tr":"Örnek Kategori"},"icon":"🍴","sort_order":0}]'
+                                      style="font-size:.83rem">{{ old('json_data') }}</textarea>
+                            @error('json_data')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
+                        </div>
+                        <button type="submit" class="btn px-4 fw-semibold"
+                                style="background:linear-gradient(135deg,#2e7d32,#388e3c);color:#fff;border-radius:8px">
+                            <i class="fas fa-upload me-1"></i> Aktar
+                        </button>
+                    </form>
+
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
+
 </div>
 @endsection

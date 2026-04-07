@@ -500,6 +500,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/', [FoodLibraryController::class, 'index'])->name('index');
         Route::get('/kategoriler/ekle', [FoodLibraryController::class, 'createCategory'])->name('categories.create');
         Route::post('/kategoriler', [FoodLibraryController::class, 'storeCategory'])->name('categories.store');
+        Route::post('/kategoriler/json-aktar', [FoodLibraryController::class, 'importCategoriesJson'])->name('categories.json-import');
         Route::get('/kategoriler/{category}/duzenle', [FoodLibraryController::class, 'editCategory'])->name('categories.edit');
         Route::put('/kategoriler/{category}', [FoodLibraryController::class, 'updateCategory'])->name('categories.update');
         Route::delete('/kategoriler/{category}', [FoodLibraryController::class, 'destroyCategory'])->name('categories.destroy');
