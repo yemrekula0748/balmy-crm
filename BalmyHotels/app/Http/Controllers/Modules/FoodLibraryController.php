@@ -418,6 +418,97 @@ class FoodLibraryController extends BaseModuleController
             ->with('success', 'Ürün güncellendi.');
     }
 
+    public function importProductsJson(Request $request)
+    {
+        $request->validate([
+            'json_data' => 'required|string',
+        ]);
+
+        $decoded = json_decode($request->input('json_data'), true);
+
+        if (json_last_error() !== JSON_ERROR_NONE || !is_array($decoded)) {
+            return back()->withErrors(['json_data' => 'Geçersiz JSON formatı.'])->withInput();
+        }
+
+        $user      = Auth::user();
+        $branchIds = $user->visibleBranchIds();
+
+        $added   = 0;
+        $skipped = 0;
+        $errors  = [];
+
+        foreach ($decoded as $index => $item) {
+            $rowNum = $index + 1;
+
+            if (empty($item['title']['tr'])) {
+                $errors[] = "Satır {$rowNum}: 'title.tr' (Türkçe ad) zorunludur.";
+                continue;
+            }
+
+            $branchId = $item['branch_id'] ?? null;
+
+            if ($branchId && !in_array($branchId, $branchIds)) {
+                $errors[] = "Satır {$rowNum}: branch_id={$branchId} için erişim yetkiniz yok.";
+                continue;
+            }
+
+            $titleTr = trim($item['title']['tr']);
+
+            // Aynı şube + Türkçe ad var mı?
+            $exists = FoodProduct::where('branch_id', $branchId)
+                ->whereRaw("JSON_UNQUOTE(JSON_EXTRACT(title, '$.tr')) = ?", [$titleTr])
+                ->exists();
+
+            if ($exists) {
+                $skipped++;
+                continue;
+            }
+
+            $title = []; $description = []; $ingredients = [];
+            foreach (['tr','en','de','fr','ar','ru'] as $lang) {
+                $t   = trim($item['title'][$lang] ?? '');
+                $d   = trim($item['description'][$lang] ?? '');
+                $ing = trim($item['ingredients'][$lang] ?? '');
+                if ($t   !== '') $title[$lang]       = $t;
+                if ($d   !== '') $description[$lang] = $d;
+                if ($ing !== '') $ingredients[$lang] = $ing;
+            }
+
+            // Validate opsiyonel ilişki id'leri
+            $categoryId = $item['food_category_id'] ?? null;
+            $printerId  = $item['printer_id'] ?? null;
+
+            FoodProduct::create([
+                'branch_id'        => $branchId,
+                'food_category_id' => $categoryId,
+                'printer_id'       => $printerId,
+                'title'            => $title,
+                'description'      => $description ?: null,
+                'ingredients'      => $ingredients ?: null,
+                'price'            => $item['price'] ?? null,
+                'badges'           => $item['badges'] ?? null,
+                'allergens'        => $item['allergens'] ?? null,
+                'options'          => $item['options'] ?? null,
+                'calories'         => $item['calories'] ?? null,
+                'protein'          => $item['protein'] ?? null,
+                'carbs'            => $item['carbs'] ?? null,
+                'fat'              => $item['fat'] ?? null,
+                'sort_order'       => $item['sort_order'] ?? 0,
+                'is_active'        => true,
+            ]);
+
+            $added++;
+        }
+
+        $msg = "{$added} ürün eklendi, {$skipped} ürün atlandı (zaten mevcut).";
+        if (!empty($errors)) {
+            $msg .= ' Hatalar: ' . implode(' | ', $errors);
+        }
+
+        return redirect()->route('food-library.product.create')
+            ->with($added > 0 || $skipped > 0 ? 'success' : 'warning', $msg);
+    }
+
     public function destroyProduct(FoodProduct $product)
     {
         if ($product->image) Storage::disk('public')->delete($product->image);

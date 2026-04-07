@@ -507,6 +507,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/urunler', [FoodLibraryController::class, 'products'])->name('products');
         Route::get('/urunler/ekle', [FoodLibraryController::class, 'createProduct'])->name('product.create');
         Route::post('/urunler', [FoodLibraryController::class, 'storeProduct'])->name('product.store');
+        Route::post('/urunler/json-aktar', [FoodLibraryController::class, 'importProductsJson'])->name('product.json-import');
         Route::get('/urunler/{product}/duzenle', [FoodLibraryController::class, 'editProduct'])->name('product.edit');
         Route::put('/urunler/{product}', [FoodLibraryController::class, 'updateProduct'])->name('product.update');
         Route::delete('/urunler/{product}', [FoodLibraryController::class, 'destroyProduct'])->name('product.destroy');
