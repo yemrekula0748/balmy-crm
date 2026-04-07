@@ -208,6 +208,14 @@ class FoodLibraryController extends BaseModuleController
         return back()->with('success', 'Kategori silindi.');
     }
 
+    public function destroyCategoryWithProducts(FoodCategory $category)
+    {
+        $productCount = $category->products()->count();
+        $category->products()->delete();
+        $category->delete();
+        return back()->with('success', "Kategori ve {$productCount} ürün kalıcı olarak silindi.");
+    }
+
     /* ═══════════════════════════════════════
      |  ÜRÜNLER
      ═══════════════════════════════════════ */

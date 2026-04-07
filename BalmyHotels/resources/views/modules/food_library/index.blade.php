@@ -128,10 +128,17 @@
                                         @endif
                                         @if(auth()->user()->hasPermission('food_library', 'delete'))
                                         <form action="{{ route('food-library.categories.destroy', $cat) }}" method="POST" class="d-inline"
-                                              onsubmit="return confirm('{{ $cat->getTitle('tr') }} kategorisini silmek istiyor musunuz?')">
+                                              onsubmit="return confirm('{{ $cat->getTitle('tr') }} kategorisini silmek istiyor musunuz? (Ürünler silinmez, kategorisiz kalır)')">
                                             @csrf @method('DELETE')
-                                            <button class="btn btn-sm" style="background:#fdf4f4;color:#b03030;border:1px solid #f0d0d0;font-size:.78rem">
+                                            <button class="btn btn-sm" style="background:#fdf4f4;color:#b03030;border:1px solid #f0d0d0;font-size:.78rem" title="Kategoriyi sil (ürünler korunur)">
                                                 <i class="fas fa-trash"></i>
+                                            </button>
+                                        </form>
+                                        <form action="{{ route('food-library.categories.destroy-with-products', $cat) }}" method="POST" class="d-inline"
+                                              onsubmit="return confirm('⚠️ DİKKAT!\n\n{{ $cat->getTitle('tr') }} kategorisi ve içindeki TÜM {{ $cat->products->count() }} ürün kalıcı olarak silinecek!\n\nEmin misiniz?')">
+                                            @csrf @method('DELETE')
+                                            <button class="btn btn-sm" style="background:#7b0000;color:#fff;border:1px solid #5a0000;font-size:.78rem" title="Kategoriyi ve tüm ürünleri sil">
+                                                <i class="fas fa-trash-alt"></i><i class="fas fa-boxes ms-1" style="font-size:.7rem"></i>
                                             </button>
                                         </form>
                                         @endif

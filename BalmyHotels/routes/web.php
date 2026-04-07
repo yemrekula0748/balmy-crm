@@ -504,6 +504,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/kategoriler/{category}/duzenle', [FoodLibraryController::class, 'editCategory'])->name('categories.edit');
         Route::put('/kategoriler/{category}', [FoodLibraryController::class, 'updateCategory'])->name('categories.update');
         Route::delete('/kategoriler/{category}', [FoodLibraryController::class, 'destroyCategory'])->name('categories.destroy');
+        Route::delete('/kategoriler/{category}/urunlerle-sil', [FoodLibraryController::class, 'destroyCategoryWithProducts'])->name('categories.destroy-with-products');
         Route::get('/urunler', [FoodLibraryController::class, 'products'])->name('products');
         Route::get('/urunler/ekle', [FoodLibraryController::class, 'createProduct'])->name('product.create');
         Route::post('/urunler', [FoodLibraryController::class, 'storeProduct'])->name('product.store');
