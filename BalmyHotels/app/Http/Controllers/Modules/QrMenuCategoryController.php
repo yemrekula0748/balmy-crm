@@ -265,34 +265,40 @@ class QrMenuCategoryController extends BaseModuleController
     public function addFromLibrary(Request $request, QrMenu $qrmenu, QrMenuCategory $category)
     {
         $request->validate([
-            'food_product_id' => 'required|exists:food_products,id',
-            'price_override'  => 'nullable|numeric|min:0',
-            'sub_heading'     => 'nullable|string',
+            'food_product_ids'   => 'required|array|min:1',
+            'food_product_ids.*' => 'required|integer|exists:food_products,id',
+            'price_override'     => 'nullable|numeric|min:0',
+            'sub_heading'        => 'nullable|string',
         ]);
-
-        $product = FoodProduct::findOrFail($request->food_product_id);
 
         $sub_heading_raw = $request->input('sub_heading');
         $sub_heading = ($sub_heading_raw && $sub_heading_raw !== '') ? json_decode($sub_heading_raw, true) : null;
 
-        $category->items()->create([
-            'food_product_id' => $product->id,
-            'title'           => $product->title,
-            'description'     => $product->description,
-            'price'           => $product->price,
-            'price_override'  => $request->price_override,
-            'price_glass'     => $product->price_glass,
-            'price_bottle'    => $product->price_bottle,
-            'cl_glass'        => $product->cl_glass,
-            'cl_bottle'       => $product->cl_bottle,
-            'sub_heading'     => $sub_heading,
-            'image'           => $product->image,
-            'badges'          => $product->badges,
-            'is_active'       => true,
-            'is_featured'     => false,
-            'sort_order'      => $category->items()->count(),
-        ]);
+        $added = 0;
+        foreach ($request->food_product_ids as $productId) {
+            $product = FoodProduct::find((int) $productId);
+            if (!$product) continue;
+
+            $category->items()->create([
+                'food_product_id' => $product->id,
+                'title'           => $product->title,
+                'description'     => $product->description,
+                'price'           => $product->price,
+                'price_override'  => $request->price_override,
+                'price_glass'     => $product->price_glass,
+                'price_bottle'    => $product->price_bottle,
+                'cl_glass'        => $product->cl_glass,
+                'cl_bottle'       => $product->cl_bottle,
+                'sub_heading'     => $sub_heading,
+                'image'           => $product->image,
+                'badges'          => $product->badges,
+                'is_active'       => true,
+                'is_featured'     => false,
+                'sort_order'      => $category->items()->count(),
+            ]);
+            $added++;
+        }
 
         return redirect()->route('qrmenus.show', $qrmenu)
-            ->with('success', '«'.$product->getTitle('tr').'» menüye eklendi.');
+            ->with('success', $added . ' ürün menüye eklendi.');
     }}

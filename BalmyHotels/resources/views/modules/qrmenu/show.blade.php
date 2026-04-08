@@ -307,17 +307,14 @@
                 </div>
             </div>
 
-            {{-- Seçilen ürünü onayla --}}
+            {{-- Seçilen ürünleri onayla --}}
             <div class="modal-footer border-0 p-4 pt-0">
                 <form id="libForm-{{ $category->id }}" method="POST"
                       action="{{ route('qrmenus.category.addFromLibrary', [$menu, $category]) }}">
                     @csrf
-                    <input type="hidden" name="food_product_id" class="lib-selected-id">
                     <div class="d-flex gap-2 align-items-end flex-wrap">
-                        <div>
-                            <label class="form-label small fw-semibold mb-1">Seçilen Ürün</label>
-                            <input type="text" class="form-control form-control-sm lib-selected-name"
-                                   readonly placeholder="(ürün seçilmedi)" style="min-width:160px">
+                        <div class="d-flex align-items-center">
+                            <span class="lib-sel-count badge bg-secondary fs-6 px-3 py-2">0 seçildi</span>
                         </div>
                         <div>
                             <label class="form-label small fw-semibold mb-1">Fiyat Geçersizme (₺)</label>
@@ -338,9 +335,7 @@
                         </div>
                         @endif
                         <button type="submit" class="btn btn-sm fw-semibold px-3 mb-0"
-                                style="background:linear-gradient(135deg,#1e2d3d,#2c3e50);color:#fff;border-radius:7px"
-                                onclick="return document.querySelector('#libForm-{{ $category->id }} .lib-selected-id').value !== ''
-                                         || (alert('Lütfen bir ürün seçin.'), false)">
+                                style="background:linear-gradient(135deg,#1e2d3d,#2c3e50);color:#fff;border-radius:7px">
                             <i class="fa fa-plus me-1"></i> Menüye Ekle
                         </button>
                         <button type="button" class="btn btn-sm btn-light" data-bs-dismiss="modal">İptal</button>
@@ -416,8 +411,11 @@
                 const col = document.createElement('div');
                 col.className = 'col-xl-3 col-lg-4 col-md-6';
                 col.innerHTML = `
-                    <div class="card h-100 border-0 shadow-sm lib-product-card" style="border-radius:10px;cursor:pointer;transition:box-shadow .15s"
+                    <div class="card h-100 border-0 shadow-sm lib-product-card" style="border-radius:10px;cursor:pointer;transition:box-shadow .15s;position:relative"
                          data-id="${p.id}" data-name="${p.title_tr || p.title || ''}" data-price="${p.price}">
+                        <div class="lib-check-badge" style="display:none;position:absolute;top:6px;right:6px;z-index:2;background:#1e2d3d;color:#fff;border-radius:50%;width:22px;height:22px;font-size:11px;text-align:center;line-height:22px">
+                            <i class="fa fa-check"></i>
+                        </div>
                         ${p.image_url ? `<div style="height:110px;overflow:hidden"><img src="${p.image_url}" style="width:100%;height:100%;object-fit:cover"></div>` : ''}
                         <div class="card-body p-3">
                             <div class="fw-semibold" style="font-size:.88rem">${p.title_tr || ''}</div>
@@ -428,18 +426,31 @@
                 `;
 
                 col.querySelector('.lib-product-card').addEventListener('click', function() {
-                    // Deselect all
-                    document.querySelectorAll('#libGrid-' + modalId + ' .lib-product-card').forEach(c => {
-                        c.style.outline = '';
-                        c.style.boxShadow = '';
-                    });
-                    // Select this
-                    this.style.outline = '2px solid #1e2d3d';
-                    this.style.boxShadow = '0 0 0 4px rgba(30,45,61,0.12)';
+                    if (!window._libSel) window._libSel = {};
+                    if (!window._libSel[modalId]) window._libSel[modalId] = new Set();
 
-                    const form = document.getElementById('libForm-' + modalId);
-                    form.querySelector('.lib-selected-id').value = this.dataset.id;
-                    form.querySelector('.lib-selected-name').value = this.dataset.name + ' — ' + parseFloat(this.dataset.price).toLocaleString('tr-TR',{minimumFractionDigits:2}) + ' ₺';
+                    const sel   = window._libSel[modalId];
+                    const id    = this.dataset.id;
+                    const badge = this.querySelector('.lib-check-badge');
+
+                    if (sel.has(id)) {
+                        sel.delete(id);
+                        this.style.outline   = '';
+                        this.style.boxShadow = '';
+                        if (badge) badge.style.display = 'none';
+                    } else {
+                        sel.add(id);
+                        this.style.outline   = '2px solid #1e2d3d';
+                        this.style.boxShadow = '0 0 0 4px rgba(30,45,61,0.12)';
+                        if (badge) badge.style.display = 'block';
+                    }
+
+                    const counter = document.querySelector('#libForm-' + modalId + ' .lib-sel-count');
+                    if (counter) {
+                        const n = sel.size;
+                        counter.textContent = n + ' seçildi';
+                        counter.className   = 'lib-sel-count badge fs-6 px-3 py-2 ' + (n > 0 ? 'bg-dark' : 'bg-secondary');
+                    }
                 });
 
                 grid.appendChild(col);
@@ -462,10 +473,49 @@
             }
         });
 
-        // Filter button
+        // Reset selection when modal closes
+        modal.addEventListener('hidden.bs.modal', function() {
+            if (window._libSel) window._libSel[modalId] = new Set();
+            const counter = document.querySelector('#libForm-' + modalId + ' .lib-sel-count');
+            if (counter) {
+                counter.textContent = '0 seçildi';
+                counter.className   = 'lib-sel-count badge fs-6 px-3 py-2 bg-secondary';
+            }
+        });
+
+        // Form submit — inject hidden inputs for each selected ID
+        const form = document.getElementById('libForm-' + modalId);
+        if (form) {
+            form.addEventListener('submit', function(e) {
+                const sel = (window._libSel && window._libSel[modalId]) ? window._libSel[modalId] : new Set();
+                if (sel.size === 0) {
+                    e.preventDefault();
+                    alert('Lütfen en az bir ürün seçin.');
+                    return;
+                }
+                // Remove old injected inputs then add fresh ones
+                this.querySelectorAll('input.lib-id-input').forEach(el => el.remove());
+                sel.forEach(id => {
+                    const inp = document.createElement('input');
+                    inp.type      = 'hidden';
+                    inp.name      = 'food_product_ids[]';
+                    inp.value     = id;
+                    inp.className = 'lib-id-input';
+                    this.appendChild(inp);
+                });
+            });
+        }
+
+        // Filter button — reset selection when grid reloads
         const fetchBtn = document.querySelector('.lib-fetch-btn[data-modal="' + modalId + '"]');
         if (fetchBtn) {
             fetchBtn.addEventListener('click', function() {
+                if (window._libSel) window._libSel[modalId] = new Set();
+                const counter = document.querySelector('#libForm-' + modalId + ' .lib-sel-count');
+                if (counter) {
+                    counter.textContent = '0 seçildi';
+                    counter.className   = 'lib-sel-count badge fs-6 px-3 py-2 bg-secondary';
+                }
                 const cat   = document.querySelector('.lib-cat-filter[data-modal="' + modalId + '"]').value;
                 const srch  = document.querySelector('.lib-search[data-modal="'     + modalId + '"]').value;
                 loadLibraryProducts(modalId, branchId, cat, srch);
