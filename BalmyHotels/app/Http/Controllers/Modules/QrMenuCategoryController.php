@@ -53,12 +53,22 @@ class QrMenuCategoryController extends BaseModuleController
             $description[$lang->code] = $request->input("description_{$lang->code}", '');
         }
 
+        // Alt gruplar / ayraçlar
+        $sub_headings = [];
+        foreach ((array) $request->input('sub_headings', []) as $sh) {
+            $row = array_filter(array_map('trim', $sh));
+            if (!empty($row['tr'] ?? '')) {
+                $sub_headings[] = $row;
+            }
+        }
+
         $category = $qrmenu->categories()->create([
-            'title'       => $title,
-            'description' => array_filter($description) ?: null,
-            'icon'        => $request->icon,
-            'sort_order'  => $request->sort_order ?? 0,
-            'is_active'   => true,
+            'title'        => $title,
+            'description'  => array_filter($description) ?: null,
+            'icon'         => $request->icon,
+            'sort_order'   => $request->sort_order ?? 0,
+            'is_active'    => true,
+            'sub_headings' => $sub_headings ?: null,
         ]);
 
         if ($request->hasFile('image')) {
@@ -89,12 +99,22 @@ class QrMenuCategoryController extends BaseModuleController
             $description[$lang->code] = $request->input("description_{$lang->code}", '');
         }
 
+        // Alt gruplar / ayraçlar
+        $sub_headings = [];
+        foreach ((array) $request->input('sub_headings', []) as $sh) {
+            $row = array_filter(array_map('trim', $sh));
+            if (!empty($row['tr'] ?? '')) {
+                $sub_headings[] = $row;
+            }
+        }
+
         $category->update([
-            'title'       => $title,
-            'description' => array_filter($description) ?: null,
-            'icon'        => $request->icon,
-            'sort_order'  => $request->sort_order ?? $category->sort_order,
-            'is_active'   => $request->boolean('is_active', true),
+            'title'        => $title,
+            'description'  => array_filter($description) ?: null,
+            'icon'         => $request->icon,
+            'sort_order'   => $request->sort_order ?? $category->sort_order,
+            'is_active'    => $request->boolean('is_active', true),
+            'sub_headings' => $sub_headings ?: null,
         ]);
 
         if ($request->hasFile('image')) {
@@ -141,11 +161,9 @@ class QrMenuCategoryController extends BaseModuleController
 
         $title = [];
         $description = [];
-        $sub_heading = [];
         foreach ($qrmenu->languages as $lang) {
             $title[$lang->code]       = $request->input("title_{$lang->code}", '');
             $description[$lang->code] = $request->input("description_{$lang->code}", '');
-            $sub_heading[$lang->code] = $request->input("sub_heading_{$lang->code}", '');
         }
 
         // En az bir dilde başlık zorunlu
@@ -153,15 +171,15 @@ class QrMenuCategoryController extends BaseModuleController
             return back()->withErrors(['title' => 'En az bir dilde ürün adı girilmelidir.'])->withInput();
         }
 
+        // Alt başlık / ayraç (kategoride tanımlı ön-tanımlı listeden JSON seçimi)
+        $sub_heading_raw = $request->input('sub_heading');
+        $sub_heading = ($sub_heading_raw && $sub_heading_raw !== '') ? json_decode($sub_heading_raw, true) : null;
+
         $item = $category->items()->create([
             'title'        => $title,
             'description'  => array_filter($description) ?: null,
-            'sub_heading'  => array_filter($sub_heading) ?: null,
+            'sub_heading'  => $sub_heading,
             'price'        => $request->price,
-            'price_glass'  => $request->price_glass ?: null,
-            'price_bottle' => $request->price_bottle ?: null,
-            'cl_glass'     => $request->cl_glass ?: null,
-            'cl_bottle'    => $request->cl_bottle ?: null,
             'is_active'    => true,
             'is_featured'  => $request->boolean('is_featured'),
             'badges'       => $request->badges ?: null,
@@ -199,22 +217,20 @@ class QrMenuCategoryController extends BaseModuleController
 
         $title = [];
         $description = [];
-        $sub_heading = [];
         foreach ($qrmenu->languages as $lang) {
             $title[$lang->code]       = $request->input("title_{$lang->code}", '');
             $description[$lang->code] = $request->input("description_{$lang->code}", '');
-            $sub_heading[$lang->code] = $request->input("sub_heading_{$lang->code}", '');
         }
+
+        // Alt başlık / ayraç
+        $sub_heading_raw = $request->input('sub_heading');
+        $sub_heading = ($sub_heading_raw && $sub_heading_raw !== '') ? json_decode($sub_heading_raw, true) : null;
 
         $item->update([
             'title'        => $title,
             'description'  => array_filter($description) ?: null,
-            'sub_heading'  => array_filter($sub_heading) ?: null,
+            'sub_heading'  => $sub_heading,
             'price'        => $request->price,
-            'price_glass'  => $request->price_glass ?: null,
-            'price_bottle' => $request->price_bottle ?: null,
-            'cl_glass'     => $request->cl_glass ?: null,
-            'cl_bottle'    => $request->cl_bottle ?: null,
             'is_active'    => $request->boolean('is_active', true),
             'is_featured'  => $request->boolean('is_featured'),
             'badges'       => $request->badges ?: null,
@@ -251,9 +267,13 @@ class QrMenuCategoryController extends BaseModuleController
         $request->validate([
             'food_product_id' => 'required|exists:food_products,id',
             'price_override'  => 'nullable|numeric|min:0',
+            'sub_heading'     => 'nullable|string',
         ]);
 
         $product = FoodProduct::findOrFail($request->food_product_id);
+
+        $sub_heading_raw = $request->input('sub_heading');
+        $sub_heading = ($sub_heading_raw && $sub_heading_raw !== '') ? json_decode($sub_heading_raw, true) : null;
 
         $category->items()->create([
             'food_product_id' => $product->id,
@@ -261,6 +281,11 @@ class QrMenuCategoryController extends BaseModuleController
             'description'     => $product->description,
             'price'           => $product->price,
             'price_override'  => $request->price_override,
+            'price_glass'     => $product->price_glass,
+            'price_bottle'    => $product->price_bottle,
+            'cl_glass'        => $product->cl_glass,
+            'cl_bottle'       => $product->cl_bottle,
+            'sub_heading'     => $sub_heading,
             'image'           => $product->image,
             'badges'          => $product->badges,
             'is_active'       => true,

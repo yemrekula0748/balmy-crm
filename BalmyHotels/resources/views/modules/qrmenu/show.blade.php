@@ -138,10 +138,18 @@
                                     </div>
                                 @endif
                                 <div class="d-flex gap-1 justify-content-end mt-1">
+                                    @if($item->food_product_id)
+                                    <a href="{{ route('food-library.product.edit', $item->food_product_id) }}"
+                                       class="btn btn-outline-warning btn-sm py-0 px-2" target="_blank"
+                                       title="Yemek kütüphanesinde düzenle">
+                                        <i class="fa fa-edit"></i>
+                                    </a>
+                                    @else
                                     <a href="{{ route('qrmenus.item.edit', [$menu, $category, $item]) }}"
                                        class="btn btn-outline-warning btn-sm py-0 px-2">
                                         <i class="fa fa-edit"></i>
                                     </a>
+                                    @endif
                                     <form method="POST" action="{{ route('qrmenus.item.destroy', [$menu, $category, $item]) }}"
                                           onsubmit="return confirm('Ürün silinecek?')">
                                         @csrf @method('DELETE')
@@ -316,6 +324,19 @@
                             <input type="number" name="price_override" class="form-control form-control-sm"
                                    placeholder="Boş bırakılırsa kütüphane fiyatı" step="0.01" min="0" style="max-width:200px">
                         </div>
+                        @if($category->sub_headings && count($category->sub_headings) > 0)
+                        <div>
+                            <label class="form-label small fw-semibold mb-1">Alt Grup</label>
+                            <select name="sub_heading" class="form-select form-select-sm" style="min-width:160px">
+                                <option value="">— Grup yok —</option>
+                                @foreach($category->sub_headings as $sh)
+                                    <option value="{{ json_encode($sh, JSON_UNESCAPED_UNICODE) }}">
+                                        {{ $sh['tr'] ?? '' }}@if($sh['en'] ?? '') / {{ $sh['en'] }}@endif
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+                        @endif
                         <button type="submit" class="btn btn-sm fw-semibold px-3 mb-0"
                                 style="background:linear-gradient(135deg,#1e2d3d,#2c3e50);color:#fff;border-radius:7px"
                                 onclick="return document.querySelector('#libForm-{{ $category->id }} .lib-selected-id').value !== ''

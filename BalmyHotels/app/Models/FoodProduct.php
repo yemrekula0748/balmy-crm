@@ -11,24 +11,27 @@ class FoodProduct extends Model
     protected $fillable = [
         'branch_id', 'food_category_id', 'printer_id',
         'title', 'description', 'price',
+        'price_glass', 'price_bottle', 'cl_glass', 'cl_bottle',
         'image', 'badges', 'allergens', 'ingredients', 'options',
         'calories', 'protein', 'carbs', 'fat',
         'is_active', 'sort_order',
     ];
 
     protected $casts = [
-        'title'       => 'array',
-        'description' => 'array',
-        'badges'      => 'array',
-        'allergens'   => 'array',
-        'ingredients' => 'array',
-        'options'     => 'array',
-        'is_active'   => 'boolean',
-        'price'       => 'float',
-        'calories'    => 'float',
-        'protein'     => 'float',
-        'carbs'       => 'float',
-        'fat'         => 'float',
+        'title'        => 'array',
+        'description'  => 'array',
+        'badges'       => 'array',
+        'allergens'    => 'array',
+        'ingredients'  => 'array',
+        'options'      => 'array',
+        'is_active'    => 'boolean',
+        'price'        => 'float',
+        'price_glass'  => 'float',
+        'price_bottle' => 'float',
+        'calories'     => 'float',
+        'protein'      => 'float',
+        'carbs'        => 'float',
+        'fat'          => 'float',
     ];
 
     /** 14 AB Alerjen sabiti [key => [tr, en, emoji]] */

@@ -260,6 +260,48 @@
                                 @error('price') <div class="invalid-feedback d-block">{{ $message }}</div> @enderror
                             </div>
 
+                        </div>
+
+                        {{-- Bardak / Şişe Fiyatlandırması --}}
+                        <hr class="my-3">
+                        <h6 class="fw-bold text-dark mb-1">🍾 Bardak / Şişe Fiyatlandırması <span class="text-muted fw-normal" style="font-size:.8rem">(opsiyonel — ayrı bardak/şişe fiyatı olan içecekler için)</span></h6>
+                        <div class="row g-2 mt-1">
+                            <div class="col-6 col-md-3">
+                                <label class="form-label small fw-semibold mb-1">🥃 Bardak Fiyatı</label>
+                                <div class="input-group input-group-sm">
+                                    <input type="number" name="price_glass" step="0.01" min="0" class="form-control"
+                                           placeholder="0.00" value="{{ old('price_glass', $product->price_glass ?? '') }}">
+                                    <span class="input-group-text">₺</span>
+                                </div>
+                            </div>
+                            <div class="col-6 col-md-3">
+                                <label class="form-label small fw-semibold mb-1">📏 Bardak CL</label>
+                                <div class="input-group input-group-sm">
+                                    <input type="number" name="cl_glass" step="1" min="0" class="form-control"
+                                           placeholder="30" value="{{ old('cl_glass', $product->cl_glass ?? '') }}">
+                                    <span class="input-group-text">cl</span>
+                                </div>
+                            </div>
+                            <div class="col-6 col-md-3">
+                                <label class="form-label small fw-semibold mb-1">🍾 Şişe Fiyatı</label>
+                                <div class="input-group input-group-sm">
+                                    <input type="number" name="price_bottle" step="0.01" min="0" class="form-control"
+                                           placeholder="0.00" value="{{ old('price_bottle', $product->price_bottle ?? '') }}">
+                                    <span class="input-group-text">₺</span>
+                                </div>
+                            </div>
+                            <div class="col-6 col-md-3">
+                                <label class="form-label small fw-semibold mb-1">📏 Şişe CL</label>
+                                <div class="input-group input-group-sm">
+                                    <input type="number" name="cl_bottle" step="1" min="0" class="form-control"
+                                           placeholder="70" value="{{ old('cl_bottle', $product->cl_bottle ?? '') }}">
+                                    <span class="input-group-text">cl</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row g-3 mt-1">
+
                             {{-- Sıralama --}}
                             <div class="col-md-4">
                                 <label class="form-label fw-semibold">Sıralama</label>
@@ -690,6 +732,12 @@ document.getElementById('branchSelect')?.dispatchEvent(new Event('change'));
                 // Fiyat & Sıralama
                 setField('price',      p.price ?? '');
                 setField('sort_order', p.sort_order ?? 0);
+
+                // Bardak / Şişe fiyatlandırması
+                setField('price_glass',  p.price_glass  ?? '');
+                setField('cl_glass',     p.cl_glass     ?? '');
+                setField('price_bottle', p.price_bottle ?? '');
+                setField('cl_bottle',    p.cl_bottle    ?? '');
 
                 // Besin değerleri
                 setField('calories', p.calories ?? '');
