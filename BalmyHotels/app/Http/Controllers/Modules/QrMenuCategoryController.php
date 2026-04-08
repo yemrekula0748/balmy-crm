@@ -131,15 +131,21 @@ class QrMenuCategoryController extends BaseModuleController
     {
         $qrmenu->load('languages');
         $request->validate([
-            'price'      => 'nullable|numeric|min:0',
-            'sort_order' => 'nullable|integer',
+            'price'        => 'nullable|numeric|min:0',
+            'price_glass'  => 'nullable|numeric|min:0',
+            'price_bottle' => 'nullable|numeric|min:0',
+            'cl_glass'     => 'nullable|integer|min:0',
+            'cl_bottle'    => 'nullable|integer|min:0',
+            'sort_order'   => 'nullable|integer',
         ]);
 
         $title = [];
         $description = [];
+        $sub_heading = [];
         foreach ($qrmenu->languages as $lang) {
-            $title[$lang->code] = $request->input("title_{$lang->code}", '');
+            $title[$lang->code]       = $request->input("title_{$lang->code}", '');
             $description[$lang->code] = $request->input("description_{$lang->code}", '');
+            $sub_heading[$lang->code] = $request->input("sub_heading_{$lang->code}", '');
         }
 
         // En az bir dilde başlık zorunlu
@@ -148,13 +154,18 @@ class QrMenuCategoryController extends BaseModuleController
         }
 
         $item = $category->items()->create([
-            'title'       => $title,
-            'description' => array_filter($description) ?: null,
-            'price'       => $request->price,
-            'is_active'   => true,
-            'is_featured' => $request->boolean('is_featured'),
-            'badges'      => $request->badges ?: null,
-            'sort_order'  => $request->sort_order ?? 0,
+            'title'        => $title,
+            'description'  => array_filter($description) ?: null,
+            'sub_heading'  => array_filter($sub_heading) ?: null,
+            'price'        => $request->price,
+            'price_glass'  => $request->price_glass ?: null,
+            'price_bottle' => $request->price_bottle ?: null,
+            'cl_glass'     => $request->cl_glass ?: null,
+            'cl_bottle'    => $request->cl_bottle ?: null,
+            'is_active'    => true,
+            'is_featured'  => $request->boolean('is_featured'),
+            'badges'       => $request->badges ?: null,
+            'sort_order'   => $request->sort_order ?? 0,
         ]);
 
         if ($request->hasFile('image')) {
@@ -179,24 +190,35 @@ class QrMenuCategoryController extends BaseModuleController
     {
         $qrmenu->load('languages');
         $request->validate([
-            'price' => 'nullable|numeric|min:0',
+            'price'        => 'nullable|numeric|min:0',
+            'price_glass'  => 'nullable|numeric|min:0',
+            'price_bottle' => 'nullable|numeric|min:0',
+            'cl_glass'     => 'nullable|integer|min:0',
+            'cl_bottle'    => 'nullable|integer|min:0',
         ]);
 
         $title = [];
         $description = [];
+        $sub_heading = [];
         foreach ($qrmenu->languages as $lang) {
-            $title[$lang->code] = $request->input("title_{$lang->code}", '');
+            $title[$lang->code]       = $request->input("title_{$lang->code}", '');
             $description[$lang->code] = $request->input("description_{$lang->code}", '');
+            $sub_heading[$lang->code] = $request->input("sub_heading_{$lang->code}", '');
         }
 
         $item->update([
-            'title'       => $title,
-            'description' => array_filter($description) ?: null,
-            'price'       => $request->price,
-            'is_active'   => $request->boolean('is_active', true),
-            'is_featured' => $request->boolean('is_featured'),
-            'badges'      => $request->badges ?: null,
-            'sort_order'  => $request->sort_order ?? $item->sort_order,
+            'title'        => $title,
+            'description'  => array_filter($description) ?: null,
+            'sub_heading'  => array_filter($sub_heading) ?: null,
+            'price'        => $request->price,
+            'price_glass'  => $request->price_glass ?: null,
+            'price_bottle' => $request->price_bottle ?: null,
+            'cl_glass'     => $request->cl_glass ?: null,
+            'cl_bottle'    => $request->cl_bottle ?: null,
+            'is_active'    => $request->boolean('is_active', true),
+            'is_featured'  => $request->boolean('is_featured'),
+            'badges'       => $request->badges ?: null,
+            'sort_order'   => $request->sort_order ?? $item->sort_order,
         ]);
 
         if ($request->hasFile('image')) {

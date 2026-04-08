@@ -145,6 +145,56 @@
                             </div>
                         </div>
 
+                        {{-- Bardak / Şişe Fiyatlandırması --}}
+                        <div class="mt-4 pt-3 border-top">
+                            <div class="d-flex align-items-center gap-2 mb-3">
+                                <h6 class="mb-0">🍾 Bardak / Şişe Fiyatlandırması</h6>
+                                <small class="text-muted">(opsiyonel, normal fiyattan bağımsız)</small>
+                            </div>
+                            <div class="row g-3">
+                                <div class="col-md-3">
+                                    <label class="form-label fw-semibold">Bardak Fiyatı</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text">{{ $menu->currency_symbol ?? $menu->currency }}</span>
+                                        <input type="number" name="price_glass" class="form-control"
+                                               min="0" step="0.01"
+                                               value="{{ old('price_glass', $isEdit ? $item->price_glass : '') }}"
+                                               placeholder="0.00">
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label fw-semibold">Bardak CL</label>
+                                    <div class="input-group">
+                                        <input type="number" name="cl_glass" class="form-control"
+                                               min="0" step="1"
+                                               value="{{ old('cl_glass', $isEdit ? $item->cl_glass : '') }}"
+                                               placeholder="30">
+                                        <span class="input-group-text">cl</span>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label fw-semibold">Şişe Fiyatı</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text">{{ $menu->currency_symbol ?? $menu->currency }}</span>
+                                        <input type="number" name="price_bottle" class="form-control"
+                                               min="0" step="0.01"
+                                               value="{{ old('price_bottle', $isEdit ? $item->price_bottle : '') }}"
+                                               placeholder="0.00">
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label fw-semibold">Şişe CL</label>
+                                    <div class="input-group">
+                                        <input type="number" name="cl_bottle" class="form-control"
+                                               min="0" step="1"
+                                               value="{{ old('cl_bottle', $isEdit ? $item->cl_bottle : '') }}"
+                                               placeholder="70">
+                                        <span class="input-group-text">cl</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
                         {{-- Öne çıkan --}}
                         <div class="form-check form-switch mt-3">
                             <input class="form-check-input" type="checkbox" name="is_featured"
@@ -156,6 +206,28 @@
                             </label>
                         </div>
 
+                    </div>
+                </div>
+
+                {{-- Alt Başlık / Ayraç --}}
+                <div class="card mt-3">
+                    <div class="card-header d-flex align-items-center gap-2">
+                        <h4 class="card-title mb-0">Alt Başlık / Ayraç</h4>
+                        <small class="text-muted">(bu üründen önce kategori içinde bölüm başlığı gösterir)</small>
+                    </div>
+                    <div class="card-body">
+                        @foreach($menu->languages as $lang)
+                        <div class="mb-3 @if(!$loop->last) border-bottom pb-3 @endif">
+                            <div class="d-flex align-items-center gap-2 mb-2">
+                                <span>{{ $lang->flag }}</span>
+                                <strong class="small">{{ $lang->name }}</strong>
+                            </div>
+                            <input type="text" name="sub_heading_{{ $lang->code }}" class="form-control"
+                                   value="{{ old('sub_heading_'.$lang->code, $isEdit ? $item->getSubHeading($lang->code) : '') }}"
+                                   placeholder="Örn: Viskiler, Biralar, Kokteyller…">
+                        </div>
+                        @endforeach
+                        <small class="text-muted">Boş bırakılabilir. Girilen değer halka açık menüde bu ürün grubunun üstünde bölüm başlığı olarak görünür.</small>
                     </div>
                 </div>
 

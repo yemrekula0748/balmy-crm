@@ -17,16 +17,20 @@ class QrMenuItem extends Model
         'category_id', 'food_product_id',
         'title', 'description', 'price', 'price_override', 'image',
         'is_active', 'is_featured', 'badges', 'sort_order',
+        'sub_heading', 'price_glass', 'price_bottle', 'cl_glass', 'cl_bottle',
     ];
 
     protected $casts = [
         'title'          => 'array',
         'description'    => 'array',
         'badges'         => 'array',
+        'sub_heading'    => 'array',
         'is_active'      => 'boolean',
         'is_featured'    => 'boolean',
         'price'          => 'float',
         'price_override' => 'float',
+        'price_glass'    => 'float',
+        'price_bottle'   => 'float',
     ];
 
     /**
@@ -56,6 +60,12 @@ class QrMenuItem extends Model
     public function foodProduct(): BelongsTo
     {
         return $this->belongsTo(FoodProduct::class, 'food_product_id');
+    }
+
+    public function getSubHeading(string $lang = 'tr'): string
+    {
+        $sh = array_filter((array)($this->sub_heading ?? []), fn($v) => is_string($v) && $v !== '');
+        return $sh[$lang] ?? array_values($sh)[0] ?? '';
     }
 
     public function getTitle(string $lang = 'tr'): string

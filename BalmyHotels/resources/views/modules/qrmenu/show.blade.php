@@ -117,6 +117,26 @@
                                         {{ $item->formattedPrice($menu->currency_symbol) }}
                                     </div>
                                 @endif
+                                @if($item->price_glass || $item->price_bottle)
+                                    <div class="small text-muted mt-1">
+                                        @if($item->price_glass)
+                                            <span title="Bardak">🥃 {{ $item->cl_glass ? $item->cl_glass.'cl ' : '' }}{{ $menu->currency_symbol }}{{ number_format($item->price_glass,2) }}</span>
+                                        @endif
+                                        @if($item->price_glass && $item->price_bottle)
+                                            &nbsp;·&nbsp;
+                                        @endif
+                                        @if($item->price_bottle)
+                                            <span title="Şişe">🍾 {{ $item->cl_bottle ? $item->cl_bottle.'cl ' : '' }}{{ $menu->currency_symbol }}{{ number_format($item->price_bottle,2) }}</span>
+                                        @endif
+                                    </div>
+                                @endif
+                                @if($item->getSubHeading())
+                                    <div class="mt-1">
+                                        <span class="badge bg-light text-dark border" style="font-size:.6rem">
+                                            ── {{ $item->getSubHeading() }}
+                                        </span>
+                                    </div>
+                                @endif
                                 <div class="d-flex gap-1 justify-content-end mt-1">
                                     <a href="{{ route('qrmenus.item.edit', [$menu, $category, $item]) }}"
                                        class="btn btn-outline-warning btn-sm py-0 px-2">

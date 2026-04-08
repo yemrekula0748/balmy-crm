@@ -216,6 +216,26 @@
         .badge-pill { padding: 2px 7px; border-radius: 50px; font-size: .57rem; font-weight: 500; border: 1px solid; white-space: nowrap; }
         .ic-price { font-family: var(--serif); font-size: .94rem; font-weight: 600; color: var(--accent); margin-top: .42rem; }
 
+        /* ---- ALT BAŞLIK AYRAÇ ---- */
+        .sub-heading-divider {
+            display: flex; align-items: center; gap: .6rem;
+            grid-column: 1 / -1; padding: .85rem 0 .4rem;
+        }
+        .sub-heading-divider-line { flex: 1; height: 1px; background: linear-gradient(to right, var(--accent-mid), transparent); }
+        .sub-heading-divider-line.right { background: linear-gradient(to left, var(--accent-mid), transparent); }
+        .sub-heading-divider-text {
+            font-family: var(--serif); font-size: .92rem; font-style: italic;
+            color: var(--accent); white-space: nowrap; letter-spacing: .04em;
+        }
+
+        /* ---- BARDAK / ŞİŞE FİYATI ---- */
+        .ic-glass-bottle { display: flex; flex-wrap: wrap; gap: .22rem; margin-top: .3rem; }
+        .glass-btl-tag {
+            font-size: .65rem; color: var(--text-sub);
+            background: var(--surface2); border: 1px solid var(--border2);
+            border-radius: 50px; padding: 1px 7px; white-space: nowrap;
+        }
+
         /* ---- FOOTER ---- */
         .menu-footer { text-align: center; padding: 2.5rem 1rem 1.5rem; font-size: .6rem; letter-spacing: .14em; text-transform: uppercase; color: rgba(255,255,255,.08); }
 
@@ -260,11 +280,23 @@
         .sheet-desc { font-size: .82rem; color: var(--text-sub); line-height: 1.6; margin-bottom: 1rem; }
 
         .sheet-price-row {
-            display: flex; align-items: baseline; gap: .55rem; margin-bottom: 1.1rem;
+            display: flex; align-items: baseline; gap: .55rem; margin-bottom: .6rem;
             padding: .7rem .9rem; background: var(--surface2); border-radius: 10px; border: 1px solid var(--border2);
         }
         .sheet-price { font-family: var(--serif); font-size: 1.45rem; font-weight: 600; color: var(--accent); letter-spacing: .01em; }
         .sheet-price-note { font-size: .7rem; color: var(--muted); }
+
+        /* Bardak / Şişe fiyat satırları (sheet) */
+        .glass-btl-sheet {
+            display: flex; flex-direction: column; gap: .35rem; margin-bottom: .9rem;
+        }
+        .glass-btl-sheet-tag {
+            display: flex; justify-content: space-between; align-items: center;
+            background: var(--surface2); border: 1px solid var(--border2); border-radius: 8px;
+            padding: .45rem .75rem;
+        }
+        .gbs-lbl { font-size: .76rem; color: var(--text-sub); }
+        .gbs-price { font-family: var(--serif); font-size: 1rem; font-weight: 600; color: var(--accent); }
 
         .sheet-options { margin-top: .6rem; }
         .sheet-options-title { font-size: .67rem; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin-bottom: .55rem; border-bottom: 1px solid var(--border); padding-bottom: .4rem; }
@@ -300,12 +332,16 @@
 
 @php
 $_i18n = [
-    'tr' => ['product_info'=>'Ürün Bilgileri','tax_note'=>'KDV dahil','featured'=>'Öne Çıkanlar','recommended'=>'Önerilen','digital_menu'=>'Dijital Menü','allergens_tab'=>'Alerjenler','info_tab'=>'Bilgiler','ingredients_tab'=>'İçindekiler','calories'=>'Kalori','protein'=>'Protein','carbs'=>'Karbonhidrat','fat'=>'Yağ'],
-    'en' => ['product_info'=>'Product Info','tax_note'=>'Tax included','featured'=>'Featured','recommended'=>'Recommended','digital_menu'=>'Digital Menu','allergens_tab'=>'Allergens','info_tab'=>'Details','ingredients_tab'=>'Ingredients','calories'=>'Calories','protein'=>'Protein','carbs'=>'Carbohydrates','fat'=>'Fat'],
-    'de' => ['product_info'=>'Produktinfo','tax_note'=>'Inkl. MwSt.','featured'=>'Highlights','recommended'=>'Empfohlen','digital_menu'=>'Digitale Karte','allergens_tab'=>'Allergene','info_tab'=>'Details','ingredients_tab'=>'Zutaten','calories'=>'Kalorien','protein'=>'Protein','carbs'=>'Kohlenhydrate','fat'=>'Fett'],
-    'ru' => ['product_info'=>'О продукте','tax_note'=>'Включая НДС','featured'=>'Рекомендуем','recommended'=>'Рекомендовано','digital_menu'=>'Цифровое меню','allergens_tab'=>'Аллергены','info_tab'=>'Детали','ingredients_tab'=>'Состав','calories'=>'Калории','protein'=>'Белок','carbs'=>'Углеводы','fat'=>'Жиры'],
-    'ar' => ['product_info'=>'معلومات المنتج','tax_note'=>'شامل الضريبة','featured'=>'المميزة','recommended'=>'موصى به','digital_menu'=>'قائمة رقمية','allergens_tab'=>'مسببات الحساسية','info_tab'=>'تفاصيل','ingredients_tab'=>'المكونات','calories'=>'سعرات','protein'=>'بروتين','carbs'=>'كربوهيدرات','fat'=>'دهون'],
-    'fr' => ['product_info'=>'Info produit','tax_note'=>'TVA incluse','featured'=>'En vedette','recommended'=>'Recommandé','digital_menu'=>'Menu numérique','allergens_tab'=>'Allergènes','info_tab'=>'Détails','ingredients_tab'=>'Ingrédients','calories'=>'Calories','protein'=>'Protéines','carbs'=>'Glucides','fat'=>'Lipides'],
+    'tr' => ['product_info'=>'Ürün Bilgileri','tax_note'=>'KDV dahil','featured'=>'Öne Çıkanlar','recommended'=>'Önerilen','digital_menu'=>'Dijital Menü','allergens_tab'=>'Alerjenler','info_tab'=>'Bilgiler','ingredients_tab'=>'İçindekiler','calories'=>'Kalori','protein'=>'Protein','carbs'=>'Karbonhidrat','fat'=>'Yağ','glass'=>'Bardak','bottle'=>'Şişe'],
+    'en' => ['product_info'=>'Product Info','tax_note'=>'Tax included','featured'=>'Featured','recommended'=>'Recommended','digital_menu'=>'Digital Menu','allergens_tab'=>'Allergens','info_tab'=>'Details','ingredients_tab'=>'Ingredients','calories'=>'Calories','protein'=>'Protein','carbs'=>'Carbohydrates','fat'=>'Fat','glass'=>'Glass','bottle'=>'Bottle'],
+    'de' => ['product_info'=>'Produktinfo','tax_note'=>'Inkl. MwSt.','featured'=>'Highlights','recommended'=>'Empfohlen','digital_menu'=>'Digitale Karte','allergens_tab'=>'Allergene','info_tab'=>'Details','ingredients_tab'=>'Zutaten','calories'=>'Kalorien','protein'=>'Protein','carbs'=>'Kohlenhydrate','fat'=>'Fett','glass'=>'Glas','bottle'=>'Flasche'],
+    'ru' => ['product_info'=>'О продукте','tax_note'=>'Включая НДС','featured'=>'Рекомендуем','recommended'=>'Рекомендовано','digital_menu'=>'Цифровое меню','allergens_tab'=>'Аллергены','info_tab'=>'Детали','ingredients_tab'=>'Состав','calories'=>'Калории','protein'=>'Белок','carbs'=>'Углеводы','fat'=>'Жиры','glass'=>'Бокал','bottle'=>'Бутылка'],
+    'ar' => ['product_info'=>'معلومات المنتج','tax_note'=>'شامل الضريبة','featured'=>'المميزة','recommended'=>'موصى به','digital_menu'=>'قائمة رقمية','allergens_tab'=>'مسببات الحساسية','info_tab'=>'تفاصيل','ingredients_tab'=>'المكونات','calories'=>'سعرات','protein'=>'بروتين','carbs'=>'كربوهيدرات','fat'=>'دهون','glass'=>'كأس','bottle'=>'زجاجة'],
+    'fr' => ['product_info'=>'Info produit','tax_note'=>'TVA incluse','featured'=>'En vedette','recommended'=>'Recommandé','digital_menu'=>'Menu numérique','allergens_tab'=>'Allergènes','info_tab'=>'Détails','ingredients_tab'=>'Ingrédients','calories'=>'Calories','protein'=>'Protéines','carbs'=>'Glucides','fat'=>'Lipides','glass'=>'Verre','bottle'=>'Bouteille'],
+    'es' => ['product_info'=>'Info producto','tax_note'=>'IVA incluido','featured'=>'Destacados','recommended'=>'Recomendado','digital_menu'=>'Menú digital','allergens_tab'=>'Alérgenos','info_tab'=>'Detalles','ingredients_tab'=>'Ingredientes','calories'=>'Calorías','protein'=>'Proteínas','carbs'=>'Carbohidratos','fat'=>'Grasas','glass'=>'Copa','bottle'=>'Botella'],
+    'it' => ['product_info'=>'Info prodotto','tax_note'=>'IVA inclusa','featured'=>'In evidenza','recommended'=>'Consigliato','digital_menu'=>'Menu digitale','allergens_tab'=>'Allergeni','info_tab'=>'Dettagli','ingredients_tab'=>'Ingredienti','calories'=>'Calorie','protein'=>'Proteine','carbs'=>'Carboidrati','fat'=>'Grassi','glass'=>'Calice','bottle'=>'Bottiglia'],
+    'nl' => ['product_info'=>'Productinfo','tax_note'=>'BTW inbegrepen','featured'=>'Uitgelicht','recommended'=>'Aanbevolen','digital_menu'=>'Digitale kaart','allergens_tab'=>'Allergenen','info_tab'=>'Details','ingredients_tab'=>'Ingrediënten','calories'=>'Calorieën','protein'=>'Eiwit','carbs'=>'Koolhydraten','fat'=>'Vet','glass'=>'Glas','bottle'=>'Fles'],
+    'zh' => ['product_info'=>'产品信息','tax_note'=>'含税','featured'=>'推荐','recommended'=>'推荐','digital_menu'=>'数字菜单','allergens_tab'=>'过敏原','info_tab'=>'详情','ingredients_tab'=>'配料','calories'=>'卡路里','protein'=>'蛋白质','carbs'=>'碳水化合物','fat'=>'脂肪','glass'=>'杯','bottle'=>'瓶'],
 ];
 $_t = $_i18n[$lang] ?? $_i18n['tr'];
 @endphp
@@ -398,8 +434,21 @@ $_t = $_i18n[$lang] ?? $_i18n['tr'];
         @endif
 
         <div class="items-grid">
+            @php $renderedSubHeadings = []; @endphp
             @foreach($category->items->sortBy('sort_order') as $item)
-            @php $hasOpts = !empty($item->foodProduct?->options); @endphp
+            @php
+                $sh = $item->getSubHeading($lang);
+                $needsDivider = $sh && !in_array($sh, $renderedSubHeadings);
+                if ($needsDivider) $renderedSubHeadings[] = $sh;
+                $hasOpts = !empty($item->foodProduct?->options);
+            @endphp
+            @if($needsDivider)
+            <div class="sub-heading-divider">
+                <div class="sub-heading-divider-line"></div>
+                <div class="sub-heading-divider-text">{{ $sh }}</div>
+                <div class="sub-heading-divider-line right"></div>
+            </div>
+            @endif
             <div class="item-card" onclick="openSheet({{ $item->id }})">
                 <div class="ic-img-wrap">
                     @if($item->image)
@@ -444,6 +493,16 @@ $_t = $_i18n[$lang] ?? $_i18n['tr'];
                     @if($item->effectivePrice())
                     <div class="ic-price">{{ $item->formattedPrice($menu->currency_symbol) }}</div>
                     @endif
+                    @if($item->price_glass || $item->price_bottle)
+                    <div class="ic-glass-bottle">
+                        @if($item->price_glass)
+                        <span class="glass-btl-tag">{{ $_t['glass'] }}{{ $item->cl_glass ? ' '.$item->cl_glass.'cl' : '' }}: {{ $menu->currency_symbol }}{{ number_format($item->price_glass, 2) }}</span>
+                        @endif
+                        @if($item->price_bottle)
+                        <span class="glass-btl-tag">{{ $_t['bottle'] }}{{ $item->cl_bottle ? ' '.$item->cl_bottle.'cl' : '' }}: {{ $menu->currency_symbol }}{{ number_format($item->price_bottle, 2) }}</span>
+                        @endif
+                    </div>
+                    @endif
                 </div>
             </div>
             @endforeach
@@ -472,6 +531,7 @@ $_t = $_i18n[$lang] ?? $_i18n['tr'];
                 <div id="sheetPrice" class="sheet-price"></div>
                 <div class="sheet-price-note">{{ $_t['tax_note'] }}</div>
             </div>
+            <div id="sheetGlassBottle" class="glass-btl-sheet" style="display:none"></div>
             {{-- Sekmeler --}}
             <div id="sheetTabs" class="sheet-tabs" style="display:none">
                 <button class="sheet-tab-btn active" data-tab="info">{{ $_t['info_tab'] }}</button>
@@ -514,16 +574,20 @@ foreach ($categories as $_cat) {
         }
         $_fp = $_it->foodProduct;
         $_menuItemsJson[] = [
-            'id'          => $_it->id,
-            'title'       => $_it->getTitle($lang),
-            'description' => $_it->getDescription($lang),
-            'price'       => $_it->effectivePrice() ? $_it->formattedPrice($menu->currency_symbol) : null,
-            'image'       => $_it->image ? asset('uploads/'.$_it->image) : null,
-            'badges'      => $_it->badges ?? [],
-            'allergens'   => $_allergens,
-            'ingredients' => $_fp?->ingredients[$lang] ?? $_fp?->ingredients['tr'] ?? null,
-            'options'     => $_fp?->options ?? [],
-            'nutrition'   => ($_fp && ($_fp->calories || $_fp->protein || $_fp->carbs || $_fp->fat)) ? [
+            'id'           => $_it->id,
+            'title'        => $_it->getTitle($lang),
+            'description'  => $_it->getDescription($lang),
+            'price'        => $_it->effectivePrice() ? $_it->formattedPrice($menu->currency_symbol) : null,
+            'price_glass'  => $_it->price_glass,
+            'price_bottle' => $_it->price_bottle,
+            'cl_glass'     => $_it->cl_glass,
+            'cl_bottle'    => $_it->cl_bottle,
+            'image'        => $_it->image ? asset('uploads/'.$_it->image) : null,
+            'badges'       => $_it->badges ?? [],
+            'allergens'    => $_allergens,
+            'ingredients'  => $_fp?->ingredients[$lang] ?? $_fp?->ingredients['tr'] ?? null,
+            'options'      => $_fp?->options ?? [],
+            'nutrition'    => ($_fp && ($_fp->calories || $_fp->protein || $_fp->carbs || $_fp->fat)) ? [
                 'calories' => $_fp->calories,
                 'protein'  => $_fp->protein,
                 'carbs'    => $_fp->carbs,
@@ -547,6 +611,8 @@ var I18N = {
     protein:          '{{ $_t['protein'] }}',
     carbs:            '{{ $_t['carbs'] }}',
     fat:              '{{ $_t['fat'] }}',
+    glass:            '{{ $_t['glass'] }}',
+    bottle:           '{{ $_t['bottle'] }}',
 };
 </script>
 
@@ -617,7 +683,27 @@ function openSheet(itemId){
     if(item.description){ descEl.textContent=item.description; descEl.style.display=''; } else { descEl.style.display='none'; }
 
     var priceRow=document.getElementById('sheetPriceRow');
+    var glassBtlEl = document.getElementById('sheetGlassBottle');
     if(item.price){ document.getElementById('sheetPrice').textContent=item.price; priceRow.style.display=''; } else { priceRow.style.display='none'; }
+
+    // Bardak / Şişe fiyatları
+    glassBtlEl.innerHTML = '';
+    if(item.price_glass || item.price_bottle){
+        var sym = '{{ $menu->currency_symbol }}';
+        if(item.price_glass){
+            var tag = document.createElement('div'); tag.className='glass-btl-sheet-tag';
+            tag.innerHTML = '<span class="gbs-lbl">🥃 '+I18N.glass+(item.cl_glass?' '+item.cl_glass+'cl':'')+'</span><span class="gbs-price">'+sym+' '+item.price_glass.toFixed(2)+'</span>';
+            glassBtlEl.appendChild(tag);
+        }
+        if(item.price_bottle){
+            var tag2 = document.createElement('div'); tag2.className='glass-btl-sheet-tag';
+            tag2.innerHTML = '<span class="gbs-lbl">🍾 '+I18N.bottle+(item.cl_bottle?' '+item.cl_bottle+'cl':'')+'</span><span class="gbs-price">'+sym+' '+item.price_bottle.toFixed(2)+'</span>';
+            glassBtlEl.appendChild(tag2);
+        }
+        glassBtlEl.style.display = '';
+    } else {
+        glassBtlEl.style.display = 'none';
+    }
 
     var optsWrap=document.getElementById('sheetOptions');
     var optsList=document.getElementById('sheetOptionsList');
