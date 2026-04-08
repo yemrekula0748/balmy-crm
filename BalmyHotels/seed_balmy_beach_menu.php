@@ -1,538 +1,270 @@
-<?php
+﻿<?php
 /**
- * Balmy Beach QR Menu (ID=9) — Ürün Ekleme Scripti
- * Kategoriler: 27=Başlangıçlar, 28=Ara Sıcaklar, 29=Salatalar, 30=Ana Yemekler, 31=Tatlılar
- * branch_id = 1
+ * Balmy Beach â€” Yemek KÃ¼tÃ¼phanesi Kategorileri OluÅŸtur
+ * ve mevcut FoodProduct'lara (ID 415-432) food_category_id + ingredients ekle
  */
 require __DIR__ . '/vendor/autoload.php';
 $app = require_once __DIR__ . '/bootstrap/app.php';
 $app->make(\Illuminate\Contracts\Console\Kernel::class)->bootstrap();
 
+use App\Models\FoodCategory;
 use App\Models\FoodProduct;
-use App\Models\QrMenuItem;
 
 $branchId = 1;
-$created = 0;
 
-/**
- * Her ürün için:
- *  - FoodProduct oluştur (allergen + nutrition burada)
- *  - QrMenuItem oluştur ve food_product_id ile bağla
- */
-$items = [
-
-    /* ─────────────────────────────────────────────
-       KATEGORİ 27 — BAŞLANGIÇLAR
-    ───────────────────────────────────────────── */
+/* â”€â”€ 1. Kategorileri oluÅŸtur â”€â”€ */
+$catDefs = [
     [
-        'category_id' => 27,
-        'price'       => 6.00,
-        'sort_order'  => 1,
-        'badges'      => ['Önerilen'],
-        'title'       => [
-            'tr' => 'Somon Füme Sandviç',
-            'en' => 'Smoked Salmon Sandwich',
-            'de' => 'Geräucherter Lachs Sandwich',
-            'ru' => 'Сэндвич с копчёным лососем',
-            'ar' => 'ساندويش السلمون المدخن',
-        ],
-        'description' => [
-            'tr' => 'Roka · Somon Füme · Kırmızı Soğan · Patates Tava',
-            'en' => 'Arugula · Smoked Salmon · Red Onion · Pan-Fried Potatoes',
-            'de' => 'Rucola · Geräucherter Lachs · Rote Zwiebel · Bratkartoffeln',
-            'ru' => 'Руккола · Копчёный лосось · Красный лук · Жареный картофель',
-            'ar' => 'جرجير · سلمون مدخن · بصل أحمر · بطاطس مقلية',
-        ],
-        'allergens'  => ['gluten', 'balik'],
-        'calories'   => 345.00,
-        'protein'    => 20.00,
-        'carbs'      => 34.00,
-        'fat'        => 11.00,
+        'sort_order' => 1, 'icon' => 'ğŸ¥ª',
+        'title' => ['tr'=>'BaÅŸlangÄ±Ã§lar','en'=>'Starters','de'=>'Vorspeisen','ru'=>'Ğ—Ğ°ĞºÑƒÑĞºĞ¸','ar'=>'Ø§Ù„Ù…Ù‚Ø¨Ù„Ø§Øª'],
     ],
     [
-        'category_id' => 27,
-        'price'       => 10.00,
-        'sort_order'  => 2,
-        'badges'      => [],
-        'title'       => [
-            'tr' => 'Roast Beef Sandviç',
-            'en' => 'Roast Beef Sandwich',
-            'de' => 'Roast Beef Sandwich',
-            'ru' => 'Сэндвич с ростбифом',
-            'ar' => 'ساندويش الروستبيف',
-        ],
-        'description' => [
-            'tr' => 'Baget Ekmeği · Kornişon Turşu · Hardal · Roka · Patates Tava',
-            'en' => 'Baguette · Gherkin Pickles · Mustard · Arugula · Pan-Fried Potatoes',
-            'de' => 'Baguette · Gewürzgurken · Senf · Rucola · Bratkartoffeln',
-            'ru' => 'Багет · Маринованные огурцы · Горчица · Руккола · Жареный картофель',
-            'ar' => 'خبز باغيت · مخلل · خردل · جرجير · بطاطس مقلية',
-        ],
-        'allergens'  => ['gluten', 'hardal'],
-        'calories'   => 480.00,
-        'protein'    => 28.00,
-        'carbs'      => 42.00,
-        'fat'        => 18.00,
+        'sort_order' => 2, 'icon' => 'ğŸ',
+        'title' => ['tr'=>'Ara SÄ±caklar','en'=>'Hot Appetizers','de'=>'Warme Vorspeisen','ru'=>'Ğ“Ğ¾Ñ€ÑÑ‡Ğ¸Ğµ Ğ·Ğ°ĞºÑƒÑĞºĞ¸','ar'=>'Ø§Ù„Ù…Ù‚Ø¨Ù„Ø§Øª Ø§Ù„Ø³Ø§Ø®Ù†Ø©'],
     ],
     [
-        'category_id' => 27,
-        'price'       => 6.00,
-        'sort_order'  => 3,
-        'badges'      => [],
-        'title'       => [
-            'tr' => 'Tavuk Füme Göğsü Sandviç',
-            'en' => 'Smoked Chicken Breast Sandwich',
-            'de' => 'Geräucherte Hähnchenbrust Sandwich',
-            'ru' => 'Сэндвич с копчёной куриной грудкой',
-            'ar' => 'ساندويش صدر الدجاج المدخن',
-        ],
-        'description' => [
-            'tr' => 'Kızarmış Ekmek · Tavuk Füme · Marul · Domates · Cheddar · Mayonez · Patates Tava · Turşu',
-            'en' => 'Toasted Bread · Smoked Chicken · Lettuce · Tomato · Cheddar · Mayonnaise · Pan-Fried Potatoes · Pickles',
-            'de' => 'Geröstetes Brot · Geräuchertes Huhn · Salat · Tomate · Cheddar · Mayonnaise · Bratkartoffeln · Gewürzgurken',
-            'ru' => 'Тост · Копчёная курица · Салат · Помидор · Чеддер · Майонез · Жареный картофель · Маринованные огурцы',
-            'ar' => 'خبز محمص · دجاج مدخن · خس · طماطم · جبنة شيدر · مايونيز · بطاطس مقلية · مخلل',
-        ],
-        'allergens'  => ['gluten', 'yumurta', 'sut'],
-        'calories'   => 420.00,
-        'protein'    => 26.00,
-        'carbs'      => 38.00,
-        'fat'        => 16.00,
-    ],
-
-    /* ─────────────────────────────────────────────
-       KATEGORİ 28 — ARA SICAKLAR
-    ───────────────────────────────────────────── */
-    [
-        'category_id' => 28,
-        'price'       => 8.00,
-        'sort_order'  => 1,
-        'badges'      => ['Vejeteryan'],
-        'title'       => [
-            'tr' => 'Kremalı Mantarlı Penne',
-            'en' => 'Creamy Mushroom Penne',
-            'de' => 'Penne mit cremiger Pilzsauce',
-            'ru' => 'Пенне со сливочным соусом и грибами',
-            'ar' => 'باستا بيني بالفطر والكريمة',
-        ],
-        'description' => [
-            'tr' => 'Taze Mantar · Parmesan · Kremalı Sos',
-            'en' => 'Fresh Mushroom · Parmesan · Cream Sauce',
-            'de' => 'Frische Champignons · Parmesan · Sahnesauce',
-            'ru' => 'Свежие грибы · Пармезан · Сливочный соус',
-            'ar' => 'فطر طازج · بارميزان · صلصة كريمة',
-        ],
-        'allergens'  => ['gluten', 'sut'],
-        'calories'   => 520.00,
-        'protein'    => 16.00,
-        'carbs'      => 65.00,
-        'fat'        => 22.00,
+        'sort_order' => 3, 'icon' => 'ğŸ¥—',
+        'title' => ['tr'=>'Salatalar','en'=>'Salads','de'=>'Salate','ru'=>'Ğ¡Ğ°Ğ»Ğ°Ñ‚Ñ‹','ar'=>'Ø§Ù„Ø³Ù„Ø·Ø§Øª'],
     ],
     [
-        'category_id' => 28,
-        'price'       => 8.00,
-        'sort_order'  => 2,
-        'badges'      => ['Vegan', 'Vejeteryan'],
-        'title'       => [
-            'tr' => 'Pomodoro & Fesleğen Spagetti',
-            'en' => 'Pomodoro & Basil Spaghetti',
-            'de' => 'Pomodoro & Basilikum Spaghetti',
-            'ru' => 'Спагетти помодоро с базиликом',
-            'ar' => 'سباغيتي بومودورو والريحان',
-        ],
-        'description' => [
-            'tr' => 'Domates Sos · Taze Fesleğen · Zeytinyağı',
-            'en' => 'Tomato Sauce · Fresh Basil · Olive Oil',
-            'de' => 'Tomatensauce · Frisches Basilikum · Olivenöl',
-            'ru' => 'Томатный соус · Свежий базилик · Оливковое масло',
-            'ar' => 'صلصة طماطم · ريحان طازج · زيت زيتون',
-        ],
-        'allergens'  => ['gluten'],
-        'calories'   => 460.00,
-        'protein'    => 12.00,
-        'carbs'      => 72.00,
-        'fat'        => 14.00,
+        'sort_order' => 4, 'icon' => 'ğŸ½ï¸',
+        'title' => ['tr'=>'Ana Yemekler','en'=>'Main Courses','de'=>'Hauptgerichte','ru'=>'ĞÑĞ½Ğ¾Ğ²Ğ½Ñ‹Ğµ Ğ±Ğ»ÑĞ´Ğ°','ar'=>'Ø§Ù„Ø£Ø·Ø¨Ø§Ù‚ Ø§Ù„Ø±Ø¦ÙŠØ³ÙŠØ©'],
     ],
     [
-        'category_id' => 28,
-        'price'       => 12.00,
-        'sort_order'  => 3,
-        'badges'      => ['Vejeteryan'],
-        'title'       => [
-            'tr' => 'Dört Peynir Tortelini',
-            'en' => 'Four Cheese Tortellini',
-            'de' => 'Vier-Käse-Tortellini',
-            'ru' => 'Тортеллини четыре сыра',
-            'ar' => 'تورتيليني أربعة أجبان',
-        ],
-        'description' => [
-            'tr' => 'Mozzarella · Ricotta · Parmesan · Gorgonzola · Kremalı Sos',
-            'en' => 'Mozzarella · Ricotta · Parmesan · Gorgonzola · Cream Sauce',
-            'de' => 'Mozzarella · Ricotta · Parmesan · Gorgonzola · Sahnesauce',
-            'ru' => 'Моцарелла · Рикотта · Пармезан · Горгонзола · Сливочный соус',
-            'ar' => 'موزاريلا · ريكوتا · بارميزان · جورجونزولا · صلصة كريمة',
-        ],
-        'allergens'  => ['gluten', 'sut', 'yumurta'],
-        'calories'   => 580.00,
-        'protein'    => 22.00,
-        'carbs'      => 60.00,
-        'fat'        => 28.00,
-    ],
-    [
-        'category_id' => 28,
-        'price'       => 6.00,
-        'sort_order'  => 4,
-        'badges'      => [],
-        'title'       => [
-            'tr' => 'Tavuk Quesadilla',
-            'en' => 'Chicken Quesadilla',
-            'de' => 'Hähnchen Quesadilla',
-            'ru' => 'Куриная кесадилья',
-            'ar' => 'كيساديا الدجاج',
-        ],
-        'description' => [
-            'tr' => 'Tatlı-Acı Sos · Soya Sos · Cheddar Peyniri',
-            'en' => 'Sweet-Chili Sauce · Soy Sauce · Cheddar Cheese',
-            'de' => 'Süß-scharfe Sauce · Sojasoße · Cheddar-Käse',
-            'ru' => 'Кисло-сладкий соус · Соевый соус · Сыр чеддер',
-            'ar' => 'صلصة حلوة حارة · صلصة الصويا · جبنة شيدر',
-        ],
-        'allergens'  => ['gluten', 'soya', 'sut'],
-        'calories'   => 440.00,
-        'protein'    => 24.00,
-        'carbs'      => 38.00,
-        'fat'        => 20.00,
-    ],
-    [
-        'category_id' => 28,
-        'price'       => 12.00,
-        'sort_order'  => 5,
-        'badges'      => ['Popüler'],
-        'title'       => [
-            'tr' => 'Hamburger / Cheeseburger',
-            'en' => 'Hamburger / Cheeseburger',
-            'de' => 'Hamburger / Cheeseburger',
-            'ru' => 'Гамбургер / Чизбургер',
-            'ar' => 'برغر / تشيزبرغر',
-        ],
-        'description' => [
-            'tr' => 'Izgara Köfte · Tereyağlı Burger Ekmeği · Patates Tava',
-            'en' => 'Grilled Beef Patty · Buttered Burger Bun · Pan-Fried Potatoes',
-            'de' => 'Gegrilltes Fleischpatty · Gebutterte Burgerbrötchen · Bratkartoffeln',
-            'ru' => 'Котлета говяжья гриль · Булочка с маслом · Жареный картофель',
-            'ar' => 'كوفتة مشوية · خبز برغر بالزبدة · بطاطس مقلية',
-        ],
-        'allergens'  => ['gluten', 'sut', 'yumurta'],
-        'calories'   => 650.00,
-        'protein'    => 32.00,
-        'carbs'      => 52.00,
-        'fat'        => 32.00,
-    ],
-    [
-        'category_id' => 28,
-        'price'       => 6.00,
-        'sort_order'  => 6,
-        'badges'      => [],
-        'title'       => [
-            'tr' => 'Karışık Tost',
-            'en' => 'Mixed Toast',
-            'de' => 'Gemischter Toast',
-            'ru' => 'Смешанный тост',
-            'ar' => 'توست مشكل',
-        ],
-        'description' => [
-            'tr' => 'Salça · Kaşar · Dana Sucuk · Patates Tava',
-            'en' => 'Tomato Paste · Kashar Cheese · Beef Sausage · Pan-Fried Potatoes',
-            'de' => 'Tomatenmark · Kaşar-Käse · Rindswurst · Bratkartoffeln',
-            'ru' => 'Томатная паста · Сыр кашар · Говяжья колбаса · Жареный картофель',
-            'ar' => 'معجون طماطم · جبنة كاشار · سجق بقري · بطاطس مقلية',
-        ],
-        'allergens'  => ['gluten', 'sut'],
-        'calories'   => 480.00,
-        'protein'    => 22.00,
-        'carbs'      => 45.00,
-        'fat'        => 24.00,
-    ],
-    [
-        'category_id' => 28,
-        'price'       => 5.00,
-        'sort_order'  => 7,
-        'badges'      => ['Vejeteryan'],
-        'title'       => [
-            'tr' => 'Kaşarlı Tost',
-            'en' => 'Cheese Toast',
-            'de' => 'Käse Toast',
-            'ru' => 'Тост с сыром',
-            'ar' => 'توست بالجبنة',
-        ],
-        'description' => [
-            'tr' => 'Salça · Kaşar · Patates Tava',
-            'en' => 'Tomato Paste · Kashar Cheese · Pan-Fried Potatoes',
-            'de' => 'Tomatenmark · Kaşar-Käse · Bratkartoffeln',
-            'ru' => 'Томатная паста · Сыр кашар · Жареный картофель',
-            'ar' => 'معجون طماطم · جبنة كاشار · بطاطس مقلية',
-        ],
-        'allergens'  => ['gluten', 'sut'],
-        'calories'   => 380.00,
-        'protein'    => 14.00,
-        'carbs'      => 42.00,
-        'fat'        => 18.00,
-    ],
-
-    /* ─────────────────────────────────────────────
-       KATEGORİ 29 — SALATALAR
-    ───────────────────────────────────────────── */
-    [
-        'category_id' => 29,
-        'price'       => 6.00,
-        'sort_order'  => 1,
-        'badges'      => ['Vegan', 'Vejeteryan'],
-        'title'       => [
-            'tr' => 'Roka & Avokado Salatası',
-            'en' => 'Arugula & Avocado Salad',
-            'de' => 'Rucola & Avocado Salat',
-            'ru' => 'Салат из рукколы и авокадо',
-            'ar' => 'سلطة الجرجير والأفوكادو',
-        ],
-        'description' => [
-            'tr' => 'Taze Roka · Avokado · Kavrulmuş Badem · Narenciye Sos',
-            'en' => 'Fresh Arugula · Avocado · Toasted Almonds · Citrus Dressing',
-            'de' => 'Frischer Rucola · Avocado · Geröstete Mandeln · Zitrus-Dressing',
-            'ru' => 'Свежая руккола · Авокадо · Жареный миндаль · Цитрусовая заправка',
-            'ar' => 'جرجير طازج · أفوكادو · لوز محمص · صلصة الحمضيات',
-        ],
-        'allergens'  => ['kuruyemis'],
-        'calories'   => 280.00,
-        'protein'    => 6.00,
-        'carbs'      => 14.00,
-        'fat'        => 22.00,
-    ],
-    [
-        'category_id' => 29,
-        'price'       => 6.00,
-        'sort_order'  => 2,
-        'badges'      => ['Vegan', 'Vejeteryan'],
-        'title'       => [
-            'tr' => 'Akdeniz Salatası',
-            'en' => 'Mediterranean Salad',
-            'de' => 'Mediterraner Salat',
-            'ru' => 'Средиземноморский салат',
-            'ar' => 'سلطة متوسطية',
-        ],
-        'description' => [
-            'tr' => 'Salatalık · Domates · Zeytin · Kırmızı Soğan · Limon-Zeytinyağı Sos',
-            'en' => 'Cucumber · Tomato · Olives · Red Onion · Lemon-Olive Oil Dressing',
-            'de' => 'Gurke · Tomate · Oliven · Rote Zwiebel · Zitronen-Olivenöl-Dressing',
-            'ru' => 'Огурец · Помидор · Оливки · Красный лук · Лимонно-оливковая заправка',
-            'ar' => 'خيار · طماطم · زيتون · بصل أحمر · صلصة الليمون وزيت الزيتون',
-        ],
-        'allergens'  => [],
-        'calories'   => 180.00,
-        'protein'    => 4.00,
-        'carbs'      => 16.00,
-        'fat'        => 12.00,
-    ],
-
-    /* ─────────────────────────────────────────────
-       KATEGORİ 30 — ANA YEMEKLER
-    ───────────────────────────────────────────── */
-    [
-        'category_id' => 30,
-        'price'       => 12.00,
-        'sort_order'  => 1,
-        'badges'      => ['Önerilen'],
-        'title'       => [
-            'tr' => 'Izgara Tavuk Göğsü',
-            'en' => 'Grilled Chicken Breast',
-            'de' => 'Gegrillte Hähnchenbrust',
-            'ru' => 'Куриная грудка гриль',
-            'ar' => 'صدر دجاج مشوي',
-        ],
-        'description' => [
-            'tr' => 'Baharatlı Yoğurt Sos · Sote Sebzeler · Hafif Tahin',
-            'en' => 'Spiced Yogurt Sauce · Sautéed Vegetables · Light Tahini',
-            'de' => 'Gewürzte Joghurtsauce · Sautiertes Gemüse · Heller Tahini',
-            'ru' => 'Пряный соус из йогурта · Тушёные овощи · Лёгкий тахини',
-            'ar' => 'صلصة زبادي بالبهارات · خضروات مقلية · طحينة خفيفة',
-        ],
-        'allergens'  => ['sut', 'susam'],
-        'calories'   => 380.00,
-        'protein'    => 42.00,
-        'carbs'      => 18.00,
-        'fat'        => 14.00,
-    ],
-    [
-        'category_id' => 30,
-        'price'       => 15.00,
-        'sort_order'  => 2,
-        'badges'      => ['Önerilen'],
-        'title'       => [
-            'tr' => 'Izgara Fileto Levrek',
-            'en' => 'Grilled Sea Bass Fillet',
-            'de' => 'Gegrilltes Wolfsbarschfilet',
-            'ru' => 'Филе морского окуня гриль',
-            'ar' => 'فيليه سمك قاروص مشوي',
-        ],
-        'description' => [
-            'tr' => 'Limon-Tereyağlı Sos · Mevsim Sebzeleri',
-            'en' => 'Lemon-Butter Sauce · Seasonal Vegetables',
-            'de' => 'Zitronen-Butter-Sauce · Saisongemüse',
-            'ru' => 'Лимонно-сливочный соус · Сезонные овощи',
-            'ar' => 'صلصة زبدة الليمون · خضروات موسمية',
-        ],
-        'allergens'  => ['balik', 'sut'],
-        'calories'   => 320.00,
-        'protein'    => 38.00,
-        'carbs'      => 8.00,
-        'fat'        => 16.00,
-    ],
-    [
-        'category_id' => 30,
-        'price'       => 30.00,
-        'sort_order'  => 3,
-        'badges'      => ['Önerilen', 'Popüler'],
-        'title'       => [
-            'tr' => 'Dana Bonfile',
-            'en' => 'Beef Tenderloin',
-            'de' => 'Rinderfilet',
-            'ru' => 'Говяжья вырезка',
-            'ar' => 'فيليه لحم بقري',
-        ],
-        'description' => [
-            'tr' => 'Izgara Dana Bonfile · Patates Sote · Mevsim Sebzeleri',
-            'en' => 'Grilled Beef Tenderloin · Sautéed Potatoes · Seasonal Vegetables',
-            'de' => 'Gegrilltes Rinderfilet · Sautierte Kartoffeln · Saisongemüse',
-            'ru' => 'Говяжья вырезка гриль · Тушёный картофель · Сезонные овощи',
-            'ar' => 'فيليه بقري مشوي · بطاطس سوتيه · خضروات موسمية',
-        ],
-        'allergens'  => [],
-        'calories'   => 580.00,
-        'protein'    => 52.00,
-        'carbs'      => 22.00,
-        'fat'        => 28.00,
-    ],
-
-    /* ─────────────────────────────────────────────
-       KATEGORİ 31 — TATLILAR
-    ───────────────────────────────────────────── */
-    [
-        'category_id' => 31,
-        'price'       => 5.00,
-        'sort_order'  => 1,
-        'badges'      => [],
-        'title'       => [
-            'tr' => 'Fırınlanmış Sütlaç',
-            'en' => 'Baked Rice Pudding',
-            'de' => 'Gebackener Milchreis',
-            'ru' => 'Запечённый рисовый пудинг',
-            'ar' => 'أرز حليب مخبوز',
-        ],
-        'description' => [
-            'tr' => 'Geleneksel Türk Tatlısı · Vanilyalı Dondurma',
-            'en' => 'Traditional Turkish Dessert · Vanilla Ice Cream',
-            'de' => 'Traditionelles türkisches Dessert · Vanilleeis',
-            'ru' => 'Традиционный турецкий десерт · Ванильное мороженое',
-            'ar' => 'حلوى تركية تقليدية · آيس كريم فانيليا',
-        ],
-        'allergens'  => ['sut', 'yumurta'],
-        'calories'   => 380.00,
-        'protein'    => 8.00,
-        'carbs'      => 58.00,
-        'fat'        => 14.00,
-    ],
-    [
-        'category_id' => 31,
-        'price'       => 6.00,
-        'sort_order'  => 2,
-        'badges'      => ['Vegan', 'Vejeteryan'],
-        'title'       => [
-            'tr' => 'Meyve Tabağı',
-            'en' => 'Fruit Platter',
-            'de' => 'Obstplatte',
-            'ru' => 'Фруктовая тарелка',
-            'ar' => 'طبق فواكه',
-        ],
-        'description' => [
-            'tr' => 'Günün Taze Meyveleri',
-            'en' => "Today's Fresh Fruits",
-            'de' => 'Frische Früchte des Tages',
-            'ru' => 'Свежие фрукты дня',
-            'ar' => 'فواكه طازجة اليوم',
-        ],
-        'allergens'  => [],
-        'calories'   => 140.00,
-        'protein'    => 2.00,
-        'carbs'      => 34.00,
-        'fat'        => 1.00,
-    ],
-    [
-        'category_id' => 31,
-        'price'       => 6.00,
-        'sort_order'  => 3,
-        'badges'      => [],
-        'title'       => [
-            'tr' => 'Ceviz Brownie',
-            'en' => 'Walnut Brownie',
-            'de' => 'Walnuss-Brownie',
-            'ru' => 'Брауни с грецкими орехами',
-            'ar' => 'براوني الجوز',
-        ],
-        'description' => [
-            'tr' => 'Çikolatalı Brownie · Ceviz · Vanilyalı Dondurma',
-            'en' => 'Chocolate Brownie · Walnuts · Vanilla Ice Cream',
-            'de' => 'Schokoladen-Brownie · Walnüsse · Vanilleeis',
-            'ru' => 'Шоколадный брауни · Грецкие орехи · Ванильное мороженое',
-            'ar' => 'براوني شوكولاتة · جوز · آيس كريم فانيليا',
-        ],
-        'allergens'  => ['gluten', 'kuruyemis', 'sut', 'yumurta'],
-        'calories'   => 450.00,
-        'protein'    => 6.00,
-        'carbs'      => 52.00,
-        'fat'        => 24.00,
+        'sort_order' => 5, 'icon' => 'ğŸ®',
+        'title' => ['tr'=>'TatlÄ±lar','en'=>'Desserts','de'=>'Desserts','ru'=>'Ğ”ĞµÑĞµÑ€Ñ‚Ñ‹','ar'=>'Ø§Ù„Ø­Ù„ÙˆÙŠØ§Øª'],
     ],
 ];
 
-echo "Toplam " . count($items) . " ürün eklenecek..." . PHP_EOL;
-
-foreach ($items as $data) {
-    // 1) FoodProduct oluştur
-    $fp = FoodProduct::create([
-        'branch_id'      => $branchId,
-        'food_category_id' => null,
-        'printer_id'     => null,
-        'title'          => $data['title'],
-        'description'    => $data['description'],
-        'price'          => $data['price'],
-        'image'          => null,
-        'badges'         => $data['badges'] ?: null,
-        'allergens'      => !empty($data['allergens']) ? $data['allergens'] : null,
-        'ingredients'    => null,
-        'options'        => null,
-        'calories'       => $data['calories'],
-        'protein'        => $data['protein'],
-        'carbs'          => $data['carbs'],
-        'fat'            => $data['fat'],
-        'is_active'      => true,
-        'sort_order'     => $data['sort_order'],
+$cats = [];
+foreach ($catDefs as $def) {
+    $cat = FoodCategory::create([
+        'branch_id'  => $branchId,
+        'title'      => $def['title'],
+        'icon'       => $def['icon'],
+        'sort_order' => $def['sort_order'],
+        'is_active'  => true,
     ]);
-
-    // 2) QrMenuItem oluştur ve food_product'a bağla
-    $item = QrMenuItem::create([
-        'category_id'     => $data['category_id'],
-        'food_product_id' => $fp->id,
-        'title'           => $data['title'],
-        'description'     => $data['description'],
-        'price'           => $data['price'],
-        'price_override'  => null,
-        'image'           => null,
-        'is_active'       => true,
-        'is_featured'     => false,
-        'badges'          => $data['badges'] ?: null,
-        'sort_order'      => $data['sort_order'],
-    ]);
-
-    $created++;
-    echo "  ✓ [{$item->id}] " . $data['title']['tr'] . " (FoodProduct #{$fp->id})" . PHP_EOL;
+    $cats[$def['title']['tr']] = $cat->id;
+    echo "Kategori oluÅŸturuldu: [{$cat->id}] " . $def['title']['tr'] . PHP_EOL;
 }
 
-echo PHP_EOL . "Tamamlandı: {$created} ürün başarıyla eklendi." . PHP_EOL;
+/* â”€â”€ 2. ÃœrÃ¼n gÃ¼ncellemeleri â”€â”€ */
+$updates = [
+    // [food_product_id, category_title_tr, ingredients]
+    [
+        'id'         => 415,
+        'cat'        => 'BaÅŸlangÄ±Ã§lar',
+        'ingredients'=> [
+            'tr' => 'Somon FÃ¼me, Roka, KÄ±rmÄ±zÄ± SoÄŸan, Patates Tava, Limon',
+            'en' => 'Smoked Salmon, Arugula, Red Onion, Pan-Fried Potatoes, Lemon',
+            'de' => 'GerÃ¤ucherter Lachs, Rucola, Rote Zwiebel, Bratkartoffeln, Zitrone',
+            'ru' => 'ĞšĞ¾Ğ¿Ñ‡Ñ‘Ğ½Ñ‹Ğ¹ Ğ»Ğ¾ÑĞ¾ÑÑŒ, Ğ ÑƒĞºĞºĞ¾Ğ»Ğ°, ĞšÑ€Ğ°ÑĞ½Ñ‹Ğ¹ Ğ»ÑƒĞº, Ğ–Ğ°Ñ€ĞµĞ½Ñ‹Ğ¹ ĞºĞ°Ñ€Ñ‚Ğ¾Ñ„ĞµĞ»ÑŒ, Ğ›Ğ¸Ğ¼Ğ¾Ğ½',
+            'ar' => 'Ø³Ù„Ù…ÙˆÙ† Ù…Ø¯Ø®Ù†ØŒ Ø¬Ø±Ø¬ÙŠØ±ØŒ Ø¨ØµÙ„ Ø£Ø­Ù…Ø±ØŒ Ø¨Ø·Ø§Ø·Ø³ Ù…Ù‚Ù„ÙŠØ©ØŒ Ù„ÙŠÙ…ÙˆÙ†',
+        ],
+    ],
+    [
+        'id'         => 416,
+        'cat'        => 'BaÅŸlangÄ±Ã§lar',
+        'ingredients'=> [
+            'tr' => 'Baget EkmeÄŸi, Roast Beef, KorniÅŸon TurÅŸu, Hardal, Roka, Patates Tava',
+            'en' => 'Baguette, Roast Beef, Gherkin Pickles, Mustard, Arugula, Pan-Fried Potatoes',
+            'de' => 'Baguette, Roast Beef, Essiggurken, Senf, Rucola, Bratkartoffeln',
+            'ru' => 'Ğ‘Ğ°Ğ³ĞµÑ‚, Ğ Ğ¾ÑÑ‚Ğ±Ğ¸Ñ„, ĞœĞ°Ñ€Ğ¸Ğ½Ğ¾Ğ²Ğ°Ğ½Ğ½Ñ‹Ğµ Ğ¾Ğ³ÑƒÑ€Ñ†Ñ‹, Ğ“Ğ¾Ñ€Ñ‡Ğ¸Ñ†Ğ°, Ğ ÑƒĞºĞºĞ¾Ğ»Ğ°, Ğ–Ğ°Ñ€ĞµĞ½Ñ‹Ğ¹ ĞºĞ°Ñ€Ñ‚Ğ¾Ñ„ĞµĞ»ÑŒ',
+            'ar' => 'Ø®Ø¨Ø² Ø¨Ø§ØºÙŠØªØŒ Ø±ÙˆØ³ØªØ¨ÙŠÙØŒ Ù…Ø®Ù„Ù„ ÙƒÙˆØ±Ù†ÙŠØ´ÙˆÙ†ØŒ Ø®Ø±Ø¯Ù„ØŒ Ø¬Ø±Ø¬ÙŠØ±ØŒ Ø¨Ø·Ø§Ø·Ø³ Ù…Ù‚Ù„ÙŠØ©',
+        ],
+    ],
+    [
+        'id'         => 417,
+        'cat'        => 'BaÅŸlangÄ±Ã§lar',
+        'ingredients'=> [
+            'tr' => 'KÄ±zarmÄ±ÅŸ Ekmek, Tavuk FÃ¼me GÃ¶ÄŸsÃ¼, Marul, Domates, Cheddar Peyniri, Mayonez, Patates Tava, KorniÅŸon TurÅŸu',
+            'en' => 'Toasted Bread, Smoked Chicken Breast, Lettuce, Tomato, Cheddar Cheese, Mayonnaise, Pan-Fried Potatoes, Gherkin Pickles',
+            'de' => 'GerÃ¶stetes Brot, GerÃ¤ucherte HÃ¤hnchenbrust, Salat, Tomate, Cheddar-KÃ¤se, Mayonnaise, Bratkartoffeln, Essiggurken',
+            'ru' => 'Ğ¢Ğ¾ÑÑ‚, ĞšĞ¾Ğ¿Ñ‡Ñ‘Ğ½Ğ°Ñ ĞºÑƒÑ€Ğ¸Ğ½Ğ°Ñ Ğ³Ñ€ÑƒĞ´ĞºĞ°, Ğ¡Ğ°Ğ»Ğ°Ñ‚, ĞŸĞ¾Ğ¼Ğ¸Ğ´Ğ¾Ñ€, Ğ¡Ñ‹Ñ€ Ğ§ĞµĞ´Ğ´ĞµÑ€, ĞœĞ°Ğ¹Ğ¾Ğ½ĞµĞ·, Ğ–Ğ°Ñ€ĞµĞ½Ñ‹Ğ¹ ĞºĞ°Ñ€Ñ‚Ğ¾Ñ„ĞµĞ»ÑŒ, ĞœĞ°Ñ€Ğ¸Ğ½Ğ¾Ğ²Ğ°Ğ½Ğ½Ñ‹Ğµ Ğ¾Ğ³ÑƒÑ€Ñ†Ñ‹',
+            'ar' => 'Ø®Ø¨Ø² Ù…Ø­Ù…ØµØŒ ØµØ¯Ø± Ø¯Ø¬Ø§Ø¬ Ù…Ø¯Ø®Ù†ØŒ Ø®Ø³ØŒ Ø·Ù…Ø§Ø·Ù…ØŒ Ø¬Ø¨Ù†Ø© Ø´ÙŠØ¯Ø±ØŒ Ù…Ø§ÙŠÙˆÙ†ÙŠØ²ØŒ Ø¨Ø·Ø§Ø·Ø³ Ù…Ù‚Ù„ÙŠØ©ØŒ Ù…Ø®Ù„Ù„ ÙƒÙˆØ±Ù†ÙŠØ´ÙˆÙ†',
+        ],
+    ],
+    [
+        'id'         => 418,
+        'cat'        => 'Ara SÄ±caklar',
+        'ingredients'=> [
+            'tr' => 'Penne Makarna, Taze Mantar, Parmesan Peyniri, Krema, SarÄ±msak, ZeytinyaÄŸÄ±, Tuz, Karabiber',
+            'en' => 'Penne Pasta, Fresh Mushrooms, Parmesan Cheese, Cream, Garlic, Olive Oil, Salt, Black Pepper',
+            'de' => 'Penne-Nudeln, Frische Champignons, ParmesankÃ¤se, Sahne, Knoblauch, OlivenÃ¶l, Salz, Schwarzer Pfeffer',
+            'ru' => 'ĞŸĞ°ÑÑ‚Ğ° Ğ¿ĞµĞ½Ğ½Ğµ, Ğ¡Ğ²ĞµĞ¶Ğ¸Ğµ Ğ³Ñ€Ğ¸Ğ±Ñ‹, Ğ¡Ñ‹Ñ€ ĞŸĞ°Ñ€Ğ¼ĞµĞ·Ğ°Ğ½, Ğ¡Ğ»Ğ¸Ğ²ĞºĞ¸, Ğ§ĞµÑĞ½Ğ¾Ğº, ĞĞ»Ğ¸Ğ²ĞºĞ¾Ğ²Ğ¾Ğµ Ğ¼Ğ°ÑĞ»Ğ¾, Ğ¡Ğ¾Ğ»ÑŒ, Ğ§Ñ‘Ñ€Ğ½Ñ‹Ğ¹ Ğ¿ĞµÑ€ĞµÑ†',
+            'ar' => 'Ø¨Ø§Ø³ØªØ§ Ø¨ÙŠÙ†ÙŠØŒ ÙØ·Ø± Ø·Ø§Ø²Ø¬ØŒ Ø¬Ø¨Ù†Ø© Ø¨Ø§Ø±Ù…ÙŠØ²Ø§Ù†ØŒ ÙƒØ±ÙŠÙ…Ø©ØŒ Ø«ÙˆÙ…ØŒ Ø²ÙŠØª Ø²ÙŠØªÙˆÙ†ØŒ Ù…Ù„Ø­ØŒ ÙÙ„ÙÙ„ Ø£Ø³ÙˆØ¯',
+        ],
+    ],
+    [
+        'id'         => 419,
+        'cat'        => 'Ara SÄ±caklar',
+        'ingredients'=> [
+            'tr' => 'Spagetti, Domates Sos, Taze FesleÄŸen, SarÄ±msak, ZeytinyaÄŸÄ±, Tuz, Karabiber',
+            'en' => 'Spaghetti, Tomato Sauce, Fresh Basil, Garlic, Olive Oil, Salt, Black Pepper',
+            'de' => 'Spaghetti, Tomatensauce, Frisches Basilikum, Knoblauch, OlivenÃ¶l, Salz, Schwarzer Pfeffer',
+            'ru' => 'Ğ¡Ğ¿Ğ°Ğ³ĞµÑ‚Ñ‚Ğ¸, Ğ¢Ğ¾Ğ¼Ğ°Ñ‚Ğ½Ñ‹Ğ¹ ÑĞ¾ÑƒÑ, Ğ¡Ğ²ĞµĞ¶Ğ¸Ğ¹ Ğ±Ğ°Ğ·Ğ¸Ğ»Ğ¸Ğº, Ğ§ĞµÑĞ½Ğ¾Ğº, ĞĞ»Ğ¸Ğ²ĞºĞ¾Ğ²Ğ¾Ğµ Ğ¼Ğ°ÑĞ»Ğ¾, Ğ¡Ğ¾Ğ»ÑŒ, Ğ§Ñ‘Ñ€Ğ½Ñ‹Ğ¹ Ğ¿ĞµÑ€ĞµÑ†',
+            'ar' => 'Ø³Ø¨Ø§ØºÙŠØªÙŠØŒ ØµÙ„ØµØ© Ø·Ù…Ø§Ø·Ù…ØŒ Ø±ÙŠØ­Ø§Ù† Ø·Ø§Ø²Ø¬ØŒ Ø«ÙˆÙ…ØŒ Ø²ÙŠØª Ø²ÙŠØªÙˆÙ†ØŒ Ù…Ù„Ø­ØŒ ÙÙ„ÙÙ„ Ø£Ø³ÙˆØ¯',
+        ],
+    ],
+    [
+        'id'         => 420,
+        'cat'        => 'Ara SÄ±caklar',
+        'ingredients'=> [
+            'tr' => 'Tortelini (Mozzarella, Ricotta, Parmesan, Gorgonzola dolgulu), Krema, TereyaÄŸÄ±, SarÄ±msak, Tuz, Karabiber',
+            'en' => 'Tortellini (filled with Mozzarella, Ricotta, Parmesan, Gorgonzola), Cream, Butter, Garlic, Salt, Black Pepper',
+            'de' => 'Tortellini (gefÃ¼llt mit Mozzarella, Ricotta, Parmesan, Gorgonzola), Sahne, Butter, Knoblauch, Salz, Schwarzer Pfeffer',
+            'ru' => 'Ğ¢Ğ¾Ñ€Ñ‚ĞµĞ»Ğ»Ğ¸Ğ½Ğ¸ (Ñ Ğ½Ğ°Ñ‡Ğ¸Ğ½ĞºĞ¾Ğ¹ ĞœĞ¾Ñ†Ğ°Ñ€ĞµĞ»Ğ»Ğ°, Ğ Ğ¸ĞºĞ¾Ñ‚Ñ‚Ğ°, ĞŸĞ°Ñ€Ğ¼ĞµĞ·Ğ°Ğ½, Ğ“Ğ¾Ñ€Ğ³Ğ¾Ğ½Ğ·Ğ¾Ğ»Ğ°), Ğ¡Ğ»Ğ¸Ğ²ĞºĞ¸, ĞœĞ°ÑĞ»Ğ¾, Ğ§ĞµÑĞ½Ğ¾Ğº, Ğ¡Ğ¾Ğ»ÑŒ, Ğ§Ñ‘Ñ€Ğ½Ñ‹Ğ¹ Ğ¿ĞµÑ€ĞµÑ†',
+            'ar' => 'ØªÙˆØ±ØªÙŠÙ„ÙŠÙ†ÙŠ (Ù…Ø­Ø´Ùˆ Ø¨Ù…ÙˆØ²Ø§Ø±ÙŠÙ„Ø§ ÙˆØ±ÙŠÙƒÙˆØªØ§ ÙˆØ¨Ø§Ø±Ù…ÙŠØ²Ø§Ù† ÙˆØ¬ÙˆØ±Ø¬ÙˆÙ†Ø²ÙˆÙ„Ø§)ØŒ ÙƒØ±ÙŠÙ…Ø©ØŒ Ø²Ø¨Ø¯Ø©ØŒ Ø«ÙˆÙ…ØŒ Ù…Ù„Ø­ØŒ ÙÙ„ÙÙ„ Ø£Ø³ÙˆØ¯',
+        ],
+    ],
+    [
+        'id'         => 421,
+        'cat'        => 'Ara SÄ±caklar',
+        'ingredients'=> [
+            'tr' => 'BuÄŸday Unu Tortilla, Izgara Tavuk, Cheddar Peyniri, TatlÄ±-AcÄ± Biber Sosu, Soya Sosu, SoÄŸan, DolmalÄ±k Biber',
+            'en' => 'Wheat Flour Tortilla, Grilled Chicken, Cheddar Cheese, Sweet-Chili Sauce, Soy Sauce, Onion, Bell Pepper',
+            'de' => 'Weizentortilla, Gegrilltes HÃ¤hnchen, Cheddar-KÃ¤se, SÃ¼ÃŸ-scharfe Sauce, SojasoÃŸe, Zwiebel, Paprika',
+            'ru' => 'ĞŸÑˆĞµĞ½Ğ¸Ñ‡Ğ½Ğ°Ñ Ñ‚Ğ¾Ñ€Ñ‚Ğ¸Ğ»ÑŒÑ, Ğ–Ğ°Ñ€ĞµĞ½Ğ°Ñ ĞºÑƒÑ€Ğ¸Ñ†Ğ°, Ğ¡Ñ‹Ñ€ Ğ§ĞµĞ´Ğ´ĞµÑ€, ĞšĞ¸ÑĞ»Ğ¾-ÑĞ»Ğ°Ğ´ĞºĞ¸Ğ¹ ÑĞ¾ÑƒÑ, Ğ¡Ğ¾ĞµĞ²Ñ‹Ğ¹ ÑĞ¾ÑƒÑ, Ğ›ÑƒĞº, Ğ‘Ğ¾Ğ»Ğ³Ğ°Ñ€ÑĞºĞ¸Ğ¹ Ğ¿ĞµÑ€ĞµÑ†',
+            'ar' => 'Ø®Ø¨Ø² ØªÙˆØ±ØªÙŠÙ„Ø§ Ù‚Ù…Ø­ØŒ Ø¯Ø¬Ø§Ø¬ Ù…Ø´ÙˆÙŠØŒ Ø¬Ø¨Ù†Ø© Ø´ÙŠØ¯Ø±ØŒ ØµÙ„ØµØ© Ø­Ù„ÙˆØ© Ø­Ø§Ø±Ø©ØŒ ØµÙ„ØµØ© ØµÙˆÙŠØ§ØŒ Ø¨ØµÙ„ØŒ ÙÙ„ÙÙ„ Ø±ÙˆÙ…ÙŠ',
+        ],
+    ],
+    [
+        'id'         => 422,
+        'cat'        => 'Ara SÄ±caklar',
+        'ingredients'=> [
+            'tr' => 'Dana KÄ±yma KÃ¶fte, Susam Baget Ekmek (TereyaÄŸlÄ±), Marul, Domates, SoÄŸan, TurÅŸu, KetÃ§ap, Hardal, Patates Tava',
+            'en' => 'Ground Beef Patty, Sesame Burger Bun (Buttered), Lettuce, Tomato, Onion, Pickles, Ketchup, Mustard, Pan-Fried Potatoes',
+            'de' => 'Hackfleisch-Patty, SesamburgerbrÃ¶tchen (gebuttert), Salat, Tomate, Zwiebel, Essiggurken, Ketchup, Senf, Bratkartoffeln',
+            'ru' => 'ĞšĞ¾Ñ‚Ğ»ĞµÑ‚Ğ° Ğ¸Ğ· Ğ³Ğ¾Ğ²ÑĞ¶ÑŒĞµĞ³Ğ¾ Ñ„Ğ°Ñ€ÑˆĞ°, Ğ‘ÑƒĞ»Ğ¾Ñ‡ĞºĞ° Ñ ĞºÑƒĞ½Ğ¶ÑƒÑ‚Ğ¾Ğ¼ (Ñ Ğ¼Ğ°ÑĞ»Ğ¾Ğ¼), Ğ¡Ğ°Ğ»Ğ°Ñ‚, ĞŸĞ¾Ğ¼Ğ¸Ğ´Ğ¾Ñ€, Ğ›ÑƒĞº, ĞœĞ°Ñ€Ğ¸Ğ½Ğ¾Ğ²Ğ°Ğ½Ğ½Ñ‹Ğµ Ğ¾Ğ³ÑƒÑ€Ñ†Ñ‹, ĞšĞµÑ‚Ñ‡ÑƒĞ¿, Ğ“Ğ¾Ñ€Ñ‡Ğ¸Ñ†Ğ°, Ğ–Ğ°Ñ€ĞµĞ½Ñ‹Ğ¹ ĞºĞ°Ñ€Ñ‚Ğ¾Ñ„ĞµĞ»ÑŒ',
+            'ar' => 'ÙƒÙˆÙØªØ© Ù„Ø­Ù… Ø¨Ù‚Ø±ÙŠ Ù…ÙØ±ÙˆÙ…ØŒ Ø®Ø¨Ø² Ø¨Ø±ØºØ± Ø¨Ø§Ù„Ø³Ù…Ø³Ù… (Ø¨Ø§Ù„Ø²Ø¨Ø¯Ø©)ØŒ Ø®Ø³ØŒ Ø·Ù…Ø§Ø·Ù…ØŒ Ø¨ØµÙ„ØŒ Ù…Ø®Ù„Ù„ØŒ ÙƒØ§ØªØ´Ø¨ØŒ Ø®Ø±Ø¯Ù„ØŒ Ø¨Ø·Ø§Ø·Ø³ Ù…Ù‚Ù„ÙŠØ©',
+        ],
+    ],
+    [
+        'id'         => 423,
+        'cat'        => 'Ara SÄ±caklar',
+        'ingredients'=> [
+            'tr' => 'Tost EkmeÄŸi, Domates SalÃ§asÄ±, KaÅŸar Peyniri, Dana Sucuk, Patates Tava',
+            'en' => 'Toast Bread, Tomato Paste, Kashar Cheese, Beef Sausage, Pan-Fried Potatoes',
+            'de' => 'Toastbrot, Tomatenmark, KaÅŸar-KÃ¤se, Rindswurst, Bratkartoffeln',
+            'ru' => 'Ğ¢Ğ¾ÑÑ‚Ğ¾Ğ²Ñ‹Ğ¹ Ñ…Ğ»ĞµĞ±, Ğ¢Ğ¾Ğ¼Ğ°Ñ‚Ğ½Ğ°Ñ Ğ¿Ğ°ÑÑ‚Ğ°, Ğ¡Ñ‹Ñ€ ĞšĞ°ÑˆĞ°Ñ€, Ğ“Ğ¾Ğ²ÑĞ¶ÑŒÑ ĞºĞ¾Ğ»Ğ±Ğ°ÑĞ°, Ğ–Ğ°Ñ€ĞµĞ½Ñ‹Ğ¹ ĞºĞ°Ñ€Ñ‚Ğ¾Ñ„ĞµĞ»ÑŒ',
+            'ar' => 'Ø®Ø¨Ø² ØªÙˆØ³ØªØŒ Ù…Ø¹Ø¬ÙˆÙ† Ø·Ù…Ø§Ø·Ù…ØŒ Ø¬Ø¨Ù†Ø© ÙƒØ§Ø´Ø§Ø±ØŒ Ø³Ø¬Ù‚ Ø¨Ù‚Ø±ÙŠØŒ Ø¨Ø·Ø§Ø·Ø³ Ù…Ù‚Ù„ÙŠØ©',
+        ],
+    ],
+    [
+        'id'         => 424,
+        'cat'        => 'Ara SÄ±caklar',
+        'ingredients'=> [
+            'tr' => 'Tost EkmeÄŸi, Domates SalÃ§asÄ±, KaÅŸar Peyniri, Patates Tava',
+            'en' => 'Toast Bread, Tomato Paste, Kashar Cheese, Pan-Fried Potatoes',
+            'de' => 'Toastbrot, Tomatenmark, KaÅŸar-KÃ¤se, Bratkartoffeln',
+            'ru' => 'Ğ¢Ğ¾ÑÑ‚Ğ¾Ğ²Ñ‹Ğ¹ Ñ…Ğ»ĞµĞ±, Ğ¢Ğ¾Ğ¼Ğ°Ñ‚Ğ½Ğ°Ñ Ğ¿Ğ°ÑÑ‚Ğ°, Ğ¡Ñ‹Ñ€ ĞšĞ°ÑˆĞ°Ñ€, Ğ–Ğ°Ñ€ĞµĞ½Ñ‹Ğ¹ ĞºĞ°Ñ€Ñ‚Ğ¾Ñ„ĞµĞ»ÑŒ',
+            'ar' => 'Ø®Ø¨Ø² ØªÙˆØ³ØªØŒ Ù…Ø¹Ø¬ÙˆÙ† Ø·Ù…Ø§Ø·Ù…ØŒ Ø¬Ø¨Ù†Ø© ÙƒØ§Ø´Ø§Ø±ØŒ Ø¨Ø·Ø§Ø·Ø³ Ù…Ù‚Ù„ÙŠØ©',
+        ],
+    ],
+    [
+        'id'         => 425,
+        'cat'        => 'Salatalar',
+        'ingredients'=> [
+            'tr' => 'Taze Roka, Avokado, KavrulmuÅŸ Badem, Narenciye (Portakal + Limon) Sosu, ZeytinyaÄŸÄ±, Tuz, Karabiber',
+            'en' => 'Fresh Arugula, Avocado, Toasted Almonds, Citrus (Orange + Lemon) Dressing, Olive Oil, Salt, Black Pepper',
+            'de' => 'Frischer Rucola, Avocado, GerÃ¶stete Mandeln, Zitrus (Orange + Zitrone) Dressing, OlivenÃ¶l, Salz, Schwarzer Pfeffer',
+            'ru' => 'Ğ¡Ğ²ĞµĞ¶Ğ°Ñ Ñ€ÑƒĞºĞºĞ¾Ğ»Ğ°, ĞĞ²Ğ¾ĞºĞ°Ğ´Ğ¾, Ğ–Ğ°Ñ€ĞµĞ½Ñ‹Ğ¹ Ğ¼Ğ¸Ğ½Ğ´Ğ°Ğ»ÑŒ, Ğ¦Ğ¸Ñ‚Ñ€ÑƒÑĞ¾Ğ²Ğ°Ñ (Ğ°Ğ¿ĞµĞ»ÑŒÑĞ¸Ğ½ + Ğ»Ğ¸Ğ¼Ğ¾Ğ½) Ğ·Ğ°Ğ¿Ñ€Ğ°Ğ²ĞºĞ°, ĞĞ»Ğ¸Ğ²ĞºĞ¾Ğ²Ğ¾Ğµ Ğ¼Ğ°ÑĞ»Ğ¾, Ğ¡Ğ¾Ğ»ÑŒ, Ğ§Ñ‘Ñ€Ğ½Ñ‹Ğ¹ Ğ¿ĞµÑ€ĞµÑ†',
+            'ar' => 'Ø¬Ø±Ø¬ÙŠØ± Ø·Ø§Ø²Ø¬ØŒ Ø£ÙÙˆÙƒØ§Ø¯ÙˆØŒ Ù„ÙˆØ² Ù…Ø­Ù…ØµØŒ ØµÙ„ØµØ© Ø§Ù„Ø­Ù…Ø¶ÙŠØ§Øª (Ø¨Ø±ØªÙ‚Ø§Ù„ + Ù„ÙŠÙ…ÙˆÙ†)ØŒ Ø²ÙŠØª Ø²ÙŠØªÙˆÙ†ØŒ Ù…Ù„Ø­ØŒ ÙÙ„ÙÙ„ Ø£Ø³ÙˆØ¯',
+        ],
+    ],
+    [
+        'id'         => 426,
+        'cat'        => 'Salatalar',
+        'ingredients'=> [
+            'tr' => 'SalatalÄ±k, Domates, Siyah Zeytin, KÄ±rmÄ±zÄ± SoÄŸan, Limon Suyu, ZeytinyaÄŸÄ±, Tuz, Kuru Nane',
+            'en' => 'Cucumber, Tomato, Black Olives, Red Onion, Lemon Juice, Olive Oil, Salt, Dried Mint',
+            'de' => 'Gurke, Tomate, Schwarze Oliven, Rote Zwiebel, Zitronensaft, OlivenÃ¶l, Salz, Getrocknete Minze',
+            'ru' => 'ĞĞ³ÑƒÑ€ĞµÑ†, ĞŸĞ¾Ğ¼Ğ¸Ğ´Ğ¾Ñ€, Ğ§Ñ‘Ñ€Ğ½Ñ‹Ğµ Ğ¾Ğ»Ğ¸Ğ²ĞºĞ¸, ĞšÑ€Ğ°ÑĞ½Ñ‹Ğ¹ Ğ»ÑƒĞº, Ğ›Ğ¸Ğ¼Ğ¾Ğ½Ğ½Ñ‹Ğ¹ ÑĞ¾Ğº, ĞĞ»Ğ¸Ğ²ĞºĞ¾Ğ²Ğ¾Ğµ Ğ¼Ğ°ÑĞ»Ğ¾, Ğ¡Ğ¾Ğ»ÑŒ, Ğ¡ÑƒÑ…Ğ°Ñ Ğ¼ÑÑ‚Ğ°',
+            'ar' => 'Ø®ÙŠØ§Ø±ØŒ Ø·Ù…Ø§Ø·Ù…ØŒ Ø²ÙŠØªÙˆÙ† Ø£Ø³ÙˆØ¯ØŒ Ø¨ØµÙ„ Ø£Ø­Ù…Ø±ØŒ Ø¹ØµÙŠØ± Ù„ÙŠÙ…ÙˆÙ†ØŒ Ø²ÙŠØª Ø²ÙŠØªÙˆÙ†ØŒ Ù…Ù„Ø­ØŒ Ù†Ø¹Ù†Ø§Ø¹ Ù…Ø¬ÙÙ',
+        ],
+    ],
+    [
+        'id'         => 427,
+        'cat'        => 'Ana Yemekler',
+        'ingredients'=> [
+            'tr' => 'Tavuk GÃ¶ÄŸsÃ¼, YoÄŸurt, Baharatlar (Kimyon, Pul Biber, Kekik), Kabak, HavuÃ§, SoÄŸan (Sote), Tahin, Limon Suyu',
+            'en' => 'Chicken Breast, Yogurt, Spices (Cumin, Red Pepper Flakes, Thyme), Zucchini, Carrot, Onion (SautÃ©ed), Tahini, Lemon Juice',
+            'de' => 'HÃ¤hnchenbrust, Joghurt, GewÃ¼rze (KreuzkÃ¼mmel, Chiliflocken, Thymian), Zucchini, Karotte, Zwiebel (Sautiert), Tahini, Zitronensaft',
+            'ru' => 'ĞšÑƒÑ€Ğ¸Ğ½Ğ°Ñ Ğ³Ñ€ÑƒĞ´ĞºĞ°, Ğ™Ğ¾Ğ³ÑƒÑ€Ñ‚, Ğ¡Ğ¿ĞµÑ†Ğ¸Ğ¸ (Ğ—Ğ¸Ñ€Ğ°, ĞŸĞ°Ğ¿Ñ€Ğ¸ĞºĞ°, Ğ¢Ğ¸Ğ¼ÑŒÑĞ½), ĞšĞ°Ğ±Ğ°Ñ‡Ğ¾Ğº, ĞœĞ¾Ñ€ĞºĞ¾Ğ²ÑŒ, Ğ›ÑƒĞº (Ñ‚ÑƒÑˆÑ‘Ğ½Ñ‹Ğ¹), Ğ¢Ğ°Ñ…Ğ¸Ğ½Ğ¸, Ğ›Ğ¸Ğ¼Ğ¾Ğ½Ğ½Ñ‹Ğ¹ ÑĞ¾Ğº',
+            'ar' => 'ØµØ¯Ø± Ø¯Ø¬Ø§Ø¬ØŒ Ø²Ø¨Ø§Ø¯ÙŠØŒ Ø¨Ù‡Ø§Ø±Ø§Øª (ÙƒÙ…ÙˆÙ†ØŒ ÙÙ„ÙÙ„ Ø£Ø­Ù…Ø± Ù…Ø¬ÙÙØŒ Ø²Ø¹ØªØ±)ØŒ ÙƒÙˆØ³Ø§ØŒ Ø¬Ø²Ø±ØŒ Ø¨ØµÙ„ (Ù…Ù‚Ù„ÙŠ)ØŒ Ø·Ø­ÙŠÙ†Ø©ØŒ Ø¹ØµÙŠØ± Ù„ÙŠÙ…ÙˆÙ†',
+        ],
+    ],
+    [
+        'id'         => 428,
+        'cat'        => 'Ana Yemekler',
+        'ingredients'=> [
+            'tr' => 'Levrek Fileto, TereyaÄŸ, Limon Suyu, SarÄ±msak, Taze Kekik, Mevsim Sebzeleri (Kabak, HavuÃ§, Brokoli), Tuz, Karabiber',
+            'en' => 'Sea Bass Fillet, Butter, Lemon Juice, Garlic, Fresh Thyme, Seasonal Vegetables (Zucchini, Carrot, Broccoli), Salt, Black Pepper',
+            'de' => 'Wolfsbarschfilet, Butter, Zitronensaft, Knoblauch, Frischer Thymian, SaisongemÃ¼se (Zucchini, Karotte, Brokkoli), Salz, Schwarzer Pfeffer',
+            'ru' => 'Ğ¤Ğ¸Ğ»Ğµ Ğ¼Ğ¾Ñ€ÑĞºĞ¾Ğ³Ğ¾ Ğ¾ĞºÑƒĞ½Ñ, ĞœĞ°ÑĞ»Ğ¾, Ğ›Ğ¸Ğ¼Ğ¾Ğ½Ğ½Ñ‹Ğ¹ ÑĞ¾Ğº, Ğ§ĞµÑĞ½Ğ¾Ğº, Ğ¡Ğ²ĞµĞ¶Ğ¸Ğ¹ Ñ‚Ğ¸Ğ¼ÑŒÑĞ½, Ğ¡ĞµĞ·Ğ¾Ğ½Ğ½Ñ‹Ğµ Ğ¾Ğ²Ğ¾Ñ‰Ğ¸ (ĞšĞ°Ğ±Ğ°Ñ‡Ğ¾Ğº, ĞœĞ¾Ñ€ĞºĞ¾Ğ²ÑŒ, Ğ‘Ñ€Ğ¾ĞºĞºĞ¾Ğ»Ğ¸), Ğ¡Ğ¾Ğ»ÑŒ, Ğ§Ñ‘Ñ€Ğ½Ñ‹Ğ¹ Ğ¿ĞµÑ€ĞµÑ†',
+            'ar' => 'ÙÙŠÙ„ÙŠÙ‡ Ø³Ù…Ùƒ Ù‚Ø§Ø±ÙˆØµØŒ Ø²Ø¨Ø¯Ø©ØŒ Ø¹ØµÙŠØ± Ù„ÙŠÙ…ÙˆÙ†ØŒ Ø«ÙˆÙ…ØŒ Ø²Ø¹ØªØ± Ø·Ø§Ø²Ø¬ØŒ Ø®Ø¶Ø±ÙˆØ§Øª Ù…ÙˆØ³Ù…ÙŠØ© (ÙƒÙˆØ³Ø§ØŒ Ø¬Ø²Ø±ØŒ Ø¨Ø±ÙˆÙƒÙ„ÙŠ)ØŒ Ù…Ù„Ø­ØŒ ÙÙ„ÙÙ„ Ø£Ø³ÙˆØ¯',
+        ],
+    ],
+    [
+        'id'         => 429,
+        'cat'        => 'Ana Yemekler',
+        'ingredients'=> [
+            'tr' => 'Dana Bonfile, ZeytinyaÄŸÄ±, SarÄ±msak, Taze Biberiye, Taze Kekik, Patates, Mevsim Sebzeleri (DolmalÄ±k Biber, Kabak, SoÄŸan), Tuz, Karabiber',
+            'en' => 'Beef Tenderloin, Olive Oil, Garlic, Fresh Rosemary, Fresh Thyme, Potatoes, Seasonal Vegetables (Bell Pepper, Zucchini, Onion), Salt, Black Pepper',
+            'de' => 'Rinderfilet, OlivenÃ¶l, Knoblauch, Frischer Rosmarin, Frischer Thymian, Kartoffeln, SaisongemÃ¼se (Paprika, Zucchini, Zwiebel), Salz, Schwarzer Pfeffer',
+            'ru' => 'Ğ“Ğ¾Ğ²ÑĞ¶ÑŒÑ Ğ²Ñ‹Ñ€ĞµĞ·ĞºĞ°, ĞĞ»Ğ¸Ğ²ĞºĞ¾Ğ²Ğ¾Ğµ Ğ¼Ğ°ÑĞ»Ğ¾, Ğ§ĞµÑĞ½Ğ¾Ğº, Ğ¡Ğ²ĞµĞ¶Ğ¸Ğ¹ Ñ€Ğ¾Ğ·Ğ¼Ğ°Ñ€Ğ¸Ğ½, Ğ¡Ğ²ĞµĞ¶Ğ¸Ğ¹ Ñ‚Ğ¸Ğ¼ÑŒÑĞ½, ĞšĞ°Ñ€Ñ‚Ğ¾Ñ„ĞµĞ»ÑŒ, Ğ¡ĞµĞ·Ğ¾Ğ½Ğ½Ñ‹Ğµ Ğ¾Ğ²Ğ¾Ñ‰Ğ¸ (Ğ‘Ğ¾Ğ»Ğ³Ğ°Ñ€ÑĞºĞ¸Ğ¹ Ğ¿ĞµÑ€ĞµÑ†, ĞšĞ°Ğ±Ğ°Ñ‡Ğ¾Ğº, Ğ›ÑƒĞº), Ğ¡Ğ¾Ğ»ÑŒ, Ğ§Ñ‘Ñ€Ğ½Ñ‹Ğ¹ Ğ¿ĞµÑ€ĞµÑ†',
+            'ar' => 'ÙÙŠÙ„ÙŠÙ‡ Ø¨Ù‚Ø±ÙŠØŒ Ø²ÙŠØª Ø²ÙŠØªÙˆÙ†ØŒ Ø«ÙˆÙ…ØŒ Ø¥ÙƒÙ„ÙŠÙ„ Ø§Ù„Ø¬Ø¨Ù„ Ø§Ù„Ø·Ø§Ø²Ø¬ØŒ Ø²Ø¹ØªØ± Ø·Ø§Ø²Ø¬ØŒ Ø¨Ø·Ø§Ø·Ø³ØŒ Ø®Ø¶Ø±ÙˆØ§Øª Ù…ÙˆØ³Ù…ÙŠØ© (ÙÙ„ÙÙ„ Ø±ÙˆÙ…ÙŠØŒ ÙƒÙˆØ³Ø§ØŒ Ø¨ØµÙ„)ØŒ Ù…Ù„Ø­ØŒ ÙÙ„ÙÙ„ Ø£Ø³ÙˆØ¯',
+        ],
+    ],
+    [
+        'id'         => 430,
+        'cat'        => 'TatlÄ±lar',
+        'ingredients'=> [
+            'tr' => 'Tam YaÄŸlÄ± SÃ¼t, PirinÃ§, Åeker, Yumurta SarÄ±sÄ±, Vanilya, VanilyalÄ± Dondurma',
+            'en' => 'Whole Milk, Rice, Sugar, Egg Yolk, Vanilla, Vanilla Ice Cream',
+            'de' => 'Vollmilch, Reis, Zucker, Eigelb, Vanille, Vanilleeis',
+            'ru' => 'Ğ¦ĞµĞ»ÑŒĞ½Ğ¾Ğµ Ğ¼Ğ¾Ğ»Ğ¾ĞºĞ¾, Ğ Ğ¸Ñ, Ğ¡Ğ°Ñ…Ğ°Ñ€, Ğ¯Ğ¸Ñ‡Ğ½Ñ‹Ğ¹ Ğ¶ĞµĞ»Ñ‚Ğ¾Ğº, Ğ’Ğ°Ğ½Ğ¸Ğ»ÑŒ, Ğ’Ğ°Ğ½Ğ¸Ğ»ÑŒĞ½Ğ¾Ğµ Ğ¼Ğ¾Ñ€Ğ¾Ğ¶ĞµĞ½Ğ¾Ğµ',
+            'ar' => 'Ø­Ù„ÙŠØ¨ ÙƒØ§Ù…Ù„ Ø§Ù„Ø¯Ø³Ù…ØŒ Ø£Ø±Ø²ØŒ Ø³ÙƒØ±ØŒ ØµÙØ§Ø± Ø¨ÙŠØ¶ØŒ ÙØ§Ù†ÙŠÙ„ÙŠØ§ØŒ Ø¢ÙŠØ³ ÙƒØ±ÙŠÙ… ÙØ§Ù†ÙŠÙ„ÙŠØ§',
+        ],
+    ],
+    [
+        'id'         => 431,
+        'cat'        => 'TatlÄ±lar',
+        'ingredients'=> [
+            'tr' => 'Mevsiminde taze meyveler (Kavun, Karpuz, Ã‡ilek, Ananas, Kivi, Portakal)',
+            'en' => 'Seasonal fresh fruits (Melon, Watermelon, Strawberry, Pineapple, Kiwi, Orange)',
+            'de' => 'Saisonale frische FrÃ¼chte (Melone, Wassermelone, Erdbeere, Ananas, Kiwi, Orange)',
+            'ru' => 'Ğ¡ĞµĞ·Ğ¾Ğ½Ğ½Ñ‹Ğµ ÑĞ²ĞµĞ¶Ğ¸Ğµ Ñ„Ñ€ÑƒĞºÑ‚Ñ‹ (Ğ”Ñ‹Ğ½Ñ, ĞÑ€Ğ±ÑƒĞ·, ĞšĞ»ÑƒĞ±Ğ½Ğ¸ĞºĞ°, ĞĞ½Ğ°Ğ½Ğ°Ñ, ĞšĞ¸Ğ²Ğ¸, ĞĞ¿ĞµĞ»ÑŒÑĞ¸Ğ½)',
+            'ar' => 'ÙÙˆØ§ÙƒÙ‡ Ø·Ø§Ø²Ø¬Ø© Ù…ÙˆØ³Ù…ÙŠØ© (Ø´Ù…Ø§Ù…ØŒ Ø¨Ø·ÙŠØ®ØŒ ÙØ±Ø§ÙˆÙ„Ø©ØŒ Ø£Ù†Ø§Ù†Ø§Ø³ØŒ ÙƒÙŠÙˆÙŠØŒ Ø¨Ø±ØªÙ‚Ø§Ù„)',
+        ],
+    ],
+    [
+        'id'         => 432,
+        'cat'        => 'TatlÄ±lar',
+        'ingredients'=> [
+            'tr' => 'TereyaÄŸÄ±, Bitter Ã‡ikolata, Åeker, Yumurta, Un, Ceviz, Kabartma Tozu, VanilyalÄ± Dondurma',
+            'en' => 'Butter, Dark Chocolate, Sugar, Eggs, Flour, Walnuts, Baking Powder, Vanilla Ice Cream',
+            'de' => 'Butter, Dunkle Schokolade, Zucker, Eier, Mehl, WalnÃ¼sse, Backpulver, Vanilleeis',
+            'ru' => 'ĞœĞ°ÑĞ»Ğ¾, Ğ¢Ñ‘Ğ¼Ğ½Ñ‹Ğ¹ ÑˆĞ¾ĞºĞ¾Ğ»Ğ°Ğ´, Ğ¡Ğ°Ñ…Ğ°Ñ€, Ğ¯Ğ¹Ñ†Ğ°, ĞœÑƒĞºĞ°, Ğ“Ñ€ĞµÑ†ĞºĞ¸Ğµ Ğ¾Ñ€ĞµÑ…Ğ¸, Ğ Ğ°Ğ·Ñ€Ñ‹Ñ…Ğ»Ğ¸Ñ‚ĞµĞ»ÑŒ, Ğ’Ğ°Ğ½Ğ¸Ğ»ÑŒĞ½Ğ¾Ğµ Ğ¼Ğ¾Ñ€Ğ¾Ğ¶ĞµĞ½Ğ¾Ğµ',
+            'ar' => 'Ø²Ø¨Ø¯Ø©ØŒ Ø´ÙˆÙƒÙˆÙ„Ø§ØªØ© Ø¯Ø§ÙƒÙ†Ø©ØŒ Ø³ÙƒØ±ØŒ Ø¨ÙŠØ¶ØŒ Ø¯Ù‚ÙŠÙ‚ØŒ Ø¬ÙˆØ²ØŒ Ø¨ÙˆØ¯Ø±Ø© Ø¨ÙŠÙƒÙ†Ø¬ØŒ Ø¢ÙŠØ³ ÙƒØ±ÙŠÙ… ÙØ§Ù†ÙŠÙ„ÙŠØ§',
+        ],
+    ],
+];
+
+echo PHP_EOL . "ÃœrÃ¼nler gÃ¼ncelleniyor..." . PHP_EOL;
+foreach ($updates as $u) {
+    $fp = FoodProduct::find($u['id']);
+    if (!$fp) {
+        echo "  âœ— FoodProduct #{$u['id']} bulunamadÄ±!" . PHP_EOL;
+        continue;
+    }
+    $fp->food_category_id = $cats[$u['cat']];
+    $fp->ingredients      = $u['ingredients'];
+    $fp->save();
+    echo "  âœ“ [{$u['id']}] " . $fp->title['tr'] . " â†’ Kategori: {$u['cat']} (#{$cats[$u['cat']]})" . PHP_EOL;
+}
+
+echo PHP_EOL . "TamamlandÄ±!" . PHP_EOL;
+
+
