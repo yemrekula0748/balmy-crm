@@ -112,11 +112,8 @@
                         <th style="width:42px;padding:10px 14px;font-weight:500;color:#9aa0ac;font-size:11px;text-transform:uppercase;letter-spacing:.5px;border:0"></th>
                         <th style="padding:10px 8px;font-weight:500;color:#9aa0ac;font-size:11px;text-transform:uppercase;letter-spacing:.5px;border:0;width:44px">#</th>
                         <th style="padding:10px 8px;font-weight:500;color:#9aa0ac;font-size:11px;text-transform:uppercase;letter-spacing:.5px;border:0">Yemek</th>
-                        <th style="padding:10px 8px;font-weight:500;color:#9aa0ac;font-size:11px;text-transform:uppercase;letter-spacing:.5px;border:0">Kategori</th>
                         <th style="padding:10px 8px;font-weight:500;color:#9aa0ac;font-size:11px;text-transform:uppercase;letter-spacing:.5px;border:0">Özellikler</th>
                         <th style="padding:10px 8px;font-weight:500;color:#9aa0ac;font-size:11px;text-transform:uppercase;letter-spacing:.5px;border:0">Allerjenler</th>
-                        <th style="padding:10px 8px;font-weight:500;color:#9aa0ac;font-size:11px;text-transform:uppercase;letter-spacing:.5px;border:0">Şube</th>
-                        <th style="padding:10px 8px;font-weight:500;color:#9aa0ac;font-size:11px;text-transform:uppercase;letter-spacing:.5px;border:0">Eklenme</th>
                         <th style="padding:10px 14px 10px 8px;font-weight:500;color:#9aa0ac;font-size:11px;text-transform:uppercase;letter-spacing:.5px;border:0;width:120px" class="text-end"></th>
                     </tr>
                 </thead>
@@ -141,11 +138,6 @@
                             <div style="font-size:11px;color:#a0aab4;margin-top:1px">{{ $name_en }}</div>
                             @endif
                         @endif
-                    </td>
-                    {{-- Kategori --}}
-                    <td style="padding:10px 8px">
-                        @php $catLabel = \App\Models\FoodLabel::CATEGORIES[$label->category] ?? $label->category; @endphp
-                        <span style="display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:500;background:#f1f3f8;color:#6b7280;border:1px solid #e5e7eb">{{ $catLabel }}</span>
                     </td>
                     {{-- Özellikler --}}
                     <td style="padding:10px 8px">
@@ -181,14 +173,6 @@
                         @else
                         <span style="color:#d1d5db;font-size:13px">—</span>
                         @endif
-                    </td>
-                    {{-- Şube --}}
-                    <td style="padding:10px 8px;color:#6b7280;font-size:12px">
-                        {{ $label->branch?->name ?? '—' }}
-                    </td>
-                    {{-- Tarih --}}
-                    <td style="padding:10px 8px;color:#9ca3af;font-size:11px;white-space:nowrap;font-variant-numeric:tabular-nums">
-                        {{ $label->created_at->format('d.m.Y') }}
                     </td>
                     {{-- İşlemler --}}
                     <td style="padding:10px 16px 10px 8px" class="text-end" onclick="event.stopPropagation()">
