@@ -34,7 +34,6 @@ class FoodLabelController extends BaseModuleController
 
         $query = FoodLabel::with('branch')
             ->where(fn($q) => $q->whereNull('branch_id')->orWhereIn('branch_id', $branchIds))
-            ->orderBy('sort_order')
             ->orderBy('created_at', 'desc');
 
         if ($request->filled('category')) {

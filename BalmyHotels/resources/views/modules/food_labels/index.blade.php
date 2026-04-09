@@ -104,53 +104,52 @@
     </div>
     @else
 
-    {{-- Kategori bazlı gruplama --}}
-    @php
-        $grouped = $labels->getCollection()->groupBy('category');
-        $categoryOrder = array_keys(\App\Models\FoodLabel::CATEGORIES);
-        $categorized = collect($categoryOrder)->mapWithKeys(fn($k) => [$k => $grouped->get($k, collect())])
-            ->filter(fn($g) => $g->isNotEmpty())
-            ->merge($grouped->filter(fn($g,$k) => !array_key_exists($k, \App\Models\FoodLabel::CATEGORIES)));
-    @endphp
-
-    @foreach($categorized as $catKey => $catLabels)
-    @if($catLabels->isNotEmpty())
-    <div class="mb-4">
-        @php $catLabel = \App\Models\FoodLabel::CATEGORIES[$catKey] ?? 'Diğer'; @endphp
-        <h6 class="fw-bold text-muted mb-3 border-bottom pb-2">
-            <i class="fas fa-tag me-2 text-primary"></i>{{ $catLabel }}
-            <span class="badge bg-light text-dark border ms-2">{{ $catLabels->count() }}</span>
-        </h6>
-
-        <div class="row g-3">
-            @foreach($catLabels as $label)
-            <div class="col-lg-4 col-md-6">
-                <div class="card h-100 border @if(!$label->is_active) opacity-60 @endif" style="position:relative;overflow:hidden">
-                    <img src="{{ asset('images/logo.svg') }}" alt=""
-                         style="position:absolute;bottom:42px;right:10px;height:22px;opacity:0.08;pointer-events:none;filter:sepia(1) saturate(2)">
-                    <div class="card-body p-3">
-                        <div class="d-flex justify-content-between align-items-start mb-2">
-                            <div class="flex-grow-1 me-2">
-                                <div class="d-flex align-items-center gap-2 mb-1">
-                                    <input type="checkbox" class="label-checkbox form-check-input"
-                                           value="{{ $label->id }}" onchange="onCheckboxChange(this)">
-                                    <h6 class="fw-bold mb-0">{{ $label->getName() }}</h6>
-                                </div>
-                                @if($name_en = $label->getName('en'))
-                                    @if($name_en !== $label->getName('tr'))
-                                    <div class="text-muted small">{{ $name_en }}</div>
-                                    @endif
-                                @endif
-                            </div>
-                            @if(!$label->is_active)
-                            <span class="badge bg-secondary flex-shrink-0">Pasif</span>
+    <div class="card">
+        <div class="table-responsive">
+            <table class="table table-hover table-sm align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th style="width:36px"></th>
+                        <th>#</th>
+                        <th>Yemek Adı</th>
+                        <th>Kategori</th>
+                        <th>Diyet / Kalori</th>
+                        <th>Allerjenler</th>
+                        <th>Şube</th>
+                        <th>Durum</th>
+                        <th>Eklenme</th>
+                        <th style="width:130px" class="text-end">İşlemler</th>
+                    </tr>
+                </thead>
+                <tbody>
+                @foreach($labels as $label)
+                <tr @if(!$label->is_active) class="table-secondary opacity-75" @endif>
+                    {{-- Checkbox --}}
+                    <td class="ps-3">
+                        <input type="checkbox" class="label-checkbox form-check-input"
+                               value="{{ $label->id }}" onchange="onCheckboxChange(this)">
+                    </td>
+                    {{-- # --}}
+                    <td class="text-muted small">{{ $label->id }}</td>
+                    {{-- Adlar --}}
+                    <td>
+                        <div class="fw-semibold">{{ $label->getName() }}</div>
+                        @if($name_en = $label->getName('en'))
+                            @if($name_en !== $label->getName('tr'))
+                            <div class="text-muted small">{{ $name_en }}</div>
                             @endif
-                        </div>
-
-                        {{-- Diyet bilgileri --}}
-                        <div class="d-flex flex-wrap gap-1 mb-2">
+                        @endif
+                    </td>
+                    {{-- Kategori --}}
+                    <td>
+                        @php $catLabel = \App\Models\FoodLabel::CATEGORIES[$label->category] ?? $label->category; @endphp
+                        <span class="badge bg-light text-dark border">{{ $catLabel }}</span>
+                    </td>
+                    {{-- Diyet / Kalori --}}
+                    <td>
+                        <div class="d-flex flex-wrap gap-1">
                             @if($label->calories)
-                            <span class="badge" style="background:#fff3cd;color:#856404;border:1px solid #ffc107">
+                            <span class="badge" style="background:#fff3cd;color:#856404;border:1px solid #ffc107;white-space:nowrap">
                                 <i class="fas fa-fire-alt me-1"></i>{{ $label->calories }} kcal
                             </span>
                             @endif
@@ -158,57 +157,77 @@
                             <span class="badge" style="background:#d1fae5;color:#065f46;border:1px solid #10b981">🌱 Vegan</span>
                             @endif
                             @if($label->is_vegetarian && !$label->is_vegan)
-                            <span class="badge" style="background:#d1fae5;color:#065f46;border:1px solid #10b981">🥗 Vejetaryen</span>
+                            <span class="badge" style="background:#d1fae5;color:#065f46;border:1px solid #10b981">🥗 Vejet.</span>
                             @endif
                             @if($label->is_halal)
                             <span class="badge" style="background:#ede9fe;color:#4c1d95;border:1px solid #7c3aed">☪ Helal</span>
                             @endif
                         </div>
-
-                        {{-- Allerjenler --}}
+                    </td>
+                    {{-- Allerjenler --}}
+                    <td>
                         @if(!empty($label->allergens))
-                        <div class="d-flex flex-wrap gap-1 mb-2">
+                        <div class="d-flex flex-wrap gap-1">
                             @foreach($label->getAllergenList() as $key => $info)
                             <span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25"
                                   title="{{ $info['label'] }} (EU #{{ $info['eu'] }})">
-                                {{ $info['icon'] }} <span class="d-none d-xxxl-inline">{{ $info['eu'] }}</span>
+                                {{ $info['icon'] }}
                             </span>
                             @endforeach
                         </div>
+                        @else
+                        <span class="text-muted small">—</span>
                         @endif
-
-                        {{-- Butonlar --}}
-                        <div class="d-flex gap-1 mt-2 pt-2 border-top">
-                            <button type="button" class="btn btn-xs btn-outline-success flex-grow-1"
-                                    style="font-size:11px;padding:2px 6px"
+                    </td>
+                    {{-- Şube --}}
+                    <td class="small">{{ $label->branch?->name ?? '<span class="text-muted">Genel</span>' }}</td>
+                    {{-- Durum --}}
+                    <td>
+                        @if($label->is_active)
+                        <span class="badge bg-success-subtle text-success border border-success border-opacity-25">Aktif</span>
+                        @else
+                        <span class="badge bg-secondary">Pasif</span>
+                        @endif
+                    </td>
+                    {{-- Tarih --}}
+                    <td class="text-muted small" style="white-space:nowrap">
+                        {{ $label->created_at->format('d.m.Y') }}
+                    </td>
+                    {{-- İşlemler --}}
+                    <td class="text-end pe-3">
+                        <div class="d-flex gap-1 justify-content-end">
+                            <button type="button" class="btn btn-xs btn-outline-success"
+                                    style="font-size:11px;padding:2px 7px"
                                     onclick="showQr('{{ $label->publicUrl() }}', '{{ addslashes($label->getName()) }}')"
-                                    title="QR Kodu Göster">
-                                <i class="fas fa-qrcode me-1"></i>QR
+                                    title="QR">
+                                <i class="fas fa-qrcode"></i>
                             </button>
                             <a href="{{ route('food-labels.print-single', $label) }}" target="_blank"
-                               class="btn btn-xs btn-outline-secondary flex-grow-1" style="font-size:11px;padding:2px 6px">
-                                <i class="fas fa-print me-1"></i>Yazdır
+                               class="btn btn-xs btn-outline-secondary"
+                               style="font-size:11px;padding:2px 7px" title="Yazdır">
+                                <i class="fas fa-print"></i>
                             </a>
                             <a href="{{ route('food-labels.edit', $label) }}"
-                               class="btn btn-xs btn-outline-primary" style="font-size:11px;padding:2px 8px">
+                               class="btn btn-xs btn-outline-primary"
+                               style="font-size:11px;padding:2px 7px" title="Düzenle">
                                 <i class="fas fa-edit"></i>
                             </a>
                             <form action="{{ route('food-labels.destroy', $label) }}" method="POST"
                                   onsubmit="return confirm('Silmek istediğinizden emin misiniz?')">
                                 @csrf @method('DELETE')
-                                <button class="btn btn-xs btn-outline-danger" style="font-size:11px;padding:2px 8px">
+                                <button class="btn btn-xs btn-outline-danger"
+                                        style="font-size:11px;padding:2px 7px" title="Sil">
                                     <i class="fas fa-trash"></i>
                                 </button>
                             </form>
                         </div>
-                    </div>
-                </div>
-            </div>
-            @endforeach
+                    </td>
+                </tr>
+                @endforeach
+                </tbody>
+            </table>
         </div>
     </div>
-    @endif
-    @endforeach
 
     {{-- Sayfalama --}}
     @if($labels->hasPages())
