@@ -104,120 +104,120 @@
     </div>
     @else
 
-    <div class="card">
+    <div class="card border-0 shadow-sm" style="border-radius:14px;overflow:hidden">
         <div class="table-responsive">
-            <table class="table table-hover table-sm align-middle mb-0">
-                <thead class="table-light">
-                    <tr>
-                        <th style="width:36px"></th>
-                        <th>#</th>
-                        <th>Yemek Adı</th>
-                        <th>Kategori</th>
-                        <th>Diyet / Kalori</th>
-                        <th>Allerjenler</th>
-                        <th>Şube</th>
-                        <th>Durum</th>
-                        <th>Eklenme</th>
-                        <th style="width:130px" class="text-end">İşlemler</th>
+            <table class="table align-middle mb-0" style="font-size:13px">
+                <thead>
+                    <tr style="background:#f8f9fb;border-bottom:1px solid #eef0f4">
+                        <th style="width:42px;padding:10px 14px;font-weight:500;color:#9aa0ac;font-size:11px;text-transform:uppercase;letter-spacing:.5px;border:0"></th>
+                        <th style="padding:10px 8px;font-weight:500;color:#9aa0ac;font-size:11px;text-transform:uppercase;letter-spacing:.5px;border:0;width:44px">#</th>
+                        <th style="padding:10px 8px;font-weight:500;color:#9aa0ac;font-size:11px;text-transform:uppercase;letter-spacing:.5px;border:0">Yemek</th>
+                        <th style="padding:10px 8px;font-weight:500;color:#9aa0ac;font-size:11px;text-transform:uppercase;letter-spacing:.5px;border:0">Kategori</th>
+                        <th style="padding:10px 8px;font-weight:500;color:#9aa0ac;font-size:11px;text-transform:uppercase;letter-spacing:.5px;border:0">Özellikler</th>
+                        <th style="padding:10px 8px;font-weight:500;color:#9aa0ac;font-size:11px;text-transform:uppercase;letter-spacing:.5px;border:0">Allerjenler</th>
+                        <th style="padding:10px 8px;font-weight:500;color:#9aa0ac;font-size:11px;text-transform:uppercase;letter-spacing:.5px;border:0">Şube</th>
+                        <th style="padding:10px 8px;font-weight:500;color:#9aa0ac;font-size:11px;text-transform:uppercase;letter-spacing:.5px;border:0">Eklenme</th>
+                        <th style="padding:10px 14px 10px 8px;font-weight:500;color:#9aa0ac;font-size:11px;text-transform:uppercase;letter-spacing:.5px;border:0;width:120px" class="text-end"></th>
                     </tr>
                 </thead>
                 <tbody>
                 @foreach($labels as $label)
-                <tr @if(!$label->is_active) class="table-secondary opacity-75" @endif>
+                <tr style="border-bottom:1px solid #f2f3f6;transition:background .12s @if(!$label->is_active) ;opacity:.55 @endif"
+                    onmouseenter="this.style.background='#fafbff'" onmouseleave="this.style.background=''">
                     {{-- Checkbox --}}
-                    <td class="ps-3">
+                    <td style="padding:10px 0 10px 16px">
                         <input type="checkbox" class="label-checkbox form-check-input"
-                               value="{{ $label->id }}" onchange="onCheckboxChange(this)">
+                               value="{{ $label->id }}" onchange="onCheckboxChange(this)"
+                               style="width:15px;height:15px;cursor:pointer">
                     </td>
                     {{-- # --}}
-                    <td class="text-muted small">{{ $label->id }}</td>
+                    <td style="padding:10px 8px;color:#c4c9d4;font-size:11px;font-variant-numeric:tabular-nums">{{ $label->id }}</td>
                     {{-- Adlar --}}
-                    <td>
-                        <div class="fw-semibold">{{ $label->getName() }}</div>
+                    <td style="padding:10px 8px;max-width:220px">
+                        <div style="font-weight:600;color:#2d3748;line-height:1.3">{{ $label->getName() }}</div>
                         @if($name_en = $label->getName('en'))
                             @if($name_en !== $label->getName('tr'))
-                            <div class="text-muted small">{{ $name_en }}</div>
+                            <div style="font-size:11px;color:#a0aab4;margin-top:1px">{{ $name_en }}</div>
                             @endif
                         @endif
                     </td>
                     {{-- Kategori --}}
-                    <td>
+                    <td style="padding:10px 8px">
                         @php $catLabel = \App\Models\FoodLabel::CATEGORIES[$label->category] ?? $label->category; @endphp
-                        <span class="badge bg-light text-dark border">{{ $catLabel }}</span>
+                        <span style="display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:500;background:#f1f3f8;color:#6b7280;border:1px solid #e5e7eb">{{ $catLabel }}</span>
                     </td>
-                    {{-- Diyet / Kalori --}}
-                    <td>
+                    {{-- Özellikler --}}
+                    <td style="padding:10px 8px">
                         <div class="d-flex flex-wrap gap-1">
                             @if($label->calories)
-                            <span class="badge" style="background:#fff3cd;color:#856404;border:1px solid #ffc107;white-space:nowrap">
-                                <i class="fas fa-fire-alt me-1"></i>{{ $label->calories }} kcal
+                            <span style="display:inline-flex;align-items:center;gap:3px;padding:2px 7px;border-radius:20px;font-size:11px;background:#fffbeb;color:#92600a;border:1px solid #fde68a">
+                                <i class="fas fa-fire-alt" style="font-size:9px"></i>{{ $label->calories }}
                             </span>
                             @endif
                             @if($label->is_vegan)
-                            <span class="badge" style="background:#d1fae5;color:#065f46;border:1px solid #10b981">🌱 Vegan</span>
+                            <span style="padding:2px 7px;border-radius:20px;font-size:11px;background:#f0fdf4;color:#166534;border:1px solid #bbf7d0">🌱</span>
                             @endif
                             @if($label->is_vegetarian && !$label->is_vegan)
-                            <span class="badge" style="background:#d1fae5;color:#065f46;border:1px solid #10b981">🥗 Vejet.</span>
+                            <span style="padding:2px 7px;border-radius:20px;font-size:11px;background:#f0fdf4;color:#166534;border:1px solid #bbf7d0">🥗</span>
                             @endif
                             @if($label->is_halal)
-                            <span class="badge" style="background:#ede9fe;color:#4c1d95;border:1px solid #7c3aed">☪ Helal</span>
+                            <span style="padding:2px 7px;border-radius:20px;font-size:11px;background:#faf5ff;color:#6b21a8;border:1px solid #e9d5ff">☪</span>
+                            @endif
+                            @if(!$label->is_active)
+                            <span style="padding:2px 7px;border-radius:20px;font-size:11px;background:#f9fafb;color:#9ca3af;border:1px solid #e5e7eb">Pasif</span>
                             @endif
                         </div>
                     </td>
                     {{-- Allerjenler --}}
-                    <td>
+                    <td style="padding:10px 8px">
                         @if(!empty($label->allergens))
                         <div class="d-flex flex-wrap gap-1">
                             @foreach($label->getAllergenList() as $key => $info)
-                            <span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25"
-                                  title="{{ $info['label'] }} (EU #{{ $info['eu'] }})">
-                                {{ $info['icon'] }}
-                            </span>
+                            <span style="display:inline-block;padding:2px 6px;border-radius:20px;font-size:12px;background:#fff5f5;border:1px solid #fecaca;cursor:default"
+                                  title="{{ $info['label'] }}">{{ $info['icon'] }}</span>
                             @endforeach
                         </div>
                         @else
-                        <span class="text-muted small">—</span>
+                        <span style="color:#d1d5db;font-size:13px">—</span>
                         @endif
                     </td>
                     {{-- Şube --}}
-                    <td class="small">{{ $label->branch?->name ?? '<span class="text-muted">Genel</span>' }}</td>
-                    {{-- Durum --}}
-                    <td>
-                        @if($label->is_active)
-                        <span class="badge bg-success-subtle text-success border border-success border-opacity-25">Aktif</span>
-                        @else
-                        <span class="badge bg-secondary">Pasif</span>
-                        @endif
+                    <td style="padding:10px 8px;color:#6b7280;font-size:12px">
+                        {{ $label->branch?->name ?? '—' }}
                     </td>
                     {{-- Tarih --}}
-                    <td class="text-muted small" style="white-space:nowrap">
+                    <td style="padding:10px 8px;color:#9ca3af;font-size:11px;white-space:nowrap;font-variant-numeric:tabular-nums">
                         {{ $label->created_at->format('d.m.Y') }}
                     </td>
                     {{-- İşlemler --}}
-                    <td class="text-end pe-3">
+                    <td style="padding:10px 16px 10px 8px" class="text-end">
                         <div class="d-flex gap-1 justify-content-end">
-                            <button type="button" class="btn btn-xs btn-outline-success"
-                                    style="font-size:11px;padding:2px 7px"
+                            <button type="button"
                                     onclick="showQr('{{ $label->publicUrl() }}', '{{ addslashes($label->getName()) }}')"
-                                    title="QR">
-                                <i class="fas fa-qrcode"></i>
+                                    title="QR Kodu"
+                                    style="border:0;background:transparent;padding:4px 7px;border-radius:7px;color:#6b7280;transition:background .12s"
+                                    onmouseenter="this.style.background='#f3f4f6'" onmouseleave="this.style.background='transparent'">
+                                <i class="fas fa-qrcode" style="font-size:12px"></i>
                             </button>
                             <a href="{{ route('food-labels.print-single', $label) }}" target="_blank"
-                               class="btn btn-xs btn-outline-secondary"
-                               style="font-size:11px;padding:2px 7px" title="Yazdır">
-                                <i class="fas fa-print"></i>
+                               title="Yazdır"
+                               style="display:inline-flex;align-items:center;border:0;background:transparent;padding:4px 7px;border-radius:7px;color:#6b7280;transition:background .12s;text-decoration:none"
+                               onmouseenter="this.style.background='#f3f4f6'" onmouseleave="this.style.background='transparent'">
+                                <i class="fas fa-print" style="font-size:12px"></i>
                             </a>
                             <a href="{{ route('food-labels.edit', $label) }}"
-                               class="btn btn-xs btn-outline-primary"
-                               style="font-size:11px;padding:2px 7px" title="Düzenle">
-                                <i class="fas fa-edit"></i>
+                               title="Düzenle"
+                               style="display:inline-flex;align-items:center;border:0;background:transparent;padding:4px 7px;border-radius:7px;color:#4f76f6;transition:background .12s;text-decoration:none"
+                               onmouseenter="this.style.background='#eef2ff'" onmouseleave="this.style.background='transparent'">
+                                <i class="fas fa-pen" style="font-size:11px"></i>
                             </a>
                             <form action="{{ route('food-labels.destroy', $label) }}" method="POST"
                                   onsubmit="return confirm('Silmek istediğinizden emin misiniz?')">
                                 @csrf @method('DELETE')
-                                <button class="btn btn-xs btn-outline-danger"
-                                        style="font-size:11px;padding:2px 7px" title="Sil">
-                                    <i class="fas fa-trash"></i>
+                                <button type="submit" title="Sil"
+                                        style="border:0;background:transparent;padding:4px 7px;border-radius:7px;color:#ef4444;transition:background .12s"
+                                        onmouseenter="this.style.background='#fef2f2'" onmouseleave="this.style.background='transparent'">
+                                    <i class="fas fa-trash" style="font-size:11px"></i>
                                 </button>
                             </form>
                         </div>
