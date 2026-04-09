@@ -122,8 +122,9 @@
                 </thead>
                 <tbody>
                 @foreach($labels as $label)
-                <tr style="border-bottom:1px solid #f2f3f6;transition:background .12s @if(!$label->is_active) ;opacity:.55 @endif"
-                    onmouseenter="this.style.background='#fafbff'" onmouseleave="this.style.background=''">
+                <tr style="border-bottom:1px solid #f2f3f6;transition:background .12s;cursor:pointer @if(!$label->is_active) ;opacity:.55 @endif"
+                    onclick="rowToggle(event, this)"
+                    onmouseenter="rowHover(this, true)" onmouseleave="rowHover(this, false)">
                     {{-- Checkbox --}}
                     <td style="padding:10px 0 10px 16px">
                         <input type="checkbox" class="label-checkbox form-check-input"
@@ -190,7 +191,7 @@
                         {{ $label->created_at->format('d.m.Y') }}
                     </td>
                     {{-- İşlemler --}}
-                    <td style="padding:10px 16px 10px 8px" class="text-end">
+                    <td style="padding:10px 16px 10px 8px" class="text-end" onclick="event.stopPropagation()">
                         <div class="d-flex gap-1 justify-content-end">
                             <button type="button"
                                     onclick="showQr('{{ $label->publicUrl() }}', '{{ addslashes($label->getName()) }}')"
@@ -317,13 +318,6 @@ function clearSelection() {
     refreshUI();
 }
 
-function onCheckboxChange(cb) {
-    const sel = getSelected();
-    cb.checked ? sel.add(cb.value) : sel.delete(cb.value);
-    saveSelected(sel);
-    refreshUI();
-}
-
 function toggleSelectAll() {
     const cbs  = document.querySelectorAll('.label-checkbox');
     const sel  = getSelected();
@@ -348,11 +342,43 @@ function refreshUI() {
         : '<i class="fas fa-check-square me-1"></i>Tümünü Seç';
 }
 
-// Sayfa yüklenince önceki seçimleri geri yükle
+function rowToggle(event, tr) {
+    // checkbox veya label'e zaten tıklandıysa çift tetiklenmesin
+    if (event.target.closest('input[type="checkbox"]')) return;
+    const cb = tr.querySelector('.label-checkbox');
+    if (!cb) return;
+    cb.checked = !cb.checked;
+    onCheckboxChange(cb);
+    rowHover(tr, true);
+}
+
+function rowHover(tr, entering) {
+    const cb = tr.querySelector('.label-checkbox');
+    const isChecked = cb && cb.checked;
+    if (entering) {
+        tr.style.background = isChecked ? '#eef3ff' : '#fafbff';
+    } else {
+        tr.style.background = isChecked ? '#f4f7ff' : '';
+    }
+}
+
+// Seçim değişince satır arka planını da güncelle
+function onCheckboxChange(cb) {
+    const sel = getSelected();
+    cb.checked ? sel.add(cb.value) : sel.delete(cb.value);
+    saveSelected(sel);
+    const tr = cb.closest('tr');
+    if (tr) tr.style.background = cb.checked ? '#f4f7ff' : '';
+    refreshUI();
+}
 document.addEventListener('DOMContentLoaded', function() {
     const sel = getSelected();
     document.querySelectorAll('.label-checkbox').forEach(cb => {
-        if (sel.has(cb.value)) cb.checked = true;
+        if (sel.has(cb.value)) {
+            cb.checked = true;
+            const tr = cb.closest('tr');
+            if (tr) tr.style.background = '#f4f7ff';
+        }
     });
     refreshUI();
 });
