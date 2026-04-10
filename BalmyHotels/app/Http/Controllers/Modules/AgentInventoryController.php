@@ -88,8 +88,9 @@ class AgentInventoryController extends BaseModuleController
             ->orderByDesc('created_at')
             ->limit(20)
             ->get();
+        $latestScreenshot = $agentComputer->screenshots()->first();
 
-        return view('modules.bilgi_islem.agent_inventory.show', compact('agentComputer', 'programCount', 'recentCommands'));
+        return view('modules.bilgi_islem.agent_inventory.show', compact('agentComputer', 'programCount', 'recentCommands', 'latestScreenshot'));
     }
 
     public function programs(Request $request, AgentComputer $agentComputer)
@@ -210,6 +211,39 @@ class AgentInventoryController extends BaseModuleController
         ]);
 
         return back()->with('cmd_success', AgentComputerCommand::TYPES[$request->type] . ' komutu gönderildi.');
+    }
+
+    public function requestScreenshot(AgentComputer $agentComputer)
+    {
+        $command = $agentComputer->commands()->create([
+            'type'       => 'screenshot',
+            'payload'    => null,
+            'status'     => 'pending',
+            'expires_at' => now()->addMinutes(2),
+            'created_by' => auth()->id(),
+        ]);
+
+        return response()->json(['success' => true, 'command_id' => $command->id]);
+    }
+
+    public function latestScreenshot(Request $request, AgentComputer $agentComputer)
+    {
+        $query = $agentComputer->screenshots();
+
+        if ($request->filled('after')) {
+            $query->where('captured_at', '>', $request->input('after'));
+        }
+
+        $screenshot = $query->first();
+
+        if (!$screenshot) {
+            return response()->json(['url' => null]);
+        }
+
+        return response()->json([
+            'url'         => $screenshot->image_url,
+            'captured_at' => $screenshot->captured_at->diffForHumans(),
+        ]);
     }
 
     public function wakeOnLan(AgentComputer $agentComputer)

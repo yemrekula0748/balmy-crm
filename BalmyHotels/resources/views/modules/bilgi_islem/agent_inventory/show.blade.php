@@ -1101,6 +1101,61 @@
 @endif
 {{-- /securitySnapshot --}}
 
+{{-- ========== EKRAN GÖRÜNTÜSÜ ========== --}}
+<div class="col-12">
+    <div class="tw-card">
+        <div class="tw-card-header">
+            <div style="width:36px;height:36px;border-radius:.625rem;background:#1e293b;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+                <i class="fas fa-desktop" style="color:#fff;font-size:.8rem"></i>
+            </div>
+            <span style="font-weight:600;font-size:.9375rem;color:#1e293b">Ekran Görüntüsü</span>
+            <div style="margin-left:auto">
+                <button id="screenshotBtn" type="button" onclick="requestScreenshot()"
+                        style="display:inline-flex;align-items:center;gap:.375rem;border-radius:.5rem;padding:.375rem .875rem;font-size:.8125rem;font-weight:500;background:#1e293b;color:#fff;border:none;cursor:pointer">
+                    <i class="fas fa-camera" style="font-size:.7rem"></i>Ekranı Göster
+                </button>
+            </div>
+        </div>
+        <div class="tw-card-body">
+            <div id="screenshotStatus" style="display:none;margin-bottom:1rem;padding:.75rem 1rem;border-radius:.5rem;background:#eff6ff;border:1px solid #bfdbfe;color:#1d4ed8;font-size:.875rem">
+                <i class="fas fa-spinner fa-spin me-2"></i><span id="screenshotStatusText">İstek gönderildi, ekran görüntüsü bekleniyor...</span>
+            </div>
+            @if($latestScreenshot)
+                <img id="screenshotImg" src="{{ $latestScreenshot->image_url }}" class="img-fluid rounded shadow"
+                     style="max-height:480px;width:auto;display:block" alt="Ekran Görüntüsü">
+                <div id="screenshotMeta" style="margin-top:.625rem;font-size:.8rem;color:#64748b;display:flex;align-items:center;gap:.5rem">
+                    <i class="fas fa-clock"></i>
+                    <span>Alındı: <span id="screenshotTime">{{ $latestScreenshot->captured_at->diffForHumans() }}</span></span>
+                    <button type="button" onclick="refreshScreenshot()"
+                            style="background:transparent;border:1px solid #e2e8f0;border-radius:.375rem;padding:2px 8px;font-size:.75rem;cursor:pointer;color:#64748b">
+                        <i class="fas fa-sync" style="font-size:.65rem"></i> Yenile
+                    </button>
+                </div>
+                <div id="screenshotEmpty" style="display:none;padding:2rem;text-align:center;color:#94a3b8;font-size:.875rem">
+                    <i class="fas fa-image" style="font-size:2rem;display:block;margin-bottom:.5rem;opacity:.4"></i>
+                    Henüz ekran görüntüsü alınmadı
+                </div>
+            @else
+                <div id="screenshotEmpty" style="padding:2rem;text-align:center;color:#94a3b8;font-size:.875rem">
+                    <i class="fas fa-image" style="font-size:2rem;display:block;margin-bottom:.5rem;opacity:.4"></i>
+                    Henüz ekran görüntüsü alınmadı
+                </div>
+                <img id="screenshotImg" src="" class="img-fluid rounded shadow"
+                     style="max-height:480px;width:auto;display:none" alt="Ekran Görüntüsü">
+                <div id="screenshotMeta" style="margin-top:.625rem;font-size:.8rem;color:#64748b;display:none;align-items:center;gap:.5rem">
+                    <i class="fas fa-clock"></i>
+                    <span>Alındı: <span id="screenshotTime"></span></span>
+                    <button type="button" onclick="refreshScreenshot()"
+                            style="background:transparent;border:1px solid #e2e8f0;border-radius:.375rem;padding:2px 8px;font-size:.75rem;cursor:pointer;color:#64748b">
+                        <i class="fas fa-sync" style="font-size:.65rem"></i> Yenile
+                    </button>
+                </div>
+            @endif
+        </div>
+    </div>
+</div>
+{{-- /ekran görüntüsü --}}
+
 {{-- ========== UZAK KOMUT ========== --}}
 <div class="col-12">
 
@@ -1249,6 +1304,88 @@
 
 @push('scripts')
 <script>
+// ── Screenshot ──────────────────────────────────────────────
+const _ssRequestUrl = '{{ route('it.agent.request-screenshot', $agentComputer) }}';
+const _ssPollUrl    = '{{ route('it.agent.latest-screenshot',  $agentComputer) }}';
+const _cstToken     = document.querySelector('meta[name="csrf-token"]')?.content ?? '';
+let _ssPoller = null;
+let _ssPollCount = 0;
+let _ssAfter = null;
+
+function requestScreenshot() {
+    const btn        = document.getElementById('screenshotBtn');
+    const statusBox  = document.getElementById('screenshotStatus');
+    const statusText = document.getElementById('screenshotStatusText');
+
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin" style="font-size:.7rem"></i>Gönderiliyor...';
+    statusBox.style.display = '';
+    statusText.textContent  = 'İstek gönderildi, ekran görüntüsü bekleniyor...';
+    _ssAfter      = new Date().toISOString();
+    _ssPollCount  = 0;
+
+    fetch(_ssRequestUrl, {
+        method: 'POST',
+        headers: { 'X-CSRF-TOKEN': _cstToken, 'Accept': 'application/json' }
+    })
+    .then(r => r.json())
+    .then(() => {
+        _ssPoller = setInterval(_ssPoll, 3000);
+    })
+    .catch(() => {
+        _ssResetBtn();
+        statusText.textContent = 'Bir hata oluştu, tekrar deneyin.';
+    });
+}
+
+function _ssPoll() {
+    _ssPollCount++;
+    if (_ssPollCount > 10) {
+        clearInterval(_ssPoller);
+        document.getElementById('screenshotStatusText').textContent = 'Zaman aşımı: Ajan yanıt vermedi (30 sn).';
+        _ssResetBtn();
+        return;
+    }
+
+    const url = _ssPollUrl + (_ssAfter ? '?after=' + encodeURIComponent(_ssAfter) : '');
+    fetch(url, { headers: { 'Accept': 'application/json' } })
+    .then(r => r.json())
+    .then(data => {
+        if (data.url) {
+            clearInterval(_ssPoller);
+            _ssShowImage(data.url, data.captured_at);
+            document.getElementById('screenshotStatus').style.display = 'none';
+            _ssResetBtn();
+        }
+    });
+}
+
+function refreshScreenshot() {
+    fetch(_ssPollUrl, { headers: { 'Accept': 'application/json' } })
+    .then(r => r.json())
+    .then(data => { if (data.url) _ssShowImage(data.url, data.captured_at); });
+}
+
+function _ssShowImage(url, capturedAt) {
+    const img   = document.getElementById('screenshotImg');
+    const meta  = document.getElementById('screenshotMeta');
+    const empty = document.getElementById('screenshotEmpty');
+
+    img.src           = url + '?t=' + Date.now();
+    img.style.display = 'block';
+    if (meta)  { meta.style.display  = 'flex'; }
+    if (empty) { empty.style.display = 'none'; }
+    const timeEl = document.getElementById('screenshotTime');
+    if (timeEl) timeEl.textContent = capturedAt;
+}
+
+function _ssResetBtn() {
+    const btn = document.getElementById('screenshotBtn');
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fas fa-camera" style="font-size:.7rem"></i>Ekranı Göster';
+}
+// ── /Screenshot ─────────────────────────────────────────────
+
 function updateCmdForm(type) {
     const payloadGroup = document.getElementById('payloadGroup');
     const delayGroup   = document.getElementById('delayGroup');

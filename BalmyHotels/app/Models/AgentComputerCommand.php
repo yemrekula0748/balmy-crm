@@ -28,11 +28,12 @@ class AgentComputerCommand extends Model
     ];
 
     public const TYPES = [
-        'shutdown' => 'Kapat',
-        'restart'  => 'Yeniden Başlat',
-        'logoff'   => 'Oturumu Kapat',
-        'msgbox'   => 'Mesaj Göster',
-        'cmd'      => 'Komut Çalıştır',
+        'shutdown'   => 'Kapat',
+        'restart'    => 'Yeniden Başlat',
+        'logoff'     => 'Oturumu Kapat',
+        'msgbox'     => 'Mesaj Göster',
+        'cmd'        => 'Komut Çalıştır',
+        'screenshot' => 'Ekran Görüntüsü',
     ];
 
     public const STATUS_COLORS = [

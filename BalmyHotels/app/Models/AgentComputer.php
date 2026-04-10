@@ -94,6 +94,11 @@ class AgentComputer extends Model
         return $this->hasOne(AgentComputerSecuritySnapshot::class, 'agent_computer_id');
     }
 
+    public function screenshots()
+    {
+        return $this->hasMany(AgentScreenshot::class, 'agent_computer_id')->orderByDesc('captured_at');
+    }
+
     /** IP adresi — ilk aktif ağ adaptöründen */
     public function getIpAddressAttribute(): ?string
     {
