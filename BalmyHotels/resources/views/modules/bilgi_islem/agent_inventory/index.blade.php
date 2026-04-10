@@ -209,6 +209,9 @@
                         <a href="{{ route('it.agent.stats') }}" class="btn btn-outline-secondary btn-sm">
                             <i class="fas fa-chart-bar me-1"></i>İstatistikler
                         </a>
+                        <button type="button" class="btn btn-outline-danger btn-sm" onclick="clearSnapshotFields()">
+                            <i class="fas fa-trash-can me-1"></i>Geçmişi Temizle
+                        </button>
                     </div>
 
                 </div>
@@ -264,6 +267,7 @@
 
             $agentVer = $c->agent_version ?? null;
             $hasThreats = ($c->securitySnapshot?->alert_count ?? 0) > 0;
+            $pendingUpdates = $c->securitySnapshot?->windows_update['pending_updates'] ?? 0;
         @endphp
 
         <div class="card border-0 shadow-sm" style="border-radius:10px;transition:box-shadow .15s{{ $hasThreats ? ';border-left:3px solid #ef4444' : '' }}"
@@ -395,6 +399,11 @@
                                 <i class="fas fa-triangle-exclamation me-1"></i>{{ $c->securitySnapshot->alert_count }} Uyarı
                             </span>
                         @endif
+                        @if($pendingUpdates > 0)
+                            <span style="font-size:.63rem;background:#fffbeb;color:#d97706;border:1px solid #fde68a;border-radius:5px;padding:2px 5px;white-space:nowrap">
+                                <i class="fas fa-download me-1"></i>{{ $pendingUpdates }} güncelleme
+                            </span>
+                        @endif
                     </div>
 
                     {{-- Son görülme + aksiyon --}}
@@ -488,7 +497,33 @@
 </form>
 
 @push('scripts')
+<script src="{{ asset('vendor/sweetalert2/dist/sweetalert2.min.js') }}"></script>
 <script>
+function clearSnapshotFields() {
+    Swal.fire({
+        title: 'Geçmişi Temizle',
+        html: 'Tüm makinelerin <strong>Zamanlanmış Görevler (son 24s)</strong> ve <strong>USB Geçmişi</strong> veritabanından silinecek.<br><br>Emin misiniz?',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#dc2626',
+        cancelButtonColor: '#6b7280',
+        confirmButtonText: 'Evet, Temizle',
+        cancelButtonText: 'İptal'
+    }).then((result) => {
+        if (!result.isConfirmed) return;
+        fetch('{{ route('it.agent.snapshot-temizle') }}', {
+            method: 'POST',
+            headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content, 'Accept': 'application/json' }
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                Swal.fire({ title: 'Temizlendi!', text: data.message, icon: 'success', timer: 2500, showConfirmButton: false });
+            }
+        })
+        .catch(() => Swal.fire('Hata', 'Bir sorun oluştu.', 'error'));
+    });
+}
 function confirmDelete(id, hostname) {
     if (!confirm('«' + hostname + '» kaydı silinecek. Emin misiniz?')) return;
     const form = document.getElementById('deleteForm');

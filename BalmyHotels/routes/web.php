@@ -752,6 +752,7 @@ Route::middleware('auth')->group(function () {
         // Ajan Envanter (Windows Agent otomatik toplama)
         Route::get('ajan-envanter',                        [\App\Http\Controllers\Modules\AgentInventoryController::class, 'index'])->name('agent.index');
         Route::get('ajan-envanter/istatistikler',          [\App\Http\Controllers\Modules\AgentInventoryController::class, 'stats'])->name('agent.stats');
+        Route::post('ajan-envanter/snapshot-temizle',      [\App\Http\Controllers\Modules\AgentInventoryController::class, 'clearSnapshotFields'])->name('agent.snapshot-temizle');
         Route::get('ajan-envanter/{agentComputer}',        [\App\Http\Controllers\Modules\AgentInventoryController::class, 'show'])->name('agent.show');
         Route::get('ajan-envanter/{agentComputer}/programlar',    [\App\Http\Controllers\Modules\AgentInventoryController::class, 'programs'])->name('agent.programs');
         Route::get('ajan-envanter/{agentComputer}/dosya-olaylari',    [\App\Http\Controllers\Modules\AgentInventoryController::class, 'fileEvents'])->name('agent.file-events');

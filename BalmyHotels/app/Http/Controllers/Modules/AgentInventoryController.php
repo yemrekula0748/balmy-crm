@@ -70,6 +70,15 @@ class AgentInventoryController extends BaseModuleController
         return view('modules.bilgi_islem.agent_inventory.index', compact('computers', 'domains', 'osList', 'stats'));
     }
 
+    public function clearSnapshotFields(Request $request)
+    {
+        \App\Models\AgentComputerSecuritySnapshot::query()->update([
+            'scheduled_tasks_24h' => null,
+            'usb_history'         => null,
+        ]);
+        return response()->json(['success' => true, 'message' => 'Zamanlanmış görevler ve USB geçmişi tüm makinelerden temizlendi.']);
+    }
+
     public function show(AgentComputer $agentComputer)
     {
         $agentComputer->load(['hardware', 'security', 'networkAdapters', 'disks', 'antivirus', 'mail', 'mailAccounts', 'securitySnapshot']);
