@@ -51,7 +51,7 @@ class VncController extends Controller
 
     /**
      * GET /api/agent/vnc/input?machine_guid=...
-     * Agent polls for pending input events.
+     * Agent polls for pending input events — with short long-polling to minimise latency.
      */
     public function getInput(Request $request)
     {
@@ -60,22 +60,31 @@ class VncController extends Controller
             return response()->json(['error' => 'Computer not found'], 404);
         }
 
-        $inputs = VncInput::where('agent_computer_id', $computer->id)
-            ->where('consumed', false)
-            ->orderBy('created_at')
-            ->get();
+        $deadline = microtime(true) + 0.5; // wait up to 500 ms
+        do {
+            $inputs = VncInput::where('agent_computer_id', $computer->id)
+                ->where('consumed', false)
+                ->orderBy('created_at')
+                ->get();
 
-        $allEvents = [];
-        foreach ($inputs as $input) {
-            $allEvents = array_merge($allEvents, $input->events ?? []);
-        }
+            if ($inputs->isNotEmpty()) {
+                $allEvents = [];
+                foreach ($inputs as $input) {
+                    $allEvents = array_merge($allEvents, $input->events ?? []);
+                }
 
-        // Mark all as consumed
-        VncInput::where('agent_computer_id', $computer->id)
-            ->where('consumed', false)
-            ->update(['consumed' => true]);
+                VncInput::where('agent_computer_id', $computer->id)
+                    ->where('consumed', false)
+                    ->update(['consumed' => true]);
 
-        return response()->json($allEvents);
+                return response()->json($allEvents);
+            }
+
+            if (microtime(true) >= $deadline) break;
+            usleep(50000); // 50 ms sleep before retrying
+        } while (true);
+
+        return response()->json([]);
     }
 
     private function findComputer(Request $request): ?AgentComputer

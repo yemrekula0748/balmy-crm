@@ -155,18 +155,22 @@ const VNC_INPUT_URL = '{{ route('it.agent.vnc.input', $agentComputer) }}';
 const CSRF          = document.querySelector('meta[name="csrf-token"]').content;
 
 // ── State ──────────────────────────────────────────────────
-let framePoller   = null;
-let inputFlusher  = null;
-let inputBuffer   = [];
-let vncScreenW    = 1920;
-let vncScreenH    = 1080;
-let lastSeq       = -1;
-let mouseMoveTs   = 0;
-let fpsCounter    = 0;
-let fpsTimer      = null;
+let isConnected      = false;
+let inputFlusher     = null;
+let fpsUpdateTimer   = null;
+let inputBuffer      = [];
+let flushInFlight    = false;
+let vncScreenW       = 1920;
+let vncScreenH       = 1080;
+let lastTs           = 0;     // updated_at ms — real change detector (not seq)
+let mouseMoveTs      = 0;
+let consecutiveFails = 0;
+let fpsCounter       = 0;
+let latencyMs        = 0;
+const FRAME_TARGET_MS = 100; // 10fps polling cadence
 
 const canvas  = document.getElementById('vnc-screen');
-const ctx     = canvas.getContext('2d');
+const ctx     = canvas.getContext('2d', { alpha: false }); // opaque — faster composite
 const overlay = document.getElementById('vnc-overlay');
 
 // ── X11 KeySym mapping ─────────────────────────────────────
@@ -223,6 +227,7 @@ function canvasCoords(e) {
 
 // ── Mouse events ───────────────────────────────────────────
 canvas.addEventListener('mousemove', e => {
+    if (!isConnected) return;
     const now = Date.now();
     if (now - mouseMoveTs < 50) return; // max 20/s
     mouseMoveTs = now;
@@ -231,79 +236,119 @@ canvas.addEventListener('mousemove', e => {
 });
 
 canvas.addEventListener('mousedown', e => {
+    if (!isConnected) return;
     e.preventDefault();
     const { x, y } = canvasCoords(e);
     inputBuffer.push({ type: 'mouse_down', x, y, button: e.button + 1 });
+    flushInput(true); // immediate — no delay on clicks
 });
 
 canvas.addEventListener('mouseup', e => {
+    if (!isConnected) return;
     const { x, y } = canvasCoords(e);
     inputBuffer.push({ type: 'mouse_up', x, y, button: e.button + 1 });
+    flushInput(true);
 });
 
 canvas.addEventListener('wheel', e => {
+    if (!isConnected) return;
     e.preventDefault();
     const { x, y } = canvasCoords(e);
     inputBuffer.push({ type: 'scroll', x, y, delta: e.deltaY > 0 ? -1 : 1 });
+    flushInput(true);
 }, { passive: false });
 
 canvas.addEventListener('contextmenu', e => e.preventDefault());
 
 // ── Keyboard events ────────────────────────────────────────
-document.addEventListener('keydown', e => {
-    if (!framePoller) return;
+window.addEventListener('keydown', e => {
+    if (!isConnected) return;
     e.preventDefault();
     inputBuffer.push({ type: 'key_down', keysym: getKeysym(e.keyCode) });
+    flushInput(true); // immediate
 });
 
-document.addEventListener('keyup', e => {
-    if (!framePoller) return;
+window.addEventListener('keyup', e => {
+    if (!isConnected) return;
     inputBuffer.push({ type: 'key_up', keysym: getKeysym(e.keyCode) });
+    flushInput(true);
 });
 
-// ── Input batch flush (every 100ms) ───────────────────────
-function flushInput() {
+// ── Input flush ────────────────────────────────────────────
+function flushInput(immediate) {
     if (!inputBuffer.length) return;
-    const events = [...inputBuffer];
-    inputBuffer = [];
+    if (!immediate && flushInFlight) return; // periodic flush: skip if in-flight
+    const events   = [...inputBuffer];
+    inputBuffer    = [];
+    flushInFlight  = true;
     fetch(VNC_INPUT_URL, {
         method:  'POST',
         headers: { 'X-CSRF-TOKEN': CSRF, 'Content-Type': 'application/json', 'Accept': 'application/json' },
         body:    JSON.stringify({ events }),
-    }).catch(() => {});
-}
-
-// ── Frame polling (every 300ms) ────────────────────────────
-function pollFrame() {
-    fetch(VNC_FRAME_URL, { headers: { 'Accept': 'application/json' } })
-    .then(r => r.json())
-    .then(data => {
-        if (!data.image_data) return;
-        if (data.seq === lastSeq) return; // no change
-
-        lastSeq    = data.seq;
-        vncScreenW = data.screen_w || 1920;
-        vncScreenH = data.screen_h || 1080;
-
-        if (canvas.width !== vncScreenW || canvas.height !== vncScreenH) {
-            canvas.width  = vncScreenW;
-            canvas.height = vncScreenH;
-        }
-
-        const img = new Image();
-        img.onload = () => {
-            ctx.drawImage(img, 0, 0);
-            fpsCounter++;
-        };
-        img.src = 'data:image/jpeg;base64,' + data.image_data;
     })
-    .catch(() => {});
+    .catch(() => {})
+    .finally(() => { flushInFlight = false; });
 }
 
-// ── FPS counter ────────────────────────────────────────────
-function startFps() {
-    fpsTimer = setInterval(() => {
-        document.getElementById('vncFpsText').textContent = fpsCounter + ' fps';
+// ── Frame polling loop (self-scheduling — no request stacking) ──
+async function framePollLoop() {
+    if (!isConnected) return;
+    const t0 = performance.now();
+    try {
+        const resp = await fetch(VNC_FRAME_URL + '?since=' + lastTs, {
+            headers: { 'Accept': 'application/json' },
+        });
+        const data = await resp.json();
+        latencyMs = Math.round(performance.now() - t0);
+
+        if (data.image_data && data.ts !== lastTs) {
+            lastTs     = data.ts; // ts = updated_at ms — always changes when frame is new
+            vncScreenW = data.screen_w || 1920;
+            vncScreenH = data.screen_h || 1080;
+            if (canvas.width !== vncScreenW || canvas.height !== vncScreenH) {
+                canvas.width  = vncScreenW;
+                canvas.height = vncScreenH;
+            }
+            // createImageBitmap: async GPU-accelerated decode when supported
+            if (typeof createImageBitmap !== 'undefined') {
+                const byteStr = atob(data.image_data);
+                const arr     = new Uint8Array(byteStr.length);
+                for (let i = 0; i < byteStr.length; i++) arr[i] = byteStr.charCodeAt(i);
+                const blob = new Blob([arr], { type: 'image/jpeg' });
+                createImageBitmap(blob).then(bmp => {
+                    ctx.drawImage(bmp, 0, 0);
+                    bmp.close();
+                    fpsCounter++;
+                });
+            } else {
+                const img  = new Image();
+                img.onload = () => { ctx.drawImage(img, 0, 0); fpsCounter++; };
+                img.src    = 'data:image/jpeg;base64,' + data.image_data;
+            }
+        }
+        if (consecutiveFails > 0) {
+            consecutiveFails = 0;
+            document.getElementById('vncStatusText').textContent = 'Bağlı';
+            document.getElementById('vncStatus').style.background = '';
+        }
+    } catch (_) {
+        consecutiveFails++;
+        latencyMs = Math.round(performance.now() - t0);
+        if (consecutiveFails >= 4) {
+            document.getElementById('vncStatusText').textContent = 'Bağlantı kesildi!';
+            document.getElementById('vncStatus').style.background = 'rgba(239,68,68,.15)';
+        }
+    }
+    if (isConnected) {
+        const elapsed = performance.now() - t0;
+        setTimeout(framePollLoop, Math.max(10, FRAME_TARGET_MS - elapsed));
+    }
+}
+
+// ── Stats display ──────────────────────────────────────────
+function startStats() {
+    fpsUpdateTimer = setInterval(() => {
+        document.getElementById('vncFpsText').textContent = fpsCounter + ' fps  ' + latencyMs + 'ms';
         fpsCounter = 0;
     }, 1000);
 }
@@ -322,15 +367,20 @@ function vncConnect() {
     .then(r => r.json())
     .then(data => {
         if (!data.ok) throw new Error();
+        isConnected   = true;
+        lastTs        = 0;
+        consecutiveFails = 0;
+
         overlay.style.display = 'none';
         document.getElementById('connectForm').style.display    = 'none';
         document.getElementById('disconnectForm').style.display = 'flex';
-        document.getElementById('vncStatus').style.display      = '';
-        document.getElementById('vncFps').style.display         = '';
+        document.getElementById('vncStatus').style.display      = 'flex';
+        document.getElementById('vncFps').style.display         = 'flex';
 
-        framePoller  = setInterval(pollFrame, 300);
-        inputFlusher = setInterval(flushInput, 100);
-        startFps();
+        // Periodic mouse-move flush; clicks/keys flush immediately
+        inputFlusher = setInterval(() => flushInput(false), 80);
+        startStats();
+        framePollLoop(); // self-scheduling — not setInterval
         canvas.focus();
     })
     .catch(() => {
@@ -340,12 +390,13 @@ function vncConnect() {
 }
 
 function vncDisconnect() {
-    clearInterval(framePoller);
+    isConnected = false; // stops framePollLoop
     clearInterval(inputFlusher);
-    clearInterval(fpsTimer);
-    framePoller = inputFlusher = fpsTimer = null;
-    inputBuffer = [];
-    fpsCounter  = 0;
+    clearInterval(fpsUpdateTimer);
+    inputFlusher = fpsUpdateTimer = null;
+    inputBuffer  = [];
+    fpsCounter   = 0;
+    lastTs       = 0;
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     overlay.style.display = '';

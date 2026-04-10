@@ -80,6 +80,7 @@ class VncBrowserController extends BaseModuleController
             'screen_w'   => $frame->screen_w,
             'screen_h'   => $frame->screen_h,
             'seq'        => $frame->seq,
+            'ts'         => $frame->updated_at ? (int) ($frame->updated_at->getPreciseTimestamp(3)) : 0,
         ]);
     }
 
