@@ -103,7 +103,7 @@
         <div id="connectForm" class="d-flex align-items-center gap-2 ms-auto flex-wrap">
             <input type="password" id="vncPassword" placeholder="VNC Şifresi (opsiyonel)"
                    class="form-control form-control-sm" style="max-width:180px;font-size:.8rem">
-            <button onclick="vncConnect()" class="btn btn-primary btn-sm px-3">
+            <button id="btnConnect" class="btn btn-primary btn-sm px-3">
                 <i class="fas fa-plug me-1" style="font-size:.7rem"></i>Bağlan
             </button>
             <a href="{{ route('it.agent.show', $agentComputer) }}" class="btn btn-outline-secondary btn-sm">
@@ -113,7 +113,7 @@
 
         {{-- Disconnect --}}
         <div id="disconnectForm" style="display:none" class="d-flex align-items-center gap-2 ms-auto flex-wrap">
-            <button onclick="vncDisconnect()" class="btn btn-outline-danger btn-sm px-3">
+            <button id="btnDisconnect" class="btn btn-outline-danger btn-sm px-3">
                 <i class="fas fa-power-off me-1" style="font-size:.7rem"></i>Bağlantıyı Kes
             </button>
             <a href="{{ route('it.agent.show', $agentComputer) }}" class="btn btn-outline-secondary btn-sm">
@@ -147,8 +147,17 @@
 </div>
 
 @push('scripts')
-<script type="module">
-import RFB from 'https://cdn.jsdelivr.net/npm/@novnc/novnc@1.5.0/core/rfb.js';
+{{-- es-module-shims: polyfill for importmap support across all browsers --}}
+<script async src="https://ga.jspm.io/npm:es-module-shims@1.10.0/dist/es-module-shims.js"></script>
+<script type="importmap">
+{
+  "imports": {
+    "novnc": "https://cdn.jsdelivr.net/npm/@novnc/novnc@1.5.0/core/rfb.js"
+  }
+}
+</script>
+<script type="module-shim">
+import RFB from 'novnc';
 
 const VNC_CONNECT_URL = '{{ route("it.agent.vnc.connect", $agentComputer) }}';
 const CSRF = document.querySelector('meta[name="csrf-token"]').content;
@@ -174,7 +183,7 @@ function clearError() {
     overlayError.textContent = '';
 }
 
-window.vncConnect = async function() {
+async function vncConnect() {
     clearError();
     overlaySpinner.style.display = '';
 
@@ -187,13 +196,13 @@ window.vncConnect = async function() {
         });
         const data = await resp.json();
         if (!data.ok) {
-            showError(data.error ?? 'Baglanti bilgileri alinamadi.');
+            showError(data.error ?? 'Bağlantı bilgileri alınamadı.');
             return;
         }
         wsUrl    = data.ws_url;
         password = data.password;
     } catch (e) {
-        showError('Sunucuya ulasilamadi: ' + e.message);
+        showError('Sunucuya ulaşılamadı: ' + e.message);
         return;
     }
 
@@ -204,7 +213,7 @@ window.vncConnect = async function() {
             password ? { credentials: { password } } : {}
         );
     } catch (e) {
-        showError('noVNC baslatılamadi: ' + e.message);
+        showError('noVNC başlatılamadı: ' + e.message);
         return;
     }
 
@@ -212,38 +221,39 @@ window.vncConnect = async function() {
     rfb.resizeSession = false;
 
     rfb.addEventListener('connect', () => {
-        overlay.style.display        = 'none';
-        connectForm.style.display    = 'none';
-        disconnectForm.style.display = 'flex';
-        vncStatus.style.display      = 'flex';
-        vncStatusText.textContent    = 'Bagli';
+        overlay.style.display         = 'none';
+        connectForm.style.display     = 'none';
+        disconnectForm.style.display  = 'flex';
+        vncStatus.style.display       = 'flex';
+        vncStatusText.textContent     = 'Bağlı';
         vncStatusDot.style.background = '#22c55e';
     });
 
     rfb.addEventListener('disconnect', e => {
         if (rfb === null) return;
-        vncStatusText.textContent = 'Baglanti kesildi';
+        vncStatusText.textContent     = 'Bağlantı kesildi';
         vncStatusDot.style.background = '#ef4444';
         vncStatusDot.style.animation  = 'none';
-        overlay.style.display        = 'flex';
-        overlaySpinner.style.display = 'none';
-        showError('Baglanti kesildi. ' + (e.detail?.reason ?? ''));
-        connectForm.style.display    = 'flex';
-        disconnectForm.style.display = 'none';
+        overlay.style.display         = 'flex';
+        overlaySpinner.style.display  = 'none';
+        showError('Bağlantı kesildi. ' + (e.detail?.reason ?? ''));
+        connectForm.style.display     = 'flex';
+        disconnectForm.style.display  = 'none';
+        rfb = null;
     });
 
     rfb.addEventListener('credentialsrequired', () => {
-        const pw = prompt('VNC sifresi girin:');
+        const pw = prompt('VNC şifresi girin:');
         if (pw !== null) rfb.sendCredentials({ password: pw });
         else vncDisconnect();
     });
 
     rfb.addEventListener('securityfailure', e => {
-        showError('Kimlik dogrulama basarisiz: ' + (e.detail?.reason ?? 'Yanlis sifre?'));
+        showError('Kimlik doğrulama başarısız: ' + (e.detail?.reason ?? 'Yanlış şifre?'));
     });
-};
+}
 
-window.vncDisconnect = function() {
+function vncDisconnect() {
     if (rfb) { rfb.disconnect(); rfb = null; }
     overlay.style.display        = 'flex';
     overlaySpinner.style.display = 'none';
@@ -251,7 +261,15 @@ window.vncDisconnect = function() {
     disconnectForm.style.display = 'none';
     vncStatus.style.display      = 'none';
     clearError();
-};
+}
+
+// Wire up buttons — addEventListener avoids global scope / race condition issues
+document.getElementById('btnConnect').addEventListener('click', vncConnect);
+document.getElementById('btnDisconnect').addEventListener('click', vncDisconnect);
+// Allow Enter key in password field
+document.getElementById('vncPassword').addEventListener('keydown', e => {
+    if (e.key === 'Enter') vncConnect();
+});
 </script>
 @endpush
 
