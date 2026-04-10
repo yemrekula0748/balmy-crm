@@ -564,7 +564,16 @@
 
 {{-- ========== GÜVENLİK TEHDİTLERİ ========== --}}
 @if($agentComputer->securitySnapshot)
-@php $snap = $agentComputer->securitySnapshot; @endphp
+@php
+    $snap = $agentComputer->securitySnapshot;
+    $fmtDate = function($val) {
+        if (!$val) return '—';
+        if (preg_match('#/Date\((\d+)\)/#', $val, $m)) {
+            return \Carbon\Carbon::createFromTimestampMs((int)$m[1])->setTimezone(config('app.timezone'))->format('d.m.Y H:i:s');
+        }
+        return $val;
+    };
+@endphp
 <div class="col-12">
     <div class="tw-card" style="border-left:4px solid {{ ($snap->alert_count ?? 0) > 0 ? '#ef4444' : '#22c55e' }}">
         <div class="tw-card-header">
@@ -874,7 +883,7 @@
                         <tbody>
                             @foreach($snap->new_services_24h as $svc)
                             <tr style="{{ ($svc['suspicious']??false) ? 'background:#fff1f2' : '' }}">
-                                <td style="white-space:nowrap;font-size:.8rem">{{ $svc['time'] ?? '—' }}</td>
+                                <td style="white-space:nowrap;font-size:.8rem">{{ $fmtDate($svc['time'] ?? '') }}</td>
                                 <td style="font-weight:500;color:{{ ($svc['suspicious']??false) ? '#dc2626' : '#1e293b' }}">{{ $svc['service_name'] ?? '—' }}</td>
                                 <td style="color:#94a3b8;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"
                                     title="{{ $svc['image_path'] ?? '' }}">{{ $svc['image_path'] ?? '—' }}</td>
@@ -910,7 +919,7 @@
                             @foreach($snap->account_changes_24h as $change)
                             @php $critical = in_array($change['event_id'] ?? 0, [4720, 4728, 4732, 4756]); @endphp
                             <tr style="{{ $critical ? 'background:#fffbeb' : '' }}">
-                                <td style="white-space:nowrap;font-size:.8rem">{{ $change['time'] ?? '—' }}</td>
+                                <td style="white-space:nowrap;font-size:.8rem">{{ $fmtDate($change['time'] ?? '') }}</td>
                                 <td><code style="font-size:.75rem;color:{{ $critical ? '#dc2626' : '#1e293b' }}">{{ $change['event_id'] ?? '—' }}</code></td>
                                 <td style="font-weight:500;color:{{ $critical ? '#dc2626' : '#1e293b' }}">{{ $change['action'] ?? '—' }}</td>
                                 <td>{{ $change['target_user'] ?? '—' }}</td>
@@ -936,7 +945,7 @@
                         <tbody>
                             @foreach($snap->unexpected_shutdowns as $sd)
                             <tr>
-                                <td style="white-space:nowrap;font-size:.8rem">{{ $sd['time'] ?? '—' }}</td>
+                                <td style="white-space:nowrap;font-size:.8rem">{{ $fmtDate($sd['time'] ?? '') }}</td>
                                 <td style="color:#94a3b8">{{ $sd['message'] ?? '—' }}</td>
                             </tr>
                             @endforeach
@@ -973,7 +982,7 @@
                                            && !str_starts_with($att['source_ip'] ?? '', '172.');
                             @endphp
                             <tr style="{{ $isExternal ? 'background:#fffbeb' : '' }}">
-                                <td style="white-space:nowrap;font-size:.8rem">{{ $att['time'] ?? '—' }}</td>
+                                <td style="white-space:nowrap;font-size:.8rem">{{ $fmtDate($att['time'] ?? '') }}</td>
                                 <td style="font-weight:500">{{ $att['user'] ?? '—' }}</td>
                                 <td style="color:#94a3b8">{{ $att['domain'] ?? '—' }}</td>
                                 <td>
@@ -996,7 +1005,7 @@
                         <tbody>
                             @foreach($rdpSessions as $sess)
                             <tr>
-                                <td style="white-space:nowrap;font-size:.8rem">{{ $sess['time'] ?? '—' }}</td>
+                                <td style="white-space:nowrap;font-size:.8rem">{{ $fmtDate($sess['time'] ?? '') }}</td>
                                 <td>{{ $sess['action'] ?? '—' }}</td>
                                 <td style="font-weight:500">{{ $sess['user'] ?? '—' }}</td>
                                 <td style="color:#94a3b8">{{ $sess['source_ip'] ?? '—' }}</td>
@@ -1023,7 +1032,7 @@
                         <tbody>
                             @foreach($snap->scheduled_tasks_24h as $task)
                             <tr>
-                                <td style="white-space:nowrap;font-size:.8rem">{{ $task['time'] ?? '—' }}</td>
+                                <td style="white-space:nowrap;font-size:.8rem">{{ $fmtDate($task['time'] ?? '') }}</td>
                                 <td><code style="font-size:.75rem">{{ $task['event_id'] ?? '—' }}</code></td>
                                 <td style="font-weight:500">{{ $task['task_name'] ?? '—' }}</td>
                                 <td>{{ $task['action'] ?? '—' }}</td>
@@ -1049,7 +1058,7 @@
                         <tbody>
                             @foreach($snap->admin_logins_1h as $login)
                             <tr>
-                                <td style="white-space:nowrap;font-size:.8rem">{{ $login['time'] ?? '—' }}</td>
+                                <td style="white-space:nowrap;font-size:.8rem">{{ $fmtDate($login['time'] ?? '') }}</td>
                                 <td style="font-weight:500;color:#dc2626">{{ $login['user'] ?? '—' }}</td>
                                 <td style="color:#94a3b8">{{ $login['domain'] ?? '—' }}</td>
                             </tr>
@@ -1073,7 +1082,7 @@
                         <tbody>
                             @foreach($snap->service_crashes_24h as $crash)
                             <tr>
-                                <td style="white-space:nowrap;font-size:.8rem">{{ $crash['time'] ?? '—' }}</td>
+                                <td style="white-space:nowrap;font-size:.8rem">{{ $fmtDate($crash['time'] ?? '') }}</td>
                                 <td style="font-weight:500">{{ $crash['service_name'] ?? '—' }}</td>
                                 <td>
                                     <span class="tw-chip tw-chip-red" style="font-size:.7rem">{{ $crash['crash_count'] ?? '—' }}x</span>
