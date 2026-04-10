@@ -147,8 +147,10 @@
 </div>
 
 @push('scripts')
-<script type="module">
-import RFB from 'https://cdn.jsdelivr.net/npm/@novnc/novnc@1.5.0/core/rfb.js';
+@vite(['resources/js/vnc.js'])
+<script>
+// Wait for vnc.js Vite module to expose window.RFB
+document.addEventListener('DOMContentLoaded', function () {
 
 const VNC_CONNECT_URL = '{{ route("it.agent.vnc.connect", $agentComputer) }}';
 const CSRF = document.querySelector('meta[name="csrf-token"]').content;
@@ -198,7 +200,7 @@ async function vncConnect() {
     }
 
     try {
-        rfb = new RFB(
+        rfb = new window.RFB(
             document.getElementById('vnc-container'),
             wsUrl,
             password ? { credentials: { password } } : {}
@@ -261,6 +263,8 @@ document.getElementById('btnDisconnect').addEventListener('click', vncDisconnect
 document.getElementById('vncPassword').addEventListener('keydown', e => {
     if (e.key === 'Enter') vncConnect();
 });
+
+}); // end DOMContentLoaded
 </script>
 @endpush
 
