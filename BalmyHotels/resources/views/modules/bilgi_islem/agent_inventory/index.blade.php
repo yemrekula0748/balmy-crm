@@ -143,7 +143,9 @@
         <div class="card-body py-3 px-4">
             <form method="GET" id="filterForm">
                 <div class="row g-2 align-items-end">
-                    <div class="col-lg-4 col-md-6">
+
+                    {{-- Arama --}}
+                    <div class="col-12 col-sm-6 col-lg-4">
                         <div class="input-group input-group-sm">
                             <span class="input-group-text bg-light border-end-0 text-muted" style="font-size:.8rem">
                                 <i class="fas fa-search"></i>
@@ -154,7 +156,9 @@
                                    placeholder="Hostname veya IP...">
                         </div>
                     </div>
-                    <div class="col-lg-2 col-md-3 col-sm-6">
+
+                    {{-- Domain --}}
+                    <div class="col-6 col-sm-4 col-lg-2">
                         <select name="domain" class="form-select form-select-sm" onchange="this.form.submit()">
                             <option value="">Tüm Domain'ler</option>
                             @foreach($domains as $d)
@@ -162,7 +166,9 @@
                             @endforeach
                         </select>
                     </div>
-                    <div class="col-lg-3 col-md-3 col-sm-6">
+
+                    {{-- OS --}}
+                    <div class="col-6 col-sm-4 col-lg-3">
                         <select name="os" class="form-select form-select-sm" onchange="this.form.submit()">
                             <option value="">Tüm İşletim Sistemleri</option>
                             @foreach($osList as $os)
@@ -170,7 +176,9 @@
                             @endforeach
                         </select>
                     </div>
-                    <div class="col-lg-3 col-md-12 d-flex align-items-center flex-wrap gap-3">
+
+                    {{-- Checkboxlar --}}
+                    <div class="col-12 col-sm-6 col-lg-auto d-flex align-items-center flex-wrap gap-3">
                         <div class="form-check mb-0">
                             <input class="form-check-input" type="checkbox" name="av_disabled" value="1"
                                    id="avFilter" @checked(request('av_disabled')) onchange="this.form.submit()">
@@ -186,20 +194,23 @@
                                    id="rdpFilter" @checked(request('rdp_enabled')) onchange="this.form.submit()">
                             <label class="form-check-label small text-info fw-semibold" for="rdpFilter">RDP Açık</label>
                         </div>
-                        <div class="ms-auto d-flex gap-2">
-                            <button type="submit" class="btn btn-primary btn-sm px-3">
-                                <i class="fas fa-search me-1"></i>Ara
-                            </button>
-                            @if(request()->hasAny(['search','domain','os','av_disabled','disk_warning','rdp_enabled']))
-                            <a href="{{ route('it.agent.index') }}" class="btn btn-outline-secondary btn-sm">
-                                <i class="fas fa-times"></i>
-                            </a>
-                            @endif
-                            <a href="{{ route('it.agent.stats') }}" class="btn btn-outline-secondary btn-sm">
-                                <i class="fas fa-chart-bar me-1"></i>İstatistikler
-                            </a>
-                        </div>
                     </div>
+
+                    {{-- Butonlar --}}
+                    <div class="col-12 col-sm-auto ms-sm-auto d-flex gap-2 flex-wrap">
+                        <button type="submit" class="btn btn-primary btn-sm px-3">
+                            <i class="fas fa-search me-1"></i>Ara
+                        </button>
+                        @if(request()->hasAny(['search','domain','os','av_disabled','disk_warning','rdp_enabled']))
+                        <a href="{{ route('it.agent.index') }}" class="btn btn-outline-secondary btn-sm">
+                            <i class="fas fa-times me-1"></i>Temizle
+                        </a>
+                        @endif
+                        <a href="{{ route('it.agent.stats') }}" class="btn btn-outline-secondary btn-sm">
+                            <i class="fas fa-chart-bar me-1"></i>İstatistikler
+                        </a>
+                    </div>
+
                 </div>
             </form>
         </div>
