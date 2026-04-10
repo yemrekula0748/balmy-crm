@@ -147,10 +147,8 @@
 </div>
 
 @push('scripts')
-{{-- UMD build: loaded via <script src>, exposes window.RFB globally --}}
-<script src="https://cdn.jsdelivr.net/npm/@novnc/novnc@1.6.0/lib/rfb.min.js"></script>
-<script>
-document.addEventListener('DOMContentLoaded', function () {
+<script type="module">
+import RFB from 'https://esm.sh/@novnc/novnc@1.6.0/core/rfb';
 
 const VNC_CONNECT_URL = '{{ route("it.agent.vnc.connect", $agentComputer) }}';
 const CSRF = document.querySelector('meta[name="csrf-token"]').content;
@@ -200,7 +198,7 @@ async function vncConnect() {
     }
 
     try {
-        rfb = new window.RFB(
+        rfb = new RFB(
             document.getElementById('vnc-container'),
             wsUrl,
             password ? { credentials: { password } } : {}
@@ -261,8 +259,6 @@ document.getElementById('btnDisconnect').addEventListener('click', vncDisconnect
 document.getElementById('vncPassword').addEventListener('keydown', e => {
     if (e.key === 'Enter') vncConnect();
 });
-
-}); // DOMContentLoaded
 </script>
 @endpush
 
