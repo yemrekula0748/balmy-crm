@@ -858,6 +858,234 @@
             </div>
             @endif
 
+            {{-- Yeni Servisler (24s) --}}
+            @if(!empty($snap->new_services_24h))
+            <div style="margin-top:1.5rem">
+                <div class="tw-section-title">
+                    <i class="fas fa-cogs" style="color:#64748b"></i>Yeni Kurulu Servisler (son 24s)
+                    @php $suspSvc = collect($snap->new_services_24h)->where('suspicious', true)->count(); @endphp
+                    @if($suspSvc > 0)
+                        <span class="tw-chip tw-chip-red" style="font-size:.7rem">{{ $suspSvc }} şüpheli</span>
+                    @endif
+                </div>
+                <div style="overflow-x:auto">
+                    <table class="tw-table">
+                        <thead><tr><th>ZAMAN</th><th>SERVİS ADI</th><th>DOSYA YOLU</th><th>TÜR</th><th>HESAP</th><th>DURUM</th></tr></thead>
+                        <tbody>
+                            @foreach($snap->new_services_24h as $svc)
+                            <tr style="{{ ($svc['suspicious']??false) ? 'background:#fff1f2' : '' }}">
+                                <td style="white-space:nowrap;font-size:.8rem">{{ $svc['time'] ?? '—' }}</td>
+                                <td style="font-weight:500;color:{{ ($svc['suspicious']??false) ? '#dc2626' : '#1e293b' }}">{{ $svc['service_name'] ?? '—' }}</td>
+                                <td style="color:#94a3b8;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"
+                                    title="{{ $svc['image_path'] ?? '' }}">{{ $svc['image_path'] ?? '—' }}</td>
+                                <td style="color:#94a3b8">{{ $svc['service_type'] ?? '—' }}</td>
+                                <td>{{ $svc['account'] ?? '—' }}</td>
+                                <td>
+                                    @if($svc['suspicious']??false)
+                                        <span class="tw-chip tw-chip-red" style="font-size:.7rem">
+                                            <i class="fas fa-exclamation-triangle" style="font-size:.65rem"></i>Şüpheli
+                                        </span>
+                                    @else
+                                        <span class="tw-chip tw-chip-gray" style="font-size:.7rem">Normal</span>
+                                    @endif
+                                </td>
+                            </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            @endif
+
+            {{-- Hesap Değişiklikleri (24s) --}}
+            @if(!empty($snap->account_changes_24h))
+            <div style="margin-top:1.5rem">
+                <div class="tw-section-title">
+                    <i class="fas fa-user-edit" style="color:#f59e0b"></i>Hesap Değişiklikleri (son 24s)
+                </div>
+                <div style="overflow-x:auto">
+                    <table class="tw-table">
+                        <thead><tr><th>ZAMAN</th><th>OLAY ID</th><th>AKSİYON</th><th>HEDEF KULLANICI</th><th>YAPAN</th></tr></thead>
+                        <tbody>
+                            @foreach($snap->account_changes_24h as $change)
+                            @php $critical = in_array($change['event_id'] ?? 0, [4720, 4728, 4732, 4756]); @endphp
+                            <tr style="{{ $critical ? 'background:#fffbeb' : '' }}">
+                                <td style="white-space:nowrap;font-size:.8rem">{{ $change['time'] ?? '—' }}</td>
+                                <td><code style="font-size:.75rem;color:{{ $critical ? '#dc2626' : '#1e293b' }}">{{ $change['event_id'] ?? '—' }}</code></td>
+                                <td style="font-weight:500;color:{{ $critical ? '#dc2626' : '#1e293b' }}">{{ $change['action'] ?? '—' }}</td>
+                                <td>{{ $change['target_user'] ?? '—' }}</td>
+                                <td style="color:#94a3b8">{{ $change['subject_user'] ?? '—' }}</td>
+                            </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            @endif
+
+            {{-- Beklenmedik Kapanmalar --}}
+            @if(!empty($snap->unexpected_shutdowns))
+            <div style="margin-top:1.5rem">
+                <div class="tw-section-title">
+                    <i class="fas fa-power-off" style="color:#ef4444"></i>Beklenmedik Kapanmalar
+                    <span class="tw-chip tw-chip-red" style="font-size:.7rem">{{ count($snap->unexpected_shutdowns) }}</span>
+                </div>
+                <div style="overflow-x:auto">
+                    <table class="tw-table">
+                        <thead><tr><th>ZAMAN</th><th>MESAJ</th></tr></thead>
+                        <tbody>
+                            @foreach($snap->unexpected_shutdowns as $sd)
+                            <tr>
+                                <td style="white-space:nowrap;font-size:.8rem">{{ $sd['time'] ?? '—' }}</td>
+                                <td style="color:#94a3b8">{{ $sd['message'] ?? '—' }}</td>
+                            </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            @endif
+
+            {{-- RDP Olayları (24s) --}}
+            @if($snap->rdp_events_24h)
+            @php
+                $rdpAttempts = $snap->rdp_events_24h['attempts'] ?? [];
+                $rdpSessions = $snap->rdp_events_24h['sessions'] ?? [];
+            @endphp
+            @if(!empty($rdpAttempts) || !empty($rdpSessions))
+            <div style="margin-top:1.5rem">
+                <div class="tw-section-title">
+                    <i class="fas fa-desktop" style="color:#06b6d4"></i>RDP Olayları (son 24s)
+                    @if(!empty($rdpAttempts))
+                        <span class="tw-chip tw-chip-blue" style="font-size:.7rem">{{ count($rdpAttempts) }} deneme</span>
+                    @endif
+                </div>
+                @if(!empty($rdpAttempts))
+                <p style="font-size:.75rem;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:.05em;margin-bottom:.5rem">Giriş Denemeleri</p>
+                <div style="overflow-x:auto;margin-bottom:1rem">
+                    <table class="tw-table">
+                        <thead><tr><th>ZAMAN</th><th>KULLANICI</th><th>DOMAIN</th><th>KAYNAK IP</th></tr></thead>
+                        <tbody>
+                            @foreach($rdpAttempts as $att)
+                            @php
+                                $isExternal = !str_starts_with($att['source_ip'] ?? '', '192.168.')
+                                           && !str_starts_with($att['source_ip'] ?? '', '10.')
+                                           && !str_starts_with($att['source_ip'] ?? '', '172.');
+                            @endphp
+                            <tr style="{{ $isExternal ? 'background:#fffbeb' : '' }}">
+                                <td style="white-space:nowrap;font-size:.8rem">{{ $att['time'] ?? '—' }}</td>
+                                <td style="font-weight:500">{{ $att['user'] ?? '—' }}</td>
+                                <td style="color:#94a3b8">{{ $att['domain'] ?? '—' }}</td>
+                                <td>
+                                    <code style="font-size:.75rem;color:{{ $isExternal ? '#dc2626' : '#1e293b' }}">{{ $att['source_ip'] ?? '—' }}</code>
+                                    @if($isExternal)
+                                        <span class="tw-chip tw-chip-yellow ms-1" style="font-size:.65rem">Dış IP</span>
+                                    @endif
+                                </td>
+                            </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+                @endif
+                @if(!empty($rdpSessions))
+                <p style="font-size:.75rem;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:.05em;margin-bottom:.5rem">Oturumlar</p>
+                <div style="overflow-x:auto">
+                    <table class="tw-table">
+                        <thead><tr><th>ZAMAN</th><th>DURUM</th><th>KULLANICI</th><th>KAYNAK IP</th></tr></thead>
+                        <tbody>
+                            @foreach($rdpSessions as $sess)
+                            <tr>
+                                <td style="white-space:nowrap;font-size:.8rem">{{ $sess['time'] ?? '—' }}</td>
+                                <td>{{ $sess['action'] ?? '—' }}</td>
+                                <td style="font-weight:500">{{ $sess['user'] ?? '—' }}</td>
+                                <td style="color:#94a3b8">{{ $sess['source_ip'] ?? '—' }}</td>
+                            </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+                @endif
+            </div>
+            @endif
+            @endif
+
+            {{-- Zamanlanmış Görevler (24s) --}}
+            @if(!empty($snap->scheduled_tasks_24h))
+            <div style="margin-top:1.5rem">
+                <div class="tw-section-title">
+                    <i class="fas fa-clock" style="color:#64748b"></i>Yeni Zamanlanmış Görevler (son 24s)
+                    <span class="tw-chip tw-chip-gray" style="font-size:.7rem">{{ count($snap->scheduled_tasks_24h) }}</span>
+                </div>
+                <div style="overflow-x:auto">
+                    <table class="tw-table">
+                        <thead><tr><th>ZAMAN</th><th>OLAY ID</th><th>GÖREV ADI</th><th>AKSİYON</th><th>KULLANICI</th></tr></thead>
+                        <tbody>
+                            @foreach($snap->scheduled_tasks_24h as $task)
+                            <tr>
+                                <td style="white-space:nowrap;font-size:.8rem">{{ $task['time'] ?? '—' }}</td>
+                                <td><code style="font-size:.75rem">{{ $task['event_id'] ?? '—' }}</code></td>
+                                <td style="font-weight:500">{{ $task['task_name'] ?? '—' }}</td>
+                                <td>{{ $task['action'] ?? '—' }}</td>
+                                <td style="color:#94a3b8">{{ $task['user'] ?? '—' }}</td>
+                            </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            @endif
+
+            {{-- Admin Girişleri (1s) --}}
+            @if(!empty($snap->admin_logins_1h))
+            <div style="margin-top:1.5rem">
+                <div class="tw-section-title">
+                    <i class="fas fa-user-lock" style="color:#ef4444"></i>Admin Girişleri (son 1s)
+                    <span class="tw-chip tw-chip-red" style="font-size:.7rem">{{ count($snap->admin_logins_1h) }}</span>
+                </div>
+                <div style="overflow-x:auto">
+                    <table class="tw-table">
+                        <thead><tr><th>ZAMAN</th><th>KULLANICI</th><th>DOMAIN</th></tr></thead>
+                        <tbody>
+                            @foreach($snap->admin_logins_1h as $login)
+                            <tr>
+                                <td style="white-space:nowrap;font-size:.8rem">{{ $login['time'] ?? '—' }}</td>
+                                <td style="font-weight:500;color:#dc2626">{{ $login['user'] ?? '—' }}</td>
+                                <td style="color:#94a3b8">{{ $login['domain'] ?? '—' }}</td>
+                            </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            @endif
+
+            {{-- Servis Çökmeleri (24s) --}}
+            @if(!empty($snap->service_crashes_24h))
+            <div style="margin-top:1.5rem">
+                <div class="tw-section-title">
+                    <i class="fas fa-bomb" style="color:#ef4444"></i>Servis Çökmeleri (son 24s)
+                    <span class="tw-chip tw-chip-red" style="font-size:.7rem">{{ count($snap->service_crashes_24h) }}</span>
+                </div>
+                <div style="overflow-x:auto">
+                    <table class="tw-table">
+                        <thead><tr><th>ZAMAN</th><th>SERVİS ADI</th><th>ÇÖKME SAYISI</th></tr></thead>
+                        <tbody>
+                            @foreach($snap->service_crashes_24h as $crash)
+                            <tr>
+                                <td style="white-space:nowrap;font-size:.8rem">{{ $crash['time'] ?? '—' }}</td>
+                                <td style="font-weight:500">{{ $crash['service_name'] ?? '—' }}</td>
+                                <td>
+                                    <span class="tw-chip tw-chip-red" style="font-size:.7rem">{{ $crash['crash_count'] ?? '—' }}x</span>
+                                </td>
+                            </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            @endif
+
         </div>
     </div>
 </div>
