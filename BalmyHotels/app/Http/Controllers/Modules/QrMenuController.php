@@ -117,7 +117,7 @@ class QrMenuController extends BaseModuleController
 
     public function show(QrMenu $qrmenu)
     {
-        $qrmenu->load(['branch', 'languages', 'categories.items', 'creator']);
+        $qrmenu->load(['branch', 'languages', 'categories.items.foodProduct', 'creator']);
         $menu       = $qrmenu;
         $page_title = $qrmenu->name;
 

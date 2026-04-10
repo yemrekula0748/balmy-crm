@@ -62,6 +62,23 @@ class QrMenuItem extends Model
         return $this->belongsTo(FoodProduct::class, 'food_product_id');
     }
 
+    /**
+     * Ürün kütüphanesiyle bağlantılıysa canlı görseli döndür.
+     * Manuel yüklenen özel görseller (qrmenu/items/) her zaman önceliklidir.
+     */
+    public function getImageAttribute($value): ?string
+    {
+        // Manuel yüklenen özel görsel — her zaman öncelikli
+        if ($value && str_starts_with((string) $value, 'qrmenu/items/')) {
+            return $value;
+        }
+        // Kütüphane ürününe bağlıysa canlı görseli kullan
+        if ($this->food_product_id) {
+            return optional($this->foodProduct)->image ?? $value;
+        }
+        return $value;
+    }
+
     public function getSubHeading(string $lang = 'tr'): string
     {
         $sh = array_filter((array)($this->sub_heading ?? []), fn($v) => is_string($v) && $v !== '');
