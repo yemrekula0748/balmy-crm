@@ -454,6 +454,354 @@
         @endif
 
 
+        {{-- ---- Güvenlik Tehditleri ---- --}}
+        @if($agentComputer->securitySnapshot)
+        @php $snap = $agentComputer->securitySnapshot; @endphp
+        <div class="col-12">
+            <div class="card border-0 shadow-sm" @if($snap->alert_count > 0) style="border-left:4px solid #ef4444" @endif>
+                <div class="card-header bg-white border-bottom pb-0 pt-3 px-4 d-flex align-items-center gap-2">
+                    <h6 class="fw-bold mb-0">
+                        <i class="fas fa-shield-virus me-2 text-danger"></i>Güvenlik Tehditleri
+                    </h6>
+                    @if($snap->alert_count > 0)
+                        <span class="badge bg-danger rounded-pill">{{ $snap->alert_count }} uyarı</span>
+                    @else
+                        <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25">Tehdit Yok</span>
+                    @endif
+                    @if($snap->reported_at)
+                        <span class="text-muted small ms-auto">Son güncelleme: {{ $snap->reported_at->diffForHumans() }}</span>
+                    @endif
+                </div>
+                <div class="card-body px-4 py-3">
+                    <div class="row g-4">
+
+                        {{-- Defender Tehditleri --}}
+                        @if(!empty($snap->defender_threats))
+                        <div class="col-12">
+                            <h6 class="small fw-semibold text-muted mb-2 text-uppercase">
+                                <i class="fas fa-virus me-1 text-danger"></i>Defender Tehditleri
+                            </h6>
+                            <div class="table-responsive">
+                                <table class="table table-sm align-middle mb-0">
+                                    <thead style="background:#f8f9fa">
+                                        <tr>
+                                            <th class="ps-3 py-2 small text-muted">TEHDİT ADI</th>
+                                            <th class="py-2 small text-muted">ŞİDDET</th>
+                                            <th class="py-2 small text-muted">DURUM</th>
+                                            <th class="py-2 small text-muted">KAYNAK</th>
+                                            <th class="py-2 small text-muted">ETKİLENEN</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach($snap->defender_threats as $threat)
+                                        @php
+                                            $sev = strtolower($threat['severity'] ?? '');
+                                            $severityColor = match($sev) {
+                                                'critical', 'high' => 'danger',
+                                                'medium'           => 'warning',
+                                                default            => 'secondary',
+                                            };
+                                        @endphp
+                                        <tr class="{{ ($threat['is_active'] ?? false) ? 'table-danger' : '' }}">
+                                            <td class="ps-3 small fw-semibold">
+                                                <i class="fas fa-skull-crossbones me-1 text-danger"></i>{{ $threat['threat_name'] ?? '—' }}
+                                            </td>
+                                            <td>
+                                                <span class="badge bg-{{ $severityColor }} bg-opacity-10 text-{{ $severityColor }} border border-{{ $severityColor }} border-opacity-25">
+                                                    {{ $threat['severity'] ?? '—' }}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                @if($threat['is_active'] ?? false)
+                                                    <span class="badge bg-danger bg-opacity-10 text-danger">Aktif</span>
+                                                @else
+                                                    <span class="badge bg-success bg-opacity-10 text-success">Temizlendi</span>
+                                                @endif
+                                                @if(!($threat['action_success'] ?? true))
+                                                    <span class="badge bg-warning bg-opacity-10 text-warning ms-1">İşlem Başarısız</span>
+                                                @endif
+                                            </td>
+                                            <td class="small text-muted">{{ $threat['detection_source'] ?? '—' }}</td>
+                                            <td class="small text-muted" style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="{{ $threat['resources'] ?? '' }}">
+                                                {{ $threat['resources'] ?? '—' }}
+                                            </td>
+                                        </tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        @endif
+
+                        {{-- Sol sütun --}}
+                        <div class="col-md-6">
+
+                            {{-- Shadow Copy --}}
+                            <div class="mb-4">
+                                <h6 class="small fw-semibold text-muted mb-2 text-uppercase">
+                                    <i class="fas fa-copy me-1 text-primary"></i>Shadow Kopyalar
+                                </h6>
+                                @if(($snap->shadow_copy_count ?? 0) == 0)
+                                    <div class="alert alert-warning py-2 px-3 mb-0 small">
+                                        <i class="fas fa-exclamation-triangle me-1"></i>Shadow kopya bulunamadı! Ransomware riski var.
+                                    </div>
+                                @else
+                                    <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-3 py-2">
+                                        <i class="fas fa-check me-1"></i>{{ $snap->shadow_copy_count }} kopya mevcut
+                                    </span>
+                                @endif
+                            </div>
+
+                            {{-- Başarısız Girişler --}}
+                            <div class="mb-4">
+                                <h6 class="small fw-semibold text-muted mb-2 text-uppercase">
+                                    <i class="fas fa-key me-1 text-warning"></i>Başarısız Girişler (son 1s)
+                                </h6>
+                                @php $failedCount = $snap->failed_logins_1h ?? 0; @endphp
+                                <span class="badge px-3 py-2 {{ $failedCount >= 10 ? 'bg-warning bg-opacity-10 text-warning border border-warning border-opacity-25' : 'bg-light text-secondary border' }}">
+                                    {{ $failedCount }} başarısız giriş
+                                </span>
+                            </div>
+
+                            {{-- SMB Signing --}}
+                            @if($snap->smb_signing)
+                            <div class="mb-4">
+                                <h6 class="small fw-semibold text-muted mb-2 text-uppercase">
+                                    <i class="fas fa-share-alt me-1 text-info"></i>SMB İmzalama
+                                </h6>
+                                @php
+                                    $smb = $snap->smb_signing;
+                                    $smbRisk = strtolower($smb['risk'] ?? '');
+                                    $smbColor = (str_contains($smbRisk, 'yuksek') || str_contains($smbRisk, 'yüksek'))
+                                        ? 'danger'
+                                        : (str_contains($smbRisk, 'orta') ? 'warning' : 'success');
+                                @endphp
+                                <dl class="row mb-0 small">
+                                    <dt class="col-7 text-muted fw-normal">Sunucu İmzalama</dt>
+                                    <dd class="col-5 mb-1">
+                                        <span class="badge {{ ($smb['server_signing_required'] ?? false) ? 'bg-success bg-opacity-10 text-success' : 'bg-danger bg-opacity-10 text-danger' }}">
+                                            {{ ($smb['server_signing_required'] ?? false) ? 'Zorunlu' : 'Zorunlu Değil' }}
+                                        </span>
+                                    </dd>
+                                    <dt class="col-7 text-muted fw-normal">İstemci İmzalama</dt>
+                                    <dd class="col-5 mb-1">
+                                        <span class="badge {{ ($smb['client_signing_required'] ?? false) ? 'bg-success bg-opacity-10 text-success' : 'bg-danger bg-opacity-10 text-danger' }}">
+                                            {{ ($smb['client_signing_required'] ?? false) ? 'Zorunlu' : 'Zorunlu Değil' }}
+                                        </span>
+                                    </dd>
+                                    @if(isset($smb['risk']))
+                                    <dt class="col-7 text-muted fw-normal">Risk</dt>
+                                    <dd class="col-5 mb-0">
+                                        <span class="badge bg-{{ $smbColor }} bg-opacity-10 text-{{ $smbColor }}">{{ $smb['risk'] }}</span>
+                                    </dd>
+                                    @endif
+                                </dl>
+                            </div>
+                            @endif
+
+                            {{-- Windows Update --}}
+                            @if($snap->windows_update)
+                            <div class="mb-0">
+                                <h6 class="small fw-semibold text-muted mb-2 text-uppercase">
+                                    <i class="fab fa-windows me-1 text-primary"></i>Windows Update
+                                </h6>
+                                @php
+                                    $wu = $snap->windows_update;
+                                    $pending = $wu['pending_updates'] ?? 0;
+                                    $wuColor = $pending >= 30 ? 'danger' : ($pending >= 10 ? 'warning' : 'success');
+                                @endphp
+                                <dl class="row mb-0 small">
+                                    <dt class="col-7 text-muted fw-normal">Son Başarılı Kurulum</dt>
+                                    <dd class="col-5 mb-1">{{ $wu['last_success_install'] ?? '—' }}</dd>
+                                    <dt class="col-7 text-muted fw-normal">Bekleyen Güncellemeler</dt>
+                                    <dd class="col-5 mb-1">
+                                        <span class="badge bg-{{ $wuColor }} bg-opacity-10 text-{{ $wuColor }} border border-{{ $wuColor }} border-opacity-25">
+                                            {{ $pending }} güncelleme
+                                        </span>
+                                    </dd>
+                                    @if(isset($wu['risk']))
+                                    <dt class="col-7 text-muted fw-normal">Risk</dt>
+                                    <dd class="col-5 mb-0">
+                                        <span class="text-{{ $wuColor }} small fw-semibold">{{ $wu['risk'] }}</span>
+                                    </dd>
+                                    @endif
+                                </dl>
+                            </div>
+                            @endif
+
+                        </div>
+
+                        {{-- Sağ sütun --}}
+                        <div class="col-md-6">
+
+                            {{-- Yerel Adminler --}}
+                            @if(!empty($snap->local_admins))
+                            <div class="mb-4">
+                                <h6 class="small fw-semibold text-muted mb-2 text-uppercase">
+                                    <i class="fas fa-user-shield me-1 text-warning"></i>Yerel Adminler
+                                </h6>
+                                <div class="d-flex flex-wrap gap-2">
+                                    @foreach($snap->local_admins as $admin)
+                                    <span class="badge px-3 py-2 {{ ($admin['is_domain'] ?? false) ? 'bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25' : 'bg-warning bg-opacity-10 text-warning border border-warning border-opacity-25' }}">
+                                        <i class="fas fa-user me-1"></i>{{ $admin['name'] ?? '—' }}
+                                        @if($admin['is_domain'] ?? false)
+                                            <span class="ms-1 opacity-75">(Domain)</span>
+                                        @endif
+                                    </span>
+                                    @endforeach
+                                </div>
+                            </div>
+                            @endif
+
+                            {{-- Hesap Kilitlenmeleri --}}
+                            @if(!empty($snap->account_lockouts_1h))
+                            <div class="mb-0">
+                                <h6 class="small fw-semibold text-muted mb-2 text-uppercase">
+                                    <i class="fas fa-lock me-1 text-danger"></i>Hesap Kilitlenmeleri (son 1s)
+                                </h6>
+                                <div class="table-responsive">
+                                    <table class="table table-sm align-middle mb-0">
+                                        <thead style="background:#f8f9fa">
+                                            <tr>
+                                                <th class="ps-3 py-2 small text-muted">ZAMAN</th>
+                                                <th class="py-2 small text-muted">KİLİTLENEN KULLANICI</th>
+                                                <th class="py-2 small text-muted">KAYNAK PC</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach($snap->account_lockouts_1h as $lockout)
+                                            <tr>
+                                                <td class="ps-3 small text-nowrap">{{ $lockout['time'] ?? '—' }}</td>
+                                                <td class="small fw-semibold text-danger">{{ $lockout['locked_user'] ?? '—' }}</td>
+                                                <td class="small text-muted">{{ $lockout['caller_pc'] ?? '—' }}</td>
+                                            </tr>
+                                            @endforeach
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            @endif
+
+                        </div>
+
+                        {{-- Şüpheli Processler --}}
+                        @if(!empty($snap->suspicious_processes))
+                        <div class="col-12">
+                            <h6 class="small fw-semibold text-muted mb-2 text-uppercase">
+                                <i class="fas fa-bug me-1 text-danger"></i>Şüpheli Processler
+                            </h6>
+                            <div class="table-responsive">
+                                <table class="table table-sm align-middle mb-0">
+                                    <thead style="background:#f8f9fa">
+                                        <tr>
+                                            <th class="ps-3 py-2 small text-muted">PID</th>
+                                            <th class="py-2 small text-muted">PROCESS ADI</th>
+                                            <th class="py-2 small text-muted">DOSYA YOLU</th>
+                                            <th class="py-2 small text-muted">KULLANICI</th>
+                                            <th class="py-2 small text-muted">BAŞLANGIÇ</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach($snap->suspicious_processes as $proc)
+                                        <tr class="table-danger">
+                                            <td class="ps-3 small"><code>{{ $proc['pid'] ?? '—' }}</code></td>
+                                            <td class="small fw-semibold text-danger">
+                                                <i class="fas fa-microchip me-1"></i>{{ $proc['name'] ?? '—' }}
+                                            </td>
+                                            <td class="small text-muted" style="max-width:250px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="{{ $proc['exe'] ?? '' }}">
+                                                {{ $proc['exe'] ?? '—' }}
+                                            </td>
+                                            <td class="small">{{ $proc['username'] ?? '—' }}</td>
+                                            <td class="small text-muted text-nowrap">{{ $proc['started_at'] ?? '—' }}</td>
+                                        </tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        @endif
+
+                        {{-- Açık Portlar --}}
+                        @if(!empty($snap->open_ports))
+                        <div class="col-12">
+                            <h6 class="small fw-semibold text-muted mb-2 text-uppercase">
+                                <i class="fas fa-plug me-1 text-warning"></i>Beklenmedik Açık Portlar
+                            </h6>
+                            <div class="table-responsive">
+                                <table class="table table-sm align-middle mb-0">
+                                    <thead style="background:#f8f9fa">
+                                        <tr>
+                                            <th class="ps-3 py-2 small text-muted">PORT</th>
+                                            <th class="py-2 small text-muted">ADRES</th>
+                                            <th class="py-2 small text-muted">PID</th>
+                                            <th class="py-2 small text-muted">PROCESS</th>
+                                            <th class="py-2 small text-muted">DURUM</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach($snap->open_ports as $portEntry)
+                                        <tr class="{{ !($portEntry['is_well_known'] ?? true) ? 'table-warning' : '' }}">
+                                            <td class="ps-3">
+                                                <code class="fw-bold {{ !($portEntry['is_well_known'] ?? true) ? 'text-danger' : '' }}">{{ $portEntry['port'] ?? '—' }}</code>
+                                            </td>
+                                            <td class="small text-muted">{{ $portEntry['address'] ?? '—' }}</td>
+                                            <td class="small"><code>{{ $portEntry['pid'] ?? '—' }}</code></td>
+                                            <td class="small fw-semibold">{{ $portEntry['process'] ?? '—' }}</td>
+                                            <td>
+                                                @if(!($portEntry['is_well_known'] ?? true))
+                                                    <span class="badge bg-warning bg-opacity-10 text-warning border border-warning border-opacity-25">
+                                                        <i class="fas fa-exclamation-triangle me-1"></i>Beklenmedik Port
+                                                    </span>
+                                                @else
+                                                    <span class="badge bg-light text-secondary border">Bilinen Port</span>
+                                                @endif
+                                            </td>
+                                        </tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        @endif
+
+                        {{-- USB Geçmişi --}}
+                        @if(!empty($snap->usb_history))
+                        <div class="col-12">
+                            <h6 class="small fw-semibold text-muted mb-2 text-uppercase">
+                                <i class="fas fa-usb me-1 text-secondary"></i>USB Geçmişi
+                            </h6>
+                            <div class="table-responsive">
+                                <table class="table table-sm align-middle mb-0">
+                                    <thead style="background:#f8f9fa">
+                                        <tr>
+                                            <th class="ps-3 py-2 small text-muted">AYGIT ADI</th>
+                                            <th class="py-2 small text-muted">AYGIT ID</th>
+                                            <th class="py-2 small text-muted">TÜR</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach($snap->usb_history as $usb)
+                                        <tr>
+                                            <td class="ps-3 small fw-semibold">
+                                                <i class="fas fa-usb me-1 text-muted"></i>{{ $usb['friendly_name'] ?? '—' }}
+                                            </td>
+                                            <td class="small text-muted" style="font-size:.7rem">{{ $usb['device_id'] ?? '—' }}</td>
+                                            <td class="small text-muted">{{ $usb['type'] ?? '—' }}</td>
+                                        </tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        @endif
+
+                    </div>
+                </div>
+            </div>
+        </div>
+        @endif
+
+
         {{-- ---- Uzak Komut ---- --}}
         <div class="col-12">
 

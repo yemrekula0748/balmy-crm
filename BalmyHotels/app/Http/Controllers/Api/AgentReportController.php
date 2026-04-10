@@ -12,6 +12,7 @@ use App\Models\AgentComputerSecurity;
 use App\Models\AgentComputerInstalledProgram;
 use App\Models\AgentComputerMail;
 use App\Models\AgentComputerMailAccount;
+use App\Models\AgentComputerSecuritySnapshot;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -199,6 +200,29 @@ class AgentReportController extends Controller
                     ], $mail['outlook_accounts']);
                     AgentComputerMailAccount::insert($rows);
                 }
+            }
+
+            // 9) Güvenlik tehditleri (security_threats)
+            if ($threats = $request->input('security_threats')) {
+                $shadowData = $threats['shadow_copies'] ?? [];
+                $failedData = $threats['failed_logins_1h'] ?? [];
+                AgentComputerSecuritySnapshot::updateOrCreate(
+                    ['agent_computer_id' => $computer->id],
+                    [
+                        'alert_count'          => $threats['alert_count'] ?? 0,
+                        'defender_threats'     => $threats['defender_threats'] ?? [],
+                        'shadow_copy_count'    => $shadowData['count'] ?? null,
+                        'failed_logins_1h'     => is_array($failedData) ? ($failedData['count'] ?? null) : null,
+                        'account_lockouts_1h'  => $threats['account_lockouts_1h'] ?? [],
+                        'suspicious_processes' => $threats['suspicious_processes'] ?? [],
+                        'open_ports'           => $threats['open_ports'] ?? [],
+                        'usb_history'          => $threats['usb_history'] ?? [],
+                        'smb_signing'          => $threats['smb_signing'] ?? null,
+                        'local_admins'         => $threats['local_admins'] ?? [],
+                        'windows_update'       => $threats['windows_update'] ?? null,
+                        'reported_at'          => now(),
+                    ]
+                );
             }
 
             return $computer;

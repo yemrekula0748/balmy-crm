@@ -22,7 +22,7 @@ class AgentInventoryController extends BaseModuleController
 
     public function index(Request $request)
     {
-        $query = AgentComputer::with(['networkAdapters' => fn($q) => $q->where('is_active', true), 'disks', 'antivirus', 'hardware']);
+        $query = AgentComputer::with(['networkAdapters' => fn($q) => $q->where('is_active', true), 'disks', 'antivirus', 'hardware', 'securitySnapshot']);
 
         if ($search = $request->input('search')) {
             $query->where(function ($q) use ($search) {
@@ -64,6 +64,7 @@ class AgentInventoryController extends BaseModuleController
             'av_issue'   => AgentComputer::whereDoesntHave('antivirus', fn($q) => $q->where('is_enabled', true))->count(),
             'disk_warn'  => AgentComputer::whereHas('disks', fn($q) => $q->where('usage_percent', '>', 85))->count(),
             'rdp_open'   => AgentComputer::whereHas('security', fn($q) => $q->where('rdp_enabled', true))->count(),
+            'threats'    => AgentComputer::whereHas('securitySnapshot', fn($q) => $q->where('alert_count', '>', 0))->count(),
         ];
 
         return view('modules.bilgi_islem.agent_inventory.index', compact('computers', 'domains', 'osList', 'stats'));
@@ -71,7 +72,7 @@ class AgentInventoryController extends BaseModuleController
 
     public function show(AgentComputer $agentComputer)
     {
-        $agentComputer->load(['hardware', 'security', 'networkAdapters', 'disks', 'antivirus', 'mail', 'mailAccounts']);
+        $agentComputer->load(['hardware', 'security', 'networkAdapters', 'disks', 'antivirus', 'mail', 'mailAccounts', 'securitySnapshot']);
         $programCount = AgentComputerInstalledProgram::where('agent_computer_id', $agentComputer->id)->count();
         $recentCommands = $agentComputer->commands()
             ->with('createdBy')

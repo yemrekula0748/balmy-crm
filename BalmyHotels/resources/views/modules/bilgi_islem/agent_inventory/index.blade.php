@@ -122,6 +122,20 @@
                 </div>
             </div>
         </div>
+        <div class="col-xl col-md-4 col-sm-6">
+            <div class="card border-0" style="border-radius:12px;background:linear-gradient(135deg,#dc2626,#f87171);box-shadow:0 2px 12px rgba(220,38,38,.22)">
+                <div class="card-body py-3 px-3 d-flex align-items-center gap-3">
+                    <div class="rounded-3 d-flex align-items-center justify-content-center flex-shrink-0"
+                         style="width:40px;height:40px;background:rgba(255,255,255,.18)">
+                        <i class="fas fa-triangle-exclamation text-white" style="font-size:1rem"></i>
+                    </div>
+                    <div>
+                        <div class="text-white fw-bold lh-1" style="font-size:1.4rem">{{ $stats['threats'] }}</div>
+                        <div class="text-white-50" style="font-size:.7rem;letter-spacing:.4px">GÜVENLİK UYARISI</div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     {{-- Filtre Kartı --}}
@@ -238,9 +252,10 @@
             else                             { $osIcon = 'fab fa-windows'; $osColor = '#0078D4'; }
 
             $agentVer = $c->agent_version ?? null;
+            $hasThreats = ($c->securitySnapshot?->alert_count ?? 0) > 0;
         @endphp
 
-        <div class="card border-0 shadow-sm" style="border-radius:10px;transition:box-shadow .15s"
+        <div class="card border-0 shadow-sm" style="border-radius:10px;transition:box-shadow .15s{{ $hasThreats ? ';border-left:3px solid #ef4444' : '' }}"
              onmouseenter="this.style.boxShadow='0 3px 16px rgba(0,0,0,.09)'"
              onmouseleave="this.style.boxShadow=''">
             <div class="card-body py-2 px-3">
@@ -261,6 +276,11 @@
                                 <a href="{{ route('it.agent.show', $c) }}"
                                    class="fw-semibold text-dark text-decoration-none d-block text-truncate"
                                    style="font-size:.83rem" title="{{ $c->hostname }}">{{ $c->hostname }}</a>
+                                @if($hasThreats)
+                                <span style="font-size:.6rem;background:#fef2f2;color:#dc2626;border:1px solid #fecaca;border-radius:4px;padding:1px 4px;display:inline-block;margin-top:1px">
+                                    <i class="fas fa-triangle-exclamation me-1"></i>{{ $c->securitySnapshot->alert_count }} uyarı
+                                </span>
+                                @endif
                                 <div class="text-truncate" style="font-size:.68rem;color:#64748b;max-width:140px" title="{{ $os }}">
                                     {{ $os ?: '—' }}
                                 </div>
@@ -358,6 +378,11 @@
                                     <i class="fas fa-shield-virus me-1"></i>AV Kapalı
                                 </span>
                             @endif
+                        @endif
+                        @if($hasThreats)
+                            <span style="font-size:.63rem;background:#fef2f2;color:#dc2626;border:1px solid #fecaca;border-radius:5px;padding:2px 5px;white-space:nowrap">
+                                <i class="fas fa-triangle-exclamation me-1"></i>{{ $c->securitySnapshot->alert_count }} Uyarı
+                            </span>
                         @endif
                     </div>
 
