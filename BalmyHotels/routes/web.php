@@ -760,6 +760,11 @@ Route::middleware('auth')->group(function () {
         Route::post('ajan-envanter/{agentComputer}/komut',             [\App\Http\Controllers\Modules\AgentInventoryController::class, 'sendCommand'])->name('agent.send-command');
         Route::post('ajan-envanter/{agentComputer}/screenshot',        [\App\Http\Controllers\Modules\AgentInventoryController::class, 'requestScreenshot'])->name('agent.request-screenshot');
         Route::get('ajan-envanter/{agentComputer}/son-ekran',          [\App\Http\Controllers\Modules\AgentInventoryController::class, 'latestScreenshot'])->name('agent.latest-screenshot');
+        Route::get('ajan-envanter/{agentComputer}/vnc',                [\App\Http\Controllers\Modules\VncBrowserController::class, 'show'])->name('agent.vnc');
+        Route::post('ajan-envanter/{agentComputer}/vnc/start',         [\App\Http\Controllers\Modules\VncBrowserController::class, 'start'])->name('agent.vnc.start');
+        Route::post('ajan-envanter/{agentComputer}/vnc/stop',          [\App\Http\Controllers\Modules\VncBrowserController::class, 'stop'])->name('agent.vnc.stop');
+        Route::get('ajan-envanter/{agentComputer}/vnc/frame',          [\App\Http\Controllers\Modules\VncBrowserController::class, 'frame'])->name('agent.vnc.frame');
+        Route::post('ajan-envanter/{agentComputer}/vnc/input',         [\App\Http\Controllers\Modules\VncBrowserController::class, 'input'])->name('agent.vnc.input');
         Route::post('ajan-envanter/{agentComputer}/wol',               [\App\Http\Controllers\Modules\AgentInventoryController::class, 'wakeOnLan'])->name('agent.wol');
         Route::delete('ajan-envanter/{agentComputer}',                 [\App\Http\Controllers\Modules\AgentInventoryController::class, 'destroy'])->name('agent.destroy');
 

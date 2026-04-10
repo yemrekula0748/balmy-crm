@@ -131,6 +131,10 @@
                    class="tw-btn-ghost" style="color:#7dd3fc!important;border-color:rgba(14,165,233,.3);background:rgba(14,165,233,.1)">
                     <i class="fas fa-globe" style="font-size:.75rem"></i>Tarayıcı Geçmişi
                 </a>
+                <a href="{{ route('it.agent.vnc', $agentComputer) }}" target="_blank"
+                   class="tw-btn-ghost" style="color:#86efac!important;border-color:rgba(34,197,94,.3);background:rgba(34,197,94,.1)">
+                    <i class="fas fa-desktop" style="font-size:.75rem"></i>Uzak Kontrol
+                </a>
                 <a href="{{ route('it.agent.index') }}"
                    class="tw-btn-ghost" style="color:#cbd5e1!important;border-color:rgba(255,255,255,.2);background:rgba(255,255,255,.08)">
                     <i class="fas fa-arrow-left" style="font-size:.75rem"></i>Listeye Dön

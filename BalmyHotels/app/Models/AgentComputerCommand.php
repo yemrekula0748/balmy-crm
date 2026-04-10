@@ -34,6 +34,8 @@ class AgentComputerCommand extends Model
         'msgbox'     => 'Mesaj Göster',
         'cmd'        => 'Komut Çalıştır',
         'screenshot' => 'Ekran Görüntüsü',
+        'vnc_start'  => 'Uzak Kontrol Başlat',
+        'vnc_stop'   => 'Uzak Kontrol Durdur',
     ];
 
     public const STATUS_COLORS = [

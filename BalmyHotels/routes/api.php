@@ -28,15 +28,19 @@ use App\Http\Controllers\Api\FileEventController;
 use App\Http\Controllers\Api\BrowserHistoryController;
 use App\Http\Controllers\Api\CommandController;
 use App\Http\Controllers\Api\AgentScreenshotController;
+use App\Http\Controllers\Api\VncController;
 
 Route::middleware(['agent.key', 'throttle:60,1'])->group(function () {
-    Route::post('/agent/report',          [AgentReportController::class,   'store']);
-    Route::post('/agent/file-events',     [FileEventController::class,     'store']);
-    Route::post('/agent/browser-history', [BrowserHistoryController::class,'store']);
+    Route::post('/agent/report',          [AgentReportController::class,    'store']);
+    Route::post('/agent/file-events',     [FileEventController::class,      'store']);
+    Route::post('/agent/browser-history', [BrowserHistoryController::class, 'store']);
     Route::post('/agent/screenshot',      [AgentScreenshotController::class,'store']);
 });
 
 Route::middleware(['agent.key'])->group(function () {
     Route::get('/agent/commands/pending', [CommandController::class, 'pending']);
     Route::post('/agent/commands/result', [CommandController::class, 'result']);
+    // VNC
+    Route::post('/agent/vnc/frame',  [VncController::class, 'storeFrame']);
+    Route::get('/agent/vnc/input',   [VncController::class, 'getInput']);
 });
