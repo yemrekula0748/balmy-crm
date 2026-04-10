@@ -44,10 +44,11 @@ class VncBrowserController extends BaseModuleController
         }
 
         $wsPort = config('dz.vnc_ws_port', 6080);
+        $scheme = $request->secure() ? 'wss' : 'ws';
 
         return response()->json([
             'ok'       => true,
-            'ws_url'   => "ws://{$ip}:{$wsPort}",
+            'ws_url'   => "{$scheme}://{$ip}:{$wsPort}",
             'password' => $request->input('password', ''),
         ]);
     }
