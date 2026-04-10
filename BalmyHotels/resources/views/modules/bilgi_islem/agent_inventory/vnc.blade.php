@@ -1,4 +1,4 @@
-@extends('layouts.default')
+﻿@extends('layouts.default')
 
 @section('title', $agentComputer->hostname . ' — Uzak Kontrol')
 
@@ -14,13 +14,15 @@
     min-height: 480px;
     line-height: 0;
   }
-  #vnc-screen {
-    display: block;
+  #vnc-container {
     width: 100%;
-    height: auto;
-    cursor: crosshair;
-    user-select: none;
-    -webkit-user-select: none;
+    min-height: 480px;
+  }
+  #vnc-container canvas {
+    width: 100% !important;
+    height: auto !important;
+    display: block;
+    cursor: default;
   }
   #vnc-overlay {
     position: absolute;
@@ -30,8 +32,9 @@
     align-items: center;
     justify-content: center;
     gap: .75rem;
-    background: rgba(15,23,42,.9);
+    background: rgba(15,23,42,.92);
     border-radius: 0 0 .75rem .75rem;
+    z-index: 10;
   }
   .vnc-stat {
     background: rgba(255,255,255,.06);
@@ -43,6 +46,10 @@
     display: flex;
     align-items: center;
     gap: .4rem;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50%       { opacity: .4; }
   }
 </style>
 @endpush
@@ -79,7 +86,7 @@
             </div>
             <div>
                 <div style="font-size:.875rem;font-weight:600;color:#1e293b">{{ $agentComputer->hostname }}</div>
-                @php $activeIp = $agentComputer->networkAdapters->where('is_active', true)->first()?->ip_address ?? null; @endphp
+                @php $activeIp = $agentComputer->ip_address; @endphp
                 @if($activeIp)
                 <code style="font-size:.7rem;background:#f1f5f9;padding:1px 6px;border-radius:3px;color:#475569">{{ $activeIp }}</code>
                 @endif
@@ -88,12 +95,8 @@
 
         {{-- Status badge --}}
         <div id="vncStatus" class="vnc-stat" style="display:none">
-            <span style="width:7px;height:7px;border-radius:9999px;background:#22c55e;display:inline-block;animation:pulse 1.5s infinite"></span>
-            <span id="vncStatusText">Bağlı</span>
-        </div>
-        <div id="vncFps" class="vnc-stat" style="display:none">
-            <i class="fas fa-film" style="font-size:.65rem"></i>
-            <span id="vncFpsText">— fps</span>
+            <span id="vncStatusDot" style="width:7px;height:7px;border-radius:9999px;background:#22c55e;display:inline-block;animation:pulse 1.5s infinite"></span>
+            <span id="vncStatusText">Bağlanıyor...</span>
         </div>
 
         {{-- Connect Form --}}
@@ -123,297 +126,132 @@
 
 {{-- VNC Canvas --}}
 <div id="vnc-canvas-wrap">
-    <canvas id="vnc-screen" width="1920" height="1080"></canvas>
+    <div id="vnc-container"></div>
     <div id="vnc-overlay">
         <div style="width:64px;height:64px;background:rgba(255,255,255,.06);border-radius:1rem;display:flex;align-items:center;justify-content:center">
             <i class="fas fa-desktop" style="color:#475569;font-size:1.75rem"></i>
         </div>
         <div style="font-weight:600;font-size:1rem;color:#e2e8f0">Uzak Kontrol</div>
         <div style="font-size:.8rem;color:#64748b;text-align:center;max-width:320px">
-            VNC şifresini girin ve <strong style="color:#94a3b8">Bağlan</strong> butonuna tıklayın.<br>
-            Ajan bilgisayarda VNC servisi başlatılacak.
+            VNC sifresini girin ve <strong style="color:#94a3b8">Baglan</strong> butonuna tiklayin.<br>
+            Agent bilgisayarda websockify calisyor olmalidir (port 6080).
         </div>
         <div id="overlaySpinner" style="display:none;margin-top:.5rem">
             <i class="fas fa-spinner fa-spin" style="color:#60a5fa;font-size:1.25rem"></i>
-            <span style="color:#94a3b8;font-size:.8rem;margin-left:.5rem">Ajan bekleniyor...</span>
+            <span style="color:#94a3b8;font-size:.8rem;margin-left:.5rem">Baglaniliyor...</span>
         </div>
+        <div id="overlayError" style="display:none;margin-top:.5rem;color:#f87171;font-size:.82rem;text-align:center;max-width:320px"></div>
     </div>
 </div>
 
 </div>
 
 @push('scripts')
-<style>
-@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
-</style>
-<script>
-// ── Route URLs ─────────────────────────────────────────────
-const VNC_START_URL = '{{ route('it.agent.vnc.start', $agentComputer) }}';
-const VNC_STOP_URL  = '{{ route('it.agent.vnc.stop',  $agentComputer) }}';
-const VNC_FRAME_URL = '{{ route('it.agent.vnc.frame', $agentComputer) }}';
-const VNC_INPUT_URL = '{{ route('it.agent.vnc.input', $agentComputer) }}';
-const CSRF          = document.querySelector('meta[name="csrf-token"]').content;
+<script type="module">
+import RFB from 'https://cdn.jsdelivr.net/npm/@novnc/novnc@1.5.0/core/rfb.js';
 
-// ── State ──────────────────────────────────────────────────
-let isConnected      = false;
-let inputFlusher     = null;
-let fpsUpdateTimer   = null;
-let inputBuffer      = [];
-let flushInFlightCnt = 0;     // count of in-flight input POSTs
-let vncScreenW       = 1920;
-let vncScreenH       = 1080;
-let lastSeq          = -1;    // server-incremented counter — changes on every new frame
-let mouseMoveTs      = 0;
-let consecutiveFails = 0;
-let fpsCounter       = 0;
-let latencyMs        = 0;
-const FRAME_TARGET_MS = 100; // 10fps polling cadence
+const VNC_CONNECT_URL = '{{ route("it.agent.vnc.connect", $agentComputer) }}';
+const CSRF = document.querySelector('meta[name="csrf-token"]').content;
 
-const canvas  = document.getElementById('vnc-screen');
-const ctx     = canvas.getContext('2d', { alpha: false }); // opaque — faster composite
-const overlay = document.getElementById('vnc-overlay');
+let rfb = null;
 
-// ── X11 KeySym mapping ─────────────────────────────────────
-const KEYSYM = {
-    8:   0xff08,  // Backspace
-    9:   0xff09,  // Tab
-    13:  0xff0d,  // Enter/Return
-    27:  0xff1b,  // Escape
-    32:  0x0020,  // Space
-    33:  0xff55,  // Page Up
-    34:  0xff56,  // Page Down
-    35:  0xff57,  // End
-    36:  0xff50,  // Home
-    37:  0xff51,  // Left
-    38:  0xff52,  // Up
-    39:  0xff53,  // Right
-    40:  0xff54,  // Down
-    45:  0xff63,  // Insert
-    46:  0xffff,  // Delete
-    16:  0xffe1,  // Left Shift
-    17:  0xffe3,  // Left Ctrl
-    18:  0xffe9,  // Left Alt
-    91:  0xffeb,  // Left Meta / Win
-    112: 0xffbe,  // F1
-    113: 0xffbf,  // F2
-    114: 0xffc0,  // F3
-    115: 0xffc1,  // F4
-    116: 0xffc2,  // F5
-    117: 0xffc3,  // F6
-    118: 0xffc4,  // F7
-    119: 0xffc5,  // F8
-    120: 0xffc6,  // F9
-    121: 0xffc7,  // F10
-    122: 0xffc8,  // F11
-    123: 0xffc9,  // F12
-};
+const overlay        = document.getElementById('vnc-overlay');
+const overlaySpinner = document.getElementById('overlaySpinner');
+const overlayError   = document.getElementById('overlayError');
+const connectForm    = document.getElementById('connectForm');
+const disconnectForm = document.getElementById('disconnectForm');
+const vncStatus      = document.getElementById('vncStatus');
+const vncStatusText  = document.getElementById('vncStatusText');
+const vncStatusDot   = document.getElementById('vncStatusDot');
 
-function getKeysym(keyCode) {
-    if (KEYSYM[keyCode] !== undefined) return KEYSYM[keyCode];
-    if (keyCode >= 65 && keyCode <= 90)  return keyCode + 32;       // A-Z → a-z (0x61-0x7a)
-    if (keyCode >= 48 && keyCode <= 57)  return keyCode;             // 0-9 (0x30-0x39)
-    if (keyCode >= 96 && keyCode <= 105) return keyCode - 96 + 0x30; // Numpad 0-9
-    return keyCode;
+function showError(msg) {
+    overlaySpinner.style.display = 'none';
+    overlayError.textContent = msg;
+    overlayError.style.display = '';
+}
+function clearError() {
+    overlayError.style.display = 'none';
+    overlayError.textContent = '';
 }
 
-// ── Canvas coordinate scaling ─────────────────────────────
-function canvasCoords(e) {
-    const rect = canvas.getBoundingClientRect();
-    return {
-        x: Math.round((e.clientX - rect.left) * vncScreenW / rect.width),
-        y: Math.round((e.clientY - rect.top)  * vncScreenH / rect.height),
-    };
-}
+window.vncConnect = async function() {
+    clearError();
+    overlaySpinner.style.display = '';
 
-// ── Mouse events ───────────────────────────────────────────
-canvas.addEventListener('mousemove', e => {
-    if (!isConnected) return;
-    const now = Date.now();
-    if (now - mouseMoveTs < 50) return; // max 20/s
-    mouseMoveTs = now;
-    const { x, y } = canvasCoords(e);
-    inputBuffer.push({ type: 'mouse_move', x, y });
-});
-
-canvas.addEventListener('mousedown', e => {
-    if (!isConnected) return;
-    e.preventDefault();
-    const { x, y } = canvasCoords(e);
-    inputBuffer.push({ type: 'mouse_down', x, y, button: e.button + 1 });
-    flushInput(true); // immediate — no delay on clicks
-});
-
-canvas.addEventListener('mouseup', e => {
-    if (!isConnected) return;
-    const { x, y } = canvasCoords(e);
-    inputBuffer.push({ type: 'mouse_up', x, y, button: e.button + 1 });
-    flushInput(true);
-});
-
-canvas.addEventListener('wheel', e => {
-    if (!isConnected) return;
-    e.preventDefault();
-    const { x, y } = canvasCoords(e);
-    inputBuffer.push({ type: 'scroll', x, y, delta: e.deltaY > 0 ? -1 : 1 });
-    flushInput(true);
-}, { passive: false });
-
-canvas.addEventListener('contextmenu', e => e.preventDefault());
-
-// ── Keyboard events ────────────────────────────────────────
-window.addEventListener('keydown', e => {
-    if (!isConnected) return;
-    e.preventDefault();
-    inputBuffer.push({ type: 'key_down', keysym: getKeysym(e.keyCode) });
-    flushInput(true); // immediate
-});
-
-window.addEventListener('keyup', e => {
-    if (!isConnected) return;
-    inputBuffer.push({ type: 'key_up', keysym: getKeysym(e.keyCode) });
-    flushInput(true);
-});
-
-// ── Input flush ────────────────────────────────────────────
-function flushInput(immediate) {
-    if (!inputBuffer.length) return;
-    if (!immediate && flushInFlightCnt > 0) return; // periodic: skip while in-flight
-    const events = [...inputBuffer];
-    inputBuffer  = [];
-    flushInFlightCnt++;
-    fetch(VNC_INPUT_URL, {
-        method:  'POST',
-        headers: { 'X-CSRF-TOKEN': CSRF, 'Content-Type': 'application/json', 'Accept': 'application/json' },
-        body:    JSON.stringify({ events }),
-    })
-    .then(r => { if (!r.ok) console.warn('VNC input HTTP', r.status); })
-    .catch(e => console.error('VNC input send error:', e))
-    .finally(() => { flushInFlightCnt = Math.max(0, flushInFlightCnt - 1); });
-}
-
-// ── Frame polling loop (self-scheduling — no request stacking) ──
-async function framePollLoop() {
-    if (!isConnected) return;
-    const t0 = performance.now();
+    let wsUrl, password;
     try {
-        const resp = await fetch(VNC_FRAME_URL + '?since=' + lastSeq, {
-            headers: { 'Accept': 'application/json' },
+        const resp = await fetch(VNC_CONNECT_URL, {
+            method: 'POST',
+            headers: { 'X-CSRF-TOKEN': CSRF, 'Content-Type': 'application/json', 'Accept': 'application/json' },
+            body: JSON.stringify({ password: document.getElementById('vncPassword').value }),
         });
         const data = await resp.json();
-        latencyMs = Math.round(performance.now() - t0);
-
-        if (data.image_data && data.seq !== lastSeq) {
-            lastSeq    = data.seq; // server-incremented: changes every frame the agent pushes
-            vncScreenW = data.screen_w || 1920;
-            vncScreenH = data.screen_h || 1080;
-            if (canvas.width !== vncScreenW || canvas.height !== vncScreenH) {
-                canvas.width  = vncScreenW;
-                canvas.height = vncScreenH;
-            }
-            // createImageBitmap: async GPU-accelerated decode when supported
-            if (typeof createImageBitmap !== 'undefined') {
-                const byteStr = atob(data.image_data);
-                const arr     = new Uint8Array(byteStr.length);
-                for (let i = 0; i < byteStr.length; i++) arr[i] = byteStr.charCodeAt(i);
-                const blob = new Blob([arr], { type: 'image/jpeg' });
-                createImageBitmap(blob).then(bmp => {
-                    ctx.drawImage(bmp, 0, 0);
-                    bmp.close();
-                    fpsCounter++;
-                });
-            } else {
-                const img  = new Image();
-                img.onload = () => { ctx.drawImage(img, 0, 0); fpsCounter++; };
-                img.src    = 'data:image/jpeg;base64,' + data.image_data;
-            }
+        if (!data.ok) {
+            showError(data.error ?? 'Baglanti bilgileri alinamadi.');
+            return;
         }
-        if (consecutiveFails > 0) {
-            consecutiveFails = 0;
-            document.getElementById('vncStatusText').textContent = 'Bağlı';
-            document.getElementById('vncStatus').style.background = '';
-        }
-    } catch (_) {
-        consecutiveFails++;
-        latencyMs = Math.round(performance.now() - t0);
-        if (consecutiveFails >= 4) {
-            document.getElementById('vncStatusText').textContent = 'Bağlantı kesildi!';
-            document.getElementById('vncStatus').style.background = 'rgba(239,68,68,.15)';
-        }
+        wsUrl    = data.ws_url;
+        password = data.password;
+    } catch (e) {
+        showError('Sunucuya ulasilamadi: ' + e.message);
+        return;
     }
-    if (isConnected) {
-        const elapsed = performance.now() - t0;
-        setTimeout(framePollLoop, Math.max(10, FRAME_TARGET_MS - elapsed));
+
+    try {
+        rfb = new RFB(
+            document.getElementById('vnc-container'),
+            wsUrl,
+            password ? { credentials: { password } } : {}
+        );
+    } catch (e) {
+        showError('noVNC baslatılamadi: ' + e.message);
+        return;
     }
-}
 
-// ── Stats display ──────────────────────────────────────────
-function startStats() {
-    fpsUpdateTimer = setInterval(() => {
-        document.getElementById('vncFpsText').textContent = fpsCounter + ' fps  ' + latencyMs + 'ms';
-        fpsCounter = 0;
-    }, 1000);
-}
+    rfb.scaleViewport = true;
+    rfb.resizeSession = false;
 
-// ── Connect / Disconnect ──────────────────────────────────
-function vncConnect() {
-    const password = document.getElementById('vncPassword').value;
-    const spinner  = document.getElementById('overlaySpinner');
-    spinner.style.display = '';
-
-    fetch(VNC_START_URL, {
-        method:  'POST',
-        headers: { 'X-CSRF-TOKEN': CSRF, 'Content-Type': 'application/json', 'Accept': 'application/json' },
-        body:    JSON.stringify({ password }),
-    })
-    .then(r => r.json())
-    .then(data => {
-        if (!data.ok) throw new Error();
-        isConnected      = true;
-        lastSeq          = -1;
-        consecutiveFails = 0;
-        flushInFlightCnt = 0;
-
-        overlay.style.display = 'none';
-        document.getElementById('connectForm').style.display    = 'none';
-        document.getElementById('disconnectForm').style.display = 'flex';
-        document.getElementById('vncStatus').style.display      = 'flex';
-        document.getElementById('vncFps').style.display         = 'flex';
-
-        // Periodic mouse-move flush; clicks/keys flush immediately
-        inputFlusher = setInterval(() => flushInput(false), 80);
-        startStats();
-        framePollLoop(); // self-scheduling — not setInterval
-        canvas.focus();
-    })
-    .catch(() => {
-        spinner.style.display = 'none';
-        alert('Bağlantı isteği gönderilemedi. Ajan çevrimiçi mi?');
+    rfb.addEventListener('connect', () => {
+        overlay.style.display        = 'none';
+        connectForm.style.display    = 'none';
+        disconnectForm.style.display = 'flex';
+        vncStatus.style.display      = 'flex';
+        vncStatusText.textContent    = 'Bagli';
+        vncStatusDot.style.background = '#22c55e';
     });
-}
 
-function vncDisconnect() {
-    isConnected = false; // stops framePollLoop
-    clearInterval(inputFlusher);
-    clearInterval(fpsUpdateTimer);
-    inputFlusher = fpsUpdateTimer = null;
-    inputBuffer      = [];
-    fpsCounter       = 0;
-    lastSeq          = -1;
-    flushInFlightCnt = 0;
+    rfb.addEventListener('disconnect', e => {
+        if (rfb === null) return;
+        vncStatusText.textContent = 'Baglanti kesildi';
+        vncStatusDot.style.background = '#ef4444';
+        vncStatusDot.style.animation  = 'none';
+        overlay.style.display        = 'flex';
+        overlaySpinner.style.display = 'none';
+        showError('Baglanti kesildi. ' + (e.detail?.reason ?? ''));
+        connectForm.style.display    = 'flex';
+        disconnectForm.style.display = 'none';
+    });
 
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    overlay.style.display = '';
-    document.getElementById('overlaySpinner').style.display     = 'none';
-    document.getElementById('connectForm').style.display        = 'flex';
-    document.getElementById('disconnectForm').style.display     = 'none';
-    document.getElementById('vncStatus').style.display          = 'none';
-    document.getElementById('vncFps').style.display             = 'none';
+    rfb.addEventListener('credentialsrequired', () => {
+        const pw = prompt('VNC sifresi girin:');
+        if (pw !== null) rfb.sendCredentials({ password: pw });
+        else vncDisconnect();
+    });
 
-    fetch(VNC_STOP_URL, {
-        method:  'POST',
-        headers: { 'X-CSRF-TOKEN': CSRF, 'Accept': 'application/json' },
-    }).catch(() => {});
-}
+    rfb.addEventListener('securityfailure', e => {
+        showError('Kimlik dogrulama basarisiz: ' + (e.detail?.reason ?? 'Yanlis sifre?'));
+    });
+};
+
+window.vncDisconnect = function() {
+    if (rfb) { rfb.disconnect(); rfb = null; }
+    overlay.style.display        = 'flex';
+    overlaySpinner.style.display = 'none';
+    connectForm.style.display    = 'flex';
+    disconnectForm.style.display = 'none';
+    vncStatus.style.display      = 'none';
+    clearError();
+};
 </script>
 @endpush
 
