@@ -15,4 +15,14 @@ class Computer extends Model
     {
         return $this->belongsTo(Branch::class);
     }
+
+    public function securitySnapshots()
+    {
+        return $this->hasMany(ComputerSecuritySnapshot::class);
+    }
+
+    public function latestSnapshot()
+    {
+        return $this->hasOne(ComputerSecuritySnapshot::class)->latestOfMany('reported_at');
+    }
 }

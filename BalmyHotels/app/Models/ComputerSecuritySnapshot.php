@@ -4,9 +4,10 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-class AgentComputerSecuritySnapshot extends Model
+class ComputerSecuritySnapshot extends Model
 {
     protected $fillable = [
+        'computer_id',
         'agent_computer_id',
         'alert_count',
         'defender_threats',
@@ -50,6 +51,11 @@ class AgentComputerSecuritySnapshot extends Model
 
     public function computer()
     {
-        return $this->belongsTo(AgentComputer::class, 'agent_computer_id');
+        return $this->belongsTo(Computer::class);
+    }
+
+    public function agentComputer()
+    {
+        return $this->belongsTo(AgentComputer::class);
     }
 }

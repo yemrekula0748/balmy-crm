@@ -11,7 +11,7 @@ class ItComputerController extends BaseModuleController
     public function __construct()
     {
         $this->requirePermission('it_computers',
-            ['index'],
+            ['index', 'show'],
             [],
             ['store'],
             ['update'],
@@ -21,9 +21,16 @@ class ItComputerController extends BaseModuleController
 
     public function index()
     {
-        $computers = Computer::with('branch')->orderBy('name')->get();
+        $computers = Computer::with(['branch', 'latestSnapshot'])->orderBy('name')->get();
         $branches  = Branch::orderBy('name')->get();
         return view('modules.bilgi_islem.computers.index', compact('computers', 'branches'));
+    }
+
+    public function show(Computer $computer)
+    {
+        $computer->load('branch');
+        $latestSnapshot = $computer->latestSnapshot;
+        return view('modules.bilgi_islem.computers.show', compact('computer', 'latestSnapshot'));
     }
 
     public function store(Request $request)

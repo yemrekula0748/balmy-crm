@@ -100,6 +100,7 @@
                             <th style="font-size:12px;font-weight:700;color:#555">KULLANICI</th>
                             <th style="font-size:12px;font-weight:700;color:#555">ŞUBE</th>
                             <th style="font-size:12px;font-weight:700;color:#555">ÖZELLİKLER</th>
+                            <th style="font-size:12px;font-weight:700;color:#555">GÜVENLİK</th>
                             <th class="text-center pe-4" style="font-size:12px;font-weight:700;color:#555">İŞLEM</th>
                         </tr>
                     </thead>
@@ -110,7 +111,8 @@
                             data-ip="{{ strtolower($pc->ip_address ?? '') }}"
                             data-location="{{ strtolower($pc->location ?? '') }}"
                             data-user="{{ strtolower($pc->assigned_user ?? '') }}"
-                            data-branch="{{ $pc->branch?->name ?? '' }}">
+                            data-branch="{{ $pc->branch?->name ?? '' }}"
+                            data-alert="{{ $pc->latestSnapshot?->alert_count ?? 0 }}">
                             <td class="ps-4 text-muted" style="font-size:13px">{{ $i + 1 }}</td>
                             <td>
                                 <div class="d-flex align-items-center gap-2">
@@ -124,7 +126,7 @@
                                         </svg>
                                     </div>
                                     <div>
-                                        <div class="fw-semibold" style="font-size:14px">{{ $pc->name }}</div>
+                                        <a href="{{ route('it.computers.show', $pc) }}" class="fw-semibold text-decoration-none text-dark" style="font-size:14px">{{ $pc->name }}</a>
                                         @if($pc->notes)
                                         <div class="text-muted" style="font-size:11px">{{ Str::limit($pc->notes, 50) }}</div>
                                         @endif
@@ -180,6 +182,19 @@
                                 <span class="text-muted" style="font-size:12px">—</span>
                                 @endif
                             </td>
+                            <td>
+                                @if(($pc->latestSnapshot?->alert_count ?? 0) > 0)
+                                    <span class="badge bg-danger rounded-pill">
+                                        <i class="fas fa-exclamation-triangle me-1"></i>{{ $pc->latestSnapshot->alert_count }} uyarı
+                                    </span>
+                                @elseif($pc->latestSnapshot)
+                                    <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25" style="font-size:11px">
+                                        <i class="fas fa-shield-alt me-1"></i>Temiz
+                                    </span>
+                                @else
+                                    <span class="text-muted" style="font-size:12px">—</span>
+                                @endif
+                            </td>
                             <td class="text-center pe-4">
                                 <div class="d-flex justify-content-center gap-1">
                                     @if(auth()->user()->hasPermission('it_computers', 'edit'))
@@ -212,7 +227,7 @@
                         </tr>
                         @empty
                         <tr>
-                            <td colspan="8" class="text-center py-5">
+                            <td colspan="9" class="text-center py-5">
                                 <div class="text-muted">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24"
                                          fill="none" stroke="#ccc" stroke-width="1.5" stroke-linecap="round"

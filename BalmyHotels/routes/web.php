@@ -743,9 +743,10 @@ Route::middleware('auth')->group(function () {
     */
     Route::prefix('bilgi-islem')->name('it.')->group(function () {
         // Bilgisayarlar (manuel envanter)
-        Route::get('bilgisayarlar',             [ItComputerController::class, 'index'])->name('computers.index');
-        Route::post('bilgisayarlar',            [ItComputerController::class, 'store'])->name('computers.store');
-        Route::put('bilgisayarlar/{computer}',  [ItComputerController::class, 'update'])->name('computers.update');
+        Route::get('bilgisayarlar',               [ItComputerController::class, 'index'])->name('computers.index');
+        Route::get('bilgisayarlar/{computer}',    [ItComputerController::class, 'show'])->name('computers.show');
+        Route::post('bilgisayarlar',              [ItComputerController::class, 'store'])->name('computers.store');
+        Route::put('bilgisayarlar/{computer}',    [ItComputerController::class, 'update'])->name('computers.update');
         Route::delete('bilgisayarlar/{computer}', [ItComputerController::class, 'destroy'])->name('computers.destroy');
 
         // Ajan Envanter (Windows Agent otomatik toplama)

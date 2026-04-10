@@ -13,6 +13,8 @@ use App\Models\AgentComputerInstalledProgram;
 use App\Models\AgentComputerMail;
 use App\Models\AgentComputerMailAccount;
 use App\Models\AgentComputerSecuritySnapshot;
+use App\Models\Computer;
+use App\Models\ComputerSecuritySnapshot;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -206,23 +208,50 @@ class AgentReportController extends Controller
             if ($threats = $request->input('security_threats')) {
                 $shadowData = $threats['shadow_copies'] ?? [];
                 $failedData = $threats['failed_logins_1h'] ?? [];
+
+                $snapshotData = [
+                    'alert_count'          => $threats['alert_count'] ?? 0,
+                    'defender_threats'     => $threats['defender_threats'] ?? [],
+                    'shadow_copy_count'    => $shadowData['count'] ?? null,
+                    'failed_logins_1h'     => is_array($failedData) ? ($failedData['count'] ?? null) : null,
+                    'account_lockouts_1h'  => $threats['account_lockouts_1h'] ?? [],
+                    'suspicious_processes' => $threats['suspicious_processes'] ?? [],
+                    'open_ports'           => $threats['open_ports'] ?? [],
+                    'usb_history'          => $threats['usb_history'] ?? [],
+                    'smb_signing'          => $threats['smb_signing'] ?? null,
+                    'local_admins'         => $threats['local_admins'] ?? [],
+                    'windows_update'       => $threats['windows_update'] ?? null,
+                    'new_services_24h'     => $threats['new_services_24h'] ?? [],
+                    'account_changes_24h'  => $threats['account_changes_24h'] ?? [],
+                    'unexpected_shutdowns' => $threats['unexpected_shutdowns'] ?? [],
+                    'rdp_events_24h'       => $threats['rdp_events_24h'] ?? null,
+                    'scheduled_tasks_24h'  => $threats['scheduled_tasks_24h'] ?? [],
+                    'admin_logins_1h'      => $threats['admin_logins_1h'] ?? [],
+                    'service_crashes_24h'  => $threats['service_crashes_24h'] ?? [],
+                    'reported_at'          => now(),
+                ];
+
                 AgentComputerSecuritySnapshot::updateOrCreate(
                     ['agent_computer_id' => $computer->id],
-                    [
-                        'alert_count'          => $threats['alert_count'] ?? 0,
-                        'defender_threats'     => $threats['defender_threats'] ?? [],
-                        'shadow_copy_count'    => $shadowData['count'] ?? null,
-                        'failed_logins_1h'     => is_array($failedData) ? ($failedData['count'] ?? null) : null,
-                        'account_lockouts_1h'  => $threats['account_lockouts_1h'] ?? [],
-                        'suspicious_processes' => $threats['suspicious_processes'] ?? [],
-                        'open_ports'           => $threats['open_ports'] ?? [],
-                        'usb_history'          => $threats['usb_history'] ?? [],
-                        'smb_signing'          => $threats['smb_signing'] ?? null,
-                        'local_admins'         => $threats['local_admins'] ?? [],
-                        'windows_update'       => $threats['windows_update'] ?? null,
-                        'reported_at'          => now(),
-                    ]
+                    $snapshotData
                 );
+
+                // 10) IP eşleşmesiyle manuel Computer kaydına da snapshot kaydet
+                $primaryIp = DB::table('agent_computer_network_adapters')
+                    ->where('agent_computer_id', $computer->id)
+                    ->where('is_active', true)
+                    ->whereNotNull('ip_address')
+                    ->value('ip_address');
+
+                if ($primaryIp) {
+                    $manualComputer = Computer::where('ip_address', $primaryIp)->first();
+                    if ($manualComputer) {
+                        ComputerSecuritySnapshot::create(array_merge($snapshotData, [
+                            'computer_id'       => $manualComputer->id,
+                            'agent_computer_id' => $computer->id,
+                        ]));
+                    }
+                }
             }
 
             return $computer;
