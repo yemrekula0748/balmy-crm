@@ -36,15 +36,24 @@ class VncController extends Controller
             return response()->json(['error' => 'Computer not found'], 404);
         }
 
-        VncFrame::updateOrCreate(
-            ['agent_computer_id' => $computer->id],
-            [
-                'image_data' => $request->image_data,
-                'screen_w'   => $request->input('screen_w', 1920),
-                'screen_h'   => $request->input('screen_h', 1080),
-                'seq'        => $request->input('seq', 0),
-            ]
-        );
+        // Use server-side seq counter so the browser always sees a changed value
+        // even when the agent sends the same seq=0 every time.
+        $frame = VncFrame::where('agent_computer_id', $computer->id)->first();
+        if ($frame) {
+            $frame->image_data = $request->image_data;
+            $frame->screen_w   = $request->input('screen_w', 1920);
+            $frame->screen_h   = $request->input('screen_h', 1080);
+            $frame->seq        = $frame->seq + 1;
+            $frame->save();
+        } else {
+            VncFrame::create([
+                'agent_computer_id' => $computer->id,
+                'image_data'        => $request->image_data,
+                'screen_w'          => $request->input('screen_w', 1920),
+                'screen_h'          => $request->input('screen_h', 1080),
+                'seq'               => 1,
+            ]);
+        }
 
         return response()->json(['ok' => true]);
     }

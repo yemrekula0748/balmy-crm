@@ -159,10 +159,10 @@ let isConnected      = false;
 let inputFlusher     = null;
 let fpsUpdateTimer   = null;
 let inputBuffer      = [];
-let flushInFlight    = false;
+let flushInFlightCnt = 0;     // count of in-flight input POSTs
 let vncScreenW       = 1920;
 let vncScreenH       = 1080;
-let lastTs           = 0;     // updated_at ms — real change detector (not seq)
+let lastSeq          = -1;    // server-incremented counter — changes on every new frame
 let mouseMoveTs      = 0;
 let consecutiveFails = 0;
 let fpsCounter       = 0;
@@ -277,17 +277,18 @@ window.addEventListener('keyup', e => {
 // ── Input flush ────────────────────────────────────────────
 function flushInput(immediate) {
     if (!inputBuffer.length) return;
-    if (!immediate && flushInFlight) return; // periodic flush: skip if in-flight
-    const events   = [...inputBuffer];
-    inputBuffer    = [];
-    flushInFlight  = true;
+    if (!immediate && flushInFlightCnt > 0) return; // periodic: skip while in-flight
+    const events = [...inputBuffer];
+    inputBuffer  = [];
+    flushInFlightCnt++;
     fetch(VNC_INPUT_URL, {
         method:  'POST',
         headers: { 'X-CSRF-TOKEN': CSRF, 'Content-Type': 'application/json', 'Accept': 'application/json' },
         body:    JSON.stringify({ events }),
     })
-    .catch(() => {})
-    .finally(() => { flushInFlight = false; });
+    .then(r => { if (!r.ok) console.warn('VNC input HTTP', r.status); })
+    .catch(e => console.error('VNC input send error:', e))
+    .finally(() => { flushInFlightCnt = Math.max(0, flushInFlightCnt - 1); });
 }
 
 // ── Frame polling loop (self-scheduling — no request stacking) ──
@@ -295,14 +296,14 @@ async function framePollLoop() {
     if (!isConnected) return;
     const t0 = performance.now();
     try {
-        const resp = await fetch(VNC_FRAME_URL + '?since=' + lastTs, {
+        const resp = await fetch(VNC_FRAME_URL + '?since=' + lastSeq, {
             headers: { 'Accept': 'application/json' },
         });
         const data = await resp.json();
         latencyMs = Math.round(performance.now() - t0);
 
-        if (data.image_data && data.ts !== lastTs) {
-            lastTs     = data.ts; // ts = updated_at ms — always changes when frame is new
+        if (data.image_data && data.seq !== lastSeq) {
+            lastSeq    = data.seq; // server-incremented: changes every frame the agent pushes
             vncScreenW = data.screen_w || 1920;
             vncScreenH = data.screen_h || 1080;
             if (canvas.width !== vncScreenW || canvas.height !== vncScreenH) {
@@ -367,9 +368,10 @@ function vncConnect() {
     .then(r => r.json())
     .then(data => {
         if (!data.ok) throw new Error();
-        isConnected   = true;
-        lastTs        = 0;
+        isConnected      = true;
+        lastSeq          = -1;
         consecutiveFails = 0;
+        flushInFlightCnt = 0;
 
         overlay.style.display = 'none';
         document.getElementById('connectForm').style.display    = 'none';
@@ -394,9 +396,10 @@ function vncDisconnect() {
     clearInterval(inputFlusher);
     clearInterval(fpsUpdateTimer);
     inputFlusher = fpsUpdateTimer = null;
-    inputBuffer  = [];
-    fpsCounter   = 0;
-    lastTs       = 0;
+    inputBuffer      = [];
+    fpsCounter       = 0;
+    lastSeq          = -1;
+    flushInFlightCnt = 0;
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     overlay.style.display = '';
