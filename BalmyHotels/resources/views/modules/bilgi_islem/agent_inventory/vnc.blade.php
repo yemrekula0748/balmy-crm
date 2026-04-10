@@ -148,7 +148,7 @@
 
 @push('scripts')
 <script type="module">
-import RFB from 'https://esm.sh/@novnc/novnc@1.6.0/core/rfb';
+import RFB from 'https://cdn.jsdelivr.net/npm/@novnc/novnc@1.6.0/+esm';
 
 const VNC_CONNECT_URL = '{{ route("it.agent.vnc.connect", $agentComputer) }}';
 const CSRF = document.querySelector('meta[name="csrf-token"]').content;
