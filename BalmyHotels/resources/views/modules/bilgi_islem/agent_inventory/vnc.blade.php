@@ -147,17 +147,8 @@
 </div>
 
 @push('scripts')
-{{-- es-module-shims: polyfill for importmap support across all browsers --}}
-<script async src="https://ga.jspm.io/npm:es-module-shims@1.10.0/dist/es-module-shims.js"></script>
-<script type="importmap">
-{
-  "imports": {
-    "novnc": "https://cdn.jsdelivr.net/npm/@novnc/novnc@1.5.0/core/rfb.js"
-  }
-}
-</script>
-<script type="module-shim">
-import RFB from 'novnc';
+<script type="module">
+import RFB from 'https://cdn.jsdelivr.net/npm/@novnc/novnc@1.5.0/core/rfb.js';
 
 const VNC_CONNECT_URL = '{{ route("it.agent.vnc.connect", $agentComputer) }}';
 const CSRF = document.querySelector('meta[name="csrf-token"]').content;
