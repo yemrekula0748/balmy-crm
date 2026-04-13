@@ -237,6 +237,9 @@
                     @if($user->hasPermission('qrmenus', 'create'))
                     <li><a href="{{ route('qrmenus.create') }}">Yeni Menü Oluştur</a></li>
                     @endif
+                    <li @class(['mm-active' => request()->is('qr-menuler/vitrinler*')])>
+                        <a href="{{ route('qrmenus.showcases.index') }}">Vitrinler</a>
+                    </li>
                 </ul>
             </li>
             @endif
