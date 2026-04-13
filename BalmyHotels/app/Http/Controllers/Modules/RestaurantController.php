@@ -3,8 +3,10 @@
 namespace App\Http\Controllers\Modules;
 
 use App\Models\Branch;
+use App\Models\Printer;
 use App\Models\QrMenu;
 use App\Models\Restaurant;
+use App\Models\RestaurantItemPrinter;
 use App\Models\RestaurantTable;
 use Illuminate\Http\Request;
 
@@ -51,8 +53,26 @@ class RestaurantController extends BaseModuleController
     public function show(Restaurant $restaurant)
     {
         $restaurant->load(['branch', 'qrMenu', 'tables']);
+
+        $categories    = collect();
+        $printerMap    = collect(); // qr_menu_item_id → printer_id
+        $printers      = Printer::where('is_active', true)->orderBy('name')->get();
+
+        if ($restaurant->qrMenu) {
+            $categories = $restaurant->qrMenu->categories()
+                ->where('is_active', true)
+                ->orderBy('sort_order')
+                ->with(['items' => fn($q) => $q->where('is_active', true)->orderBy('sort_order')])
+                ->get();
+
+            $printerMap = RestaurantItemPrinter::where('restaurant_id', $restaurant->id)
+                ->pluck('printer_id', 'qr_menu_item_id');
+        }
+
         $page_title = $restaurant->name;
-        return view('modules.orders.restaurants.show', compact('restaurant', 'page_title'));
+        return view('modules.orders.restaurants.show', compact(
+            'restaurant', 'categories', 'printerMap', 'printers', 'page_title'
+        ));
     }
 
     public function edit(Restaurant $restaurant)
@@ -110,5 +130,35 @@ class RestaurantController extends BaseModuleController
         abort_if($table->restaurant_id !== $restaurant->id, 403);
         $table->delete();
         return back()->with('success', 'Masa silindi.');
+    }
+
+    // -------------------------------------------------------------------------
+    // Yazıcı ataması (restoran × menü kalemi)
+    // -------------------------------------------------------------------------
+
+    public function savePrinters(Request $request, Restaurant $restaurant)
+    {
+        $request->validate([
+            'printers'   => 'nullable|array',
+            'printers.*' => 'nullable|exists:printers,id',
+        ]);
+
+        $assignments = $request->input('printers', []);
+
+        foreach ($assignments as $itemId => $printerId) {
+            if (empty($printerId)) {
+                // Atama kaldır
+                RestaurantItemPrinter::where('restaurant_id', $restaurant->id)
+                    ->where('qr_menu_item_id', (int)$itemId)
+                    ->delete();
+            } else {
+                RestaurantItemPrinter::updateOrCreate(
+                    ['restaurant_id' => $restaurant->id, 'qr_menu_item_id' => (int)$itemId],
+                    ['printer_id'    => (int)$printerId]
+                );
+            }
+        }
+
+        return back()->with('success', 'Yazıcı atamaları kaydedildi.');
     }
 }

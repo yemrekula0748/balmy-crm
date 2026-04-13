@@ -173,13 +173,30 @@
                         <li id="cart-empty" class="list-group-item text-muted text-center py-4 small">Sepet boş</li>
                     </ul>
                 </div>
-                <div class="card-footer d-flex justify-content-between align-items-center" style="background:#fff8f0">
-                    <div class="fw-bold">
-                        Sepet Toplamı: <span id="cart-total">0.00</span> {{ $currency }}
+                <div class="card-footer" style="background:#fff8f0">
+                    {{-- Kors seçici --}}
+                    <div class="d-flex align-items-center gap-2 mb-2">
+                        <label class="form-label mb-0 fw-semibold small" style="white-space:nowrap">Kors:</label>
+                        <div class="d-flex gap-1 flex-wrap" id="kors-btns">
+                            @for($k = 1; $k <= max(4, $nextCourse); $k++)
+                            <button type="button"
+                                    class="btn btn-sm kors-btn {{ $k === $nextCourse ? 'text-white' : 'btn-outline-secondary' }}"
+                                    style="{{ $k === $nextCourse ? 'background:#c19b77;border-color:#c19b77' : '' }}"
+                                    data-kors="{{ $k }}">
+                                {{ $k }}. Kors
+                            </button>
+                            @endfor
+                        </div>
+                        <button type="button" id="kors-add-btn" class="btn btn-sm btn-outline-secondary" title="Kors ekle">+</button>
                     </div>
-                    <button type="button" id="submit-order-btn" class="btn btn-sm text-white px-3" style="background:#c19b77" disabled>
-                        <i class="fa fa-check me-1"></i> Siparişi Kaydet
-                    </button>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div class="fw-bold">
+                            Sepet Toplamı: <span id="cart-total">0.00</span> {{ $currency }}
+                        </div>
+                        <button type="button" id="submit-order-btn" class="btn btn-sm text-white px-3" style="background:#c19b77" disabled>
+                            <i class="fa fa-check me-1"></i> Siparişi Kaydet
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -188,6 +205,7 @@
                 @csrf
                 <div id="form-items-container"></div>
                 <input type="hidden" name="note" id="order-note">
+                <input type="hidden" name="course_number" id="order-course-number" value="{{ $nextCourse }}">
             </form>
 
             {{-- Geçmiş siparişler --}}
@@ -203,6 +221,7 @@
                     <div class="p-3 border-bottom">
                         <div class="d-flex justify-content-between align-items-center mb-2">
                             <small class="text-muted">
+                                <span class="badge me-1 text-white" style="background:#c19b77;font-size:.7rem">{{ $order->course_number }}. Kors</span>
                                 <i class="fa fa-user me-1"></i>{{ $order->creator?->name ?? '—' }}
                                 &nbsp;·&nbsp; {{ $order->created_at->format('H:i') }}
                             </small>
@@ -407,7 +426,39 @@
                 <input type="hidden" name="items[${idx}][quantity]"       value="${item.qty}">
                 <input type="hidden" name="items[${idx}][note]"           value="${item.note}">`;
         });
+        // Aktif kors numarasını forma yaz
+        const activeKorsBtn = document.querySelector('.kors-btn.text-white');
+        document.getElementById('order-course-number').value = activeKorsBtn ? activeKorsBtn.dataset.kors : 1;
         document.getElementById('order-form').submit();
+    });
+
+    // Kors buton seçimi
+    let maxKors = {{ max(4, $nextCourse) }};
+    document.getElementById('kors-btns').addEventListener('click', function(e){
+        const btn = e.target.closest('.kors-btn');
+        if(!btn) return;
+        document.querySelectorAll('.kors-btn').forEach(b => {
+            b.classList.remove('text-white');
+            b.style.background    = '';
+            b.style.borderColor   = '';
+            b.classList.add('btn-outline-secondary');
+        });
+        btn.classList.add('text-white');
+        btn.classList.remove('btn-outline-secondary');
+        btn.style.background  = '#c19b77';
+        btn.style.borderColor = '#c19b77';
+    });
+
+    // Kors ekle butonu
+    document.getElementById('kors-add-btn').addEventListener('click', function(){
+        maxKors++;
+        const container = document.getElementById('kors-btns');
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'btn btn-sm btn-outline-secondary kors-btn';
+        btn.dataset.kors = maxKors;
+        btn.textContent  = maxKors + '. Kors';
+        container.appendChild(btn);
     });
 
     // Süre sayacı

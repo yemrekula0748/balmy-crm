@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class RestaurantOrder extends Model
 {
-    protected $fillable = ['table_session_id', 'note', 'created_by'];
+    protected $fillable = ['table_session_id', 'course_number', 'note', 'created_by'];
 
     public function session(): BelongsTo
     {

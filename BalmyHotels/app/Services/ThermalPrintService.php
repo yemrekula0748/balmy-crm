@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Printer;
+use App\Models\RestaurantItemPrinter;
 use App\Models\RestaurantOrder;
 use Illuminate\Support\Facades\Log;
 
@@ -38,13 +39,22 @@ class ThermalPrintService
             'session.table.restaurant.branch',
         ]);
 
-        $session    = $order->session;
-        $table      = $session->table;
-        $restaurant = $table->restaurant;
-        $branch     = $restaurant->branch;
+        $session      = $order->session;
+        $table        = $session->table;
+        $restaurant   = $table->restaurant;
+        $branch       = $restaurant->branch;
 
-        // Kalemleri printer_id'ye göre grupla (0 = yazıcı tanımsız)
-        $groups = $order->items->groupBy(function ($item) {
+        // Restoran düzeyi yazıcı atamaları — qr_menu_item_id → printer_id
+        $restaurantPrinterMap = RestaurantItemPrinter::where('restaurant_id', $restaurant->id)
+            ->pluck('printer_id', 'qr_menu_item_id');
+
+        // Kalemleri printer_id'ye göre grupla
+        // Öncelik: restoran ataması > yiyecek kütüphanesi ataması
+        $groups = $order->items->groupBy(function ($item) use ($restaurantPrinterMap) {
+            $menuItemId = $item->qr_menu_item_id;
+            if ($menuItemId && $restaurantPrinterMap->has($menuItemId)) {
+                return $restaurantPrinterMap[$menuItemId];
+            }
             return optional($item->menuItem?->foodProduct)->printer_id ?? 0;
         });
 
@@ -65,7 +75,11 @@ class ThermalPrintService
             }
 
             try {
-                $otherItems = $order->items->filter(function ($item) use ($printerId) {
+                $otherItems = $order->items->filter(function ($item) use ($printerId, $restaurantPrinterMap) {
+                    $menuItemId = $item->qr_menu_item_id;
+                    if ($menuItemId && $restaurantPrinterMap->has($menuItemId)) {
+                        return $restaurantPrinterMap[$menuItemId] !== $printerId;
+                    }
                     $pid = optional($item->menuItem?->foodProduct)->printer_id ?? 0;
                     return $pid !== $printerId;
                 });
@@ -138,6 +152,7 @@ class ThermalPrintService
         $buf .= str_repeat('-', 32) . $LF;
         $buf .= $this->row('MASA',    $this->enc($table->name, $codepage));
         $buf .= $this->row('GARSON',  $this->enc(optional($order->creator)->name ?? '-', $codepage));
+        $buf .= $this->row('KORS',    $order->course_number . '. Kors');
         $buf .= $this->row('TARIH',   $order->created_at->format('d.m.Y H:i:s'));
         $buf .= $this->row('SIP.NO',  '#' . $order->id);
         $buf .= str_repeat('=', 32) . $LF;

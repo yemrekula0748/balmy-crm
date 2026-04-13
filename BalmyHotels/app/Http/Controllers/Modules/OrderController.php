@@ -100,12 +100,16 @@ class OrderController extends BaseModuleController
 
         $orders = $session->orders()
             ->with(['items', 'creator'])
+            ->orderBy('course_number')
             ->orderByDesc('created_at')
             ->get();
 
+        $nextCourse = $orders->max('course_number') + 1 ?? 1;
+        if ($nextCourse < 1) $nextCourse = 1;
+
         $page_title = $session->table->name . ' — Sipariş';
         return view('modules.orders.session', compact(
-            'session', 'categories', 'orders', 'currency', 'page_title'
+            'session', 'categories', 'orders', 'currency', 'nextCourse', 'page_title'
         ));
     }
 
@@ -123,10 +127,12 @@ class OrderController extends BaseModuleController
             'items.*.quantity'            => 'required|integer|min:1|max:99',
             'items.*.note'                => 'nullable|string|max:500',
             'note'                        => 'nullable|string|max:500',
+            'course_number'               => 'required|integer|min:1|max:99',
         ]);
 
         $order = RestaurantOrder::create([
             'table_session_id' => $session->id,
+            'course_number'    => (int)$request->course_number,
             'note'             => $request->note,
             'created_by'       => auth()->id(),
         ]);
