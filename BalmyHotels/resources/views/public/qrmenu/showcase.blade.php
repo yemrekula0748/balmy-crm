@@ -41,12 +41,11 @@
         /* ── Hero ────────────────────────────────────────────── */
         .hero {
             position: relative;
-            min-height: 52dvh;
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: flex-end;
-            padding: 0 1.5rem 3rem;
+            justify-content: center;
+            padding: 3rem 1.5rem 2.5rem;
             text-align: center;
             overflow: hidden;
         }
@@ -74,22 +73,6 @@
             z-index: 2;
         }
 
-        .hero-eyebrow {
-            display: inline-flex;
-            align-items: center;
-            gap: .5rem;
-            background: var(--accent20);
-            border: 1px solid var(--accent);
-            border-radius: 99px;
-            padding: .3rem 1rem;
-            font-size: .72rem;
-            font-weight: 600;
-            letter-spacing: .12em;
-            text-transform: uppercase;
-            color: var(--accent);
-            margin-bottom: 1.4rem;
-        }
-
         .hero-title {
             font-family: 'Playfair Display', serif;
             font-size: clamp(2rem, 6vw, 3.8rem);
@@ -109,15 +92,15 @@
 
         /* ── Grid ────────────────────────────────────────────── */
         .grid-wrapper {
-            max-width: 1100px;
+            max-width: 960px;
             margin: 0 auto;
-            padding: 2.5rem 1.25rem 5rem;
+            padding: 2rem 1.25rem 5rem;
         }
 
         .menu-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-            gap: 1.25rem;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 1rem;
         }
 
         /* ── Card ────────────────────────────────────────────── */
@@ -125,91 +108,70 @@
             position: relative;
             background: var(--card);
             border: 1px solid var(--border);
-            border-radius: 18px;
+            border-radius: 14px;
             overflow: hidden;
             cursor: pointer;
             text-decoration: none;
             color: inherit;
-            display: block;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 1.5rem 1.25rem 1.25rem;
+            text-align: center;
             transition: transform .25s cubic-bezier(.22,1,.36,1),
                         box-shadow .25s,
                         border-color .25s;
         }
         .menu-card:hover {
-            transform: translateY(-5px) scale(1.01);
-            box-shadow: 0 20px 50px rgba(0,0,0,.5), 0 0 0 1px var(--accent);
+            transform: translateY(-4px);
+            box-shadow: 0 16px 40px rgba(0,0,0,.45), 0 0 0 1px var(--accent);
             border-color: var(--accent);
         }
 
-        /* Cover image */
-        .card-cover {
-            width: 100%;
-            height: 180px;
+        /* Card logo */
+        .card-logo {
+            width: 64px;
+            height: 64px;
+            border-radius: 12px;
             object-fit: cover;
-            display: block;
+            margin-bottom: .9rem;
+            border: 1px solid var(--border);
         }
-        .card-cover-placeholder {
-            width: 100%;
-            height: 180px;
+        .card-logo-placeholder {
+            width: 64px;
+            height: 64px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #222 0%, #2e2e2e 100%);
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 3rem;
-            background: linear-gradient(135deg, #1e1e1e 0%, #282828 100%);
-        }
-
-        /* Overlay band on image */
-        .card-img-wrap {
-            position: relative;
-        }
-        .card-img-wrap::after {
-            content: '';
-            position: absolute;
-            inset: 0;
-            background: linear-gradient(to bottom, transparent 40%, rgba(0,0,0,.65) 100%);
-        }
-
-        /* Card body */
-        .card-body {
-            padding: 1.1rem 1.25rem 1.25rem;
-        }
-
-        .card-logo {
-            width: 42px;
-            height: 42px;
-            border-radius: 10px;
-            object-fit: cover;
-            margin-bottom: .75rem;
-            border: 2px solid var(--border);
+            font-size: 1.6rem;
+            margin-bottom: .9rem;
+            border: 1px solid var(--border);
         }
 
         .card-title {
             font-family: 'Playfair Display', serif;
-            font-size: 1.2rem;
+            font-size: 1rem;
             font-weight: 600;
-            line-height: 1.3;
-            margin-bottom: .35rem;
-        }
-
-        .card-sub {
-            color: var(--muted);
-            font-size: .8rem;
-            line-height: 1.5;
+            line-height: 1.35;
+            margin-bottom: 0;
+            flex: 1;
         }
 
         .card-arrow {
             display: inline-flex;
             align-items: center;
-            gap: .4rem;
-            margin-top: .9rem;
-            font-size: .78rem;
+            gap: .35rem;
+            margin-top: .85rem;
+            font-size: .72rem;
             font-weight: 600;
-            letter-spacing: .06em;
+            letter-spacing: .07em;
             text-transform: uppercase;
             color: var(--accent);
             transition: gap .2s;
         }
-        .menu-card:hover .card-arrow { gap: .7rem; }
+        .menu-card:hover .card-arrow { gap: .6rem; }
 
         /* ── Footer ──────────────────────────────────────────── */
         .page-footer {
@@ -240,10 +202,6 @@
         <div class="hero-bg"></div>
         <div class="hero-grain"></div>
         <div class="hero-content">
-            <div class="hero-eyebrow">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
-                Dijital Menüler
-            </div>
             <h1 class="hero-title">{{ $showcase->title }}</h1>
             @if($showcase->subtitle)
             <p class="hero-sub">{{ $showcase->subtitle }}</p>
@@ -266,36 +224,18 @@
                 $url   = route('qrmenu.show', $menu->name);
             @endphp
             <a href="{{ $url }}" class="menu-card">
-                {{-- Cover görsel --}}
-                <div class="card-img-wrap">
-                    @if($menu->cover_image)
-                    <img src="{{ asset('uploads/'.$menu->cover_image) }}" alt="{{ $label }}" class="card-cover">
-                    @else
-                    <div class="card-cover-placeholder">🍽</div>
-                    @endif
-                </div>
+                {{-- Logo --}}
+                @if($menu->logo)
+                <img src="{{ asset('uploads/'.$menu->logo) }}" alt="" class="card-logo">
+                @else
+                <div class="card-logo-placeholder">🍽</div>
+                @endif
 
-                <div class="card-body">
-                    {{-- Logo --}}
-                    @if($menu->logo)
-                    <img src="{{ asset('uploads/'.$menu->logo) }}" alt="" class="card-logo">
-                    @endif
+                <div class="card-title">{{ $label }}</div>
 
-                    <div class="card-title">{{ $label }}</div>
-
-                    @php
-                        $catCount  = $menu->categories->count();
-                        $langCodes = $menu->languages->pluck('flag')->implode(' ');
-                    @endphp
-                    <div class="card-sub">
-                        @if($catCount) {{ $catCount }} kategori &nbsp;·&nbsp; @endif
-                        {{ $langCodes }}
-                    </div>
-
-                    <div class="card-arrow">
-                        Menüyü Gör
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
-                    </div>
+                <div class="card-arrow">
+                    Menüyü Gör
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
                 </div>
             </a>
             @endforeach
