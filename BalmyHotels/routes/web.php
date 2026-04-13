@@ -23,6 +23,7 @@ use App\Http\Controllers\Modules\AssetController;
 use App\Http\Controllers\Modules\AssetExitController;
 use App\Http\Controllers\Modules\QrMenuController;
 use App\Http\Controllers\Modules\QrMenuCategoryController;
+use App\Http\Controllers\Modules\MenuShowcaseController;
 use App\Http\Controllers\Modules\FoodLibraryController;
 use App\Http\Controllers\QrMenuPublicController;
 use App\Http\Controllers\Modules\SurveyController;
@@ -112,6 +113,7 @@ Route::get('/demirbaslar/qr/{token}', [AssetPublicController::class, 'show'])->n
 */
 Route::get('/menu/{slug}', [QrMenuPublicController::class, 'splash'])->name('qrmenu.show');
 Route::get('/menu/{slug}/{lang}', [QrMenuPublicController::class, 'view'])->name('qrmenu.view');
+Route::get('/vitrin/{slug}', [QrMenuPublicController::class, 'showcase'])->name('showcase.show');
 
 /*
 |--------------------------------------------------------------------------
@@ -472,6 +474,15 @@ Route::middleware('auth')->group(function () {
     // QR Menü Yönetimi
     Route::prefix('qr-menuler')->name('qrmenus.')->group(function () {
         Route::get('/', [QrMenuController::class, 'index'])->name('index');
+        // Vitrinler (showcase)
+        Route::prefix('vitrinler')->name('showcases.')->group(function () {
+            Route::get('/',                    [MenuShowcaseController::class, 'index'])->name('index');
+            Route::get('/ekle',                [MenuShowcaseController::class, 'create'])->name('create');
+            Route::post('/ekle',               [MenuShowcaseController::class, 'store'])->name('store');
+            Route::get('/{showcase}/duzenle',  [MenuShowcaseController::class, 'edit'])->name('edit');
+            Route::put('/{showcase}',          [MenuShowcaseController::class, 'update'])->name('update');
+            Route::delete('/{showcase}',       [MenuShowcaseController::class, 'destroy'])->name('destroy');
+        });
         Route::get('/ekle', [QrMenuController::class, 'create'])->name('create');
         Route::post('/ekle', [QrMenuController::class, 'store'])->name('store');
         Route::get('/{qrmenu}', [QrMenuController::class, 'show'])->name('show');

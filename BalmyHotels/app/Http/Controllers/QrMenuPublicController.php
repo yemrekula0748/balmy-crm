@@ -2,11 +2,26 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\MenuShowcase;
 use App\Models\QrMenu;
 use Illuminate\Http\Request;
 
 class QrMenuPublicController extends Controller
 {
+    /**
+     * Vitrin (showcase) — misafir menü seçim ekranı
+     * GET /vitrin/{slug}
+     */
+    public function showcase(string $slug)
+    {
+        $showcase = MenuShowcase::where('slug', $slug)
+            ->where('is_active', true)
+            ->with(['items' => fn($q) => $q->orderBy('sort_order')->with('menu')])
+            ->firstOrFail();
+
+        return view('public.qrmenu.showcase', compact('showcase'));
+    }
+
     /**
      * Dil seçim ekranı (splash)
      * GET /menu/{slug}
