@@ -21,7 +21,7 @@
 	<meta name="description" content="@yield('page_description', $page_description ?? '')"/>
 	<meta property="og:title" content="balmyhotels | @yield('title', $page_title ?? '')" />
 	<meta property="og:description" content="{{ config('dz.name') }} | @yield('title', $page_title ?? '')" />
-	<meta property="og:image" content="public/images/logo.svg">
+	<meta property="og:image" content="{{ asset('images/logo.svg') }}">
 	<meta name="format-detection" content="telephone=no">
 
 	<!-- Mobile Specific -->
