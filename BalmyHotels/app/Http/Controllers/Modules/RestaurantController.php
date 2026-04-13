@@ -125,6 +125,59 @@ class RestaurantController extends BaseModuleController
         return back()->with('success', 'Masa eklendi.');
     }
 
+    public function storeBulkTables(Request $request, Restaurant $restaurant)
+    {
+        $request->validate([
+            'bulk_mode'  => 'required|in:auto,manual',
+            'prefix'     => 'required_if:bulk_mode,auto|nullable|string|max:30',
+            'from'       => 'required_if:bulk_mode,auto|nullable|integer|min:1|max:999',
+            'to'         => 'required_if:bulk_mode,auto|nullable|integer|min:1|max:999',
+            'names'      => 'required_if:bulk_mode,manual|nullable|string|max:5000',
+        ]);
+
+        $names = [];
+
+        if ($request->bulk_mode === 'auto') {
+            $from   = (int)$request->from;
+            $to     = (int)$request->to;
+            $prefix = trim($request->prefix);
+            if ($from > $to) [$from, $to] = [$to, $from];
+            if (($to - $from) > 199) {
+                return back()->withErrors(['to' => 'En fazla 200 masa tek seferde eklenebilir.']);
+            }
+            for ($i = $from; $i <= $to; $i++) {
+                $names[] = $prefix . ' ' . $i;
+            }
+        } else {
+            $lines = preg_split('/\r?\n/', $request->names ?? '');
+            foreach ($lines as $line) {
+                $line = trim($line);
+                if ($line !== '') {
+                    $names[] = mb_substr($line, 0, 50);
+                }
+            }
+            if (count($names) > 200) {
+                return back()->withErrors(['names' => 'En fazla 200 masa tek seferde eklenebilir.']);
+            }
+        }
+
+        if (empty($names)) {
+            return back()->withErrors(['bulk_mode' => 'Eklenecek masa adı bulunamadı.']);
+        }
+
+        // Sıra numarasını mevcut en yüksekten devam ettir
+        $sortStart = $restaurant->tables()->max('sort_order') + 1;
+
+        foreach (array_values($names) as $idx => $name) {
+            $restaurant->tables()->create([
+                'name'       => $name,
+                'sort_order' => $sortStart + $idx,
+            ]);
+        }
+
+        return back()->with('success', count($names) . ' masa başarıyla eklendi.');
+    }
+
     public function destroyTable(Restaurant $restaurant, RestaurantTable $table)
     {
         abort_if($table->restaurant_id !== $restaurant->id, 403);

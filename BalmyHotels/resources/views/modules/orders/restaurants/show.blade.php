@@ -49,26 +49,97 @@
 
             @if(auth()->user()->hasPermission('restaurant_settings','create'))
             <div class="card shadow-sm">
-                <div class="card-header"><h6 class="mb-0">Masa Ekle</h6></div>
-                <div class="card-body">
-                    <form method="POST" action="{{ route('orders.restaurants.tables.store', $restaurant) }}">
-                        @csrf
-                        <div class="mb-2">
-                            <label class="form-label small fw-semibold">Masa Adı <span class="text-danger">*</span></label>
-                            <input type="text" name="name" value="{{ old('name') }}"
-                                   class="form-control form-control-sm @error('name') is-invalid @enderror"
-                                   placeholder="Ör: Masa 1">
-                            @error('name')<div class="invalid-feedback">{{ $message }}</div>@enderror
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label small fw-semibold">Sıra</label>
-                            <input type="number" name="sort_order" value="{{ old('sort_order', 0) }}"
-                                   class="form-control form-control-sm" min="0">
-                        </div>
-                        <button type="submit" class="btn btn-sm text-white w-100" style="background:#c19b77">
-                            <i class="fa fa-plus me-1"></i> Ekle
-                        </button>
-                    </form>
+                <div class="card-header p-0">
+                    <ul class="nav nav-tabs card-header-tabs border-0 px-3" id="addTableTabs">
+                        <li class="nav-item">
+                            <button class="nav-link active px-3 py-2 small fw-semibold" data-bs-toggle="tab" data-bs-target="#tab-tek" type="button">Tek Ekle</button>
+                        </li>
+                        <li class="nav-item">
+                            <button class="nav-link px-3 py-2 small fw-semibold" data-bs-toggle="tab" data-bs-target="#tab-toplu" type="button">
+                                Toplu Ekle
+                            </button>
+                        </li>
+                    </ul>
+                </div>
+                <div class="card-body tab-content pt-3">
+
+                    {{-- Tek masa --}}
+                    <div class="tab-pane fade show active" id="tab-tek">
+                        <form method="POST" action="{{ route('orders.restaurants.tables.store', $restaurant) }}">
+                            @csrf
+                            <div class="mb-2">
+                                <label class="form-label small fw-semibold">Masa Adı <span class="text-danger">*</span></label>
+                                <input type="text" name="name" value="{{ old('name') }}"
+                                       class="form-control form-control-sm @error('name') is-invalid @enderror"
+                                       placeholder="Ör: Masa 1">
+                                @error('name')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label small fw-semibold">Sıra</label>
+                                <input type="number" name="sort_order" value="{{ old('sort_order', 0) }}"
+                                       class="form-control form-control-sm" min="0">
+                            </div>
+                            <button type="submit" class="btn btn-sm text-white w-100" style="background:#c19b77">
+                                <i class="fa fa-plus me-1"></i> Ekle
+                            </button>
+                        </form>
+                    </div>
+
+                    {{-- Toplu masa --}}
+                    <div class="tab-pane fade" id="tab-toplu">
+                        {{-- Otomatik oluştur --}}
+                        <form method="POST" action="{{ route('orders.restaurants.tables.store-bulk', $restaurant) }}" id="form-auto">
+                            @csrf
+                            <input type="hidden" name="bulk_mode" value="auto">
+                            <p class="small text-muted mb-2">Önek + numara aralığı girerek otomatik oluştur.</p>
+                            <div class="mb-2">
+                                <label class="form-label small fw-semibold">Önek</label>
+                                <input type="text" name="prefix" value="{{ old('prefix', 'Masa') }}"
+                                       class="form-control form-control-sm @error('prefix') is-invalid @enderror"
+                                       placeholder="Ör: Masa">
+                                @error('prefix')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                            </div>
+                            <div class="row g-2 mb-2">
+                                <div class="col">
+                                    <label class="form-label small fw-semibold">Başlangıç</label>
+                                    <input type="number" name="from" value="{{ old('from', 1) }}"
+                                           class="form-control form-control-sm @error('from') is-invalid @enderror"
+                                           min="1" max="999">
+                                    @error('from')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                                </div>
+                                <div class="col">
+                                    <label class="form-label small fw-semibold">Bitiş</label>
+                                    <input type="number" name="to" value="{{ old('to', 10) }}"
+                                           class="form-control form-control-sm @error('to') is-invalid @enderror"
+                                           min="1" max="999">
+                                    @error('to')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                                </div>
+                            </div>
+                            <div class="text-muted small mb-3" id="auto-preview">
+                                &rarr; <em>Masa 1, Masa 2, …, Masa 10</em> oluşturulacak
+                            </div>
+                            <button type="submit" class="btn btn-sm text-white w-100 mb-3" style="background:#c19b77">
+                                <i class="fa fa-layer-group me-1"></i> Otomatik Oluştur
+                            </button>
+                        </form>
+
+                        <hr class="my-2">
+
+                        {{-- Manuel liste --}}
+                        <form method="POST" action="{{ route('orders.restaurants.tables.store-bulk', $restaurant) }}">
+                            @csrf
+                            <input type="hidden" name="bulk_mode" value="manual">
+                            <label class="form-label small fw-semibold">Manuel Liste <span class="text-muted fw-normal">(her satır bir masa)</span></label>
+                            <textarea name="names" rows="5"
+                                      class="form-control form-control-sm @error('names') is-invalid @enderror"
+                                      placeholder="Veranda 1&#10;Veranda 2&#10;Bahçe 1&#10;VIP 1">{{ old('names') }}</textarea>
+                            @error('names')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                            <button type="submit" class="btn btn-sm text-white w-100 mt-2" style="background:#c19b77">
+                                <i class="fa fa-list me-1"></i> Listeden Ekle
+                            </button>
+                        </form>
+                    </div>
+
                 </div>
             </div>
             @endif
@@ -177,4 +248,39 @@
         </div>
     </div>
 </div>
+@push('scripts')
+<script>
+(function(){
+    const prefixEl = document.querySelector('#form-auto [name="prefix"]');
+    const fromEl   = document.querySelector('#form-auto [name="from"]');
+    const toEl     = document.querySelector('#form-auto [name="to"]');
+    const preview  = document.getElementById('auto-preview');
+
+    function updatePreview(){
+        const prefix = (prefixEl?.value ?? 'Masa').trim();
+        const from   = parseInt(fromEl?.value) || 1;
+        const to     = parseInt(toEl?.value)   || 1;
+        const lo = Math.min(from, to);
+        const hi = Math.max(from, to);
+        const count = hi - lo + 1;
+        if (count > 200) {
+            preview.innerHTML = '<span class="text-danger">En fazla 200 masa eklenebilir.</span>';
+            return;
+        }
+        const p = prefix ? prefix + ' ' : '';
+        if (count === 1) {
+            preview.innerHTML = `&rarr; <em>${p}${lo}</em> oluşturulacak`;
+        } else if (count <= 4) {
+            const names = Array.from({length: count}, (_, i) => p + (lo + i)).join(', ');
+            preview.innerHTML = `&rarr; <em>${names}</em> oluşturulacak`;
+        } else {
+            preview.innerHTML = `&rarr; <em>${p}${lo}, ${p}${lo+1}, …, ${p}${hi}</em> — toplam <strong>${count}</strong> masa`;
+        }
+    }
+
+    [prefixEl, fromEl, toEl].forEach(el => el?.addEventListener('input', updatePreview));
+    updatePreview();
+})();
+</script>
+@endpush
 @endsection

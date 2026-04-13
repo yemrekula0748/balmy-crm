@@ -687,6 +687,7 @@ Route::middleware('auth')->group(function () {
             Route::put('/{restaurant}',                                   [RestaurantController::class, 'update'])->name('update');
             Route::delete('/{restaurant}',                                [RestaurantController::class, 'destroy'])->name('destroy');
             Route::post('/{restaurant}/masalar',                          [RestaurantController::class, 'storeTable'])->name('tables.store');
+            Route::post('/{restaurant}/masalar-toplu',                    [RestaurantController::class, 'storeBulkTables'])->name('tables.store-bulk');
             Route::delete('/{restaurant}/masalar/{table}',                [RestaurantController::class, 'destroyTable'])->name('tables.destroy');
             Route::post('/{restaurant}/yazicilar',                        [RestaurantController::class, 'savePrinters'])->name('printers.save');
         });
