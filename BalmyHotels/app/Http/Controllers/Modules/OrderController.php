@@ -122,37 +122,45 @@ class OrderController extends BaseModuleController
         abort_if(!$session->is_open, 403, 'Kapalı masaya sipariş eklenemez.');
 
         $request->validate([
-            'items'                       => 'required|array|min:1',
-            'items.*.qr_menu_item_id'     => 'required|exists:qr_menu_items,id',
-            'items.*.quantity'            => 'required|integer|min:1|max:99',
-            'items.*.note'                => 'nullable|string|max:500',
-            'note'                        => 'nullable|string|max:500',
-            'course_number'               => 'required|integer|min:1|max:99',
+            'items'                        => 'required|array|min:1',
+            'items.*.qr_menu_item_id'      => 'required|exists:qr_menu_items,id',
+            'items.*.quantity'             => 'required|integer|min:1|max:99',
+            'items.*.note'                 => 'nullable|string|max:500',
+            'items.*.course_number'        => 'required|integer|min:1|max:99',
+            'note'                         => 'nullable|string|max:500',
         ]);
 
-        $order = RestaurantOrder::create([
-            'table_session_id' => $session->id,
-            'course_number'    => (int)$request->course_number,
-            'note'             => $request->note,
-            'created_by'       => auth()->id(),
-        ]);
+        // Her kors için ayrı RestaurantOrder oluştur
+        $itemsByCourse = collect($request->items)->groupBy('course_number')->sortKeys();
+        $createdOrders = collect();
 
-        foreach ($request->items as $itemData) {
-            $menuItem = QrMenuItem::find($itemData['qr_menu_item_id']);
-            if (!$menuItem) continue;
-
-            RestaurantOrderItem::create([
-                'order_id'        => $order->id,
-                'qr_menu_item_id' => $menuItem->id,
-                'item_name'       => $menuItem->getTitle('tr'),
-                'unit_price'      => $menuItem->effectivePrice(),
-                'quantity'        => (int)$itemData['quantity'],
-                'note'            => $itemData['note'] ?? null,
+        foreach ($itemsByCourse as $courseNumber => $courseItems) {
+            $order = RestaurantOrder::create([
+                'table_session_id' => $session->id,
+                'course_number'    => (int)$courseNumber,
+                'note'             => $request->note,
+                'created_by'       => auth()->id(),
             ]);
+
+            foreach ($courseItems as $itemData) {
+                $menuItem = QrMenuItem::find($itemData['qr_menu_item_id']);
+                if (!$menuItem) continue;
+
+                RestaurantOrderItem::create([
+                    'order_id'        => $order->id,
+                    'qr_menu_item_id' => $menuItem->id,
+                    'item_name'       => $menuItem->getTitle('tr'),
+                    'unit_price'      => $menuItem->effectivePrice(),
+                    'quantity'        => (int)$itemData['quantity'],
+                    'note'            => $itemData['note'] ?? null,
+                ]);
+            }
+
+            $createdOrders->push($order);
         }
 
-        // Termal yazıcılara arka planda gönder
-        $printResult = (new ThermalPrintService())->printOrder($order);
+        // Tüm korsları bir arada, kors başlıklarıyla yazıcılara gönder
+        $printResult = (new ThermalPrintService())->printOrders($createdOrders);
 
         if (!empty($printResult['success'])) {
             session()->flash('print_success', $printResult['success']);

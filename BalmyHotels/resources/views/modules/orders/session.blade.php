@@ -205,7 +205,6 @@
                 @csrf
                 <div id="form-items-container"></div>
                 <input type="hidden" name="note" id="order-note">
-                <input type="hidden" name="course_number" id="order-course-number" value="{{ $nextCourse }}">
             </form>
 
             {{-- Geçmiş siparişler --}}
@@ -328,6 +327,7 @@
                     <div class="flex-grow-1">
                         <span class="fw-semibold small">${item.name}</span>
                         <span class="text-muted small ms-1">×${item.qty}</span>
+                        <span class="badge text-white ms-1" style="background:#c19b77;font-size:.65rem">${item.course}. Kors</span>
                         ${item.note ? `<div class="text-muted" style="font-size:.72rem">📝 ${item.note}</div>` : ''}
                     </div>
                     <div class="d-flex align-items-center gap-2">
@@ -378,13 +378,15 @@
             const price= parseFloat(row.dataset.price) || 0;
             const qty  = parseInt(row.querySelector('.qty-input').value) || 1;
             const note = row.querySelector('.note-input').value.trim();
+            const activeCourseBtn = document.querySelector('.kors-btn.text-white');
+            const course = activeCourseBtn ? parseInt(activeCourseBtn.dataset.kors) : 1;
 
-            // Aynı ürün+aynı not varsa Qt artır
-            const existing = cart.find(i => i.id === id && i.note === note);
+            // Aynı ürün+aynı not+aynı kors varsa Qt artır
+            const existing = cart.find(i => i.id === id && i.note === note && i.course === course);
             if(existing){
                 existing.qty += qty;
             } else {
-                cart.push({id, name, price, qty, note});
+                cart.push({id, name, price, qty, note, course});
             }
             row.querySelector('.qty-input').value = 1;
             row.querySelector('.note-input').value = '';
@@ -424,11 +426,9 @@
             container.innerHTML += `
                 <input type="hidden" name="items[${idx}][qr_menu_item_id]" value="${item.id}">
                 <input type="hidden" name="items[${idx}][quantity]"       value="${item.qty}">
-                <input type="hidden" name="items[${idx}][note]"           value="${item.note}">`;
+                <input type="hidden" name="items[${idx}][note]"           value="${item.note}">
+                <input type="hidden" name="items[${idx}][course_number]"  value="${item.course}">`;
         });
-        // Aktif kors numarasını forma yaz
-        const activeKorsBtn = document.querySelector('.kors-btn.text-white');
-        document.getElementById('order-course-number').value = activeKorsBtn ? activeKorsBtn.dataset.kors : 1;
         document.getElementById('order-form').submit();
     });
 

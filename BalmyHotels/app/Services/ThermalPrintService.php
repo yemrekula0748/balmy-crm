@@ -97,6 +97,203 @@ class ThermalPrintService
     }
 
     // -------------------------------------------------------------------------
+    // Çoklu kors — tüm siparişleri yazıcı başına, kors bölümleriyle yazdır
+    // -------------------------------------------------------------------------
+
+    /**
+     * Birden fazla RestaurantOrder (farklı kors numaraları) alır;
+     * her yazıcıya tek fiş gönderir ve içinde korsları ayraçlarla listeler.
+     *
+     * @param  \Illuminate\Support\Collection<RestaurantOrder> $orders
+     * @return array{success: string[], failed: string[]}
+     */
+    public function printOrders(\Illuminate\Support\Collection $orders): array
+    {
+        if ($orders->isEmpty()) return ['success' => [], 'failed' => []];
+
+        $orders->each(fn($o) => $o->loadMissing([
+            'items.menuItem.foodProduct.printer',
+            'creator',
+            'session.table.restaurant.branch',
+        ]));
+
+        $firstOrder = $orders->sortBy('course_number')->first();
+        $session    = $firstOrder->session;
+        $table      = $session->table;
+        $restaurant = $table->restaurant;
+        $branch     = $restaurant->branch;
+
+        $restaurantPrinterMap = RestaurantItemPrinter::where('restaurant_id', $restaurant->id)
+            ->pluck('printer_id', 'qr_menu_item_id');
+
+        // Tüm kalemleri order ile birlikte düzleştir
+        $allPairs = $orders->flatMap(fn($order) =>
+            $order->items->map(fn($item) => ['item' => $item, 'order' => $order])
+        );
+
+        // Yazıcıya göre grupla
+        $printerGroups = $allPairs->groupBy(function ($pair) use ($restaurantPrinterMap) {
+            $menuItemId = $pair['item']->qr_menu_item_id;
+            if ($menuItemId && $restaurantPrinterMap->has($menuItemId)) {
+                return $restaurantPrinterMap[$menuItemId];
+            }
+            return optional($pair['item']->menuItem?->foodProduct)->printer_id ?? 0;
+        });
+
+        $result = ['success' => [], 'failed' => []];
+
+        foreach ($printerGroups as $printerId => $pairs) {
+            if ($printerId == 0) {
+                Log::info("Sipariş grubu: {$pairs->count()} kalem yazıcısız — atlandı.");
+                continue;
+            }
+
+            $printer = Printer::find($printerId);
+            if (!$printer || !$printer->is_active || !$printer->ip_address) {
+                $result['failed'][] = $printer?->name ?? "Yazıcı #$printerId";
+                continue;
+            }
+
+            try {
+                // Bu yazıcıya gelen kalemleri kors sırasına göre grupla
+                $courseGroups = $pairs->groupBy(fn($p) => $p['order']->course_number)->sortKeys();
+
+                // Başka yazıcılara giden kalemler (bilgi amaçlı alt bölüm)
+                $otherPairs = $allPairs->filter(function ($pair) use ($printerId, $restaurantPrinterMap) {
+                    $menuItemId = $pair['item']->qr_menu_item_id;
+                    if ($menuItemId && $restaurantPrinterMap->has($menuItemId)) {
+                        return $restaurantPrinterMap[$menuItemId] !== $printerId;
+                    }
+                    $pid = optional($pair['item']->menuItem?->foodProduct)->printer_id ?? 0;
+                    return $pid !== $printerId;
+                });
+
+                $data = $this->buildMultiCourseReceipt(
+                    $firstOrder, $courseGroups, $printer, $restaurant, $branch, $table, $otherPairs
+                );
+                $this->sendTcp($printer->ip_address, self::PORT, $data);
+                $result['success'][] = $printer->name;
+            } catch (\Throwable $e) {
+                Log::warning("Termal yazıcı hatası [{$printer->name} | {$printer->ip_address}]: {$e->getMessage()}");
+                $result['failed'][] = $printer->name;
+            }
+        }
+
+        return $result;
+    }
+
+    // -------------------------------------------------------------------------
+    // ESC/POS fiş — kors bölümlü
+    // -------------------------------------------------------------------------
+
+    private function buildMultiCourseReceipt(
+        RestaurantOrder $firstOrder,
+        $courseGroups,
+        Printer $printer,
+        $restaurant,
+        $branch,
+        $table,
+        $otherPairs = null
+    ): string {
+        $E  = self::ESC;
+        $G  = self::GS;
+        $LF = self::LF;
+
+        $codepage = $printer->codepage ?? 32;
+        $buf = '';
+
+        // ── Başlat + codepage ──────────────────────────────────────────────
+        $buf .= $E . '@';
+        $buf .= $E . 't' . chr($codepage);
+
+        // ── Başlık ────────────────────────────────────────────────────────
+        $buf .= $E . 'a' . "\x01";  // Ortala
+
+        if ($branch) {
+            $buf .= $G . '!' . "\x00";
+            $buf .= $E . 'E' . "\x01";
+            $buf .= $this->enc($branch->name, $codepage) . $LF;
+            $buf .= $E . 'E' . "\x00";
+        }
+
+        $buf .= $G . '!' . "\x11";
+        $buf .= $E . 'E' . "\x01";
+        $buf .= $this->enc($restaurant->name, $codepage) . $LF;
+        $buf .= $E . 'E' . "\x00";
+        $buf .= $G . '!' . "\x00";
+        $buf .= $LF;
+
+        $buf .= $E . 'E' . "\x01";
+        $buf .= $this->enc('[ ' . mb_strtoupper($printer->name) . ' ]', $codepage) . $LF;
+        $buf .= $E . 'E' . "\x00";
+        $buf .= $LF;
+
+        // ── Masa / Garson / Tarih ─────────────────────────────────────────
+        $buf .= $E . 'a' . "\x00";
+        $buf .= str_repeat('-', 32) . $LF;
+        $buf .= $this->row('MASA',   $this->enc($table->name, $codepage));
+        $buf .= $this->row('GARSON', $this->enc(optional($firstOrder->creator)->name ?? '-', $codepage));
+        $buf .= $this->row('TARIH',  $firstOrder->created_at->format('d.m.Y H:i:s'));
+        $buf .= str_repeat('=', 32) . $LF;
+        $buf .= $LF;
+
+        // ── Kors bölümleri ────────────────────────────────────────────────
+        foreach ($courseGroups as $courseNumber => $pairs) {
+            // Kors başlığı — ortalı + kalın
+            $buf .= $E . 'a' . "\x01";
+            $buf .= $E . 'E' . "\x01";
+            $buf .= $this->enc('---- ' . $courseNumber . '. KORS ----', $codepage) . $LF;
+            $buf .= $E . 'E' . "\x00";
+            $buf .= $E . 'a' . "\x00";
+            $buf .= $LF;
+
+            foreach ($pairs as $pair) {
+                $item = $pair['item'];
+                $buf .= $G . '!' . "\x01";
+                $buf .= $E . 'E' . "\x01";
+                $buf .= $this->enc($item->quantity . 'x  ' . $item->item_name, $codepage) . $LF;
+                $buf .= $E . 'E' . "\x00";
+                $buf .= $G . '!' . "\x00";
+
+                if (!empty($item->note)) {
+                    $buf .= $this->enc('    >> ' . $item->note, $codepage) . $LF;
+                }
+            }
+
+            $buf .= $LF;
+            $buf .= str_repeat('-', 32) . $LF;
+            $buf .= $LF;
+        }
+
+        // ── Diğer yazıcıların kalemleri (bilgi) ──────────────────────────
+        if ($otherPairs && $otherPairs->isNotEmpty()) {
+            $buf .= $E . 'a' . "\x01";
+            $buf .= $E . 'E' . "\x01";
+            $buf .= $this->enc('DIGER SIPARISLER') . $LF;
+            $buf .= $E . 'E' . "\x00";
+            $buf .= $E . 'a' . "\x00";
+            $buf .= $LF;
+
+            foreach ($otherPairs as $pair) {
+                $item = $pair['item'];
+                $buf .= $G . '!' . "\x00";
+                $buf .= $E . 'E' . "\x00";
+                $buf .= $this->enc($item->quantity . 'x  ' . $item->item_name, $codepage) . $LF;
+                if (!empty($item->note)) {
+                    $buf .= $this->enc('    >> ' . $item->note, $codepage) . $LF;
+                }
+            }
+            $buf .= $LF;
+        }
+
+        // ── Kes ──────────────────────────────────────────────────────────
+        $buf .= $E . 'd' . "\x04";
+        $buf .= $G . 'V' . "\x42" . "\x00";
+
+        return $buf;
+    }
+
+    // -------------------------------------------------------------------------
     // ESC/POS fiş oluştur
     // -------------------------------------------------------------------------
 
