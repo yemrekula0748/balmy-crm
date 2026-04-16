@@ -1023,31 +1023,7 @@
             @endif
             @endif
 
-            {{-- Zamanlanmış Görevler (24s) --}}
-            @if(!empty($snap->scheduled_tasks_24h))
-            <div style="margin-top:1.5rem">
-                <div class="tw-section-title">
-                    <i class="fas fa-clock" style="color:#64748b"></i>Yeni Zamanlanmış Görevler (son 24s)
-                    <span class="tw-chip tw-chip-gray" style="font-size:.7rem">{{ count($snap->scheduled_tasks_24h) }}</span>
-                </div>
-                <div style="overflow-x:auto">
-                    <table class="tw-table">
-                        <thead><tr><th>ZAMAN</th><th>OLAY ID</th><th>GÖREV ADI</th><th>AKSİYON</th><th>KULLANICI</th></tr></thead>
-                        <tbody>
-                            @foreach($snap->scheduled_tasks_24h as $task)
-                            <tr>
-                                <td style="white-space:nowrap;font-size:.8rem">{{ $fmtDate($task['time'] ?? '') }}</td>
-                                <td><code style="font-size:.75rem">{{ $task['event_id'] ?? '—' }}</code></td>
-                                <td style="font-weight:500">{{ $task['task_name'] ?? '—' }}</td>
-                                <td>{{ $task['action'] ?? '—' }}</td>
-                                <td style="color:#94a3b8">{{ $task['user'] ?? '—' }}</td>
-                            </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-            @endif
+            {{-- Zamanlanmış Görevler (24s) — gizlendi --}}
 
             {{-- Admin Girişleri (1s) --}}
             @if(!empty($snap->admin_logins_1h))
@@ -1113,10 +1089,14 @@
                 <i class="fas fa-desktop" style="color:#fff;font-size:.8rem"></i>
             </div>
             <span style="font-weight:600;font-size:.9375rem;color:#1e293b">Ekran Görüntüsü</span>
-            <div style="margin-left:auto">
+            <div style="margin-left:auto;display:flex;gap:.5rem">
                 <button id="screenshotBtn" type="button" onclick="requestScreenshot()"
                         style="display:inline-flex;align-items:center;gap:.375rem;border-radius:.5rem;padding:.375rem .875rem;font-size:.8125rem;font-weight:500;background:#1e293b;color:#fff;border:none;cursor:pointer">
                     <i class="fas fa-camera" style="font-size:.7rem"></i>Ekranı Göster
+                </button>
+                <button id="clearScreenshotBtn" type="button" onclick="clearScreenshot()"
+                        style="display:inline-flex;align-items:center;gap:.375rem;border-radius:.5rem;padding:.375rem .875rem;font-size:.8125rem;font-weight:500;background:#ef4444;color:#fff;border:none;cursor:pointer">
+                    <i class="fas fa-trash" style="font-size:.7rem"></i>Resmi Temizle
                 </button>
             </div>
         </div>
@@ -1387,6 +1367,31 @@ function _ssResetBtn() {
     const btn = document.getElementById('screenshotBtn');
     btn.disabled = false;
     btn.innerHTML = '<i class="fas fa-camera" style="font-size:.7rem"></i>Ekranı Göster';
+}
+
+function clearScreenshot() {
+    if (!confirm('Ekran görüntüsü silinsin mi?')) return;
+    const btn = document.getElementById('clearScreenshotBtn');
+    btn.disabled = true;
+    fetch('{{ route('it.agent.clear-screenshots', $agentComputer) }}', {
+        method: 'DELETE',
+        headers: {
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+            'Accept': 'application/json'
+        }
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            const img   = document.getElementById('screenshotImg');
+            const meta  = document.getElementById('screenshotMeta');
+            const empty = document.getElementById('screenshotEmpty');
+            if (img)   { img.src = ''; img.style.display = 'none'; }
+            if (meta)  { meta.style.display = 'none'; }
+            if (empty) { empty.style.display = 'block'; }
+        }
+    })
+    .finally(() => { btn.disabled = false; });
 }
 // ── /Screenshot ─────────────────────────────────────────────
 

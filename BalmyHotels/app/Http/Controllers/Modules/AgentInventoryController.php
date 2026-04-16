@@ -226,6 +226,12 @@ class AgentInventoryController extends BaseModuleController
         return response()->json(['success' => true, 'command_id' => $command->id]);
     }
 
+    public function clearScreenshots(AgentComputer $agentComputer)
+    {
+        $agentComputer->screenshots()->delete();
+        return response()->json(['success' => true]);
+    }
+
     public function latestScreenshot(Request $request, AgentComputer $agentComputer)
     {
         $query = $agentComputer->screenshots();

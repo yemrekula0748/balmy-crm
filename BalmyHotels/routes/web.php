@@ -773,6 +773,7 @@ Route::middleware('auth')->group(function () {
         Route::get('ajan-envanter/{agentComputer}/tarayici-gecmisi',   [\App\Http\Controllers\Modules\AgentInventoryController::class, 'browserHistory'])->name('agent.browser-history');
         Route::post('ajan-envanter/{agentComputer}/komut',             [\App\Http\Controllers\Modules\AgentInventoryController::class, 'sendCommand'])->name('agent.send-command');
         Route::post('ajan-envanter/{agentComputer}/screenshot',        [\App\Http\Controllers\Modules\AgentInventoryController::class, 'requestScreenshot'])->name('agent.request-screenshot');
+        Route::delete('ajan-envanter/{agentComputer}/screenshot',       [\App\Http\Controllers\Modules\AgentInventoryController::class, 'clearScreenshots'])->name('agent.clear-screenshots');
         Route::get('ajan-envanter/{agentComputer}/son-ekran',          [\App\Http\Controllers\Modules\AgentInventoryController::class, 'latestScreenshot'])->name('agent.latest-screenshot');
         Route::get('ajan-envanter/{agentComputer}/vnc',                [\App\Http\Controllers\Modules\VncBrowserController::class, 'show'])->name('agent.vnc');
         Route::post('ajan-envanter/{agentComputer}/vnc/connect',       [\App\Http\Controllers\Modules\VncBrowserController::class, 'connect'])->name('agent.vnc.connect');
