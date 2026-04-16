@@ -1199,9 +1199,9 @@
             </div>
             <span style="font-weight:600;font-size:.9375rem;color:#1e293b">Tüm Ekran Görüntüleri</span>
             <span class="tw-chip tw-chip-gray" style="margin-left:.5rem;font-size:.7rem">{{ $allScreenshots->count() }}</span>
-            <i id="allSsToggleIcon" class="fas fa-chevron-down" style="margin-left:auto;color:#94a3b8;font-size:.75rem"></i>
+            <i id="allSsToggleIcon" class="fas fa-chevron-up" style="margin-left:auto;color:#94a3b8;font-size:.75rem"></i>
         </div>
-        <div id="allSsPanel" style="display:none;padding:1.25rem 1.5rem">
+        <div id="allSsPanel" style="display:block;padding:1.25rem 1.5rem">
             <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:1rem">
                 @foreach($allScreenshots as $ss)
                 <div style="position:relative">
