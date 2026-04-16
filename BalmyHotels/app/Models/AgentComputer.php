@@ -13,6 +13,7 @@ class AgentComputer extends Model
         'is_domain_joined', 'domain_name', 'workgroup_name', 'domain_controller',
         'current_users', 'last_boot_time', 'uptime_seconds', 'uptime_display',
         'agent_version', 'reported_at', 'last_seen_at',
+        'wifi_ssid', 'last_screenshot_at',
     ];
 
     protected $casts = [
@@ -77,6 +78,16 @@ class AgentComputer extends Model
     public function fileEvents()
     {
         return $this->hasMany(AgentComputerFileEvent::class, 'agent_computer_id');
+    }
+
+    public function programEvents()
+    {
+        return $this->hasMany(AgentComputerProgramEvent::class, 'agent_computer_id');
+    }
+
+    public function usbDevices()
+    {
+        return $this->hasMany(AgentComputerUsbDevice::class, 'agent_computer_id');
     }
 
     public function deletions()

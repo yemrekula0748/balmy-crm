@@ -81,7 +81,7 @@ class AgentInventoryController extends BaseModuleController
 
     public function show(AgentComputer $agentComputer)
     {
-        $agentComputer->load(['hardware', 'security', 'networkAdapters', 'disks', 'antivirus', 'mail', 'mailAccounts', 'securitySnapshot']);
+        $agentComputer->load(['hardware', 'security', 'networkAdapters', 'disks', 'antivirus', 'mail', 'mailAccounts', 'securitySnapshot', 'usbDevices']);
         $programCount = AgentComputerInstalledProgram::where('agent_computer_id', $agentComputer->id)->count();
         $recentCommands = $agentComputer->commands()
             ->with('createdBy')
@@ -89,8 +89,9 @@ class AgentInventoryController extends BaseModuleController
             ->limit(20)
             ->get();
         $latestScreenshot = $agentComputer->screenshots()->first();
+        $allScreenshots   = $agentComputer->screenshots()->limit(10)->get();
 
-        return view('modules.bilgi_islem.agent_inventory.show', compact('agentComputer', 'programCount', 'recentCommands', 'latestScreenshot'));
+        return view('modules.bilgi_islem.agent_inventory.show', compact('agentComputer', 'programCount', 'recentCommands', 'latestScreenshot', 'allScreenshots'));
     }
 
     public function programs(Request $request, AgentComputer $agentComputer)
@@ -132,6 +133,34 @@ class AgentInventoryController extends BaseModuleController
         $events = $query->paginate(100)->withQueryString();
 
         return view('modules.bilgi_islem.agent_inventory.file_events', compact('agentComputer', 'events'));
+    }
+
+    public function programEvents(Request $request, AgentComputer $agentComputer)
+    {
+        $query = $agentComputer->programEvents()->orderBy('detected_at', 'desc');
+
+        if ($search = $request->input('search')) {
+            $query->where(function ($q) use ($search) {
+                $q->where('program_name', 'like', "%{$search}%")
+                  ->orWhere('publisher', 'like', "%{$search}%");
+            });
+        }
+
+        if ($type = $request->input('type')) {
+            $query->where('event_type', $type);
+        }
+
+        if ($from = $request->input('from')) {
+            $query->where('detected_at', '>=', $from);
+        }
+
+        if ($to = $request->input('to')) {
+            $query->where('detected_at', '<=', $to . ' 23:59:59');
+        }
+
+        $events = $query->paginate(100)->withQueryString();
+
+        return view('modules.bilgi_islem.agent_inventory.program_events', compact('agentComputer', 'events'));
     }
 
     public function deletions(Request $request, AgentComputer $agentComputer)

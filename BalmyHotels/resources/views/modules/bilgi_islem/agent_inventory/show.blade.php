@@ -123,6 +123,10 @@
                     <i class="fas fa-list" style="font-size:.75rem"></i>Kurulu Programlar
                     <span style="background:rgba(255,255,255,.2);border-radius:9999px;padding:.05rem .45rem;font-size:.7rem">{{ $programCount }}</span>
                 </a>
+                <a href="{{ route('it.agent.program-events', $agentComputer) }}"
+                   class="tw-btn-ghost" style="color:#a5b4fc!important;border-color:rgba(99,102,241,.3);background:rgba(99,102,241,.1)">
+                    <i class="fas fa-boxes" style="font-size:.75rem"></i>Program Değişiklikleri
+                </a>
                 <a href="{{ route('it.agent.file-events', $agentComputer) }}"
                    class="tw-btn-ghost" style="color:#fca5a5!important;border-color:rgba(239,68,68,.3);background:rgba(239,68,68,.1)">
                     <i class="fas fa-trash-alt" style="font-size:.75rem"></i>Dosya Silme Logları
@@ -181,6 +185,17 @@
                     <i class="fas fa-network-wired me-1"></i>IP Adresi
                 </div>
                 <div style="font-size:1rem;font-weight:600;color:#fff;font-family:monospace">{{ $primaryIp }}</div>
+            </div>
+        </div>
+        @endif
+
+        @if($agentComputer->wifi_ssid)
+        <div class="col-auto">
+            <div class="tw-metric">
+                <div style="font-size:.7rem;color:#64748b;text-transform:uppercase;letter-spacing:.06em;margin-bottom:.3rem">
+                    <i class="fas fa-wifi me-1"></i>WiFi
+                </div>
+                <div style="font-size:.9rem;font-weight:600;color:#fff">{{ $agentComputer->wifi_ssid }}</div>
             </div>
         </div>
         @endif
@@ -851,7 +866,37 @@
             @endif
 
             {{-- USB Geçmişi --}}
-            @if(!empty($snap->usb_history))
+            @if($agentComputer->usbDevices->isNotEmpty())
+            <div style="margin-top:1.5rem">
+                <div class="tw-section-title">
+                    <i class="fas fa-usb" style="color:#64748b"></i>USB Aygıt Geçmişi
+                    <span class="tw-chip tw-chip-gray" style="font-size:.7rem">{{ $agentComputer->usbDevices->count() }}</span>
+                </div>
+                <div style="overflow-x:auto">
+                    <table class="tw-table">
+                        <thead><tr><th>AYGIT ADI</th><th>AYGIT ID</th><th>TÜR</th><th>İLK BAĞLANTI</th><th>SON BAĞLANTI</th></tr></thead>
+                        <tbody>
+                            @foreach($agentComputer->usbDevices->sortByDesc('last_connected') as $usb)
+                            <tr>
+                                <td style="font-weight:500">
+                                    <i class="fas fa-usb me-1" style="color:#94a3b8;font-size:.75rem"></i>{{ $usb->friendly_name ?? '—' }}
+                                </td>
+                                <td style="color:#94a3b8;font-size:.7rem">{{ $usb->device_id ?? '—' }}</td>
+                                <td style="color:#94a3b8">{{ $usb->type ?? '—' }}</td>
+                                <td style="font-size:.78rem;white-space:nowrap">
+                                    {{ $usb->first_connected ? $usb->first_connected->format('d.m.Y H:i') : '—' }}
+                                </td>
+                                <td style="font-size:.78rem;white-space:nowrap">
+                                    {{ $usb->last_connected ? $usb->last_connected->format('d.m.Y H:i') : '—' }}
+                                </td>
+                            </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            @elseif(!empty($snap->usb_history))
+            {{-- Fallback: eski snapshot verisi (tarih yok) --}}
             <div style="margin-top:1.5rem">
                 <div class="tw-section-title">
                     <i class="fas fa-usb" style="color:#64748b"></i>USB Geçmişi
@@ -1144,6 +1189,40 @@
 </div>
 {{-- /ekran görüntüsü --}}
 
+{{-- ========== TÜM EKRAN GÖRÜNTÜLERİ ========== --}}
+@if($allScreenshots->count() > 1)
+<div class="col-12">
+    <div class="tw-card">
+        <div class="tw-card-header" style="cursor:pointer" onclick="toggleAllScreenshots()">
+            <div style="width:36px;height:36px;border-radius:.625rem;background:#1e293b;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+                <i class="fas fa-images" style="color:#94a3b8;font-size:.85rem"></i>
+            </div>
+            <span style="font-weight:600;font-size:.9375rem;color:#1e293b">Tüm Ekran Görüntüleri</span>
+            <span class="tw-chip tw-chip-gray" style="margin-left:.5rem;font-size:.7rem">{{ $allScreenshots->count() }}</span>
+            <i id="allSsToggleIcon" class="fas fa-chevron-down" style="margin-left:auto;color:#94a3b8;font-size:.75rem"></i>
+        </div>
+        <div id="allSsPanel" style="display:none;padding:1.25rem 1.5rem">
+            <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:1rem">
+                @foreach($allScreenshots as $ss)
+                <div style="position:relative">
+                    <img src="{{ $ss->image_url }}" class="img-fluid rounded shadow"
+                         style="width:100%;height:140px;object-fit:cover;cursor:pointer"
+                         onclick="window.open(this.src,'_blank')" alt="Ekran Görüntüsü">
+                    <div style="margin-top:.375rem;font-size:.75rem;color:#64748b">
+                        {{ $ss->captured_at->format('d.m.Y H:i:s') }}
+                        @if(!$ss->command_id)
+                            <span class="tw-chip tw-chip-blue" style="font-size:.65rem;margin-left:.25rem">Otomatik</span>
+                        @endif
+                    </div>
+                </div>
+                @endforeach
+            </div>
+        </div>
+    </div>
+</div>
+@endif
+{{-- /tüm ekran görüntüleri --}}
+
 {{-- ========== UZAK KOMUT ========== --}}
 <div class="col-12">
 
@@ -1398,6 +1477,15 @@ function clearScreenshot() {
     .finally(() => { btn.disabled = false; });
 }
 // ── /Screenshot ─────────────────────────────────────────────
+
+function toggleAllScreenshots() {
+    const panel = document.getElementById('allSsPanel');
+    const icon  = document.getElementById('allSsToggleIcon');
+    const open  = panel.style.display === 'none';
+    panel.style.display = open ? 'block' : 'none';
+    icon.className = open ? 'fas fa-chevron-up' : 'fas fa-chevron-down';
+    icon.style.color = '#94a3b8';
+}
 
 function updateCmdForm(type) {
     const payloadGroup = document.getElementById('payloadGroup');

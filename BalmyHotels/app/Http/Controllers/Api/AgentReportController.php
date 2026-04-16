@@ -13,6 +13,8 @@ use App\Models\AgentComputerInstalledProgram;
 use App\Models\AgentComputerMail;
 use App\Models\AgentComputerMailAccount;
 use App\Models\AgentComputerSecuritySnapshot;
+use App\Models\AgentComputerProgramEvent;
+use App\Models\AgentComputerUsbDevice;
 use App\Models\Computer;
 use App\Models\ComputerSecuritySnapshot;
 use Illuminate\Http\Request;
@@ -55,6 +57,7 @@ class AgentReportController extends Controller
                     'workgroup_name'       => $domainData['workgroup_name'] ?? null,
                     'domain_controller'    => $domainData['domain_controller'] ?? null,
                     'last_seen_at'         => now(),
+                    'wifi_ssid'            => $request->input('wifi_ssid'),
                 ]
             );
 
@@ -141,9 +144,65 @@ class AgentReportController extends Controller
                 AgentComputerAntivirus::insert($rows);
             }
 
-            // 7) Kurulu programlar — sil + chunk insert (100'er)
+            // 7) Kurulu programlar — değişiklik tespiti + sil + chunk insert (100'er)
+            $programs = $request->input('installed_programs', []);
+            if (!empty($programs)) {
+                // İlk rapordan sonraki değişiklikleri tespit et
+                $existingPrograms = AgentComputerInstalledProgram::where('agent_computer_id', $computer->id)
+                    ->get(['name', 'version', 'publisher']);
+
+                $existingByName = $existingPrograms
+                    ->keyBy(fn($p) => strtolower(trim($p->name)));
+
+                $incomingByName = collect($programs)
+                    ->filter(fn($p) => !empty($p['name']))
+                    ->keyBy(fn($p) => strtolower(trim($p['name'])));
+
+                $now        = now();
+                $eventRows  = [];
+
+                // Yeni kurulu programlar (DB'de yok, raporda var)
+                if ($existingByName->isNotEmpty()) {
+                    foreach ($incomingByName as $key => $p) {
+                        if (!$existingByName->has($key)) {
+                            $eventRows[] = [
+                                'agent_computer_id' => $computer->id,
+                                'event_type'        => 'installed',
+                                'program_name'      => $p['name'],
+                                'version'           => $p['version'] ?? null,
+                                'publisher'         => $p['publisher'] ?? null,
+                                'detected_at'       => $now,
+                                'created_at'        => $now,
+                                'updated_at'        => $now,
+                            ];
+                        }
+                    }
+
+                    // Kaldırılan programlar (DB'de var, raporda yok)
+                    foreach ($existingByName as $key => $prog) {
+                        if (!$incomingByName->has($key)) {
+                            $eventRows[] = [
+                                'agent_computer_id' => $computer->id,
+                                'event_type'        => 'removed',
+                                'program_name'      => $prog->name,
+                                'version'           => $prog->version,
+                                'publisher'         => $prog->publisher,
+                                'detected_at'       => $now,
+                                'created_at'        => $now,
+                                'updated_at'        => $now,
+                            ];
+                        }
+                    }
+                }
+
+                if (!empty($eventRows)) {
+                    AgentComputerProgramEvent::insert($eventRows);
+                }
+            }
+
+            // Program tablosunu güncelle (sil + yeniden ekle)
             AgentComputerInstalledProgram::where('agent_computer_id', $computer->id)->delete();
-            if ($programs = $request->input('installed_programs', [])) {
+            if (!empty($programs)) {
                 $now    = now();
                 $chunks = array_chunk($programs, 100);
                 foreach ($chunks as $chunk) {
@@ -235,6 +294,37 @@ class AgentReportController extends Controller
                     ['agent_computer_id' => $computer->id],
                     $snapshotData
                 );
+
+                // 9a) USB geçmişini kalıcı tabloya upsert et (tarihleriyle birlikte)
+                $usbHistory = $threats['usb_history'] ?? [];
+                if (!empty($usbHistory)) {
+                    $now = now();
+                    $usbRows = [];
+                    foreach ($usbHistory as $usb) {
+                        $deviceId = $usb['device_id'] ?? null;
+                        if (!$deviceId) continue;
+
+                        $usbRows[] = [
+                            'agent_computer_id' => $computer->id,
+                            'device_id'         => mb_substr((string)$deviceId, 0, 300),
+                            'friendly_name'     => isset($usb['friendly_name']) ? mb_substr($usb['friendly_name'], 0, 400) : null,
+                            'type'              => isset($usb['type']) ? mb_substr($usb['type'], 0, 400) : null,
+                            'first_connected'   => $usb['first_connected'] ?? null,
+                            'last_connected'    => $usb['last_connected'] ?? null,
+                            'first_seen_at'     => $now,
+                            'created_at'        => $now,
+                            'updated_at'        => $now,
+                        ];
+                    }
+
+                    if (!empty($usbRows)) {
+                        DB::table('agent_computer_usb_devices')->upsert(
+                            $usbRows,
+                            ['agent_computer_id', 'device_id'],
+                            ['friendly_name', 'type', 'first_connected', 'last_connected', 'updated_at']
+                        );
+                    }
+                }
 
                 // 10) IP eşleşmesiyle manuel Computer kaydına da snapshot kaydet
                 $primaryIp = DB::table('agent_computer_network_adapters')
