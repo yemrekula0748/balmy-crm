@@ -555,7 +555,7 @@
             @endif
 
             {{-- BİLGİ İŞLEM --}}
-            @if($user->hasPermission('it_computers','index') || $user->hasPermission('it_backup','index') || $user->hasPermission('login_logs','index') || $user->hasPermission('it_agent_inventory','index'))
+            @if($user->hasPermission('it_computers','index') || $user->hasPermission('it_backup','index') || $user->hasPermission('login_logs','index') || $user->hasPermission('it_agent_inventory','index') || $user->hasPermission('mikrotik','index'))
             <li @class(['mm-active' => request()->is('bilgi-islem*')])>
                 <a class="has-arrow ai-icon" href="javascript:void()" aria-expanded="false">
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
@@ -586,6 +586,11 @@
                     @if($user->hasPermission('login_logs','index'))
                     <li @class(['mm-active' => request()->is('bilgi-islem/giris-loglari*')])>
                         <a href="{{ route('it.login-logs.index') }}">Giriş Logları</a>
+                    </li>
+                    @endif
+                    @if($user->hasPermission('mikrotik','index'))
+                    <li @class(['mm-active' => request()->is('bilgi-islem/mikrotik*')])>
+                        <a href="{{ route('it.mikrotik.index') }}">MikroTik</a>
                     </li>
                     @endif
                 </ul>

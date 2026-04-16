@@ -53,6 +53,7 @@ use App\Http\Controllers\Modules\AuditNonconformityController;
 use App\Http\Controllers\Modules\AuditAnalyticsController;
 use App\Http\Controllers\Modules\ItComputerController;
 use App\Http\Controllers\Modules\ItBackupController;
+use App\Http\Controllers\Modules\MikroTikController;
 use App\Http\Controllers\Modules\LoginLogController;
 use App\Http\Controllers\Modules\MyTaskController;
 use App\Http\Controllers\Modules\AgencyController;
@@ -788,6 +789,12 @@ Route::middleware('auth')->group(function () {
 
         // Giriş Logları
         Route::get('giris-loglari', [LoginLogController::class, 'index'])->name('login-logs.index');
+
+        // MikroTik Dashboard
+        Route::get('mikrotik',               [MikroTikController::class, 'index'])->name('mikrotik.index');
+        Route::get('mikrotik/hotspot-aktif', [MikroTikController::class, 'hotspotActive'])->name('mikrotik.hotspot-aktif');
+        Route::get('mikrotik/dhcp',          [MikroTikController::class, 'dhcpLeases'])->name('mikrotik.dhcp');
+        Route::get('mikrotik/kaynaklar',     [MikroTikController::class, 'resources'])->name('mikrotik.kaynaklar');
     });
 
     /*
