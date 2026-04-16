@@ -127,6 +127,10 @@
                    class="tw-btn-ghost" style="color:#fca5a5!important;border-color:rgba(239,68,68,.3);background:rgba(239,68,68,.1)">
                     <i class="fas fa-trash-alt" style="font-size:.75rem"></i>Dosya Silme Logları
                 </a>
+                <a href="{{ route('it.agent.deletions', $agentComputer) }}"
+                   class="tw-btn-ghost" style="color:#fdba74!important;border-color:rgba(249,115,22,.3);background:rgba(249,115,22,.1)">
+                    <i class="fas fa-file-excel" style="font-size:.75rem"></i>Silinen Dosyalar
+                </a>
                 <a href="{{ route('it.agent.browser-history', $agentComputer) }}"
                    class="tw-btn-ghost" style="color:#7dd3fc!important;border-color:rgba(14,165,233,.3);background:rgba(14,165,233,.1)">
                     <i class="fas fa-globe" style="font-size:.75rem"></i>Tarayıcı Geçmişi

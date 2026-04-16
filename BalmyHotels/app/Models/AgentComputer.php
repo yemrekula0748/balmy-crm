@@ -79,6 +79,11 @@ class AgentComputer extends Model
         return $this->hasMany(AgentComputerFileEvent::class, 'agent_computer_id');
     }
 
+    public function deletions()
+    {
+        return $this->hasMany(AgentComputerDeletion::class, 'agent_computer_id');
+    }
+
     public function browserHistory()
     {
         return $this->hasMany(AgentComputerBrowserHistory::class, 'agent_computer_id');

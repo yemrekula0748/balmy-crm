@@ -770,6 +770,7 @@ Route::middleware('auth')->group(function () {
         Route::get('ajan-envanter/{agentComputer}',        [\App\Http\Controllers\Modules\AgentInventoryController::class, 'show'])->name('agent.show');
         Route::get('ajan-envanter/{agentComputer}/programlar',    [\App\Http\Controllers\Modules\AgentInventoryController::class, 'programs'])->name('agent.programs');
         Route::get('ajan-envanter/{agentComputer}/dosya-olaylari',    [\App\Http\Controllers\Modules\AgentInventoryController::class, 'fileEvents'])->name('agent.file-events');
+        Route::get('ajan-envanter/{agentComputer}/silinen-dosyalar',   [\App\Http\Controllers\Modules\AgentInventoryController::class, 'deletions'])->name('agent.deletions');
         Route::get('ajan-envanter/{agentComputer}/tarayici-gecmisi',   [\App\Http\Controllers\Modules\AgentInventoryController::class, 'browserHistory'])->name('agent.browser-history');
         Route::post('ajan-envanter/{agentComputer}/komut',             [\App\Http\Controllers\Modules\AgentInventoryController::class, 'sendCommand'])->name('agent.send-command');
         Route::post('ajan-envanter/{agentComputer}/screenshot',        [\App\Http\Controllers\Modules\AgentInventoryController::class, 'requestScreenshot'])->name('agent.request-screenshot');

@@ -134,6 +134,31 @@ class AgentInventoryController extends BaseModuleController
         return view('modules.bilgi_islem.agent_inventory.file_events', compact('agentComputer', 'events'));
     }
 
+    public function deletions(Request $request, AgentComputer $agentComputer)
+    {
+        $query = $agentComputer->deletions()->orderBy('deleted_at', 'desc');
+
+        if ($search = $request->input('search')) {
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('path', 'like', "%{$search}%")
+                  ->orWhere('directory', 'like', "%{$search}%");
+            });
+        }
+
+        if ($from = $request->input('from')) {
+            $query->where('deleted_at', '>=', $from);
+        }
+
+        if ($to = $request->input('to')) {
+            $query->where('deleted_at', '<=', $to . ' 23:59:59');
+        }
+
+        $deletions = $query->paginate(100)->withQueryString();
+
+        return view('modules.bilgi_islem.agent_inventory.deletions', compact('agentComputer', 'deletions'));
+    }
+
     public function browserHistory(Request $request, AgentComputer $agentComputer)
     {
         $query = $agentComputer->browserHistory()->orderBy('visit_time', 'desc');
