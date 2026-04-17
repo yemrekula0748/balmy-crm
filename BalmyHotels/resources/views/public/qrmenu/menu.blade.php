@@ -493,13 +493,19 @@ $_t = $_i18n[$lang] ?? $_i18n['tr'];
                     @if($item->effectivePrice())
                     <div class="ic-price">{{ $item->formattedPrice($menu->currency_symbol) }}</div>
                     @endif
-                    @if($item->price_glass || $item->price_bottle)
+                    @php
+                        $_pg = $item->price_glass  ?? $item->foodProduct?->price_glass;
+                        $_pb = $item->price_bottle ?? $item->foodProduct?->price_bottle;
+                        $_cg = $item->cl_glass     ?? $item->foodProduct?->cl_glass;
+                        $_cb = $item->cl_bottle    ?? $item->foodProduct?->cl_bottle;
+                    @endphp
+                    @if($_pg || $_pb)
                     <div class="ic-glass-bottle">
-                        @if($item->price_glass)
-                        <span class="glass-btl-tag">{{ $_t['glass'] }}{{ $item->cl_glass ? ' '.$item->cl_glass.'cl' : '' }}: {{ $menu->currency_symbol }}{{ number_format($item->price_glass, 2) }}</span>
+                        @if($_pg)
+                        <span class="glass-btl-tag">{{ $_t['glass'] }}{{ $_cg ? ' '.$_cg.'cl' : '' }}: {{ $menu->currency_symbol }}{{ number_format($_pg, 2) }}</span>
                         @endif
-                        @if($item->price_bottle)
-                        <span class="glass-btl-tag">{{ $_t['bottle'] }}{{ $item->cl_bottle ? ' '.$item->cl_bottle.'cl' : '' }}: {{ $menu->currency_symbol }}{{ number_format($item->price_bottle, 2) }}</span>
+                        @if($_pb)
+                        <span class="glass-btl-tag">{{ $_t['bottle'] }}{{ $_cb ? ' '.$_cb.'cl' : '' }}: {{ $menu->currency_symbol }}{{ number_format($_pb, 2) }}</span>
                         @endif
                     </div>
                     @endif
@@ -578,10 +584,10 @@ foreach ($categories as $_cat) {
             'title'        => $_it->getTitle($lang),
             'description'  => $_it->getDescription($lang),
             'price'        => $_it->effectivePrice() ? $_it->formattedPrice($menu->currency_symbol) : null,
-            'price_glass'  => $_it->price_glass,
-            'price_bottle' => $_it->price_bottle,
-            'cl_glass'     => $_it->cl_glass,
-            'cl_bottle'    => $_it->cl_bottle,
+            'price_glass'  => $_it->price_glass  ?? $_fp?->price_glass,
+            'price_bottle' => $_it->price_bottle ?? $_fp?->price_bottle,
+            'cl_glass'     => $_it->cl_glass     ?? $_fp?->cl_glass,
+            'cl_bottle'    => $_it->cl_bottle    ?? $_fp?->cl_bottle,
             'image'        => $_it->image ? asset('uploads/'.$_it->image) : null,
             'badges'       => $_it->badges ?? [],
             'allergens'    => $_allergens,
