@@ -7,12 +7,19 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class QrMenuItem extends Model
 {
-    /** Aktif fiyat: override → item fiyatı → canlı kütüphane fiyatı */
+    /** Aktif fiyat: override → item fiyatı (>0) → canlı kütüphane fiyatı */
     public function effectivePrice(): ?float
     {
-        return $this->price_override
-            ?? $this->price
-            ?? ($this->food_product_id ? optional($this->foodProduct)->price : null);
+        // price_override her zaman öncelikli
+        if ($this->price_override !== null) return $this->price_override;
+        // Item'e elle girilmiş sıfırdan büyük fiyat
+        if ($this->price > 0) return $this->price;
+        // Kütüphane ürünüyle bağlıysa canlı fiyatı kullan
+        if ($this->food_product_id) {
+            $libPrice = optional($this->foodProduct)->price;
+            if ($libPrice > 0) return $libPrice;
+        }
+        return $this->price ?: null;
     }
 
     protected $fillable = [
