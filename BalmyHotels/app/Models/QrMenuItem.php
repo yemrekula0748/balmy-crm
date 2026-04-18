@@ -7,10 +7,12 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class QrMenuItem extends Model
 {
-    /** Aktif fiyat: override varsa onu kullan, yoksa library fiyatı */
+    /** Aktif fiyat: override → item fiyatı → canlı kütüphane fiyatı */
     public function effectivePrice(): ?float
     {
-        return $this->price_override ?? $this->price;
+        return $this->price_override
+            ?? $this->price
+            ?? ($this->food_product_id ? optional($this->foodProduct)->price : null);
     }
 
     protected $fillable = [
