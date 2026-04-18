@@ -293,6 +293,172 @@
         </div>
     </div>
 
+    {{-- =====================================================================
+         Veri Kullanımı — Dönem / Client Bazlı
+         ===================================================================== --}}
+    <div class="card border-0 shadow-sm mb-4" style="border-radius:16px" id="usageCard">
+        <div class="card-header border-0 pb-0 pt-3 px-4" style="background:transparent">
+            <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                <h6 class="mb-0 fw-bold d-flex align-items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none"
+                         stroke="#6366f1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+                        <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+                    </svg>
+                    Veri Kullanımı
+                </h6>
+                {{-- Dönem butonları --}}
+                <div class="d-flex align-items-center gap-2 flex-wrap">
+                    <div class="btn-group btn-group-sm" role="group" id="periodBtns">
+                        <button type="button" class="btn btn-outline-primary active" data-period="daily">Bugün</button>
+                        <button type="button" class="btn btn-outline-primary" data-period="weekly">Bu Hafta</button>
+                        <button type="button" class="btn btn-outline-primary" data-period="monthly">Bu Ay</button>
+                        <button type="button" class="btn btn-outline-primary" data-period="custom">Özel</button>
+                    </div>
+                    {{-- Özel tarih aralığı (başlangıçta gizli) --}}
+                    <div id="customRangeWrap" class="d-none d-flex align-items-center gap-1">
+                        <input type="date" id="usageStart" class="form-control form-control-sm" style="width:140px">
+                        <span class="text-muted">–</span>
+                        <input type="date" id="usageEnd" class="form-control form-control-sm" style="width:140px">
+                        <button class="btn btn-sm btn-primary" id="applyCustomRange">Uygula</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card-body pt-3 pb-2 px-4">
+            {{-- Özet kartlar --}}
+            <div class="row g-3 mb-3" id="usageSummary">
+                <div class="col-6 col-md-3">
+                    <div class="rounded-3 p-3 text-center" style="background:rgba(59,130,246,.06);border:1px solid rgba(59,130,246,.12)">
+                        <div class="text-muted mb-1" style="font-size:11px;font-weight:600;letter-spacing:.5px">TOPLAM İNDİRME</div>
+                        <div class="fw-bold text-primary" style="font-size:20px" id="sumIn">—</div>
+                    </div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="rounded-3 p-3 text-center" style="background:rgba(245,158,11,.06);border:1px solid rgba(245,158,11,.12)">
+                        <div class="text-muted mb-1" style="font-size:11px;font-weight:600;letter-spacing:.5px">TOPLAM YÜKLEME</div>
+                        <div class="fw-bold text-warning" style="font-size:20px" id="sumOut">—</div>
+                    </div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="rounded-3 p-3 text-center" style="background:rgba(16,185,129,.06);border:1px solid rgba(16,185,129,.12)">
+                        <div class="text-muted mb-1" style="font-size:11px;font-weight:600;letter-spacing:.5px">TOPLAM TRAFİK</div>
+                        <div class="fw-bold text-success" style="font-size:20px" id="sumTotal">—</div>
+                    </div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="rounded-3 p-3 text-center" style="background:rgba(99,102,241,.06);border:1px solid rgba(99,102,241,.12)">
+                        <div class="text-muted mb-1" style="font-size:11px;font-weight:600;letter-spacing:.5px">BENZERSİZ KULLANICI</div>
+                        <div class="fw-bold" style="font-size:20px;color:#6366f1" id="sumUsers">—</div>
+                    </div>
+                </div>
+            </div>
+
+            {{-- Kullanıcı tablosu / yükleniyor --}}
+            <div id="usageTableWrap">
+                <div class="text-center py-4 text-muted" id="usageLoading" style="display:none">
+                    <div class="spinner-border spinner-border-sm me-2"></div> Yükleniyor…
+                </div>
+                <div id="usageNoData" class="text-center py-4 text-muted" style="display:none;font-size:13px">
+                    Bu dönemde kayıtlı veri yok.<br>
+                    <small>Scheduler her 5 dakikada bir otomatik kayıt yapar.</small>
+                </div>
+                <div class="table-responsive" id="usageTableContainer" style="display:none">
+                    <table class="table table-hover align-middle mb-0" style="font-size:13px">
+                        <thead style="background:linear-gradient(135deg,#f8f9ff,#eef0ff)">
+                            <tr>
+                                <th class="ps-3 py-2" style="font-size:11px;font-weight:700;color:#555">#</th>
+                                <th style="font-size:11px;font-weight:700;color:#555">KULLANICI</th>
+                                <th style="font-size:11px;font-weight:700;color:#555">İNDİRME</th>
+                                <th style="font-size:11px;font-weight:700;color:#555">YÜKLEME</th>
+                                <th style="font-size:11px;font-weight:700;color:#555">TOPLAM</th>
+                                <th style="font-size:11px;font-weight:700;color:#555">OTURUM</th>
+                                <th class="pe-3" style="font-size:11px;font-weight:700;color:#555">SON BAĞLANTI</th>
+                                <th class="pe-3" style="font-size:11px;font-weight:700;color:#555"></th>
+                            </tr>
+                        </thead>
+                        <tbody id="usageTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {{-- Client Detay Modal --}}
+    <div class="modal fade" id="clientDetailModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content border-0 shadow" style="border-radius:16px">
+                <div class="modal-header border-0 pt-4 px-4">
+                    <div>
+                        <h5 class="modal-title fw-bold mb-0" id="clientDetailTitle">Kullanıcı Detayı</h5>
+                        <small class="text-muted" id="clientDetailRange"></small>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body px-4 pb-4">
+                    {{-- Tarih aralığı seçici --}}
+                    <div class="d-flex flex-wrap gap-2 align-items-center mb-3">
+                        <div class="btn-group btn-group-sm" id="clientPeriodBtns">
+                            <button type="button" class="btn btn-outline-secondary" data-days="7">Son 7 Gün</button>
+                            <button type="button" class="btn btn-outline-secondary active" data-days="30">Son 30 Gün</button>
+                            <button type="button" class="btn btn-outline-secondary" data-days="90">Son 90 Gün</button>
+                        </div>
+                        <div class="d-flex align-items-center gap-1">
+                            <input type="date" id="clientStart" class="form-control form-control-sm" style="width:140px">
+                            <span class="text-muted">–</span>
+                            <input type="date" id="clientEnd" class="form-control form-control-sm" style="width:140px">
+                            <button class="btn btn-sm btn-primary" id="applyClientRange">Uygula</button>
+                        </div>
+                    </div>
+
+                    {{-- Özet --}}
+                    <div class="row g-3 mb-3">
+                        <div class="col-4">
+                            <div class="rounded-3 p-3 text-center" style="background:rgba(59,130,246,.06);border:1px solid rgba(59,130,246,.12)">
+                                <div class="text-muted mb-1" style="font-size:11px;font-weight:600">İNDİRME</div>
+                                <div class="fw-bold text-primary" style="font-size:18px" id="clientSumIn">—</div>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="rounded-3 p-3 text-center" style="background:rgba(245,158,11,.06);border:1px solid rgba(245,158,11,.12)">
+                                <div class="text-muted mb-1" style="font-size:11px;font-weight:600">YÜKLEME</div>
+                                <div class="fw-bold text-warning" style="font-size:18px" id="clientSumOut">—</div>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="rounded-3 p-3 text-center" style="background:rgba(16,185,129,.06);border:1px solid rgba(16,185,129,.12)">
+                                <div class="text-muted mb-1" style="font-size:11px;font-weight:600">TOPLAM</div>
+                                <div class="fw-bold text-success" style="font-size:18px" id="clientSumTotal">—</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {{-- Günlük tablo --}}
+                    <div id="clientLoading" class="text-center py-4 text-muted" style="display:none">
+                        <div class="spinner-border spinner-border-sm me-2"></div> Yükleniyor…
+                    </div>
+                    <div id="clientNoData" class="text-center py-4 text-muted" style="display:none;font-size:13px">
+                        Bu aralıkta veri bulunamadı.
+                    </div>
+                    <div class="table-responsive" id="clientTableContainer" style="display:none">
+                        <table class="table table-hover align-middle mb-0" style="font-size:13px">
+                            <thead style="background:linear-gradient(135deg,#f8f9ff,#eef0ff)">
+                                <tr>
+                                    <th class="ps-3 py-2" style="font-size:11px;font-weight:700;color:#555">TARİH</th>
+                                    <th style="font-size:11px;font-weight:700;color:#555">İNDİRME</th>
+                                    <th style="font-size:11px;font-weight:700;color:#555">YÜKLEME</th>
+                                    <th style="font-size:11px;font-weight:700;color:#555">TOPLAM</th>
+                                    <th class="pe-3" style="font-size:11px;font-weight:700;color:#555">OTURUM SAYISI</th>
+                                </tr>
+                            </thead>
+                            <tbody id="clientTableBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     {{-- İkili Satır: Hotspot Kullanıcıları + Arayüzler --}}
     <div class="row g-3 mb-4">
         {{-- Hotspot Kullanıcıları --}}
@@ -561,6 +727,228 @@ document.getElementById('dhcpSearch')?.addEventListener('input', function () {
         row.style.display = (ip.includes(q) || mac.includes(q) || host.includes(q)) ? '' : 'none';
     });
 });
+
+/* =====================================================================
+   Veri Kullanımı — Dönem Filtresi
+   ===================================================================== */
+(function () {
+    // ---------- yardımcılar ----------
+    function fmtBytes(b) {
+        b = parseInt(b) || 0;
+        if (b >= 1073741824) return (b / 1073741824).toFixed(2) + ' GB';
+        if (b >= 1048576)    return (b / 1048576).toFixed(1)    + ' MB';
+        if (b >= 1024)       return (b / 1024).toFixed(1)       + ' KB';
+        return b + ' B';
+    }
+
+    function todayStr() {
+        return new Date().toISOString().slice(0, 10);
+    }
+
+    // ---------- Dönem tablosu ----------
+    let currentPeriod = 'daily';
+
+    function loadUsage(period, start, end) {
+        const params = new URLSearchParams({ period });
+        if (period === 'custom' && start && end) { params.append('start', start); params.append('end', end); }
+
+        document.getElementById('usageLoading').style.display = '';
+        document.getElementById('usageNoData').style.display = 'none';
+        document.getElementById('usageTableContainer').style.display = 'none';
+        ['sumIn','sumOut','sumTotal','sumUsers'].forEach(id => document.getElementById(id).textContent = '—');
+
+        fetch('{{ route("it.mikrotik.kullanim") }}?' + params)
+            .then(r => r.json())
+            .then(data => {
+                document.getElementById('usageLoading').style.display = 'none';
+                document.getElementById('sumIn').textContent    = fmtBytes(data.total_in);
+                document.getElementById('sumOut').textContent   = fmtBytes(data.total_out);
+                document.getElementById('sumTotal').textContent = fmtBytes((data.total_in||0) + (data.total_out||0));
+                document.getElementById('sumUsers').textContent = data.user_count || 0;
+
+                const tbody = document.getElementById('usageTableBody');
+                tbody.innerHTML = '';
+
+                if (!data.users || data.users.length === 0) {
+                    document.getElementById('usageNoData').style.display = '';
+                    return;
+                }
+
+                data.users.forEach((u, i) => {
+                    const total = (u.total_in||0) + (u.total_out||0);
+                    const pct   = data.total_in + data.total_out > 0
+                        ? Math.round(total / (data.total_in + data.total_out) * 100) : 0;
+                    const lastSeen = u.last_seen ? u.last_seen.slice(0,16).replace('T',' ') : '—';
+                    tbody.insertAdjacentHTML('beforeend', `
+                        <tr>
+                            <td class="ps-3 text-muted">${i+1}</td>
+                            <td>
+                                <div class="d-flex align-items-center gap-2">
+                                    <div style="width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,#6366f1,#a5b4fc);
+                                                display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:white;flex-shrink:0">
+                                        ${(u.username||'?')[0].toUpperCase()}
+                                    </div>
+                                    <span class="fw-semibold">${u.username||'—'}</span>
+                                </div>
+                            </td>
+                            <td><span class="text-primary">${fmtBytes(u.total_in)}</span></td>
+                            <td><span class="text-warning">${fmtBytes(u.total_out)}</span></td>
+                            <td>
+                                <div class="d-flex align-items-center gap-2" style="min-width:100px">
+                                    <span class="fw-semibold">${fmtBytes(total)}</span>
+                                    <div class="progress flex-grow-1" style="height:4px;border-radius:4px;min-width:40px">
+                                        <div class="progress-bar bg-success" style="width:${pct}%"></div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td><span class="badge bg-secondary bg-opacity-10 text-secondary">${u.session_count}</span></td>
+                            <td class="text-muted pe-0" style="font-size:12px">${lastSeen}</td>
+                            <td class="pe-3">
+                                <button class="btn btn-xs btn-outline-primary py-0 px-2" style="font-size:11px"
+                                        onclick="openClientDetail('${u.username}')">
+                                    Detay
+                                </button>
+                            </td>
+                        </tr>
+                    `);
+                });
+
+                document.getElementById('usageTableContainer').style.display = '';
+            })
+            .catch(() => {
+                document.getElementById('usageLoading').style.display = 'none';
+                document.getElementById('usageNoData').style.display = '';
+            });
+    }
+
+    // Dönem butonları
+    document.querySelectorAll('#periodBtns button').forEach(btn => {
+        btn.addEventListener('click', function () {
+            document.querySelectorAll('#periodBtns button').forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+            currentPeriod = this.dataset.period;
+            const wrap = document.getElementById('customRangeWrap');
+            if (currentPeriod === 'custom') {
+                wrap.classList.remove('d-none');
+                wrap.classList.add('d-flex');
+                const today = todayStr();
+                document.getElementById('usageStart').value = today;
+                document.getElementById('usageEnd').value   = today;
+            } else {
+                wrap.classList.add('d-none');
+                wrap.classList.remove('d-flex');
+                loadUsage(currentPeriod);
+            }
+        });
+    });
+
+    document.getElementById('applyCustomRange').addEventListener('click', function () {
+        const s = document.getElementById('usageStart').value;
+        const e = document.getElementById('usageEnd').value;
+        if (s && e) loadUsage('custom', s, e);
+    });
+
+    // Sayfa açılışında günlük yükle
+    loadUsage('daily');
+
+    /* =====================================================================
+       Client Detay Modal
+       ===================================================================== */
+    let activeClientUsername = '';
+
+    window.openClientDetail = function (username) {
+        activeClientUsername = username;
+        document.getElementById('clientDetailTitle').textContent = username + ' — Veri Kullanımı';
+        // varsayılan: son 30 gün
+        const end   = todayStr();
+        const start = new Date(Date.now() - 29 * 86400000).toISOString().slice(0,10);
+        document.getElementById('clientStart').value = start;
+        document.getElementById('clientEnd').value   = end;
+        document.querySelectorAll('#clientPeriodBtns button').forEach(b => {
+            b.classList.toggle('active', b.dataset.days === '30');
+        });
+        loadClientUsage(username, start, end);
+        new bootstrap.Modal(document.getElementById('clientDetailModal')).show();
+    };
+
+    function loadClientUsage(username, start, end) {
+        document.getElementById('clientLoading').style.display = '';
+        document.getElementById('clientNoData').style.display = 'none';
+        document.getElementById('clientTableContainer').style.display = 'none';
+        document.getElementById('clientDetailRange').textContent = start + ' – ' + end;
+        ['clientSumIn','clientSumOut','clientSumTotal'].forEach(id => document.getElementById(id).textContent = '—');
+
+        const params = new URLSearchParams({ username, start, end });
+        fetch('{{ route("it.mikrotik.client-kullanim") }}?' + params)
+            .then(r => r.json())
+            .then(data => {
+                document.getElementById('clientLoading').style.display = 'none';
+                document.getElementById('clientSumIn').textContent    = fmtBytes(data.total_in);
+                document.getElementById('clientSumOut').textContent   = fmtBytes(data.total_out);
+                document.getElementById('clientSumTotal').textContent = fmtBytes((data.total_in||0)+(data.total_out||0));
+
+                const tbody = document.getElementById('clientTableBody');
+                tbody.innerHTML = '';
+
+                if (!data.daily || data.daily.length === 0) {
+                    document.getElementById('clientNoData').style.display = '';
+                    return;
+                }
+
+                // En yüksek günlük trafiği bul (progress bar için)
+                const maxTotal = Math.max(...data.daily.map(d => (d.total_in||0)+(d.total_out||0)), 1);
+
+                data.daily.forEach(d => {
+                    const total = (d.total_in||0) + (d.total_out||0);
+                    const pct   = Math.round(total / maxTotal * 100);
+                    tbody.insertAdjacentHTML('beforeend', `
+                        <tr>
+                            <td class="ps-3 fw-semibold">${d.date}</td>
+                            <td><span class="text-primary">${fmtBytes(d.total_in)}</span></td>
+                            <td><span class="text-warning">${fmtBytes(d.total_out)}</span></td>
+                            <td>
+                                <div class="d-flex align-items-center gap-2">
+                                    <span>${fmtBytes(total)}</span>
+                                    <div class="progress flex-grow-1" style="height:4px;border-radius:4px;min-width:60px">
+                                        <div class="progress-bar bg-success" style="width:${pct}%"></div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="pe-3 text-center">
+                                <span class="badge bg-secondary bg-opacity-10 text-secondary">${d.session_count}</span>
+                            </td>
+                        </tr>
+                    `);
+                });
+
+                document.getElementById('clientTableContainer').style.display = '';
+            })
+            .catch(() => {
+                document.getElementById('clientLoading').style.display = 'none';
+                document.getElementById('clientNoData').style.display = '';
+            });
+    }
+
+    // Client modal — hızlı dönem butonları
+    document.querySelectorAll('#clientPeriodBtns button').forEach(btn => {
+        btn.addEventListener('click', function () {
+            document.querySelectorAll('#clientPeriodBtns button').forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+            const days  = parseInt(this.dataset.days);
+            const end   = todayStr();
+            const start = new Date(Date.now() - (days-1) * 86400000).toISOString().slice(0,10);
+            document.getElementById('clientStart').value = start;
+            document.getElementById('clientEnd').value   = end;
+            loadClientUsage(activeClientUsername, start, end);
+        });
+    });
+
+    document.getElementById('applyClientRange').addEventListener('click', function () {
+        const s = document.getElementById('clientStart').value;
+        const e = document.getElementById('clientEnd').value;
+        if (s && e) loadClientUsage(activeClientUsername, s, e);
+    });
+})();
 </script>
 @endpush
 

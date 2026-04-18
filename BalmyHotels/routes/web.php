@@ -798,6 +798,8 @@ Route::middleware('auth')->group(function () {
         Route::get('mikrotik/hotspot-aktif', [MikroTikController::class, 'hotspotActive'])->name('mikrotik.hotspot-aktif');
         Route::get('mikrotik/dhcp',          [MikroTikController::class, 'dhcpLeases'])->name('mikrotik.dhcp');
         Route::get('mikrotik/kaynaklar',     [MikroTikController::class, 'resources'])->name('mikrotik.kaynaklar');
+        Route::get('mikrotik/kullanim',          [MikroTikController::class, 'usageStats'])->name('mikrotik.kullanim');
+        Route::get('mikrotik/client-kullanim',   [MikroTikController::class, 'clientUsage'])->name('mikrotik.client-kullanim');
     });
 
     /*
