@@ -84,10 +84,27 @@
     <div class="row g-3 align-items-start">
         {{-- Sol: Menü --}}
         <div class="col-lg-7">
-            <div class="card shadow-sm">
-                <div class="card-header d-flex align-items-center justify-content-between">
-                    <h6 class="mb-0">Menü</h6>
-                    <span class="badge bg-secondary">{{ $categories->count() }} kategori</span>
+            <div class="card shadow-sm" id="menu-card">
+                <div class="card-header">
+                    <div class="d-flex align-items-center justify-content-between mb-2">
+                        <h6 class="mb-0">Menü</h6>
+                        <span class="badge bg-secondary">{{ $categories->count() }} kategori</span>
+                    </div>
+                    {{-- Kors seçici --}}
+                    <div class="d-flex align-items-center gap-2 flex-wrap">
+                        <label class="form-label mb-0 fw-semibold small" style="white-space:nowrap">Kors:</label>
+                        <div class="d-flex gap-1 flex-wrap" id="kors-btns">
+                            @for($k = 1; $k <= max(4, $nextCourse); $k++)
+                            <button type="button"
+                                    class="btn btn-sm kors-btn {{ $k === $nextCourse ? 'text-white' : 'btn-outline-secondary' }}"
+                                    style="{{ $k === $nextCourse ? 'background:#c19b77;border-color:#c19b77' : '' }}"
+                                    data-kors="{{ $k }}">
+                                {{ $k }}. Kors
+                            </button>
+                            @endfor
+                        </div>
+                        <button type="button" id="kors-add-btn" class="btn btn-sm btn-outline-secondary" title="Kors ekle">+</button>
+                    </div>
                 </div>
                 <div class="card-body p-0">
                     @if($categories->isEmpty())
@@ -96,6 +113,14 @@
                             Bu restorana menü atanmamış veya menü içeriği boş.
                         </div>
                     @else
+                    {{-- Anlık arama --}}
+                    <div class="p-2 border-bottom">
+                        <input type="text" id="menu-search" class="form-control form-control-sm"
+                               placeholder="🔍 Ürün ara..." autocomplete="off">
+                    </div>
+                    {{-- Arama sonuçları (arama yapılınca gösterilir) --}}
+                    <div id="search-results" style="display:none"></div>
+                    <div id="menuAccordionWrapper">
                     <div class="accordion accordion-flush" id="menuAccordion">
                         @foreach($categories as $catIdx => $category)
                         <div class="accordion-item">
@@ -155,6 +180,7 @@
                         </div>
                         @endforeach
                     </div>
+                    </div>{{-- /menuAccordionWrapper --}}
                     @endif
                 </div>
             </div>
@@ -174,21 +200,6 @@
                     </ul>
                 </div>
                 <div class="card-footer" style="background:#fff8f0">
-                    {{-- Kors seçici --}}
-                    <div class="d-flex align-items-center gap-2 mb-2">
-                        <label class="form-label mb-0 fw-semibold small" style="white-space:nowrap">Kors:</label>
-                        <div class="d-flex gap-1 flex-wrap" id="kors-btns">
-                            @for($k = 1; $k <= max(4, $nextCourse); $k++)
-                            <button type="button"
-                                    class="btn btn-sm kors-btn {{ $k === $nextCourse ? 'text-white' : 'btn-outline-secondary' }}"
-                                    style="{{ $k === $nextCourse ? 'background:#c19b77;border-color:#c19b77' : '' }}"
-                                    data-kors="{{ $k }}">
-                                {{ $k }}. Kors
-                            </button>
-                            @endfor
-                        </div>
-                        <button type="button" id="kors-add-btn" class="btn btn-sm btn-outline-secondary" title="Kors ekle">+</button>
-                    </div>
                     <div class="d-flex justify-content-between align-items-center">
                         <div class="fw-bold">
                             Sepet Toplamı: <span id="cart-total">0.00</span> {{ $currency }}
@@ -369,30 +380,43 @@
         el.addEventListener('hidden.bs.toast', () => el.remove());
     }
 
-    // Sepete ekle
-    document.querySelectorAll('.add-to-cart-btn').forEach(btn => {
-        btn.addEventListener('click', function(){
-            const row  = this.closest('.menu-item-row');
-            const id   = parseInt(row.dataset.id);
-            const name = row.dataset.name;
-            const price= parseFloat(row.dataset.price) || 0;
-            const qty  = parseInt(row.querySelector('.qty-input').value) || 1;
-            const note = row.querySelector('.note-input').value.trim();
-            const activeCourseBtn = document.querySelector('.kors-btn.text-white');
-            const course = activeCourseBtn ? parseInt(activeCourseBtn.dataset.kors) : 1;
+    // Sepete ekle (yardımcı fonksiyon - hem accordion hem arama sonuçlarında çalışır)
+    function addRowToCart(row) {
+        const id    = parseInt(row.dataset.id);
+        const name  = row.dataset.name;
+        const price = parseFloat(row.dataset.price) || 0;
+        const qty   = parseInt(row.querySelector('.qty-input').value) || 1;
+        const note  = row.querySelector('.note-input').value.trim();
+        const activeCourseBtn = document.querySelector('.kors-btn.text-white');
+        const course = activeCourseBtn ? parseInt(activeCourseBtn.dataset.kors) : 1;
 
-            // Aynı ürün+aynı not+aynı kors varsa Qt artır
-            const existing = cart.find(i => i.id === id && i.note === note && i.course === course);
-            if(existing){
-                existing.qty += qty;
-            } else {
-                cart.push({id, name, price, qty, note, course});
-            }
-            row.querySelector('.qty-input').value = 1;
-            row.querySelector('.note-input').value = '';
-            renderCart();
-            showToast(`<strong>${name}</strong> (×${qty}) sepete eklendi`);
-        });
+        // Aynı ürün+aynı not+aynı kors varsa miktarı artır
+        const existing = cart.find(i => i.id === id && i.note === note && i.course === course);
+        if(existing){ existing.qty += qty; }
+        else { cart.push({id, name, price, qty, note, course}); }
+        row.querySelector('.qty-input').value = 1;
+        row.querySelector('.note-input').value = '';
+        renderCart();
+        showToast(`<strong>${name}</strong> (×${qty}) sepete eklendi`);
+    }
+
+    // Event delegation - hem accordion hem arama sonuçları için tek dinleyici
+    document.getElementById('menu-card').addEventListener('click', function(e){
+        const addBtn = e.target.closest('.add-to-cart-btn');
+        if(addBtn){ addRowToCart(addBtn.closest('.menu-item-row')); return; }
+
+        const minusBtn = e.target.closest('.qty-minus');
+        if(minusBtn){
+            const inp = minusBtn.nextElementSibling;
+            if(parseInt(inp.value) > 1) inp.value = parseInt(inp.value) - 1;
+            return;
+        }
+        const plusBtn = e.target.closest('.qty-plus');
+        if(plusBtn){
+            const inp = plusBtn.previousElementSibling;
+            if(parseInt(inp.value) < 99) inp.value = parseInt(inp.value) + 1;
+            return;
+        }
     });
 
     // Sepetten kaldır
@@ -403,19 +427,45 @@
         renderCart();
     });
 
-    // Qty +/-  butonları
-    document.querySelectorAll('.qty-minus').forEach(btn => {
-        btn.addEventListener('click', function(){
-            const inp = this.nextElementSibling;
-            if(parseInt(inp.value) > 1) inp.value = parseInt(inp.value) - 1;
+    // Anlık ürün arama
+    (function(){
+        const searchInput    = document.getElementById('menu-search');
+        const searchResults  = document.getElementById('search-results');
+        const accordionWrap  = document.getElementById('menuAccordionWrapper');
+        if(!searchInput) return;
+
+        // Tüm menü satırlarını önceden topla
+        const allRows = Array.from(document.querySelectorAll('#menuAccordion .menu-item-row'));
+
+        searchInput.addEventListener('input', function(){
+            const q = this.value.trim().toLowerCase();
+
+            if(q === ''){
+                searchResults.style.display = 'none';
+                searchResults.innerHTML = '';
+                accordionWrap.style.display = '';
+                return;
+            }
+
+            const matches = allRows.filter(r => r.dataset.name.toLowerCase().includes(q));
+            accordionWrap.style.display = 'none';
+            searchResults.style.display = '';
+
+            if(matches.length === 0){
+                searchResults.innerHTML = '<div class="text-muted text-center py-4 small"><i class="fa fa-search me-1"></i>Ürün bulunamadı</div>';
+                return;
+            }
+
+            // Klon oluştur ve göster (event delegation sayesinde ekstra listener gerekmez)
+            searchResults.innerHTML = '';
+            matches.forEach(origRow => {
+                const clone = origRow.cloneNode(true);
+                clone.querySelector('.qty-input').value = 1;
+                clone.querySelector('.note-input').value = '';
+                searchResults.appendChild(clone);
+            });
         });
-    });
-    document.querySelectorAll('.qty-plus').forEach(btn => {
-        btn.addEventListener('click', function(){
-            const inp = this.previousElementSibling;
-            if(parseInt(inp.value) < 99) inp.value = parseInt(inp.value) + 1;
-        });
-    });
+    })();
 
     // Sipariş gönder
     document.getElementById('submit-order-btn').addEventListener('click', function(){
