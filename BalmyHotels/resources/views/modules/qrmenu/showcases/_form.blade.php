@@ -217,15 +217,17 @@
     });
 
     // ── Menü verileri (PHP'den) ───────────────────────────────────────────────
-    const menuData = @json($menus->keyBy('id')->map(fn($m) => [
-        'id'     => $m->id,
-        'title'  => $m->getTitle('tr') ?? $m->name,
-        'url'    => '/menu/' . $m->name,
-        'logo'   => $m->logo    ? asset('uploads/'.$m->logo)
-                  : ($m->cover_image ? asset('uploads/'.$m->cover_image) : null),
-        'color'  => $m->theme_color ?? '#c19b77',
-        'letter' => mb_substr($m->name, 0, 1),
-    ]));
+    @php
+        $menuDataArr = $menus->keyBy('id')->map(fn($m) => [
+            'id'     => $m->id,
+            'title'  => $m->getTitle('tr') ?? $m->name,
+            'url'    => '/menu/' . $m->name,
+            'logo'   => $m->logo ? asset('uploads/'.$m->logo) : ($m->cover_image ? asset('uploads/'.$m->cover_image) : null),
+            'color'  => $m->theme_color ?? '#c19b77',
+            'letter' => mb_substr($m->name, 0, 1),
+        ]);
+    @endphp
+    const menuData = @json($menuDataArr);
 
     const labelsMap    = @json((object)$labelsMap);
     const initialOrder = @json(array_values((array)$selectedMenuIds));
