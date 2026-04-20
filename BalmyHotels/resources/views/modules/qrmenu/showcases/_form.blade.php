@@ -1,12 +1,12 @@
 {{-- Shared form for create & edit --}}
 @php
-    $selectedMenuIds = $showcase ? $showcase->items->pluck('qr_menu_id')->toArray() : old('menus', []);
-    $labelsMap       = [];
-    if ($showcase) {
-        foreach ($showcase->items as $item) {
-            $labelsMap[$item->qr_menu_id] = $item->label;
-        }
-    }
+    // Preserve submitted order on validation failure; otherwise use stored sort_order
+    $selectedMenuIds = old('menus',
+        $showcase ? $showcase->items->sortBy('sort_order')->pluck('qr_menu_id')->toArray() : []
+    );
+    $labelsMap = old('labels',
+        $showcase ? $showcase->items->pluck('label', 'qr_menu_id')->filter()->toArray() : []
+    );
 @endphp
 
 <div class="row g-3">
@@ -87,7 +87,7 @@
         </div>
     </div>
 
-    {{-- Sağ: Menü Seçimi --}}
+    {{-- Sağ: Menü Seçimi & Sıralama --}}
     <div class="col-lg-7">
         <div class="card shadow-sm">
             <div class="card-header d-flex justify-content-between align-items-center">
@@ -95,57 +95,56 @@
                 <span class="badge bg-secondary" id="selected-count">0 seçili</span>
             </div>
             <div class="card-body p-0">
-                {{-- Filtre --}}
+
+                {{-- SIRALAMA ALANI --}}
+                <div class="p-3 border-bottom" style="background:#f8f9fa">
+                    <div class="small text-muted mb-2">
+                        <i class="fa fa-arrows-alt me-1"></i>
+                        <strong>Seçili Menüler</strong> &mdash; tutup sürükleyerek sıralayabilirsiniz
+                    </div>
+                    <div id="sort-zone" style="min-height:44px">
+                        <div id="sort-empty" class="text-center text-muted py-3 small"
+                             style="border:2px dashed #dee2e6;border-radius:6px">
+                            Henüz menü seçilmedi — aşağıdan ekleyin
+                        </div>
+                    </div>
+                </div>
+
+                {{-- MENÜ SEÇİM LİSTESİ --}}
                 <div class="p-3 border-bottom">
                     <input type="text" id="menu-search" class="form-control form-control-sm" placeholder="🔍  Menü ara…">
                 </div>
-
-                <div id="menu-list" style="max-height:420px;overflow-y:auto">
+                <div id="menu-list" style="max-height:320px;overflow-y:auto">
                     @forelse($menus as $menu)
-                    @php
-                        $isSelected = in_array($menu->id, (array)$selectedMenuIds);
-                        $label      = $labelsMap[$menu->id] ?? '';
-                    @endphp
-                    <div class="menu-choice-row d-flex align-items-center gap-3 p-3 border-bottom {{ $isSelected ? 'bg-selected' : '' }}"
+                    <div class="menu-choice-row d-flex align-items-center gap-3 p-3 border-bottom"
+                         data-id="{{ $menu->id }}"
                          data-name="{{ strtolower($menu->name . ' ' . ($menu->getTitle('tr') ?? '')) }}">
 
-                        {{-- Checkbox --}}
                         <div style="flex-shrink:0">
                             <input class="form-check-input menu-checkbox" type="checkbox"
-                                   name="menus[]" value="{{ $menu->id }}"
-                                   id="menu-{{ $menu->id }}"
-                                   {{ $isSelected ? 'checked' : '' }}>
+                                   id="menu-cb-{{ $menu->id }}"
+                                   {{ in_array($menu->id, (array)$selectedMenuIds) ? 'checked' : '' }}>
                         </div>
 
-                        {{-- Logo --}}
                         <div style="flex-shrink:0">
                             @if($menu->logo)
                             <img src="{{ asset('uploads/'.$menu->logo) }}" alt=""
-                                 class="rounded-circle" style="width:40px;height:40px;object-fit:cover">
+                                 class="rounded-circle" style="width:38px;height:38px;object-fit:cover">
                             @elseif($menu->cover_image)
                             <img src="{{ asset('uploads/'.$menu->cover_image) }}" alt=""
-                                 class="rounded" style="width:40px;height:40px;object-fit:cover">
+                                 class="rounded" style="width:38px;height:38px;object-fit:cover">
                             @else
                             <div class="rounded-circle d-flex align-items-center justify-content-center text-white"
-                                 style="width:40px;height:40px;background:{{ $menu->theme_color ?? '#c19b77' }};font-size:.9rem;font-weight:700">
+                                 style="width:38px;height:38px;background:{{ $menu->theme_color ?? '#c19b77' }};font-size:.85rem;font-weight:700">
                                 {{ mb_substr($menu->name, 0, 1) }}
                             </div>
                             @endif
                         </div>
 
-                        {{-- Bilgi --}}
-                        <label class="flex-grow-1 mb-0" for="menu-{{ $menu->id }}" style="cursor:pointer">
+                        <label class="flex-grow-1 mb-0" for="menu-cb-{{ $menu->id }}" style="cursor:pointer">
                             <div class="fw-semibold small">{{ $menu->getTitle('tr') ?? $menu->name }}</div>
                             <div class="text-muted" style="font-size:.75rem">/menu/{{ $menu->name }}</div>
                         </label>
-
-                        {{-- Etiket override --}}
-                        <div class="label-field" style="min-width:150px;{{ $isSelected ? '' : 'opacity:.35;pointer-events:none' }}">
-                            <input type="text" name="labels[{{ $menu->id }}]"
-                                   value="{{ old('labels.'.$menu->id, $label) }}"
-                                   class="form-control form-control-sm"
-                                   placeholder="Görünen ad (opsiyonel)">
-                        </div>
                     </div>
                     @empty
                     <div class="text-muted text-center py-5">Aktif QR menü bulunamadı.</div>
@@ -165,13 +164,35 @@
 </div>
 
 @push('scripts')
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.3/Sortable.min.js"></script>
 <style>
-    .bg-selected { background: #fff8f0 !important; }
-    .menu-choice-row { transition: background .15s; }
+.sort-card {
+    background: #fff;
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+    margin-bottom: 6px;
+    padding: 8px 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.sort-card .drag-handle {
+    cursor: grab;
+    color: #bbb;
+    font-size: 1.25rem;
+    user-select: none;
+    flex-shrink: 0;
+    line-height: 1;
+}
+.sort-card .drag-handle:active { cursor: grabbing; }
+.sort-card.sortable-ghost  { opacity: .35; background: #fff8f0; }
+.sort-card.sortable-chosen { box-shadow: 0 4px 14px rgba(0,0,0,.15); }
+.menu-choice-row { transition: background .15s; }
+.menu-choice-row.is-selected { background: #fff8f0; }
 </style>
 <script>
 (function(){
-    // Renk senkronizasyonu
+    // ── Renk senkronizasyonu ──────────────────────────────────────────────────
     const colorPicker = document.getElementById('accent-color');
     const colorHex    = document.getElementById('accent-hex');
     colorPicker?.addEventListener('input', () => { colorHex.value = colorPicker.value; });
@@ -180,10 +201,10 @@
         if (/^#[0-9a-fA-F]{6}$/.test(v)) colorPicker.value = v;
     });
 
-    // Slug otomatik üret
+    // ── Slug otomatik üret ────────────────────────────────────────────────────
     const titleInput = document.getElementById('title-input');
     const slugInput  = document.getElementById('slug-input');
-    let slugEdited = slugInput?.value?.length > 0;
+    let slugEdited = (slugInput?.value?.length ?? 0) > 0;
     slugInput?.addEventListener('input', () => { slugEdited = true; });
     titleInput?.addEventListener('input', () => {
         if (!slugEdited) {
@@ -195,30 +216,112 @@
         }
     });
 
-    // Checkbox → label field aktif/pasif + highlight
-    function updateCount() {
-        const n = document.querySelectorAll('.menu-checkbox:checked').length;
-        document.getElementById('selected-count').textContent = n + ' seçili';
+    // ── Menü verileri (PHP'den) ───────────────────────────────────────────────
+    const menuData = @json($menus->keyBy('id')->map(fn($m) => [
+        'id'     => $m->id,
+        'title'  => $m->getTitle('tr') ?? $m->name,
+        'url'    => '/menu/' . $m->name,
+        'logo'   => $m->logo    ? asset('uploads/'.$m->logo)
+                  : ($m->cover_image ? asset('uploads/'.$m->cover_image) : null),
+        'color'  => $m->theme_color ?? '#c19b77',
+        'letter' => mb_substr($m->name, 0, 1),
+    ]));
+
+    const labelsMap    = @json((object)$labelsMap);
+    const initialOrder = @json(array_values((array)$selectedMenuIds));
+
+    // ── Sort-zone DOM ─────────────────────────────────────────────────────────
+    const sortZone  = document.getElementById('sort-zone');
+    const sortEmpty = document.getElementById('sort-empty');
+    const countBadge = document.getElementById('selected-count');
+
+    function makeAvatar(d) {
+        if (d.logo) {
+            return `<img src="${d.logo}" class="rounded-circle" style="width:32px;height:32px;object-fit:cover" alt="">`;
+        }
+        return `<div class="rounded-circle d-flex align-items-center justify-content-center text-white"
+            style="width:32px;height:32px;background:${d.color};font-size:.8rem;font-weight:700;flex-shrink:0">${d.letter}</div>`;
     }
+
+    function createCard(menuId, labelVal) {
+        const d = menuData[menuId];
+        if (!d) return null;
+        const card = document.createElement('div');
+        card.className = 'sort-card';
+        card.dataset.id = String(menuId);
+        card.innerHTML = `
+            <span class="drag-handle" title="Sürükle">&#8942;&#8942;</span>
+            <input type="hidden" name="menus[]" value="${menuId}">
+            ${makeAvatar(d)}
+            <div class="flex-grow-1" style="min-width:0">
+                <div class="fw-semibold small text-truncate">${d.title}</div>
+                <div class="text-muted" style="font-size:.72rem">${d.url}</div>
+            </div>
+            <input type="text" name="labels[${menuId}]" value="${labelVal ?? ''}"
+                   class="form-control form-control-sm" style="min-width:110px;max-width:145px"
+                   placeholder="Görünen ad (ops.)">
+            <button type="button" class="btn btn-link text-danger p-0 ms-1 remove-btn"
+                    data-id="${menuId}" title="Kaldır" style="font-size:.9rem;line-height:1">
+                <i class="fa fa-times"></i>
+            </button>`;
+        card.querySelector('.remove-btn').addEventListener('click', () => removeItem(menuId));
+        return card;
+    }
+
+    function addItem(menuId, labelVal) {
+        const id = String(menuId);
+        if (sortZone.querySelector(`[data-id="${id}"]`)) return;
+        const card = createCard(menuId, labelVal ?? '');
+        if (!card) return;
+        sortZone.appendChild(card);
+        updateUI();
+    }
+
+    function removeItem(menuId) {
+        const id = String(menuId);
+        sortZone.querySelector(`[data-id="${id}"]`)?.remove();
+        const cb = document.getElementById('menu-cb-' + id);
+        if (cb) cb.checked = false;
+        document.querySelector(`.menu-choice-row[data-id="${id}"]`)?.classList.remove('is-selected');
+        updateUI();
+    }
+
+    function updateUI() {
+        const n = sortZone.querySelectorAll('.sort-card').length;
+        sortEmpty.style.display  = n ? 'none' : 'block';
+        countBadge.textContent   = n + ' seçili';
+    }
+
+    // ── Başlangıç verilerini yükle (sort_order sırasıyla) ────────────────────
+    initialOrder.forEach(id => {
+        addItem(id, labelsMap[id] ?? '');
+        document.querySelector(`.menu-choice-row[data-id="${id}"]`)?.classList.add('is-selected');
+    });
+    updateUI();
+
+    // ── SortableJS ────────────────────────────────────────────────────────────
+    Sortable.create(sortZone, {
+        animation: 150,
+        handle:     '.drag-handle',
+        ghostClass: 'sortable-ghost',
+        chosenClass:'sortable-chosen',
+    });
+
+    // ── Checkbox → sort-zone bağlantısı ──────────────────────────────────────
     document.querySelectorAll('.menu-checkbox').forEach(cb => {
         cb.addEventListener('change', function(){
-            const row   = this.closest('.menu-choice-row');
-            const label = row.querySelector('.label-field');
+            const id  = this.closest('.menu-choice-row').dataset.id;
+            const row = this.closest('.menu-choice-row');
             if (this.checked) {
-                row.classList.add('bg-selected');
-                label.style.opacity = '1';
-                label.style.pointerEvents = 'auto';
+                addItem(id, '');
+                row.classList.add('is-selected');
             } else {
-                row.classList.remove('bg-selected');
-                label.style.opacity = '.35';
-                label.style.pointerEvents = 'none';
+                removeItem(id);
             }
-            updateCount();
         });
     });
-    updateCount();
 
-    // Arama
+    // ── Menü arama ────────────────────────────────────────────────────────────
     document.getElementById('menu-search')?.addEventListener('input', function(){
         const q = this.value.toLowerCase();
         document.querySelectorAll('.menu-choice-row').forEach(row => {
