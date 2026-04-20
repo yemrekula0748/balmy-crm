@@ -204,10 +204,23 @@
                         <p class="text-muted small mb-3">Her menü ürünü için hangi yazıcıdan çıktı alınacağını seçin. Boş bırakılan ürünler yazıcısız kalır.</p>
 
                         @foreach($categories as $category)
-                        <div class="mb-4">
-                            <h6 class="fw-bold border-bottom pb-1 mb-2" style="color:#c19b77">
-                                {{ $category->getTitle('tr') }}
-                            </h6>
+                        <div class="mb-4" data-cat-index="{{ $loop->index }}">
+                            <div class="d-flex align-items-center justify-content-between border-bottom pb-2 mb-2">
+                                <h6 class="fw-bold mb-0" style="color:#c19b77">
+                                    {{ $category->getTitle('tr') }}
+                                    <span class="badge rounded-pill ms-1" style="background:#f3ede6;color:#c19b77;font-size:0.7rem;font-weight:600">{{ $category->items->count() }}</span>
+                                </h6>
+                                <div class="d-flex align-items-center gap-2">
+                                    <span class="text-muted" style="font-size:0.75rem">Tümüne uygula:</span>
+                                    <select class="form-select form-select-sm cat-printer-bulk" style="max-width:175px" data-cat-index="{{ $loop->index }}">
+                                        <option value="">— Yazıcı Seç —</option>
+                                        @foreach($printers as $printer)
+                                        <option value="{{ $printer->id }}">{{ $printer->name }}</option>
+                                        @endforeach
+                                        <option value="__clear__">✕ Atamayı Kaldır</option>
+                                    </select>
+                                </div>
+                            </div>
                             @foreach($category->items as $item)
                             <div class="d-flex align-items-center justify-content-between py-2 border-bottom">
                                 <div class="d-flex align-items-center gap-2">
@@ -280,6 +293,25 @@
 
     [prefixEl, fromEl, toEl].forEach(el => el?.addEventListener('input', updatePreview));
     updatePreview();
+})();
+
+// Kategori toplu yazıcı atama
+(function(){
+    document.querySelectorAll('.cat-printer-bulk').forEach(function(bulkSelect) {
+        bulkSelect.addEventListener('change', function() {
+            const catIndex = this.dataset.catIndex;
+            const val      = this.value;
+            const catDiv   = document.querySelector('[data-cat-index="' + catIndex + '"]');
+            if (!catDiv) return;
+
+            catDiv.querySelectorAll('select[name^="printers["]').forEach(function(itemSelect) {
+                itemSelect.value = (val === '__clear__') ? '' : val;
+            });
+
+            // Bulk select'i sıfırla (placeholder'a döndür)
+            this.value = '';
+        });
+    });
 })();
 </script>
 @endpush
