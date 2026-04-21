@@ -218,7 +218,7 @@ $isClosed = in_array($fault->status, ['resolved','closed']);
                         <span style="font-size:.875rem;font-weight:600;color:#fff">Durum Güncelle</span>
                     </div>
                     <div style="padding:1.25rem 1.5rem">
-                        <form action="{{ route('faults.updateStatus', $fault) }}" method="POST">
+                        <form action="{{ route('faults.updateStatus', $fault) }}" method="POST" id="statusUpdateForm">
                             @csrf
                             <label style="display:block;font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#94a3b8;margin-bottom:.5rem">Yeni Durum Seç</label>
                             <div style="display:grid;grid-template-columns:1fr 1fr;gap:.5rem;margin-bottom:1rem">
@@ -237,7 +237,7 @@ $isClosed = in_array($fault->status, ['resolved','closed']);
                             <label style="display:block;font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#94a3b8;margin-bottom:.5rem">
                                 Not / Açıklama <span style="color:#ef4444">*</span>
                             </label>
-                            <textarea name="note" rows="3"
+                            <textarea name="note" id="statusNote" rows="3"
                                       style="width:100%;border:1px solid #e2e8f0;border-radius:.75rem;padding:.6rem .75rem;font-size:.85rem;outline:none;resize:none;margin-bottom:.75rem;box-sizing:border-box"
                                       placeholder="Durum değişikliği hakkında not...">{{ old('note') }}</textarea>
                             @error('note')<p style="font-size:.75rem;margin-bottom:.5rem;color:#ef4444">{{ $message }}</p>@enderror
@@ -360,6 +360,63 @@ document.querySelectorAll('.status-radio').forEach(function(radio) {
     });
     if (this.checked) this.dispatchEvent(new Event('change'));
 });
+
+// Kapatma onayı — "Kapalı" seçilip gönderildiğinde SweetAlert ile not al
+document.getElementById('statusUpdateForm')?.addEventListener('submit', function (e) {
+    const selectedStatus = document.querySelector('#statusUpdateForm input[name="status"]:checked')?.value;
+    if (selectedStatus !== 'closed') return; // diğer durumlar normal devam etsin
+
+    e.preventDefault();
+    const form = this;
+    const existingNote = document.getElementById('statusNote').value.trim();
+
+    Swal.fire({
+        title: 'Arıza Kapatılıyor',
+        html: `<p style="margin:0 0 .75rem;color:#64748b;font-size:.9rem">Bu arızayı <strong>kapatmak</strong> istediğinizden emin misiniz?</p>
+               <label style="display:block;text-align:left;font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#94a3b8;margin-bottom:.35rem">
+                   Not / Açıklama <span style="color:#ef4444">*</span>
+               </label>
+               <textarea id="swal-close-note" rows="4"
+                   style="width:100%;border:1.5px solid #e2e8f0;border-radius:.6rem;padding:.6rem .75rem;font-size:.85rem;box-sizing:border-box;resize:none;outline:none;font-family:inherit"
+                   placeholder="Kapatma sebebini yazınız...">${existingNote}</textarea>`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#64748b',
+        cancelButtonColor: '#94a3b8',
+        cancelButtonText: 'İptal',
+        confirmButtonText: '<i class="fas fa-lock" style="margin-right:.3rem"></i> Evet, Kapat',
+        focusConfirm: false,
+        didOpen: () => {
+            document.getElementById('swal-close-note').focus();
+        },
+        preConfirm: () => {
+            const val = document.getElementById('swal-close-note').value.trim();
+            if (!val) {
+                Swal.showValidationMessage('Not / Açıklama alanı zorunludur!');
+                return false;
+            }
+            return val;
+        }
+    }).then(result => {
+        if (result.isConfirmed) {
+            document.getElementById('statusNote').value = result.value;
+            form.submit();
+        }
+    });
+});
+
+// Sunucu tarafı doğrulama hatalarını SweetAlert ile göster
+@if($errors->any())
+document.addEventListener('DOMContentLoaded', function () {
+    Swal.fire({
+        title: 'Hata',
+        html: '{!! implode("<br>", array_map("htmlspecialchars", $errors->all())) !!}',
+        icon: 'error',
+        confirmButtonText: 'Tamam',
+        confirmButtonColor: '#ef4444'
+    });
+});
+@endif
 </script>
 @endpush
 @endsection
