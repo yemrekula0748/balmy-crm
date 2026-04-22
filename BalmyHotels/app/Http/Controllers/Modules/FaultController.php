@@ -213,7 +213,18 @@ class FaultController extends BaseModuleController
                      ->orderBy('name')
                      ->get();
 
-        return view('modules.faults.show', compact('fault', 'canUpdate', 'users', 'page_title'));
+        $allowedBacks = [
+            route('faults.incoming'),
+            route('faults.my-reports'),
+            route('faults.my-department'),
+            route('faults.index'),
+        ];
+        $prev    = url()->previous();
+        $backUrl = in_array(rtrim($prev, '/'), array_map(fn($u) => rtrim($u, '/'), $allowedBacks))
+            ? $prev
+            : route('faults.index');
+
+        return view('modules.faults.show', compact('fault', 'canUpdate', 'users', 'page_title', 'backUrl'));
     }
 
     /* ---------------------------------------------------------------

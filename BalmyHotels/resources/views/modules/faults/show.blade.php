@@ -96,7 +96,7 @@ $isClosed = in_array($fault->status, ['resolved','closed']);
                     </div>
                 </div>
                 <div class="d-flex align-items-center gap-2 flex-shrink-0">
-                    <a href="{{ route('faults.index') }}"
+                    <a href="{{ $backUrl }}"
                        style="display:inline-flex;align-items:center;gap:.45rem;font-size:.84rem;font-weight:500;padding:.45rem 1rem;border-radius:.75rem;background:rgba(255,255,255,.08);color:#cbd5e1;text-decoration:none">
                         <i class="fas fa-arrow-left" style="font-size:.72rem"></i>Geri
                     </a>
