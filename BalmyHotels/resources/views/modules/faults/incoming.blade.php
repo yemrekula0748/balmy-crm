@@ -188,16 +188,10 @@
                 $dateStr     = $fault->created_at->format('d.m.Y H:i');
 
                 $copyText = implode("\n", array_filter([
-                    '🔧 *ARIZA BİLDİRİMİ*',
-                    '──────────────────────',
-                    '*#' . $fault->id . ' — ' . $fault->title . '*',
-                    '',
-                    '⚡ Öncelik: ' . mb_strtoupper($prioLabel),
-                    $typeStr ? '🔩 Tür: ' . $typeStr : '',
-                    $fullLoc  ? '📍 Konum: ' . $fullLoc : '',
-                    $reporterStr ? '👤 Bildiren: ' . $reporterStr : '',
-                    '🕐 Tarih: ' . $dateStr,
-                    $fault->description ? "\n📝 Açıklama:\n" . $fault->description : '',
+                    '� ' . $dateStr,
+                    $typeStr ? '🔩 ' . $typeStr : '',
+                    $fullLoc  ? '📍 ' . $fullLoc : '',
+                    $fault->description ? '📝 ' . $fault->description : '',
                 ]));
             @endphp
 
