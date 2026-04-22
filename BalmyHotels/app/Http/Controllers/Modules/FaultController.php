@@ -172,6 +172,7 @@ class FaultController extends BaseModuleController
         $recipients = User::where('branch_id', $fault->branch_id)
             ->where('department_id', $fault->assigned_department_id)
             ->where('is_active', true)
+            ->where('fault_notify', true)
             ->whereNotNull('email')
             ->where('email', '!=', '')
             ->get();

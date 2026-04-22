@@ -146,6 +146,20 @@
                                 @error('department_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
                             </div>
 
+                            {{-- Arıza Bildirimleri --}}
+                            <div class="col-12 mb-4">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" name="fault_notify"
+                                        id="fault_notify" value="1" @checked(old('fault_notify', true))>
+                                    <label class="form-check-label" for="fault_notify">
+                                        Arıza Bildirimi E-postası Alsın
+                                        <small class="text-muted d-block" style="font-size:.75rem">
+                                            Departmanına arıza bildirilince mail gönderilsin
+                                        </small>
+                                    </label>
+                                </div>
+                            </div>
+
                         </div>
 
                         <div class="d-flex gap-2">

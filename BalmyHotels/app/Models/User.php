@@ -17,7 +17,7 @@ class User extends Authenticatable
     protected $fillable = [
         'name', 'email', 'password',
         'branch_id', 'department_id', 'role',
-        'phone', 'avatar', 'title', 'is_active',
+        'phone', 'avatar', 'title', 'is_active', 'fault_notify',
     ];
 
     protected $hidden = ['password', 'remember_token'];
@@ -26,6 +26,7 @@ class User extends Authenticatable
         'email_verified_at' => 'datetime',
         'password'          => 'hashed',
         'is_active'         => 'boolean',
+        'fault_notify'      => 'boolean',
     ];
 
     // --- İlişkiler ---
