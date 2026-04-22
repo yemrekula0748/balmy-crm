@@ -66,6 +66,18 @@ class Fault extends Model
         return null;
     }
 
+    /** Convert float hours (e.g. 1.5) → «1 sa. 30 dk.» for display */
+    public static function formatHours(?float $hours): string
+    {
+        if ($hours === null) return '—';
+        $minutes = (int) round($hours * 60);
+        if ($minutes < 1)  return '< 1 dk.';
+        if ($minutes < 60) return $minutes . ' dk.';
+        $h = intdiv($minutes, 60);
+        $m = $minutes % 60;
+        return $m > 0 ? "{$h} sa. {$m} dk." : "{$h} sa.";
+    }
+
     /** Returns «2 sa. 25 dk.», «45 dk.», «3 sa.» etc. */
     public function resolutionTimeLabel(): ?string
     {

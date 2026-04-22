@@ -61,7 +61,7 @@
         ['label'=>'KAPALI',        'value'=>$summary['closed'],
          'sub'=>($summary['total'] > 0 ? round($summary['closed']/$summary['total']*100) : 0).'% kapanma',
          'color'=>'#10b981','bg'=>'rgba(16,185,129,.08)','icon'=>'fa-circle-check'],
-        ['label'=>'ORT. ÇÖZÜM',    'value'=>$summary['avg_hours'] !== null ? $summary['avg_hours'].' s' : '—',
+        ['label'=>'ORT. ÇÖZÜM',    'value'=>\App\Models\Fault::formatHours($summary['avg_hours']),
          'sub'=>'Yanıt süresi',      'color'=>'#0891b2','bg'=>'rgba(8,145,178,.08)','icon'=>'fa-hourglass-half'],
         ['label'=>'SLA UYUM',      'value'=>$summary['sla_pct'] !== null ? '%'.$summary['sla_pct'] : '—',
          'sub'=>($summary['sla_pct'] >= 80 ? 'Hedef karşılandı' : ($summary['sla_pct'] >= 50 ? 'İyileştirme gerekli' : 'Kritik seviye')),
@@ -189,7 +189,7 @@
                 {{-- Avg hours --}}
                 <div style="text-align:center;flex-shrink:0;width:58px">
                     <div style="font-size:.65rem;color:#94a3b8;margin-bottom:2px;text-transform:uppercase;letter-spacing:.04em">Süre</div>
-                    <div style="font-size:.95rem;font-weight:700;color:#1e293b">{{ $row['avg_hours'] !== null ? $row['avg_hours'].'s' : '—' }}</div>
+                    <div style="font-size:.95rem;font-weight:700;color:#1e293b">{{ \App\Models\Fault::formatHours($row['avg_hours']) }}</div>
                 </div>
 
                 {{-- SLA gauge --}}
@@ -267,7 +267,7 @@
                             <span class="kpi-pill" style="background:#fef2f2;color:#dc2626">{{ $row['open'] }}</span>
                         </td>
                         <td class="tw-table-body text-center" style="color:#64748b">
-                            {{ $row['avg_hours'] !== null ? $row['avg_hours'].'s' : '—' }}
+                            {{ \App\Models\Fault::formatHours($row['avg_hours']) }}
                             @if($row['avg_hours'] !== null && $row['avg_hours'] > $row['target_hours'])
                             <i class="fas fa-exclamation-triangle text-warning ms-1" style="font-size:.65rem" title="SLA aşımı"></i>
                             @endif

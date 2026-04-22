@@ -70,7 +70,7 @@ class FaultController extends BaseModuleController
         $avgResolution = Fault::whereIn('branch_id', $branchIds)
                               ->whereNotNull('resolved_at')
                               ->get()
-                              ->avg(fn($f) => $f->created_at->diffInHours($f->resolved_at));
+                              ->avg(fn($f) => $f->created_at->diffInMinutes($f->resolved_at) / 60);
 
         $monthlyTrend = Fault::whereIn('branch_id', $branchIds)
                              ->where('created_at', '>=', now()->subMonths(6))
@@ -245,7 +245,7 @@ class FaultController extends BaseModuleController
             'in_progress' => (clone $base)->where('status', 'in_progress')->count(),
             'closed'      => (clone $base)->whereIn('status', ['resolved', 'closed'])->count(),
             'avg_hours'   => round((clone $base)->whereNotNull('resolved_at')->get()
-                ->avg(fn($f) => $f->created_at->diffInHours($f->resolved_at)) ?? 0, 1),
+                ->avg(fn($f) => $f->created_at->diffInMinutes($f->resolved_at) / 60) ?? 0, 2),
         ];
 
         $query = Fault::with(['reporter', 'branch', 'faultType', 'faultLocation', 'faultArea'])
@@ -374,8 +374,8 @@ class FaultController extends BaseModuleController
             ->map(function ($group) {
                 $ft = $group->first()->faultType;
                 $target = $ft?->completion_hours ?? 24;
-                $avgH   = round($group->avg(fn($f) => $f->created_at->diffInHours($f->resolved_at)), 1);
-                $onTime = $group->filter(fn($f) => $f->created_at->diffInHours($f->resolved_at) <= $target)->count();
+                $avgH   = round($group->avg(fn($f) => $f->created_at->diffInMinutes($f->resolved_at) / 60), 2);
+                $onTime = $group->filter(fn($f) => $f->created_at->diffInMinutes($f->resolved_at) / 60 <= $target)->count();
                 return [
                     'type_name'   => $ft?->name ?? '—',
                     'target_hours'=> $target,
@@ -396,7 +396,7 @@ class FaultController extends BaseModuleController
 
         $avgResolutionHours = Fault::where('assigned_department_id', $deptId)
             ->whereNotNull('resolved_at')->get()
-            ->avg(fn($f) => $f->created_at->diffInHours($f->resolved_at));
+            ->avg(fn($f) => $f->created_at->diffInMinutes($f->resolved_at) / 60);
 
         $page_title = 'Departmanım — ' . $dept->name;
         return view('modules.faults.my_department', compact(
@@ -533,7 +533,7 @@ class FaultController extends BaseModuleController
         // Özet
         $resolvedFaults = $allFaults->filter(fn($f) => $f->resolved_at);
         $slaOnTime = $resolvedFaults->filter(function ($f) {
-            return $f->created_at->diffInHours($f->resolved_at) <= ($f->faultType?->completion_hours ?? 24);
+            return $f->created_at->diffInMinutes($f->resolved_at) / 60 <= ($f->faultType?->completion_hours ?? 24);
         })->count();
 
         $summary = [
@@ -542,7 +542,7 @@ class FaultController extends BaseModuleController
             'in_progress' => $allFaults->where('status', 'in_progress')->count(),
             'closed'      => $allFaults->whereIn('status', ['resolved', 'closed'])->count(),
             'avg_hours'   => $resolvedFaults->count() > 0
-                ? round($resolvedFaults->avg(fn($f) => $f->created_at->diffInHours($f->resolved_at)), 1)
+                ? round($resolvedFaults->avg(fn($f) => $f->created_at->diffInMinutes($f->resolved_at) / 60), 2)
                 : null,
             'sla_pct'     => $resolvedFaults->count() > 0
                 ? round($slaOnTime / $resolvedFaults->count() * 100)
@@ -555,10 +555,10 @@ class FaultController extends BaseModuleController
                 $dept     = $faults->first()->department;
                 $resolved = $faults->filter(fn($f) => $f->resolved_at);
                 $avgH     = $resolved->count() > 0
-                    ? round($resolved->avg(fn($f) => $f->created_at->diffInHours($f->resolved_at)), 1)
+                    ? round($resolved->avg(fn($f) => $f->created_at->diffInMinutes($f->resolved_at) / 60), 2)
                     : null;
                 $onTime = $resolved->filter(function ($f) {
-                    return $f->created_at->diffInHours($f->resolved_at) <= ($f->faultType?->completion_hours ?? 24);
+                    return $f->created_at->diffInMinutes($f->resolved_at) / 60 <= ($f->faultType?->completion_hours ?? 24);
                 })->count();
                 return [
                     'dept'        => $dept,
@@ -579,9 +579,9 @@ class FaultController extends BaseModuleController
                 $target   = $ft?->completion_hours ?? 24;
                 $resolved = $faults->filter(fn($f) => $f->resolved_at);
                 $avgH     = $resolved->count() > 0
-                    ? round($resolved->avg(fn($f) => $f->created_at->diffInHours($f->resolved_at)), 1)
+                    ? round($resolved->avg(fn($f) => $f->created_at->diffInMinutes($f->resolved_at) / 60), 2)
                     : null;
-                $onTime = $resolved->filter(fn($f) => $f->created_at->diffInHours($f->resolved_at) <= $target)->count();
+                $onTime = $resolved->filter(fn($f) => $f->created_at->diffInMinutes($f->resolved_at) / 60 <= $target)->count();
                 return [
                     'type_name'    => $ft?->name ?? '—',
                     'target_hours' => $target,

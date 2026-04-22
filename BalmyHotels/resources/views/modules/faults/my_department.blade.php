@@ -135,7 +135,7 @@
         </div>
         <span class="text-sm text-blue-700">
             Kapalı arızalarda ortalama çözüm süresi:
-            <strong class="font-semibold">{{ number_format($avgResolutionHours, 1) }} saat</strong>
+            <strong class="font-semibold">{{ \App\Models\Fault::formatHours($avgResolutionHours) }}</strong>
         </span>
     </div>
     @endif
@@ -184,7 +184,7 @@
                                 <td class="px-3 py-3.5 text-center">
                                     @if(isset($row['avg_hours']) && $row['avg_hours'])
                                         <span class="text-xs font-bold {{ $overTime ? 'text-red-500' : 'text-emerald-600' }}">
-                                            {{ number_format($row['avg_hours'], 1) }}sa
+                                            {{ \App\Models\Fault::formatHours($row['avg_hours']) }}
                                         </span>
                                     @else
                                         <span class="text-gray-300 text-xs">—</span>
