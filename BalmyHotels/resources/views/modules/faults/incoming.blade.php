@@ -116,83 +116,156 @@
                 $statusBorderColors = ['danger'=>'#dc3545','warning'=>'#f97316','info'=>'#0ea5e9','success'=>'#10b981','secondary'=>'#6c757d','primary'=>'#4361ee'];
                 $borderHex = $statusBorderColors[$statusColor] ?? '#6c757d';
                 $isOld = $fault->created_at->diffInHours(now()) > 24;
-                $prioMap = ['low'=>['Normal','#10b981','#f0fdf4'],'medium'=>['Orta','#d97706','#fffbeb'],'high'=>['Acil','#dc2626','#fef2f2'],'critical'=>['Kritik','#1e293b','#f1f5f9']];
-                [$prioLabel,$prioFg,$prioBg] = $prioMap[$fault->priority] ?? ['—','#6b7280','#f1f5f9'];
+                $prioMap = [
+                    'low'      => ['Normal',  '#10b981', '#f0fdf4', '🟢'],
+                    'medium'   => ['Orta',    '#d97706', '#fffbeb', '🟡'],
+                    'high'     => ['Acil',    '#dc2626', '#fef2f2', '🔴'],
+                    'critical' => ['Kritik',  '#7c3aed', '#f5f3ff', '🔴'],
+                ];
+                [$prioLabel, $prioFg, $prioBg, $prioEmoji] = $prioMap[$fault->priority] ?? ['—','#6b7280','#f1f5f9','⚪'];
+                $statusLabel   = \App\Models\Fault::STATUSES[$fault->status] ?? $fault->status;
+                $locationStr   = $fault->faultLocation?->name ?? '';
+                $areaStr       = $fault->faultArea?->name ?? '';
+                $fullLocation  = $locationStr . ($areaStr ? ' / ' . $areaStr : '');
+                $branchStr     = $fault->branch?->name ?? '';
+                $reporterStr   = $fault->reporter?->name ?? '';
+                $typeStr       = $fault->faultType?->name ?? '';
+                $dateStr       = $fault->created_at->format('d.m.Y H:i');
+
+                $copyText = implode("\n", array_filter([
+                    '🔧 *ARIZA BİLDİRİMİ*',
+                    '─────────────────────────',
+                    '*#' . $fault->id . ' — ' . $fault->title . '*',
+                    '',
+                    '📊 Durum: ' . $statusLabel,
+                    '⚡ Öncelik: ' . mb_strtoupper($prioLabel),
+                    $typeStr       ? '🔩 Tür: ' . $typeStr       : '',
+                    $fullLocation  ? '📍 Konum: ' . $fullLocation : '',
+                    $branchStr     ? '🏨 Tesis: ' . $branchStr    : '',
+                    $reporterStr   ? '👤 Bildiren: ' . $reporterStr : '',
+                    '🕐 Tarih: ' . $dateStr,
+                    $fault->description ? "\n📝 Açıklama:\n" . $fault->description : '',
+                ]));
             @endphp
-            <div class="{{ $loop->last ? '' : 'border-bottom' }}" style="border-left:4px solid {{ $borderHex }}">
+
+            {{-- Kart --}}
+            <div class="{{ $loop->last ? '' : 'border-bottom' }} fault-row"
+                 style="border-left:4px solid {{ $borderHex }};transition:background .15s">
                 <div class="p-3 p-md-4">
                     <div class="row align-items-start g-3">
 
                         {{-- Sol: Bilgiler --}}
-                        <div class="col-12 col-md-7">
-                            <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
-                                <span class="badge" style="background:{{ $borderHex }}">
-                                    {{ \App\Models\Fault::STATUSES[$fault->status] }}
+                        <div class="col-12 col-md-7 col-lg-8">
+
+                            {{-- Üst meta satırı --}}
+                            <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+                                {{-- Durum --}}
+                                <span class="badge rounded-pill px-3" style="background:{{ $borderHex }};font-size:.75rem">
+                                    {{ $statusLabel }}
                                 </span>
-                                <span class="badge" style="background:{{ $prioBg }};color:{{ $prioFg }};font-size:.72rem">
+                                {{-- Öncelik --}}
+                                <span class="badge rounded-pill px-3" style="background:{{ $prioBg }};color:{{ $prioFg }};font-size:.75rem;border:1px solid {{ $prioFg }}22">
                                     <i class="fas fa-flag me-1" style="font-size:.6rem"></i>{{ $prioLabel }}
                                 </span>
+                                {{-- Tür --}}
                                 @if($fault->faultType)
-                                <span class="badge bg-light text-dark border" style="font-weight:500">
-                                    {{ $fault->faultType->name }}
+                                <span class="badge bg-light text-dark border px-2" style="font-size:.75rem">
+                                    <i class="fas fa-wrench me-1 text-muted" style="font-size:.65rem"></i>{{ $fault->faultType->name }}
                                 </span>
                                 @endif
-                                <span class="text-muted" style="font-size:0.75rem">
-                                    <i class="fas fa-hashtag me-1"></i>{{ $fault->id }}
-                                </span>
-                                <span class="text-muted ms-auto" style="font-size:0.75rem"
-                                      title="{{ $fault->created_at->format('d.m.Y H:i') }}">
-                                    <i class="fas fa-clock me-1 {{ $isOld ? 'text-danger' : '' }}"></i>
-                                    {{ $fault->created_at->diffForHumans() }}
+                                {{-- ID & Zaman --}}
+                                <span class="text-muted px-2 py-1 rounded-1 ms-auto d-flex align-items-center gap-2"
+                                      style="background:#f8f9fa;font-size:.74rem">
+                                    <span class="fw-semibold" style="color:#4361ee">#{{ $fault->id }}</span>
+                                    <span class="text-muted" style="opacity:.4">|</span>
+                                    <span title="{{ $fault->created_at->format('d.m.Y H:i') }}">
+                                        <i class="fas fa-clock me-1 {{ $isOld ? 'text-danger' : 'text-muted' }}" style="font-size:.7rem"></i>{{ $fault->created_at->diffForHumans() }}
+                                    </span>
                                 </span>
                             </div>
 
-                            <h6 class="fw-semibold mb-2">
-                                <a href="{{ route('faults.show', $fault) }}" class="text-dark text-decoration-none">
+                            {{-- Başlık --}}
+                            <h6 class="fw-bold mb-2" style="font-size:1rem;line-height:1.4">
+                                <a href="{{ route('faults.show', $fault) }}"
+                                   class="text-decoration-none"
+                                   style="color:#1e293b">
                                     {{ $fault->title }}
                                 </a>
                             </h6>
 
+                            {{-- Açıklama --}}
                             @if($fault->description)
-                            <p class="text-muted mb-2" style="font-size:0.82rem;line-height:1.5">
-                                {{ Str::limit($fault->description, 150) }}
+                            <p class="mb-3" style="font-size:0.83rem;color:#475569;line-height:1.6;border-left:3px solid {{ $borderHex }}33;padding-left:.6rem;background:{{ $borderHex }}08;border-radius:0 4px 4px 0;padding:.4rem .6rem">
+                                {{ Str::limit($fault->description, 200) }}
                             </p>
                             @endif
 
-                            <div class="d-flex flex-wrap gap-3 text-muted" style="font-size:0.78rem">
+                            {{-- Meta çizgisi: konum / tesis / bildiren / fotoğraf --}}
+                            <div class="d-flex flex-wrap gap-2 align-items-center" style="font-size:0.8rem">
                                 @if($fault->faultLocation)
-                                <span>
-                                    <i class="fas fa-map-marker-alt me-1 text-primary"></i>
+                                <span class="d-inline-flex align-items-center gap-1 rounded-pill px-2 py-1"
+                                      style="background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe">
+                                    <i class="fas fa-map-marker-alt" style="font-size:.65rem"></i>
                                     {{ $fault->faultLocation->name }}
                                     @if($fault->faultArea)
-                                        <span> / {{ $fault->faultArea->name }}</span>
+                                        <span style="opacity:.5">/</span>{{ $fault->faultArea->name }}
                                     @endif
                                 </span>
                                 @endif
+
                                 @if($fault->branch)
-                                <span><i class="fas fa-building me-1 text-secondary"></i>{{ $fault->branch->name }}</span>
+                                <span class="d-inline-flex align-items-center gap-1 rounded-pill px-2 py-1"
+                                      style="background:#f0fdf4;color:#15803d;border:1px solid #bbf7d0">
+                                    <i class="fas fa-building" style="font-size:.65rem"></i>
+                                    {{ $fault->branch->name }}
+                                </span>
                                 @endif
+
                                 @if($fault->reporter)
-                                <span><i class="fas fa-user me-1 text-secondary"></i>{{ $fault->reporter->name }}</span>
+                                <span class="d-inline-flex align-items-center gap-1 rounded-pill px-2 py-1"
+                                      style="background:#faf5ff;color:#7e22ce;border:1px solid #e9d5ff">
+                                    <i class="fas fa-user" style="font-size:.65rem"></i>
+                                    {{ $fault->reporter->name }}
+                                </span>
                                 @endif
+
                                 @if($fault->image_path)
-                                <a href="{{ Storage::url($fault->image_path) }}" target="_blank" class="text-info text-decoration-none">
-                                    <i class="fas fa-image me-1"></i>Fotoğraf
+                                <a href="{{ Storage::url($fault->image_path) }}" target="_blank"
+                                   class="d-inline-flex align-items-center gap-1 rounded-pill px-2 py-1 text-decoration-none"
+                                   style="background:#fff7ed;color:#c2410c;border:1px solid #fed7aa">
+                                    <i class="fas fa-camera" style="font-size:.65rem"></i>
+                                    Fotoğraf
                                 </a>
                                 @endif
                             </div>
+
+                            {{-- Aksiyon butonları --}}
+                            <div class="d-flex gap-2 mt-3">
+                                <a href="{{ route('faults.show', $fault) }}"
+                                   class="btn btn-sm btn-outline-primary">
+                                    <i class="fas fa-eye me-1"></i>Detay
+                                </a>
+                                <button type="button"
+                                        class="btn btn-sm btn-outline-success copy-fault-btn"
+                                        data-copy="{{ e($copyText) }}"
+                                        title="Arıza bilgilerini panoya kopyala">
+                                    <i class="fas fa-copy me-1"></i>Kopyala
+                                </button>
+                            </div>
+
                         </div>
 
-                        {{-- Sağ: Güncelle --}}
-                        <div class="col-12 col-md-5">
+                        {{-- Sağ: Durum Güncelle --}}
+                        <div class="col-12 col-md-5 col-lg-4">
                             @if($canUpdate && $fault->status !== 'closed')
-                            <div class="rounded-2 p-3" style="background:#f8f9fa;border:1px solid #e9ecef">
-                                <div class="fw-semibold small mb-2 text-dark">
-                                    <i class="fas fa-edit me-1 text-primary"></i>Durum Güncelle
+                            <div class="rounded-3 p-3" style="background:#f8fafc;border:1px solid #e2e8f0">
+                                <div class="fw-semibold small mb-3" style="color:#475569">
+                                    <i class="fas fa-edit me-1" style="color:#4361ee"></i>Durum Güncelle
                                 </div>
                                 <form action="{{ route('faults.updateStatus', $fault) }}" method="POST">
                                     @csrf
-                                    <select name="status" class="form-select form-select-sm mb-2" required>
+                                    <select name="status" class="form-select form-select-sm mb-2" required
+                                            style="border-color:#cbd5e1;font-size:.82rem">
                                         <option value="" disabled selected>Yeni durum seçin…</option>
                                         @foreach(\App\Models\Fault::STATUSES as $val => $lbl)
                                             @if($val !== $fault->status && $val !== 'resolved')
@@ -201,29 +274,31 @@
                                         @endforeach
                                     </select>
                                     <textarea name="note" class="form-control form-control-sm mb-2" rows="2"
-                                              placeholder="Açıklama (zorunlu)…" required></textarea>
-                                    <button class="btn btn-primary btn-sm w-100">
+                                              placeholder="Açıklama (zorunlu)…" required
+                                              style="border-color:#cbd5e1;font-size:.82rem;resize:none"></textarea>
+                                    <button class="btn btn-primary btn-sm w-100" style="font-size:.82rem">
                                         <i class="fas fa-save me-1"></i>Kaydet
                                     </button>
                                 </form>
                             </div>
+
                             @elseif($fault->status === 'closed')
                             <div class="text-center py-3">
-                                <span class="badge py-2 px-3" style="background:#e8f5e9;color:#10b981;font-size:0.82rem">
+                                <span class="badge py-2 px-3 rounded-pill"
+                                      style="background:#dcfce7;color:#15803d;font-size:0.8rem;border:1px solid #bbf7d0">
                                     <i class="fas fa-check-double me-1"></i>Kapalı
                                 </span>
+                                <div class="text-muted mt-2" style="font-size:.75rem">
+                                    {{ $fault->closed_at ? $fault->closed_at->format('d.m.Y H:i') : '' }}
+                                </div>
                             </div>
+
                             @else
-                            <div class="text-muted text-center small py-3">
-                                <i class="fas fa-lock me-1"></i>Güncelleme yetkiniz yok
+                            <div class="text-muted text-center small py-3" style="font-size:.8rem">
+                                <i class="fas fa-lock me-1 d-block mb-1" style="font-size:1.1rem;opacity:.4"></i>
+                                Güncelleme yetkiniz yok
                             </div>
                             @endif
-
-                            <div class="mt-2 text-end">
-                                <a href="{{ route('faults.show', $fault) }}" class="btn btn-sm btn-outline-primary">
-                                    <i class="fas fa-eye me-1"></i>Detay
-                                </a>
-                            </div>
                         </div>
 
                     </div>
@@ -246,4 +321,71 @@
     @endif
 
 </div>
+
+{{-- Kopyala bildirimi --}}
+<div id="copy-toast"
+     style="display:none;position:fixed;bottom:1.5rem;right:1.5rem;z-index:9999;
+            background:#1e293b;color:#fff;padding:.6rem 1.1rem;
+            border-radius:8px;font-size:.85rem;box-shadow:0 4px 20px rgba(0,0,0,.25);
+            align-items:center;gap:.5rem">
+    <i class="fas fa-check-circle text-success"></i>
+    <span>Arıza bilgileri panoya kopyalandı!</span>
+</div>
+
+@push('scripts')
+<script>
+document.querySelectorAll('.copy-fault-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+        var text = this.getAttribute('data-copy');
+        var self = this;
+
+        navigator.clipboard.writeText(text).then(function() {
+            // Geçici başarı göstergesi
+            var icon = self.querySelector('i');
+            var origHtml = self.innerHTML;
+            self.innerHTML = '<i class="fas fa-check me-1"></i>Kopyalandı!';
+            self.classList.remove('btn-outline-success');
+            self.classList.add('btn-success');
+            self.disabled = true;
+
+            var toast = document.getElementById('copy-toast');
+            toast.style.display = 'flex';
+
+            setTimeout(function() {
+                self.innerHTML = origHtml;
+                self.classList.add('btn-outline-success');
+                self.classList.remove('btn-success');
+                self.disabled = false;
+                toast.style.display = 'none';
+            }, 2000);
+        }).catch(function() {
+            // Fallback: eski tarayıcılar için
+            var ta = document.createElement('textarea');
+            ta.value = text;
+            ta.style.position = 'fixed';
+            ta.style.opacity = '0';
+            document.body.appendChild(ta);
+            ta.focus();
+            ta.select();
+            document.execCommand('copy');
+            document.body.removeChild(ta);
+
+            var toast = document.getElementById('copy-toast');
+            toast.style.display = 'flex';
+            setTimeout(function() { toast.style.display = 'none'; }, 2000);
+        });
+    });
+});
+
+// Hover efekti
+document.querySelectorAll('.fault-row').forEach(function(row) {
+    row.addEventListener('mouseenter', function() {
+        this.style.background = '#fafbff';
+    });
+    row.addEventListener('mouseleave', function() {
+        this.style.background = '';
+    });
+});
+</script>
+@endpush
 @endsection
