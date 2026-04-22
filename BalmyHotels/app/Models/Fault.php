@@ -58,11 +58,22 @@ class Fault extends Model
     public function faultArea()   { return $this->belongsTo(FaultArea::class); }
     public function updates()     { return $this->hasMany(FaultUpdate::class)->orderBy('created_at', 'desc'); }
 
-    public function resolutionTimeHours(): ?int
+    public function resolutionTimeHours(): ?float
     {
         if ($this->resolved_at) {
-            return (int) $this->created_at->diffInHours($this->resolved_at);
+            return $this->created_at->diffInMinutes($this->resolved_at) / 60;
         }
         return null;
+    }
+
+    /** Returns «2 sa. 25 dk.», «45 dk.», «3 sa.» etc. */
+    public function resolutionTimeLabel(): ?string
+    {
+        if (!$this->resolved_at) return null;
+        $minutes = (int) $this->created_at->diffInMinutes($this->resolved_at);
+        if ($minutes < 60) return $minutes . ' dk.';
+        $h = intdiv($minutes, 60);
+        $m = $minutes % 60;
+        return $m > 0 ? "{$h} sa. {$m} dk." : "{$h} sa.";
     }
 }

@@ -92,7 +92,7 @@ $isClosed = in_array($fault->status, ['resolved','closed']);
                         @if($fault->branch)<span><i class="fas fa-building me-1"></i><strong style="color:#cbd5e1">{{ $fault->branch->name }}</strong></span>@endif
                         @if($fault->faultLocation)<span><i class="fas fa-map-marker-alt me-1"></i><strong style="color:#cbd5e1">{{ $fault->faultLocation->name }}{{ $fault->faultArea ? ' / '.$fault->faultArea->name : '' }}</strong></span>@endif
                         <span><i class="fas fa-calendar me-1"></i><span style="color:#64748b">Kayıt:</span> <strong style="color:#cbd5e1">{{ $fault->created_at->format('d.m.Y H:i') }}</strong></span>
-                        @if($fault->resolved_at)<span style="color:#10b981"><i class="fas fa-check-double me-1"></i>Çözüldü: <strong>{{ \Carbon\Carbon::parse($fault->resolved_at)->format('d.m.Y H:i') }}</strong> ({{ round($fault->resolutionTimeHours(),1) }} sa.)</span>@endif
+                        @if($fault->resolved_at)<span style="color:#10b981"><i class="fas fa-check-double me-1"></i>Çözüldü: <strong>{{ \Carbon\Carbon::parse($fault->resolved_at)->format('d.m.Y H:i') }}</strong> ({{ $fault->resolutionTimeLabel() }})</span>@endif
                     </div>
                 </div>
                 <div class="d-flex align-items-center gap-2 flex-shrink-0">
@@ -257,7 +257,7 @@ $isClosed = in_array($fault->status, ['resolved','closed']);
                         <div style="font-weight:700;font-size:1rem;color:#1e293b">{{ $sm['label'] }}</div>
                         @if($fault->resolved_at)
                         <p style="font-size:.85rem;margin-top:.25rem;margin-bottom:0;color:#64748b">
-                            Çözüm süresi: <strong style="color:#10b981">{{ round($fault->resolutionTimeHours(), 1) }} saat</strong>
+                            Çözüm süresi: <strong style="color:#10b981">{{ $fault->resolutionTimeLabel() }}</strong>
                         </p>
                         @endif
                     </div>
@@ -305,7 +305,7 @@ $isClosed = in_array($fault->status, ['resolved','closed']);
                     ];
                     if ($fault->resolved_at) {
                         $infoRows[] = ['label'=>'Çözüm Tarihi','value'=>\Carbon\Carbon::parse($fault->resolved_at)->format('d.m.Y H:i')];
-                        $infoRows[] = ['label'=>'Çözüm Süresi','value'=>round($fault->resolutionTimeHours(),1).' saat','type'=>'green'];
+                        $infoRows[] = ['label'=>'Çözüm Süresi','value'=>$fault->resolutionTimeLabel(),'type'=>'green'];
                     }
                     $infoRows[] = ['label'=>'Güncellemeler','value'=>$fault->updates->count().' adet'];
                     @endphp
