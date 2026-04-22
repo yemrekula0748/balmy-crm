@@ -218,7 +218,7 @@
                     </div>
                     @endif
                     @if($fault->image_path)
-                    <a href="{{ Storage::url($fault->image_path) }}" target="_blank"
+                    <a href="{{ asset('uploads/'.$fault->image_path) }}" target="_blank"
                        style="font-size:.72rem;color:#f97316;text-decoration:none;display:inline-flex;align-items:center;gap:3px;margin-top:3px">
                         <i class="fas fa-camera"></i> Fotoğraf
                     </a>
