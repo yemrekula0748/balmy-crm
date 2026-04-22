@@ -382,7 +382,9 @@ function fallbackCopy(text) {
     document.body.removeChild(ta);
 }
 
-document.querySelectorAll('.copy-fault-btn').forEach(function(btn) {
+function bindCopyBtn(btn) {
+    if (btn._bound) return;
+    btn._bound = true;
     btn.addEventListener('click', function() {
         var text = this.getAttribute('data-copy');
         var self = this;
@@ -410,7 +412,8 @@ document.querySelectorAll('.copy-fault-btn').forEach(function(btn) {
             fallbackCopy(text); showSuccess();
         }
     });
-});
+}
+document.querySelectorAll('.copy-fault-btn').forEach(bindCopyBtn);
 
 // ── Otomatik arıza yenileme (polling) ────────────────────────
 (function() {
@@ -481,6 +484,11 @@ document.querySelectorAll('.copy-fault-btn').forEach(function(btn) {
         var updateBtn = (canUpdate && fault.status !== 'closed')
             ? '<button type="button" class="act-btn act-btn-update toggle-expand" data-target="expand-'+fault.id+'" title="Durum güncelle"><i class="fas fa-pen"></i><span class="d-none d-xl-inline">Güncelle</span></button>'
             : '';
+        var copyParts = ['\u{1F550} ' + fault.created_at];
+        if (fault.type_name) copyParts.push('\uD83D\uDD29 ' + fault.type_name);
+        if (loc) copyParts.push('\uD83D\uDCCD ' + loc);
+        if (fault.description) copyParts.push('\uD83D\uDCDD ' + fault.description);
+        var copyBtn = '<button type="button" class="act-btn act-btn-copy copy-fault-btn" data-copy="'+esc(copyParts.join('\n'))+'" title="WhatsApp için kopyala"><i class="fas fa-copy"></i><span class="d-none d-xl-inline">Kopyala</span></button>';
         return '<tr class="fault-main fault-new-highlight" style="border-left:3px solid '+hex+'">'
             + '<td><span style="font-weight:700;color:#4361ee;font-size:.82rem">#'+esc(String(fault.id))+'</span></td>'
             + '<td style="max-width:280px">'
@@ -496,8 +504,21 @@ document.querySelectorAll('.copy-fault-btn').forEach(function(btn) {
             + '<td><div style="font-size:.83rem;color:#374151">'+(fault.reporter_name ? esc(fault.reporter_name) : '<span style="color:#d1d5db">—</span>')+'</div></td>'
             + '<td><div style="font-size:.82rem;color:#374151;white-space:nowrap">'+esc(fault.created_at.split(' ')[0])+'</div><div style="font-size:.75rem;color:#9ca3af;white-space:nowrap">'+esc(fault.created_at)+'</div></td>'
             + '<td><span class="status-pill" style="background:'+hex+'1a;color:'+hex+'">'+esc(slbl)+'</span></td>'
-            + '<td class="text-end" style="padding-right:16px"><div class="d-flex gap-1 justify-content-end"><a href="'+esc(fault.show_url)+'" class="act-btn act-btn-detail" title="Detay"><i class="fas fa-eye"></i><span class="d-none d-xl-inline">Detay</span></a>'+updateBtn+'</div></td>'
+            + '<td class="text-end" style="padding-right:16px"><div class="d-flex gap-1 justify-content-end"><a href="'+esc(fault.show_url)+'" class="act-btn act-btn-detail" title="Detay"><i class="fas fa-eye"></i><span class="d-none d-xl-inline">Detay</span></a>'+copyBtn+updateBtn+'</div></td>'
             + '</tr>';
+    }
+
+    function playBeep() {
+        try {
+            var ctx = new (window.AudioContext || window.webkitAudioContext)();
+            var osc = ctx.createOscillator();
+            var gain = ctx.createGain();
+            osc.connect(gain); gain.connect(ctx.destination);
+            osc.type = 'sine'; osc.frequency.value = 880;
+            gain.gain.setValueAtTime(0.25, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
+            osc.start(ctx.currentTime); osc.stop(ctx.currentTime + 0.5);
+        } catch(e) {}
     }
 
     function bindNewRows(tbody) {
@@ -512,6 +533,7 @@ document.querySelectorAll('.copy-fault-btn').forEach(function(btn) {
                 if (open) { var inp = row.querySelector('input,select'); if (inp) inp.focus(); }
             });
         });
+        tbody.querySelectorAll('.copy-fault-btn').forEach(bindCopyBtn);
     }
 
     function updateChip(idx, delta) {
@@ -527,6 +549,7 @@ document.querySelectorAll('.copy-fault-btn').forEach(function(btn) {
         .then(function(r) { if (!r.ok) throw 0; return r.json(); })
         .then(function(data) {
             if (!data.faults || !data.faults.length) return;
+            playBeep();
             data.faults.forEach(function(fault) {
                 if (fault.id > lastId) lastId = fault.id;
                 showNewFaultToast(fault);
