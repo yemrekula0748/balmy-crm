@@ -50,6 +50,10 @@
 /* ── Empty ──────────────────────────────────────────────────── */
 .empty-state { padding:56px 24px;text-align:center;color:#9ca3af; }
 .empty-state .es-icon { font-size:2.5rem;margin-bottom:12px;opacity:.25;display:block; }
+/* ── New-fault toast ────────────────────────────────────────── */
+@keyframes nfSlideIn { from{opacity:0;transform:translateX(30px)} to{opacity:1;transform:translateX(0)} }
+.nf-toast { animation:nfSlideIn .3s ease;transition:opacity .3s,transform .3s; }
+.fault-new-highlight { background:#fff9e6 !important; }
 </style>
 @endpush
 
@@ -346,6 +350,11 @@
     <span>Kopyalandı! WhatsApp'a yapıştırabilirsiniz.</span>
 </div>
 
+{{-- Yeni arıza toast kapsayıcısı --}}
+<div id="new-fault-toasts"
+     style="position:fixed;bottom:5rem;right:1.5rem;z-index:9998;
+            display:flex;flex-direction:column;gap:10px;max-width:340px;pointer-events:auto"></div>
+
 @push('scripts')
 <script>
 // Güncelle satır aç/kapat
@@ -402,6 +411,149 @@ document.querySelectorAll('.copy-fault-btn').forEach(function(btn) {
         }
     });
 });
+
+// ── Otomatik arıza yenileme (polling) ────────────────────────
+(function() {
+    var lastId    = {{ $faults->isNotEmpty() ? $faults->max('id') : 0 }};
+    var pollUrl   = "{{ route('faults.ajax.new-incoming') }}";
+    var canUpdate = {{ $canUpdate ? 'true' : 'false' }};
+    var filtered  = {{ (request('search') || request('status')) ? 'true' : 'false' }};
+
+    var STATUS_HEX = {
+        'danger':'#ef4444','warning':'#f97316','info':'#0ea5e9',
+        'success':'#10b981','primary':'#4361ee','secondary':'#94a3b8'
+    };
+    var STATUS_LABELS = {
+        'open':'Açık','in_progress':'İşlemde','winter_plan':'Kış Planı',
+        'waiting_material':'Malzeme Bekliyor','resolved':'Çözüldü','closed':'Kapalı'
+    };
+    var PRIO = {
+        'low':     ['Normal','rgba(16,185,129,.12)','#059669'],
+        'medium':  ['Orta',  'rgba(245,158,11,.12)','#b45309'],
+        'high':    ['Acil',  'rgba(239,68,68,.12)', '#dc2626'],
+        'critical':['Kritik','rgba(124,58,237,.12)','#7c3aed']
+    };
+
+    function esc(s) {
+        var d = document.createElement('div');
+        d.appendChild(document.createTextNode(s || ''));
+        return d.innerHTML;
+    }
+
+    function showNewFaultToast(fault) {
+        var container = document.getElementById('new-fault-toasts');
+        if (!container) return;
+        var hex   = STATUS_HEX[fault.status_color] || '#94a3b8';
+        var loc   = fault.location_name + (fault.area_name ? ' / ' + fault.area_name : '');
+        var meta  = [fault.type_name, loc].filter(Boolean).join(' · ');
+        var toast = document.createElement('div');
+        toast.className = 'nf-toast';
+        toast.style.cssText = 'background:#fff;border-radius:12px;border-left:4px solid '+hex+';box-shadow:0 4px 24px rgba(0,0,0,.18);padding:14px 16px;position:relative;';
+        toast.innerHTML =
+            '<div style="display:flex;align-items:flex-start;gap:10px">'
+            + '<div style="width:32px;height:32px;background:rgba(239,68,68,.12);border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:#ef4444"><i class="fas fa-bell"></i></div>'
+            + '<div style="flex:1;min-width:0">'
+                + '<div style="font-size:.68rem;font-weight:700;color:#ef4444;text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px">Yeni Arıza #'+esc(String(fault.id))+'</div>'
+                + '<div style="font-size:.86rem;font-weight:700;color:#1f2937;line-height:1.3;margin-bottom:4px">'+esc(fault.title)+'</div>'
+                + (meta ? '<div style="font-size:.76rem;color:#6b7280">'+esc(meta)+'</div>' : '')
+                + '<div style="font-size:.72rem;color:#9ca3af;margin-top:2px">'+esc(fault.created_at)+'</div>'
+                + '<a href="'+esc(fault.show_url)+'" style="display:inline-block;margin-top:8px;font-size:.76rem;font-weight:600;color:#4361ee;text-decoration:none;background:rgba(67,97,238,.1);padding:4px 10px;border-radius:6px">Görüntüle →</a>'
+            + '</div>'
+            + '<button onclick="this.closest(\'.nf-toast\').remove()" style="background:none;border:none;cursor:pointer;color:#9ca3af;font-size:1.2rem;padding:0;line-height:1;flex-shrink:0;margin-left:4px">×</button>'
+            + '</div>';
+        container.appendChild(toast);
+        setTimeout(function() {
+            if (!toast.parentNode) return;
+            toast.style.opacity = '0';
+            toast.style.transform = 'translateX(30px)';
+            setTimeout(function() { if (toast.parentNode) toast.remove(); }, 300);
+        }, 8000);
+    }
+
+    function renderFaultRow(fault) {
+        var hex  = STATUS_HEX[fault.status_color] || '#94a3b8';
+        var p    = PRIO[fault.priority] || ['—','rgba(156,163,175,.12)','#6b7280'];
+        var slbl = STATUS_LABELS[fault.status] || fault.status;
+        var loc  = fault.location_name + (fault.area_name ? ' / ' + fault.area_name : '');
+        var photo = fault.image_url
+            ? '<a href="'+esc(fault.image_url)+'" target="_blank" style="font-size:.72rem;color:#f97316;text-decoration:none;display:inline-flex;align-items:center;gap:3px;margin-top:3px"><i class="fas fa-camera"></i> Fotoğraf</a>'
+            : '';
+        var updateBtn = (canUpdate && fault.status !== 'closed')
+            ? '<button type="button" class="act-btn act-btn-update toggle-expand" data-target="expand-'+fault.id+'" title="Durum güncelle"><i class="fas fa-pen"></i><span class="d-none d-xl-inline">Güncelle</span></button>'
+            : '';
+        return '<tr class="fault-main fault-new-highlight" style="border-left:3px solid '+hex+'">'
+            + '<td><span style="font-weight:700;color:#4361ee;font-size:.82rem">#'+esc(String(fault.id))+'</span></td>'
+            + '<td style="max-width:280px">'
+                + '<div style="font-weight:700;color:#1f2937;font-size:.88rem;line-height:1.3;margin-bottom:3px"><a href="'+esc(fault.show_url)+'" style="text-decoration:none;color:inherit">'+esc(fault.title)+'</a></div>'
+                + (fault.description ? '<div style="font-size:.77rem;color:#9ca3af;line-height:1.4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:260px">'+esc(fault.description.substring(0,80))+'</div>' : '')
+                + photo
+            + '</td>'
+            + '<td><span class="prio-pill" style="background:'+p[1]+';color:'+p[2]+'"><i class="fas fa-flag" style="font-size:.6rem"></i>'+esc(p[0])+'</span></td>'
+            + '<td style="max-width:200px">'
+                + (fault.type_name ? '<div style="font-size:.82rem;font-weight:600;color:#374151">'+esc(fault.type_name)+'</div>' : '')
+                + (loc ? '<div style="font-size:.77rem;color:#9ca3af;display:flex;align-items:center;gap:3px;margin-top:2px"><i class="fas fa-map-marker-alt" style="color:#4361ee;font-size:.65rem"></i>'+esc(loc)+'</div>' : '')
+            + '</td>'
+            + '<td><div style="font-size:.83rem;color:#374151">'+(fault.reporter_name ? esc(fault.reporter_name) : '<span style="color:#d1d5db">—</span>')+'</div></td>'
+            + '<td><div style="font-size:.82rem;color:#374151;white-space:nowrap">'+esc(fault.created_at.split(' ')[0])+'</div><div style="font-size:.75rem;color:#9ca3af;white-space:nowrap">'+esc(fault.created_at)+'</div></td>'
+            + '<td><span class="status-pill" style="background:'+hex+'1a;color:'+hex+'">'+esc(slbl)+'</span></td>'
+            + '<td class="text-end" style="padding-right:16px"><div class="d-flex gap-1 justify-content-end"><a href="'+esc(fault.show_url)+'" class="act-btn act-btn-detail" title="Detay"><i class="fas fa-eye"></i><span class="d-none d-xl-inline">Detay</span></a>'+updateBtn+'</div></td>'
+            + '</tr>';
+    }
+
+    function bindNewRows(tbody) {
+        tbody.querySelectorAll('.toggle-expand').forEach(function(btn) {
+            if (btn._bound) return;
+            btn._bound = true;
+            btn.addEventListener('click', function() {
+                var row = document.getElementById(this.getAttribute('data-target'));
+                if (!row) return;
+                var open = row.classList.toggle('open');
+                this.classList.toggle('is-open', open);
+                if (open) { var inp = row.querySelector('input,select'); if (inp) inp.focus(); }
+            });
+        });
+    }
+
+    function updateChip(idx, delta) {
+        var chips = document.querySelectorAll('.stat-chip .sc-num');
+        if (chips[idx]) chips[idx].textContent = (parseInt(chips[idx].textContent) || 0) + delta;
+    }
+
+    function poll() {
+        fetch(pollUrl + '?last_id=' + lastId, {
+            credentials: 'same-origin',
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        })
+        .then(function(r) { if (!r.ok) throw 0; return r.json(); })
+        .then(function(data) {
+            if (!data.faults || !data.faults.length) return;
+            data.faults.forEach(function(fault) {
+                if (fault.id > lastId) lastId = fault.id;
+                showNewFaultToast(fault);
+                if (!filtered) {
+                    var tbody = document.querySelector('.faults-card tbody');
+                    if (tbody) {
+                        var empty = tbody.querySelector('.empty-state');
+                        if (empty) empty.closest('tr').remove();
+                        var tmp = document.createElement('tbody');
+                        tmp.innerHTML = renderFaultRow(fault);
+                        var newTr = tmp.firstElementChild;
+                        newTr.style.transition = 'background 2s ease';
+                        tbody.insertBefore(newTr, tbody.firstChild);
+                        bindNewRows(tbody);
+                        setTimeout(function() { newTr.classList.remove('fault-new-highlight'); }, 3000);
+                    }
+                }
+                updateChip(0, 1); // Toplam
+                if (fault.status === 'open') updateChip(1, 1); // Açık
+            });
+        })
+        .catch(function() {})
+        .finally(function() { setTimeout(poll, 30000); });
+    }
+
+    setTimeout(poll, 30000);
+})();
 </script>
 @endpush
 @endsection

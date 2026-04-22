@@ -256,6 +256,46 @@ class FaultController extends BaseModuleController
     }
 
     /* ---------------------------------------------------------------
+     | GELEN ARIZA POLLING (AJAX)
+     --------------------------------------------------------------- */
+    public function ajaxNewIncoming(Request $request)
+    {
+        $user   = auth()->user();
+        $deptId = $user->department_id;
+
+        if (!$deptId) {
+            return response()->json(['faults' => [], 'count' => 0]);
+        }
+
+        $lastId = (int) $request->input('last_id', 0);
+
+        $faults = Fault::with(['reporter', 'faultType', 'faultLocation', 'faultArea'])
+            ->where('assigned_department_id', $deptId)
+            ->where('id', '>', $lastId)
+            ->orderBy('id', 'desc')
+            ->limit(10)
+            ->get()
+            ->map(fn($fault) => [
+                'id'            => $fault->id,
+                'title'         => $fault->title,
+                'description'   => $fault->description,
+                'status'        => $fault->status,
+                'status_label'  => Fault::STATUSES[$fault->status]      ?? $fault->status,
+                'status_color'  => Fault::STATUS_COLORS[$fault->status] ?? 'secondary',
+                'priority'      => $fault->priority,
+                'type_name'     => $fault->faultType?->name     ?? '',
+                'location_name' => $fault->faultLocation?->name ?? '',
+                'area_name'     => $fault->faultArea?->name     ?? '',
+                'reporter_name' => $fault->reporter?->name      ?? '',
+                'image_url'     => $fault->image_path ? asset('uploads/'.$fault->image_path) : null,
+                'created_at'    => $fault->created_at->format('d.m.Y H:i'),
+                'show_url'      => route('faults.show', $fault),
+            ]);
+
+        return response()->json(['faults' => $faults, 'count' => $faults->count()]);
+    }
+
+    /* ---------------------------------------------------------------
      | BİLDİRDİKLERİM
      --------------------------------------------------------------- */
     public function myReports(Request $request)

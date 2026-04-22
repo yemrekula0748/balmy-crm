@@ -351,6 +351,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/ajax/konumlar',             [FaultController::class, 'ajaxLocations'])->name('ajax.locations');
         Route::get('/ajax/alanlar',              [FaultController::class, 'ajaxAreas'])->name('ajax.areas');
         Route::get('/ajax/ariza-turleri',        [FaultController::class, 'ajaxFaultTypes'])->name('ajax.fault-types');
+        Route::get('/ajax/gelen-yeni',           [FaultController::class, 'ajaxNewIncoming'])->name('ajax.new-incoming');
 
         // Konum + Alan yönetimi
         Route::prefix('konumlar')->name('locations.')->group(function () {

@@ -130,7 +130,12 @@
                     @if($user->hasPermission('faults', 'index'))
                     <li><a href="{{ route('faults.my-reports') }}">Bildirdiklerim</a></li>
                     @if($user->department_id)
-                    <li><a href="{{ route('faults.incoming') }}">Gelen Arızalar</a></li>
+                    @php
+                        $sidebarOpenFaults = \App\Models\Fault::where('assigned_department_id', $user->department_id)
+                            ->whereNotIn('status', ['resolved', 'closed'])
+                            ->count();
+                    @endphp
+                    <li><a href="{{ route('faults.incoming') }}">Gelen Arızalar @if($sidebarOpenFaults > 0)<span style="display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:17px;padding:0 5px;background:#ef4444;color:#fff;border-radius:9px;font-size:.65rem;font-weight:700;margin-left:5px;line-height:1;vertical-align:middle">{{ $sidebarOpenFaults }}</span>@endif</a></li>
                     <li><a href="{{ route('faults.my-department') }}">Departmanım</a></li>
                     @endif
                     @if($user->hasAnyRole(['super_admin', 'branch_manager']))
