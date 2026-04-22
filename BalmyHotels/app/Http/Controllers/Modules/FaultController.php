@@ -253,7 +253,16 @@ class FaultController extends BaseModuleController
             ->orderByRaw("CASE status WHEN 'open' THEN 0 WHEN 'in_progress' THEN 1 WHEN 'resolved' THEN 2 ELSE 3 END")
             ->orderBy('created_at', 'desc');
 
-        if ($request->filled('status'))  $query->where('status', $request->status);
+        // Arıza türleri: kullanıcının şubesi ve departmanına uygun
+        $faultTypes = FaultType::where('is_active', true)
+            ->where(fn($q) => $q->whereNull('branch_id')->orWhere('branch_id', $user->branch_id))
+            ->get()
+            ->filter(fn($ft) => $ft->allowedForDepartment($deptId))
+            ->sortBy('name')
+            ->values();
+
+        if ($request->filled('status'))     $query->where('status', $request->status);
+        if ($request->filled('fault_type')) $query->where('fault_type_id', $request->fault_type);
         if ($request->filled('search')) {
             $s = $request->search;
             $query->where(fn($q) => $q->where('title', 'like', "%$s%")->orWhere('description', 'like', "%$s%"));
@@ -263,7 +272,7 @@ class FaultController extends BaseModuleController
         $canUpdate = $user->isSuperAdmin() || $user->isBranchManager() || $user->isDeptManager();
         $page_title = 'Gelen Arızalar';
 
-        return view('modules.faults.incoming', compact('faults', 'canUpdate', 'dept', 'stats', 'page_title'));
+        return view('modules.faults.incoming', compact('faults', 'canUpdate', 'dept', 'stats', 'page_title', 'faultTypes'));
     }
 
     /* ---------------------------------------------------------------

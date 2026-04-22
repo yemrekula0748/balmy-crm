@@ -121,12 +121,12 @@
 
     {{-- Filter --}}
     <div class="filter-card">
-        <form method="GET" class="row g-2 align-items-end">
-            <div class="col-md-4">
+        <form method="GET" class="row g-2 align-items-end" id="filter-form">
+            <div class="col-md-3">
                 <label class="form-label mb-1" style="font-size:.78rem;font-weight:600;color:#6b7280"><i class="fas fa-search me-1"></i>Arama</label>
                 <input type="text" name="search" class="form-control" placeholder="Başlık veya açıklama ara…" value="{{ request('search') }}">
             </div>
-            <div class="col-md-3">
+            <div class="col-md-2">
                 <label class="form-label mb-1" style="font-size:.78rem;font-weight:600;color:#6b7280"><i class="fas fa-circle me-1"></i>Durum</label>
                 <select name="status" class="form-select">
                     <option value="">— Tüm Durumlar —</option>
@@ -135,16 +135,29 @@
                     @endforeach
                 </select>
             </div>
-            <div class="col-md-3 d-flex gap-2 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label mb-1" style="font-size:.78rem;font-weight:600;color:#6b7280"><i class="fas fa-wrench me-1"></i>Arıza Türü</label>
+                <select name="fault_type" class="form-select">
+                    <option value="">— Tüm Türler —</option>
+                    @foreach($faultTypes as $ft)
+                        <option value="{{ $ft->id }}" @selected(request('fault_type') == $ft->id)>{{ $ft->name }}</option>
+                    @endforeach
+                </select>
+            </div>
+            <div class="col-md-4 d-flex gap-2 align-items-end flex-wrap">
                 <button type="submit" class="btn btn-sm"
                     style="background:#4361ee;color:#fff;border-radius:9px;padding:9px 18px;font-size:.83rem;font-weight:600;border:none">
                     <i class="fas fa-search me-1"></i>Ara
                 </button>
-                @if(request('search') || request('status'))
+                @if(request('search') || request('status') || request('fault_type'))
                     <a href="{{ route('faults.incoming') }}" class="btn btn-sm btn-outline-secondary" style="border-radius:9px;padding:9px 14px">
                         <i class="fas fa-times"></i>
                     </a>
                 @endif
+                <button type="button" id="print-btn"
+                    style="background:rgba(124,58,237,.1);color:#7c3aed;border:none;border-radius:9px;padding:9px 16px;font-size:.83rem;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:5px">
+                    <i class="fas fa-print"></i><span class="d-none d-sm-inline">Yazdır</span>
+                </button>
                 <span class="ms-auto" style="font-size:.78rem;color:#9ca3af;white-space:nowrap">
                     {{ $faults->total() }} kayıt
                 </span>
@@ -357,7 +370,103 @@
 
 @push('scripts')
 <script>
-// Güncelle satır aç/kapat
+// ── Yazdırma ────────────────────────────────────────────────────────────────
+document.getElementById('print-btn').addEventListener('click', function() {
+    var deptName = @json($dept->name ?? 'Departman');
+    var today    = new Date().toLocaleString('tr-TR', {day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
+
+    var filterParts = [];
+    var searchEl = document.querySelector('[name="search"]');
+    var statusEl = document.querySelector('[name="status"]');
+    var typeEl   = document.querySelector('[name="fault_type"]');
+    if (searchEl && searchEl.value) filterParts.push('Arama: \u201c' + searchEl.value + '\u201d');
+    if (statusEl && statusEl.value) filterParts.push('Durum: ' + statusEl.options[statusEl.selectedIndex].text);
+    if (typeEl   && typeEl.value)   filterParts.push('T\u00fcr: '   + typeEl.options[typeEl.selectedIndex].text);
+
+    var rows = document.querySelectorAll('.faults-card tbody tr.fault-main');
+    if (!rows.length) { alert('Yazd\u0131r\u0131lacak kay\u0131t yok.'); return; }
+
+    var tableRows = '';
+    rows.forEach(function(tr) {
+        var cells = tr.querySelectorAll('td');
+        if (cells.length < 7) return;
+        var borderColor = tr.style.borderLeftColor || '#94a3b8';
+        var id         = cells[0].textContent.trim();
+        var titleA     = cells[1].querySelector('a');
+        var title      = titleA ? titleA.textContent.trim() : cells[1].textContent.trim();
+        var descDivs   = cells[1].querySelectorAll('div');
+        var desc       = descDivs[1] ? descDivs[1].textContent.trim() : '';
+        var prioPill   = cells[2].querySelector('.prio-pill');
+        var prioBg     = prioPill ? prioPill.style.background   : 'rgba(156,163,175,.12)';
+        var prioFg     = prioPill ? prioPill.style.color        : '#6b7280';
+        var prioText   = prioPill ? prioPill.textContent.trim() : '\u2014';
+        var typeDivs   = cells[3].querySelectorAll('div');
+        var typeText   = typeDivs[0] ? typeDivs[0].textContent.trim() : '';
+        var locText    = typeDivs[1] ? typeDivs[1].textContent.trim() : '';
+        var reporter   = cells[4].textContent.trim();
+        var dateEl     = cells[5].querySelector('div');
+        var dateText   = dateEl ? dateEl.textContent.trim() : '';
+        var statusPill = cells[6].querySelector('.status-pill');
+        var statusBg   = statusPill ? statusPill.style.background   : '';
+        var statusFg   = statusPill ? statusPill.style.color        : '#1f2937';
+        var statusText = statusPill ? statusPill.textContent.trim() : '';
+
+        tableRows += '<tr style="border-left:3px solid ' + borderColor + ';page-break-inside:avoid">'
+            + '<td style="font-weight:700;color:#4361ee;white-space:nowrap;font-size:9pt">' + id + '</td>'
+            + '<td><div style="font-weight:600;font-size:9.5pt">' + title + '</div>'
+                + (desc ? '<div style="font-size:8pt;color:#6b7280;margin-top:1px">' + desc + '</div>' : '')
+            + '</td>'
+            + '<td><span style="display:inline-block;padding:2px 8px;border-radius:5px;font-size:8pt;font-weight:700;background:' + prioBg + ';color:' + prioFg + '">' + prioText + '</span></td>'
+            + '<td>' + (typeText ? '<div style="font-weight:600;font-size:9pt">' + typeText + '</div>' : '')
+                     + (locText  ? '<div style="font-size:8pt;color:#6b7280;margin-top:1px">' + locText + '</div>' : '')
+            + '</td>'
+            + '<td style="white-space:nowrap;font-size:9pt">' + reporter + '</td>'
+            + '<td style="white-space:nowrap;font-size:9pt">' + dateText + '</td>'
+            + '<td><span style="display:inline-block;padding:2px 8px;border-radius:5px;font-size:8pt;font-weight:700;background:' + statusBg + ';color:' + statusFg + '">' + statusText + '</span></td>'
+            + '</tr>';
+    });
+
+    var html = '<!DOCTYPE html><html lang="tr"><head><meta charset="utf-8">'
+        + '<title>Gelen Ar\u0131zalar \u2014 ' + deptName + '</title>'
+        + '<style>'
+        + '*{box-sizing:border-box;margin:0;padding:0}'
+        + 'body{font-family:"Segoe UI",Arial,sans-serif;font-size:10pt;color:#1f2937;background:#fff}'
+        + '@page{margin:1.5cm 2cm;size:A4 landscape}'
+        + '.ph{display:flex;justify-content:space-between;align-items:flex-end;padding-bottom:12px;border-bottom:3px solid #4361ee;margin-bottom:18px}'
+        + '.ph h1{font-size:15pt;color:#1f2937;font-weight:800}'
+        + '.ph-sub{font-size:9pt;color:#6b7280;margin-top:3px}'
+        + '.ph-filters{font-size:8.5pt;color:#7c3aed;margin-top:4px;font-weight:600}'
+        + '.ph-right{text-align:right;font-size:8.5pt;color:#6b7280;line-height:1.6}'
+        + 'table{width:100%;border-collapse:collapse}'
+        + 'thead tr{background:#f1f5f9}'
+        + 'th{font-size:7.5pt;font-weight:700;color:#374151;text-transform:uppercase;letter-spacing:.05em;padding:8px 10px;border-bottom:2px solid #e2e8f0;text-align:left;white-space:nowrap}'
+        + 'td{padding:7px 10px;vertical-align:top;border-bottom:1px solid #f0f2f5}'
+        + 'tbody tr:nth-child(even) td{background:#fafbff}'
+        + 'tbody tr:last-child td{border-bottom:none}'
+        + '.footer{margin-top:14px;font-size:8pt;color:#9ca3af;text-align:right;border-top:1px solid #e5e7eb;padding-top:8px}'
+        + '</style></head><body>'
+        + '<div class="ph">'
+        +   '<div><h1>\uD83D\uDD27 Gelen Ar\u0131zalar</h1>'
+        +   '<div class="ph-sub">' + deptName + '</div>'
+        +   (filterParts.length ? '<div class="ph-filters">Filtre: ' + filterParts.join(' &middot; ') + '</div>' : '')
+        +   '</div>'
+        +   '<div class="ph-right">Yazd\u0131r\u0131lma: ' + today + '<br/><strong>' + rows.length + '</strong> kay\u0131t</div>'
+        + '</div>'
+        + '<table><thead><tr>'
+        + '<th>#</th><th>Ar\u0131za</th><th>\u00d6ncelik</th><th>T\u00fcr &middot; Konum</th><th>Bildiren</th><th>Tarih</th><th>Durum</th>'
+        + '</tr></thead><tbody>' + tableRows + '</tbody></table>'
+        + '<div class="footer">Toplam ' + rows.length + ' kay\u0131t g\u00f6sterilmektedir \u2014 ' + today + '</div>'
+        + '</body></html>';
+
+    var w = window.open('', '_blank', 'width=1100,height=700');
+    if (!w) { alert('L\u00fctfen popup engelleyicisini kapat\u0131n ve tekrar deneyin.'); return; }
+    w.document.write(html);
+    w.document.close();
+    w.focus();
+    setTimeout(function() { w.print(); }, 600);
+});
+
+// ── Güncelle satır aç/kapat
 document.querySelectorAll('.toggle-expand').forEach(function(btn) {
     btn.addEventListener('click', function() {
         var id  = this.getAttribute('data-target');
