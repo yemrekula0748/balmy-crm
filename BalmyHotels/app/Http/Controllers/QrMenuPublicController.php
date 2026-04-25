@@ -29,9 +29,12 @@ class QrMenuPublicController extends Controller
     public function splash(string $slug)
     {
         $menu = QrMenu::where('name', $slug)
-            ->where('is_active', true)
             ->with('languages')
             ->firstOrFail();
+
+        if (!$menu->is_active) {
+            return response(view('public.qrmenu.unavailable', compact('menu')), 503);
+        }
 
         // Tek dil varsa direkt menüyo at
         if ($menu->languages->count() === 1) {
@@ -48,7 +51,6 @@ class QrMenuPublicController extends Controller
     public function view(string $slug, string $lang)
     {
         $menu = QrMenu::where('name', $slug)
-            ->where('is_active', true)
             ->with(['languages', 'categories' => function ($q) {
                 $q->where('is_active', true)
                   ->orderBy('sort_order')
@@ -59,6 +61,10 @@ class QrMenuPublicController extends Controller
                   }]);
             }])
             ->firstOrFail();
+
+        if (!$menu->is_active) {
+            return response(view('public.qrmenu.unavailable', compact('menu')), 503);
+        }
 
         // Dil geçerliliğini kontrol et
         $language = $menu->languages->firstWhere('code', $lang);

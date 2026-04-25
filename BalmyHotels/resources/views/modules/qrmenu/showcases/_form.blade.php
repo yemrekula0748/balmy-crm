@@ -143,12 +143,17 @@
                         </div>
 
                         <label class="flex-grow-1 mb-0" for="menu-cb-{{ $menu->id }}" style="cursor:pointer">
-                            <div class="fw-semibold small">{{ $menu->getTitle('tr') ?? $menu->name }}</div>
+                            <div class="fw-semibold small">
+                                {{ $menu->getTitle('tr') ?? $menu->name }}
+                                @unless($menu->is_active)
+                                    <span class="badge bg-secondary ms-1" style="font-size:.65rem">Pasif</span>
+                                @endunless
+                            </div>
                             <div class="text-muted" style="font-size:.75rem">/menu/{{ $menu->name }}</div>
                         </label>
                     </div>
                     @empty
-                    <div class="text-muted text-center py-5">Aktif QR menü bulunamadı.</div>
+                    <div class="text-muted text-center py-5">Hiç QR menü bulunamadı.</div>
                     @endforelse
                 </div>
             </div>

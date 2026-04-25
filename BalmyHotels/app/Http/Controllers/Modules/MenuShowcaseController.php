@@ -78,7 +78,7 @@ class MenuShowcaseController extends BaseModuleController
     public function edit(MenuShowcase $showcase)
     {
         $showcase->load('items.menu');
-        $menus      = QrMenu::where('is_active', true)->orderBy('name')->get();
+        $menus      = QrMenu::orderBy('name')->get();
         $page_title = 'Vitrin Düzenle: ' . $showcase->title;
         return view('modules.qrmenu.showcases.edit', compact('showcase', 'menus', 'page_title'));
     }
