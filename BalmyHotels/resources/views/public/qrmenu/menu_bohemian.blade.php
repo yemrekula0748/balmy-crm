@@ -98,24 +98,7 @@
             letter-spacing: .06em;
         }
 
-        /* ── LANG BAR ── */
-        .lang-bar {
-            position: fixed; top: calc(env(safe-area-inset-top,0px) + .65rem); right: .75rem;
-            z-index: 300; display: flex; gap: .3rem;
-        }
-        .lang-bar a {
-            display: inline-flex; align-items: center; gap: .2rem;
-            padding: .25rem .6rem; border-radius: 50px;
-            font-family: var(--sans); font-size: .62rem; font-weight: 500;
-            letter-spacing: .07em; text-decoration: none;
-            background: rgba(26,15,10,.8);
-            backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
-            border: 1px solid var(--border2); color: var(--text-sub);
-            transition: .2s;
-        }
-        .lang-bar a.active, .lang-bar a:hover {
-            background: var(--accent); border-color: var(--accent); color: #fff;
-        }
+
 
         /* ── STICKY NAV (mini, optional) ── */
         .toc-bar {
@@ -218,15 +201,8 @@
             font-family: var(--crimson);
             font-size: 1.05rem; font-weight: 400;
             color: var(--text); line-height: 1.25;
-            display: flex; align-items: baseline; gap: .4rem;
-            flex-wrap: wrap;
         }
-        .ir-name-text { flex: 1; min-width: 0; }
-        .ir-dots {
-            flex: 1; min-width: 24px;
-            border-bottom: 1px dotted var(--muted);
-            margin-bottom: .18em; align-self: flex-end;
-        }
+        .ir-name-text { display: block; }
         .ir-desc {
             font-family: var(--crimson);
             font-size: .83rem; font-style: italic;
@@ -447,16 +423,7 @@ $_i18n = [
 $_t = $_i18n[$lang] ?? $_i18n['tr'];
 @endphp
 
-@if($menu->languages->count() > 1)
-<div class="lang-bar">
-    @foreach($menu->languages as $l)
-        <a href="{{ route('qrmenu.view', [$menu->name, $l->code]) }}"
-           class="{{ $l->code === $lang ? 'active' : '' }}">
-            {{ $l->flag }} {{ strtoupper($l->code) }}
-        </a>
-    @endforeach
-</div>
-@endif
+
 
 <header class="menu-header">
     @if($menu->logo)
@@ -510,7 +477,6 @@ $_t = $_i18n[$lang] ?? $_i18n['tr'];
                 <div class="item-left">
                     <div class="ir-name">
                         <span class="ir-name-text">{{ $fitem->getTitle($lang) }}</span>
-                        <span class="ir-dots"></span>
                     </div>
                     @if($fitem->getDescription($lang))
                         <div class="ir-desc">{{ $fitem->getDescription($lang) }}</div>
@@ -579,7 +545,6 @@ $_t = $_i18n[$lang] ?? $_i18n['tr'];
                 <div class="item-left">
                     <div class="ir-name">
                         <span class="ir-name-text">{{ $item->getTitle($lang) }}</span>
-                        <span class="ir-dots"></span>
                     </div>
                     @if($item->getDescription($lang))
                         <div class="ir-desc">{{ $item->getDescription($lang) }}</div>
