@@ -11,8 +11,13 @@ class QrMenu extends Model
 {
     protected $fillable = [
         'branch_id', 'created_by', 'name', 'title', 'description',
-        'logo', 'cover_image', 'theme_color', 'is_active',
+        'logo', 'cover_image', 'theme_color', 'theme', 'is_active',
         'currency', 'currency_symbol',
+    ];
+
+    const THEMES = [
+        'default' => 'Klasik (Koyu Altın)',
+        'forest'  => 'Forest — Bohemian Modern',
     ];
 
     protected $casts = [

@@ -18,6 +18,31 @@
     color: #8b6a4f;
     font-weight: 600;
 }
+.theme-option-card {
+    border: 2px solid #dee2e6;
+    border-radius: 10px;
+    overflow: hidden;
+    transition: border-color .2s, box-shadow .2s;
+    min-width: 130px;
+}
+.theme-option-card.selected,
+.theme-option-card:hover {
+    border-color: #c19b77;
+    box-shadow: 0 0 0 3px rgba(193,155,119,.2);
+}
+.theme-preview {
+    height: 56px;
+    display: flex; align-items: center;
+}
+.theme-preview--default { background: #0d1117; }
+.theme-preview--forest  { background: #0b1508; }
+.theme-label {
+    font-size: .75rem; font-weight: 600;
+    text-align: center; padding: 5px 8px;
+    color: #555; background: #f9f9f9;
+    border-top: 1px solid #eee;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
 </style>
 
 <div class="container-fluid">
@@ -153,6 +178,37 @@
                                 </div>
                             </div>
 
+                            {{-- TEMA SEÇİCİ --}}
+                            <div class="col-12">
+                                <label class="form-label fw-semibold">Görünüm Teması</label>
+                                <div class="d-flex gap-3 flex-wrap">
+                                    @foreach(\App\Models\QrMenu::THEMES as $themeKey => $themeName)
+                                    <label class="theme-option-card {{ old('theme', $menu->theme ?? 'default') === $themeKey ? 'selected' : '' }}"
+                                           style="cursor:pointer">
+                                        <input type="radio" name="theme" value="{{ $themeKey }}"
+                                               class="d-none theme-radio-opt"
+                                               @checked(old('theme', $menu->theme ?? 'default') === $themeKey)>
+                                        <div class="theme-preview theme-preview--{{ $themeKey }}">
+                                            @if($themeKey === 'default')
+                                                <div style="display:flex;flex-direction:column;gap:4px;padding:6px">
+                                                    <div style="height:6px;border-radius:3px;background:#c4a35a;width:60%"></div>
+                                                    <div style="height:4px;border-radius:2px;background:#2a3545;width:80%"></div>
+                                                    <div style="height:4px;border-radius:2px;background:#2a3545;width:55%"></div>
+                                                </div>
+                                            @else
+                                                <div style="display:flex;flex-direction:column;gap:4px;padding:6px">
+                                                    <div style="height:6px;border-radius:3px;background:#7cad6a;width:65%;font-style:italic"></div>
+                                                    <div style="height:4px;border-radius:2px;background:#1c2d18;width:90%"></div>
+                                                    <div style="height:4px;border-radius:2px;background:#1c2d18;width:60%"></div>
+                                                </div>
+                                            @endif
+                                        </div>
+                                        <div class="theme-label">{{ $themeName }}</div>
+                                    </label>
+                                    @endforeach
+                                </div>
+                            </div>
+
                             <div class="col-12">
                                 <div class="form-check form-switch">
                                     <input class="form-check-input" type="checkbox" name="is_active" value="1"
@@ -262,6 +318,14 @@
             });
             r.nextElementSibling.style.boxShadow = '0 0 0 3px ' + r.value + '66';
             r.nextElementSibling.style.transform = 'scale(1.15)';
+        });
+    });
+
+    // Theme option cards
+    document.querySelectorAll('.theme-radio-opt').forEach(function (r) {
+        r.addEventListener('change', function () {
+            document.querySelectorAll('.theme-option-card').forEach(function (c) { c.classList.remove('selected'); });
+            r.closest('.theme-option-card').classList.add('selected');
         });
     });
 })();
