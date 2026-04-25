@@ -83,25 +83,6 @@
             background: var(--accent); flex-shrink: 0;
         }
 
-        /* ── LANG BAR ── */
-        .lang-bar {
-            position: fixed; top: calc(env(safe-area-inset-top,0px) + .65rem); right: .75rem;
-            z-index: 300; display: flex; gap: .3rem;
-        }
-        .lang-bar a {
-            display: inline-flex; align-items: center; gap: .2rem;
-            padding: .26rem .6rem; border-radius: 50px;
-            font-family: var(--jost); font-size: .62rem; font-weight: 500;
-            letter-spacing: .06em; text-decoration: none;
-            background: rgba(253,250,246,.9);
-            backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
-            border: 1px solid var(--border2); color: var(--text-sub);
-            transition: .2s;
-        }
-        .lang-bar a.active, .lang-bar a:hover {
-            background: var(--accent); border-color: var(--accent); color: #fff;
-        }
-
         /* ── STICKY NAV ── */
         .toc-bar {
             position: sticky; top: 0; z-index: 100;
@@ -445,16 +426,7 @@ $_i18n = [
 $_t = $_i18n[$lang] ?? $_i18n['tr'];
 @endphp
 
-@if($menu->languages->count() > 1)
-<div class="lang-bar">
-    @foreach($menu->languages as $l)
-        <a href="{{ route('qrmenu.view', [$menu->name, $l->code]) }}"
-           class="{{ $l->code === $lang ? 'active' : '' }}">
-            {{ $l->flag }} {{ strtoupper($l->code) }}
-        </a>
-    @endforeach
-</div>
-@endif
+
 
 <header class="menu-header">
     @if($menu->logo)
