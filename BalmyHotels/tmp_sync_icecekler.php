@@ -56,12 +56,22 @@ echo "\nToplam kaynak ürün: " . count($sourceItems) . "\n\n";
 // --- Hedef kategoriler: menu_id => cat_id ---
 $targetCats = [8 => 109, 10 => 108, 11 => 110, 12 => 111, 13 => 112, 14 => 113, 15 => 114];
 
+// sub_headings listesi (menu 18 kategori sırası ile)
+$newSubHeadings = array_values(array_unique(array_map(function($item) {
+    return $item['sub_heading']['tr'] ?? array_values(array_filter((array)$item['sub_heading']))[0] ?? '';
+}, array_filter($sourceItems, fn($i) => !empty($i['sub_heading'])))));
+
 // DRY RUN kontrolü - ilk argüman "--run" değilse sadece rapor yaz
 $isRun = in_array('--run', $argv ?? []);
 
 if (!$isRun) {
     echo "=== DRY RUN (gerçek silme/ekleme yapılmadı) ===\n";
     echo "Çalıştırmak için: php tmp_sync_icecekler.php --run\n\n";
+    echo "Güncellenecek sub_headings sırası:\n";
+    foreach ($newSubHeadings as $i => $sh) {
+        echo "  [$i] $sh\n";
+    }
+    echo "\n";
 }
 
 DB::beginTransaction();
@@ -71,6 +81,11 @@ try {
         echo "Menu {$mid} (cat {$catId}): {$existing} ürün silinecek, " . count($sourceItems) . " eklenecek\n";
 
         if ($isRun) {
+            // sub_headings güncelle
+            DB::table('qr_menu_categories')
+                ->where('id', $catId)
+                ->update(['sub_headings' => json_encode($newSubHeadings, JSON_UNESCAPED_UNICODE)]);
+
             // Tümünü sil
             App\Models\QrMenuItem::where('category_id', $catId)->delete();
 

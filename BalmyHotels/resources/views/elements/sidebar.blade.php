@@ -150,6 +150,12 @@
                     @endif
                     @if($user->hasPermission('fault_stats', 'index'))
                     <li><a href="{{ route('faults.stats') }}">İstatistikler &amp; Skor</a></li>
+                    <li>
+                        <a href="{{ route('faults.analysis') }}" class="d-flex align-items-center gap-1">
+                            Analiz
+                            <span style="display:inline-flex;align-items:center;font-size:.58rem;font-weight:800;letter-spacing:.04em;padding:1px 6px;border-radius:4px;background:linear-gradient(135deg,#6366f1,#818cf8);color:#fff;line-height:1.4;margin-left:3px">AI</span>
+                        </a>
+                    </li>
                     @endif
                 </ul>
             </li>
