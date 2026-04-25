@@ -34,8 +34,9 @@
     height: 56px;
     display: flex; align-items: center;
 }
-.theme-preview--default { background: #0d1117; }
-.theme-preview--forest  { background: #0b1508; }
+.theme-preview--default  { background: #0d1117; }
+.theme-preview--forest   { background: #0b1508; }
+.theme-preview--bohemian { background: #1a0f0a; }
 .theme-label {
     font-size: .75rem; font-weight: 600;
     text-align: center; padding: 5px 8px;
