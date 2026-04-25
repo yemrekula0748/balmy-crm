@@ -77,6 +77,9 @@
                     @if($user->hasPermission('door_log_reports', 'index'))
                     <li><a href="{{ route('door-reports.index') }}">Çalışma Raporu</a></li>
                     @endif
+                    @if($user->hasPermission('hr_reports', 'index'))
+                    <li><a href="{{ route('door-logs.hr-report') }}">İ.K Raporu</a></li>
+                    @endif
                 </ul>
             </li>
             @endif
@@ -127,7 +130,12 @@
                     @if($user->hasPermission('faults', 'index'))
                     <li><a href="{{ route('faults.my-reports') }}">Bildirdiklerim</a></li>
                     @if($user->department_id)
-                    <li><a href="{{ route('faults.incoming') }}">Gelen Arızalar</a></li>
+                    @php
+                        $sidebarOpenFaults = \App\Models\Fault::where('assigned_department_id', $user->department_id)
+                            ->whereNotIn('status', ['resolved', 'closed'])
+                            ->count();
+                    @endphp
+                    <li><a href="{{ route('faults.incoming') }}">Gelen Arızalar @if($sidebarOpenFaults > 0)<span style="display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:17px;padding:0 5px;background:#ef4444;color:#fff;border-radius:9px;font-size:.65rem;font-weight:700;margin-left:5px;line-height:1;vertical-align:middle">{{ $sidebarOpenFaults }}</span>@endif</a></li>
                     <li><a href="{{ route('faults.my-department') }}">Departmanım</a></li>
                     @endif
                     @if($user->hasAnyRole(['super_admin', 'branch_manager']))
@@ -142,6 +150,12 @@
                     @endif
                     @if($user->hasPermission('fault_stats', 'index'))
                     <li><a href="{{ route('faults.stats') }}">İstatistikler &amp; Skor</a></li>
+                    <li>
+                        <a href="{{ route('faults.analysis') }}" class="d-flex align-items-center gap-1">
+                            Analiz
+                            <span style="display:inline-flex;align-items:center;font-size:.58rem;font-weight:800;letter-spacing:.04em;padding:1px 6px;border-radius:4px;background:linear-gradient(135deg,#6366f1,#818cf8);color:#fff;line-height:1.4;margin-left:3px">AI</span>
+                        </a>
+                    </li>
                     @endif
                 </ul>
             </li>
@@ -199,6 +213,15 @@
                     @if($user->hasPermission('vehicles', 'create'))
                     <li><a href="{{ route('vehicles.create') }}">Yeni Araç Ekle</a></li>
                     @endif
+                    @if($user->hasPermission('vehicle_trips', 'index'))
+                    <li><a href="{{ route('vehicle-trips.index') }}">Araç Görevleri</a></li>
+                    @endif
+                    @if($user->hasPermission('vehicle_trips', 'create'))
+                    <li><a href="{{ route('vehicle-trips.create') }}">Görev Başlat</a></li>
+                    @endif
+                    @if($user->hasPermission('vehicle_trip_control', 'index'))
+                    <li><a href="{{ route('vehicle-trips.control') }}">Görev Kontrol Haritası</a></li>
+                    @endif
                 </ul>
             </li>
             @endif
@@ -225,6 +248,50 @@
                     @if($user->hasPermission('qrmenus', 'create'))
                     <li><a href="{{ route('qrmenus.create') }}">Yeni Menü Oluştur</a></li>
                     @endif
+                    <li @class(['mm-active' => request()->is('qr-menuler/vitrinler*')])>
+                        <a href="{{ route('qrmenus.showcases.index') }}">Vitrinler</a>
+                    </li>
+                </ul>
+            </li>
+            @endif
+
+            {{-- YEMEK KÜTÜPHANESİ --}}
+            @if($user->hasPermission('food_library', 'index'))
+            <li @class(['mm-active' => request()->is('yemek-kutuphane*')])>
+                <a class="has-arrow ai-icon" href="javascript:void()" aria-expanded="false">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
+                         fill="none" stroke="currentColor" stroke-width="2"
+                         stroke-linecap="round" stroke-linejoin="round" style="min-width:20px">
+                        <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path>
+                        <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path>
+                    </svg>
+                    <span class="nav-text">Yemek Kütüphanesi</span>
+                </a>
+                <ul aria-expanded="false">
+                    <li><a href="{{ route('food-library.index') }}">Kategoriler</a></li>
+                    <li><a href="{{ route('food-library.products') }}">Ürünler</a></li>
+                    @if($user->hasPermission('food_library', 'create'))
+                    <li><a href="{{ route('food-library.product.create') }}">Yeni Ürün Ekle</a></li>
+                    @endif
+                </ul>
+            </li>
+            @endif
+
+            {{-- YAZICILAR --}}
+            @if($user->hasPermission('printers', 'index'))
+            <li @class(['mm-active' => request()->is('yazicilar*')])>
+                <a class="has-arrow ai-icon" href="javascript:void()" aria-expanded="false">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
+                         fill="none" stroke="currentColor" stroke-width="2"
+                         stroke-linecap="round" stroke-linejoin="round" style="min-width:20px">
+                        <polyline points="6 9 6 2 18 2 18 9"></polyline>
+                        <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+                        <rect x="6" y="14" width="12" height="8"></rect>
+                    </svg>
+                    <span class="nav-text">Yazıcılar</span>
+                </a>
+                <ul aria-expanded="false">
+                    <li><a href="{{ route('printers.index') }}">Yazıcılar</a></li>
                 </ul>
             </li>
             @endif
@@ -315,8 +382,8 @@
             @endif
 
             {{-- ARAÇLAR (Tools) --}}
-            @if($user->hasPermission('contract_compare', 'index') || $user->hasPermission('pdf_converter', 'index') || $user->hasPermission('pdf_merger', 'index'))
-            <li @class(['mm-active' => request()->is('sozlesme-karsilastirma*') || request()->is('pdf-donusturme*') || request()->is('pdf-birlestirme*')])>
+            @if($user->hasPermission('contract_compare', 'index') || $user->hasPermission('pdf_converter', 'index') || $user->hasPermission('pdf_merger', 'index') || $user->hasPermission('ocr', 'index'))
+            <li @class(['mm-active' => request()->is('sozlesme-karsilastirma*') || request()->is('pdf-donusturme*') || request()->is('pdf-birlestirme*') || request()->is('yaziya-cevir*')])>
                 <a class="has-arrow ai-icon" href="javascript:void()" aria-expanded="false">
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
                          fill="none" stroke="currentColor" stroke-width="2"
@@ -341,12 +408,312 @@
                         <a href="{{ route('pdf-merger.index') }}">PDF Birleştirici</a>
                     </li>
                     @endif
+                    @if($user->hasPermission('ocr', 'index'))
+                    <li @class(['mm-active' => request()->is('yaziya-cevir*')])>
+                        <a href="{{ route('ocr.index') }}">Yazıya Çevir (OCR)</a>
+                    </li>
+                    @endif
                 </ul>
             </li>
             @endif
 
-            {{-- YETKİ YÖNETİMİ — sadece super_admin --}}
-            @if($user->isSuperAdmin())
+            {{-- RAPORLAR --}}
+            @if($user->hasPermission('tripadvisor_report', 'index') || $user->hasPermission('google_report', 'index'))
+            <li @class(['mm-active' => request()->is('raporlar*')])>
+                <a class="has-arrow ai-icon" href="javascript:void()" aria-expanded="false">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
+                         fill="none" stroke="currentColor" stroke-width="2"
+                         stroke-linecap="round" stroke-linejoin="round" style="min-width:20px">
+                        <path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/>
+                    </svg>
+                    <span class="nav-text">Raporlar</span>
+                </a>
+                <ul aria-expanded="false">
+                    @if($user->hasPermission('tripadvisor_report', 'index'))
+                    <li @class(['mm-active' => request()->is('raporlar/tripadvisor*')])>
+                        <a href="{{ route('reports.tripadvisor') }}">
+                            <i class="fas fa-star me-1" style="color:#00aa6c"></i> TripAdvisor Puanları
+                        </a>
+                    </li>
+                    @endif
+                    @if($user->hasPermission('google_report', 'index'))
+                    <li @class(['mm-active' => request()->is('raporlar/google*')])>
+                        <a href="{{ route('reports.google') }}">
+                            <i class="fab fa-google me-1" style="color:#4285F4"></i> Google Puanları
+                        </a>
+                    </li>
+                    @endif
+                </ul>
+            </li>
+            @endif
+
+            {{-- SERVİS TAKİP --}}
+            @if($user->hasPermission('shuttle_routes','index') || $user->hasPermission('shuttle_vehicles','index') || $user->hasPermission('shuttle_operations','index') || $user->hasPermission('shuttle_reports','index'))
+            <li @class(['mm-active' => request()->is('servis-takip*')])>
+                <a class="has-arrow ai-icon" href="javascript:void()" aria-expanded="false">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
+                         fill="none" stroke="currentColor" stroke-width="2"
+                         stroke-linecap="round" stroke-linejoin="round" style="min-width:20px">
+                        <circle cx="12" cy="12" r="10"/>
+                        <polyline points="12 6 12 12 16 14"/>
+                    </svg>
+                    <span class="nav-text">Servis Takip</span>
+                </a>
+                <ul aria-expanded="false">
+                    @if($user->hasPermission('shuttle_operations','index'))
+                    <li @class(['mm-active' => request()->is('servis-takip/operasyon*')])>
+                        <a href="{{ route('shuttle.operations.index') }}">Günlük Operasyon</a>
+                    </li>
+                    @endif
+                    @if($user->hasPermission('shuttle_reports','index'))
+                    <li @class(['mm-active' => request()->is('servis-takip/raporlar*')])>
+                        <a href="{{ route('shuttle.reports.index') }}">Servis Raporları</a>
+                    </li>
+                    @endif
+                    @if($user->hasPermission('shuttle_routes','index'))
+                    <li @class(['mm-active' => request()->is('servis-takip/guzergahlar*')])>
+                        <a href="{{ route('shuttle.routes.index') }}">Güzergah Tanımları</a>
+                    </li>
+                    @endif
+                    @if($user->hasPermission('shuttle_vehicles','index'))
+                    <li @class(['mm-active' => request()->is('servis-takip/araclar*')])>
+                        <a href="{{ route('shuttle.vehicles.index') }}">Servis Araçları</a>
+                    </li>
+                    @endif
+                </ul>
+            </li>
+            @endif
+
+            {{-- SİPARİŞ MODÜLÜ --}}
+            @if($user->hasPermission('orders','index') || $user->hasPermission('restaurant_settings','index') || $user->hasPermission('order_reports','index') || $user->hasPermission('order_analytics','index') || $user->hasPermission('order_ai_analysis','index') || $user->hasPermission('order_guest_analysis','index'))
+            <li @class(['mm-active' => request()->is('siparisler*')])>
+                <a class="has-arrow ai-icon" href="javascript:void()" aria-expanded="false">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
+                         fill="none" stroke="currentColor" stroke-width="2"
+                         stroke-linecap="round" stroke-linejoin="round" style="min-width:20px">
+                        <path d="M9 2H5a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V9l-5-7z"/>
+                        <polyline points="9 2 9 9 16 9"/>
+                        <line x1="12" y1="13" x2="12" y2="17"/>
+                        <line x1="10" y1="15" x2="14" y2="15"/>
+                    </svg>
+                    <span class="nav-text">Sipariş</span>
+                </a>
+                <ul aria-expanded="false">
+                    @if($user->hasPermission('orders','index'))
+                    <li @class(['mm-active' => request()->is('siparisler') && !request()->is('siparisler/raporlar*') && !request()->is('siparisler/restoranlar*') && !request()->is('siparisler/analiz*')])>
+                        <a href="{{ route('orders.take') }}">Sipariş Al</a>
+                    </li>
+                    @endif
+                    @if($user->hasPermission('order_reports','index'))
+                    <li @class(['mm-active' => request()->is('siparisler/raporlar*')])>
+                        <a href="{{ route('orders.report') }}">Sipariş Raporları</a>
+                    </li>
+                    @endif
+                    @if($user->hasPermission('order_analytics','index'))
+                    <li @class(['mm-active' => request()->is('siparisler/analiz*') && !request()->is('siparisler/ai-analiz*')])>
+                        <a href="{{ route('orders.analytics') }}">Sipariş Analizi</a>
+                    </li>
+                    @endif
+                    @if($user->hasPermission('order_ai_analysis','index'))
+                    <li @class(['mm-active' => request()->is('siparisler/ai-analiz*')])>
+                        <a href="{{ route('orders.ai-analysis') }}">Stratejik AI Analizi</a>
+                    </li>
+                    @endif
+                    @if($user->hasPermission('order_guest_analysis','index'))
+                    <li @class(['mm-active' => request()->is('siparisler/misafir-analiz*')])>
+                        <a href="{{ route('orders.guest-analysis') }}">Misafir Tüketim Analizi</a>
+                    </li>
+                    @endif
+                    @if($user->hasPermission('restaurant_settings','index'))
+                    <li @class(['mm-active' => request()->is('siparisler/restoranlar*')])>
+                        <a href="{{ route('orders.restaurants.index') }}">Restoran Tanımları</a>
+                    </li>
+                    @endif
+                </ul>
+            </li>
+            @endif
+
+            {{-- İÇ DENETİM MODÜLÜ --}}
+            @if($user->hasPermission('audits','index') || $user->hasPermission('audit_types','index') || $user->hasPermission('audit_nonconformities','index') || $user->hasPermission('audit_analytics','index'))
+            <li @class(['mm-active' => request()->is('ic-denetim*')])>
+                <a class="has-arrow ai-icon" href="javascript:void()" aria-expanded="false">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
+                         fill="none" stroke="currentColor" stroke-width="2"
+                         stroke-linecap="round" stroke-linejoin="round" style="min-width:20px">
+                        <path d="M9 11l3 3L22 4"/>
+                        <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+                    </svg>
+                    <span class="nav-text">İç Denetim</span>
+                </a>
+                <ul aria-expanded="false">
+                    @if($user->hasPermission('audits','index'))
+                    <li @class(['mm-active' => request()->is('ic-denetim') || (request()->is('ic-denetim/*') && !request()->is('ic-denetim/tipler*') && !request()->is('ic-denetim/uygunsuzluklarim*') && !request()->is('ic-denetim/analiz*'))])>
+                        <a href="{{ route('audit.index') }}">Denetimler</a>
+                    </li>
+                    @endif
+                    @if($user->hasPermission('audits','create'))
+                    <li @class(['mm-active' => request()->is('ic-denetim/olustur*')])>
+                        <a href="{{ route('audit.create') }}">Yeni Denetim</a>
+                    </li>
+                    @endif
+                    @if($user->hasPermission('audit_nonconformities','index'))
+                    <li @class(['mm-active' => request()->is('ic-denetim/uygunsuzluklarim*')])>
+                        <a href="{{ route('audit.nonconformities.index') }}">Uygunsuzluklarım</a>
+                    </li>
+                    @endif
+                    @if($user->hasPermission('audit_analytics','index'))
+                    <li @class(['mm-active' => request()->is('ic-denetim/analiz*')])>
+                        <a href="{{ route('audit.analytics.index') }}">Analiz & İstatistik</a>
+                    </li>
+                    @endif
+                    @if($user->hasPermission('audit_types','index'))
+                    <li @class(['mm-active' => request()->is('ic-denetim/tipler*')])>
+                        <a href="{{ route('audit.types.index') }}">Denetim Tipleri</a>
+                    </li>
+                    @endif
+                </ul>
+            </li>
+            @endif
+
+            {{-- BİLGİ İŞLEM --}}
+            @if($user->hasPermission('it_computers','index') || $user->hasPermission('it_backup','index') || $user->hasPermission('login_logs','index') || $user->hasPermission('it_agent_inventory','index') || $user->hasPermission('mikrotik','index'))
+            <li @class(['mm-active' => request()->is('bilgi-islem*')])>
+                <a class="has-arrow ai-icon" href="javascript:void()" aria-expanded="false">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
+                         fill="none" stroke="currentColor" stroke-width="2"
+                         stroke-linecap="round" stroke-linejoin="round" style="min-width:20px">
+                        <rect x="2" y="3" width="20" height="14" rx="2"></rect>
+                        <line x1="8" y1="21" x2="16" y2="21"></line>
+                        <line x1="12" y1="17" x2="12" y2="21"></line>
+                    </svg>
+                    <span class="nav-text">Bilgi İşlem</span>
+                </a>
+                <ul aria-expanded="false">
+                    @if($user->hasPermission('it_computers','index'))
+                    <li @class(['mm-active' => request()->is('bilgi-islem/bilgisayarlar*')])>
+                        <a href="{{ route('it.computers.index') }}">Bilgisayarlar</a>
+                    </li>
+                    @endif
+                    @if($user->hasPermission('it_agent_inventory','index'))
+                    <li @class(['mm-active' => request()->is('bilgi-islem/ajan-envanter*')])>
+                        <a href="{{ route('it.agent.index') }}">Ajan Envanter</a>
+                    </li>
+                    @endif
+                    @if($user->hasPermission('it_backup','index'))
+                    <li @class(['mm-active' => request()->is('bilgi-islem/yedekleme*')])>
+                        <a href="{{ route('it.backup.index') }}">Veritabanı Yedekleme</a>
+                    </li>
+                    @endif
+                    @if($user->hasPermission('login_logs','index'))
+                    <li @class(['mm-active' => request()->is('bilgi-islem/giris-loglari*')])>
+                        <a href="{{ route('it.login-logs.index') }}">Giriş Logları</a>
+                    </li>
+                    @endif
+                    @if($user->hasPermission('mikrotik','index'))
+                    <li @class(['mm-active' => request()->is('bilgi-islem/mikrotik*')])>
+                        <a href="{{ route('it.mikrotik.index') }}">MikroTik</a>
+                    </li>
+                    @endif
+                </ul>
+            </li>
+            @endif
+
+            {{-- İŞLERİM --}}
+            @if($user->hasPermission('my_tasks','index'))
+            <li @class(['mm-active' => request()->is('islerim*')])>
+                <a class="has-arrow ai-icon" href="javascript:void()" aria-expanded="false">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
+                         fill="none" stroke="currentColor" stroke-width="2"
+                         stroke-linecap="round" stroke-linejoin="round" style="min-width:20px">
+                        <path d="M9 11l3 3L22 4"></path>
+                        <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
+                    </svg>
+                    <span class="nav-text">İşlerim</span>
+                </a>
+                <ul aria-expanded="false">
+                    <li @class(['mm-active' => request()->is('islerim')])>
+                        <a href="{{ route('islerim.index') }}">Görevlerim</a>
+                    </li>
+                </ul>
+            </li>
+            @endif
+
+            @if($user->hasPermission('agencies') || $user->hasPermission('agency_contracts'))
+            <li @class(['mm-active' => request()->is('acenteler*')])
+            >
+                <a class="has-arrow ai-icon" href="javascript:void()" aria-expanded="false">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
+                         fill="none" stroke="currentColor" stroke-width="2"
+                         stroke-linecap="round" stroke-linejoin="round" style="min-width:20px">
+                        <rect x="2" y="7" width="20" height="14" rx="2"/>
+                        <path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/>
+                        <line x1="12" y1="12" x2="12" y2="16"/>
+                        <line x1="10" y1="14" x2="14" y2="14"/>
+                    </svg>
+                    <span class="nav-text">Acenteler</span>
+                </a>
+                <ul aria-expanded="false">
+                    @if($user->hasPermission('agencies'))
+                    <li @class(['mm-active' => request()->is('acenteler') && !request()->is('acenteler/yeni')])>
+                        <a href="{{ route('agencies.index') }}">Acentalarım</a>
+                    </li>
+                    <li @class(['mm-active' => request()->is('acenteler/yeni')])>
+                        <a href="{{ route('agencies.create') }}">Yeni Acente</a>
+                    </li>
+                    @endif
+                    @if($user->hasPermission('agency_contracts'))
+                    <li @class(['mm-active' => request()->is('acenteler/kontratlar*') && !request()->is('acenteler/kontratlar/yeni')])>
+                        <a href="{{ route('agencies.contracts.index') }}">Kontratlar</a>
+                    </li>
+                    <li @class(['mm-active' => request()->is('acenteler/kontratlar/yeni')])>
+                        <a href="{{ route('agencies.contracts.create') }}">Yeni Kontrat</a>
+                    </li>
+                    @endif
+                </ul>
+            </li>
+            @endif
+
+            @if($user->hasPermission('reservations') || $user->hasPermission('room_types') || $user->hasPermission('rooms') || $user->hasPermission('bed_types'))
+            <li @class(['mm-active' => request()->is('onburo*')])
+            >
+                <a class="has-arrow ai-icon" href="javascript:void()" aria-expanded="false">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
+                         fill="none" stroke="currentColor" stroke-width="2"
+                         stroke-linecap="round" stroke-linejoin="round" style="min-width:20px">
+                        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                        <polyline points="9 22 9 12 15 12 15 22"/>
+                    </svg>
+                    <span class="nav-text">Önbüro</span>
+                </a>
+                <ul aria-expanded="false">
+                    @if($user->hasPermission('reservations'))
+                    <li @class(['mm-active' => request()->is('onburo/rezervasyonlar') && !request()->is('onburo/rezervasyonlar/yeni')])>
+                        <a href="{{ route('frontdesk.reservations.index') }}">Rezervasyonlar</a>
+                    </li>
+                    <li @class(['mm-active' => request()->is('onburo/rezervasyonlar/yeni')])>
+                        <a href="{{ route('frontdesk.reservations.create') }}">Yeni Rezervasyon</a>
+                    </li>
+                    @endif
+                    @if($user->hasPermission('room_types'))
+                    <li @class(['mm-active' => request()->is('onburo/oda-tipleri*')])>
+                        <a href="{{ route('frontdesk.room-types.index') }}">Oda Tipleri</a>
+                    </li>
+                    @endif
+                    @if($user->hasPermission('rooms'))
+                    <li @class(['mm-active' => request()->is('onburo/odalar*')])>
+                        <a href="{{ route('frontdesk.rooms.index') }}">Odalar</a>
+                    </li>
+                    @endif
+                    @if($user->hasPermission('bed_types'))
+                    <li @class(['mm-active' => request()->is('onburo/yatak-tipleri*')])>
+                        <a href="{{ route('frontdesk.bed-types.index') }}">Yatak Tipleri</a>
+                    </li>
+                    @endif
+                </ul>
+            </li>
+            @endif
+
+            {{-- YETKİ YÖNETİMİ — sadece super_admin --}}            @if($user->isSuperAdmin())
             <li @class(['mm-active' => request()->is('roller*')])>
                 <a class="has-arrow ai-icon" href="javascript:void()" aria-expanded="false">
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"

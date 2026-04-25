@@ -9,7 +9,7 @@ class Fault extends Model
     protected $fillable = [
         'branch_id', 'reported_by', 'assigned_department_id',
         'fault_type_id', 'fault_location_id', 'fault_area_id',
-        'title', 'description', 'image_path', 'status',
+        'title', 'description', 'image_path', 'status', 'priority',
         'resolved_at', 'closed_at',
     ];
 
@@ -19,17 +19,19 @@ class Fault extends Model
     ];
 
     const PRIORITIES = [
-        'low'      => 'Düşük',
+        'low'      => 'Normal',
         'medium'   => 'Orta',
-        'high'     => 'Yüksek',
+        'high'     => 'Acil',
         'critical' => 'Kritik',
     ];
 
     const STATUSES = [
-        'open'        => 'Açık',
-        'in_progress' => 'İşlemde',
-        'resolved'    => 'Çözüldü',
-        'closed'      => 'Kapalı',
+        'open'             => 'Açık',
+        'in_progress'      => 'İşlemde',
+        'winter_plan'      => 'Kış Planı',
+        'waiting_material' => 'Malzeme Bekliyor',
+        'resolved'         => 'Çözüldü',
+        'closed'           => 'Kapalı',
     ];
 
     const PRIORITY_COLORS = [
@@ -40,10 +42,12 @@ class Fault extends Model
     ];
 
     const STATUS_COLORS = [
-        'open'        => 'danger',
-        'in_progress' => 'warning',
-        'resolved'    => 'success',
-        'closed'      => 'secondary',
+        'open'             => 'danger',
+        'in_progress'      => 'warning',
+        'winter_plan'      => 'info',
+        'waiting_material' => 'primary',
+        'resolved'         => 'success',
+        'closed'           => 'secondary',
     ];
 
     public function branch()      { return $this->belongsTo(Branch::class); }
@@ -54,11 +58,34 @@ class Fault extends Model
     public function faultArea()   { return $this->belongsTo(FaultArea::class); }
     public function updates()     { return $this->hasMany(FaultUpdate::class)->orderBy('created_at', 'desc'); }
 
-    public function resolutionTimeHours(): ?int
+    public function resolutionTimeHours(): ?float
     {
         if ($this->resolved_at) {
-            return (int) $this->created_at->diffInHours($this->resolved_at);
+            return $this->created_at->diffInMinutes($this->resolved_at) / 60;
         }
         return null;
+    }
+
+    /** Convert float hours (e.g. 1.5) → «1 sa. 30 dk.» for display */
+    public static function formatHours(?float $hours): string
+    {
+        if ($hours === null) return '—';
+        $minutes = (int) round($hours * 60);
+        if ($minutes < 1)  return '< 1 dk.';
+        if ($minutes < 60) return $minutes . ' dk.';
+        $h = intdiv($minutes, 60);
+        $m = $minutes % 60;
+        return $m > 0 ? "{$h} sa. {$m} dk." : "{$h} sa.";
+    }
+
+    /** Returns «2 sa. 25 dk.», «45 dk.», «3 sa.» etc. */
+    public function resolutionTimeLabel(): ?string
+    {
+        if (!$this->resolved_at) return null;
+        $minutes = (int) $this->created_at->diffInMinutes($this->resolved_at);
+        if ($minutes < 60) return $minutes . ' dk.';
+        $h = intdiv($minutes, 60);
+        $m = $minutes % 60;
+        return $m > 0 ? "{$h} sa. {$m} dk." : "{$h} sa.";
     }
 }

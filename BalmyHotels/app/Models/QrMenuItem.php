@@ -7,18 +7,39 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class QrMenuItem extends Model
 {
+    /** Aktif fiyat: override → item fiyatı (>0) → canlı kütüphane fiyatı */
+    public function effectivePrice(): ?float
+    {
+        // price_override her zaman öncelikli
+        if ($this->price_override !== null) return $this->price_override;
+        // Item'e elle girilmiş sıfırdan büyük fiyat
+        if ($this->price > 0) return $this->price;
+        // Kütüphane ürünüyle bağlıysa canlı fiyatı kullan
+        if ($this->food_product_id) {
+            $libPrice = optional($this->foodProduct)->price;
+            if ($libPrice > 0) return $libPrice;
+        }
+        return $this->price ?: null;
+    }
+
     protected $fillable = [
-        'category_id', 'title', 'description', 'price', 'image',
+        'category_id', 'food_product_id',
+        'title', 'description', 'price', 'price_override', 'image',
         'is_active', 'is_featured', 'badges', 'sort_order',
+        'sub_heading', 'price_glass', 'price_bottle', 'cl_glass', 'cl_bottle',
     ];
 
     protected $casts = [
-        'title'       => 'array',
-        'description' => 'array',
-        'badges'      => 'array',
-        'is_active'   => 'boolean',
-        'is_featured' => 'boolean',
-        'price'       => 'float',
+        'title'          => 'array',
+        'description'    => 'array',
+        'badges'         => 'array',
+        'sub_heading'    => 'array',
+        'is_active'      => 'boolean',
+        'is_featured'    => 'boolean',
+        'price'          => 'float',
+        'price_override' => 'float',
+        'price_glass'    => 'float',
+        'price_bottle'   => 'float',
     ];
 
     /**
@@ -45,6 +66,34 @@ class QrMenuItem extends Model
         return $this->belongsTo(QrMenuCategory::class, 'category_id');
     }
 
+    public function foodProduct(): BelongsTo
+    {
+        return $this->belongsTo(FoodProduct::class, 'food_product_id');
+    }
+
+    /**
+     * Ürün kütüphanesiyle bağlantılıysa canlı görseli döndür.
+     * Manuel yüklenen özel görseller (qrmenu/items/) her zaman önceliklidir.
+     */
+    public function getImageAttribute($value): ?string
+    {
+        // Manuel yüklenen özel görsel — her zaman öncelikli
+        if ($value && str_starts_with((string) $value, 'qrmenu/items/')) {
+            return $value;
+        }
+        // Kütüphane ürününe bağlıysa canlı görseli kullan
+        if ($this->food_product_id) {
+            return optional($this->foodProduct)->image ?? $value;
+        }
+        return $value;
+    }
+
+    public function getSubHeading(string $lang = 'tr'): string
+    {
+        $sh = array_filter((array)($this->sub_heading ?? []), fn($v) => is_string($v) && $v !== '');
+        return $sh[$lang] ?? array_values($sh)[0] ?? '';
+    }
+
     public function getTitle(string $lang = 'tr'): string
     {
         $titles = array_filter((array)($this->title ?? []), fn($v) => is_string($v) && $v !== '');
@@ -59,7 +108,8 @@ class QrMenuItem extends Model
 
     public function formattedPrice(?string $symbol = '₺'): string
     {
-        if ($this->price === null) return '';
-        return $symbol . ' ' . number_format($this->price, 2);
+        $p = $this->effectivePrice();
+        if ($p === null) return '';
+        return $symbol . ' ' . number_format($p, 2);
     }
 }

@@ -19,7 +19,7 @@ class QrMenuController extends BaseModuleController
             ['index'],
             ['show'],
             ['create', 'store'],
-            ['edit', 'update', 'toggle'],
+            ['edit', 'update', 'toggle', 'clone'],
             ['destroy']
         );
     }
@@ -117,7 +117,7 @@ class QrMenuController extends BaseModuleController
 
     public function show(QrMenu $qrmenu)
     {
-        $qrmenu->load(['branch', 'languages', 'categories.items', 'creator']);
+        $qrmenu->load(['branch', 'languages', 'categories.items.foodProduct', 'creator']);
         $menu       = $qrmenu;
         $page_title = $qrmenu->name;
 
@@ -142,6 +142,7 @@ class QrMenuController extends BaseModuleController
             'name'         => 'required|string|max:100|unique:qr_menus,name,' . $qrmenu->id . '|regex:/^[a-z0-9\-]+$/',
             'branch_id'    => 'nullable|exists:branches,id',
             'theme_color'  => 'nullable|string|max:20',
+            'theme'        => 'nullable|string|in:default,forest,bohemian,light,light_card',
             'currency'     => 'required|string|max:10',
             'languages'    => 'required|array|min:1',
             'languages.*'  => 'required|string|max:10',
@@ -165,6 +166,7 @@ class QrMenuController extends BaseModuleController
             'name'            => Str::slug($request->name, '-'),
             'title'           => $title,
             'theme_color'     => $request->theme_color ?? $qrmenu->theme_color,
+            'theme'           => $request->input('theme', 'default'),
             'is_active'       => $request->boolean('is_active'),
             'currency'        => $request->currency,
             'currency_symbol' => $symbol,
@@ -213,5 +215,85 @@ class QrMenuController extends BaseModuleController
         $qrmenu->update(['is_active' => !$qrmenu->is_active]);
         $status = $qrmenu->is_active ? 'aktif' : 'pasif';
         return back()->with('success', "Menü {$status} edildi.");
+    }
+
+    /**
+     * Menüyü komple klonla (kategoriler + ürünler + diller)
+     */
+    public function clone(QrMenu $qrmenu)
+    {
+        $qrmenu->load('languages', 'categories.items');
+
+        // Benzersiz name üret
+        $baseSlug = $qrmenu->name . '-kopya';
+        $slug = $baseSlug;
+        $i = 2;
+        while (QrMenu::where('name', $slug)->exists()) {
+            $slug = $baseSlug . '-' . $i++;
+        }
+
+        $clone = QrMenu::create([
+            'branch_id'       => $qrmenu->branch_id,
+            'created_by'      => auth()->id(),
+            'name'            => $slug,
+            'title'           => $qrmenu->title,
+            'description'     => $qrmenu->description,
+            'logo'            => $qrmenu->logo,
+            'cover_image'     => $qrmenu->cover_image,
+            'theme_color'     => $qrmenu->theme_color,
+            'is_active'       => false,
+            'currency'        => $qrmenu->currency,
+            'currency_symbol' => $qrmenu->currency_symbol,
+        ]);
+
+        // Dilleri kopyala
+        foreach ($qrmenu->languages as $lang) {
+            QrMenuLanguage::create([
+                'qr_menu_id' => $clone->id,
+                'code'       => $lang->code,
+                'name'       => $lang->name,
+                'flag'       => $lang->flag,
+                'is_default' => $lang->is_default,
+                'sort_order' => $lang->sort_order,
+            ]);
+        }
+
+        // Kategorileri ve ürünleri kopyala
+        foreach ($qrmenu->categories as $category) {
+            $newCategory = \App\Models\QrMenuCategory::create([
+                'qr_menu_id'   => $clone->id,
+                'title'        => $category->title,
+                'description'  => $category->description,
+                'icon'         => $category->icon,
+                'image'        => $category->image,
+                'sort_order'   => $category->sort_order,
+                'is_active'    => $category->is_active,
+                'sub_headings' => $category->sub_headings,
+            ]);
+
+            foreach ($category->items as $item) {
+                \App\Models\QrMenuItem::create([
+                    'category_id'     => $newCategory->id,
+                    'food_product_id' => $item->food_product_id,
+                    'title'           => $item->title,
+                    'description'     => $item->description,
+                    'price'           => $item->price,
+                    'price_override'  => $item->price_override,
+                    'image'           => $item->image,
+                    'is_active'       => $item->is_active,
+                    'is_featured'     => $item->is_featured,
+                    'badges'          => $item->badges,
+                    'sort_order'      => $item->sort_order,
+                    'sub_heading'     => $item->sub_heading,
+                    'price_glass'     => $item->price_glass,
+                    'price_bottle'    => $item->price_bottle,
+                    'cl_glass'        => $item->cl_glass,
+                    'cl_bottle'       => $item->cl_bottle,
+                ]);
+            }
+        }
+
+        return redirect()->route('qrmenus.edit', $clone)
+            ->with('success', '"' . $qrmenu->getTitle() . '" menüsü klonlandı. İsim ve ayarları güncelleyebilirsiniz.');
     }
 }

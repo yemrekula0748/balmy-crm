@@ -80,7 +80,9 @@ class GuestLogController extends BaseModuleController
 
         // Kapı loglarından her müdürün binada olup olmadığını kontrol et
         $mgrIds           = $deptManagers->pluck('id');
+        // Yalnızca BUGÜNKÜ kapı loglarına bak
         $latestDoorLogIds = \App\Models\DoorLog::whereIn('user_id', $mgrIds)
+            ->whereDate('logged_at', today())
             ->selectRaw('MAX(id) as max_id')
             ->groupBy('user_id')
             ->pluck('max_id');
@@ -88,19 +90,23 @@ class GuestLogController extends BaseModuleController
             ->get()
             ->keyBy('user_id');
 
-        // Müzüzäıt: ziyaretçisi yok + binada (giris logu var veya hiç log yok ama is_active)
-        // Binada değil: son logu 'cikis'
-        // Aktif ziyaretçisi var: insideHostIds içinde
-        $freeManagers    = $deptManagers->filter(function ($mgr) use ($insideHostIds, $latestDoorLogs) {
-            if ($insideHostIds->contains($mgr->id)) return false; // ziyaretçisi var
+        // Müsait: ziyaretçisi yok + bugün 'giris' logu var ve henüz çıkmamış
+        // Binada değil: bugün hiç log yok VEYA son logu 'cikis'
+        // Meşgul: aktif ziyaretçisi var
+        $freeManagers = $deptManagers->filter(function ($mgr) use ($insideHostIds, $latestDoorLogs) {
+            if ($insideHostIds->contains($mgr->id)) return false;
             $lastLog = $latestDoorLogs->get($mgr->id);
-            return !$lastLog || $lastLog->type === 'giris'; // binada veya hiç log yok
+            return $lastLog && $lastLog->type === 'giris';
         })->values();
 
-        $absentManagers  = $deptManagers->filter(function ($mgr) use ($insideHostIds, $latestDoorLogs) {
-            if ($insideHostIds->contains($mgr->id)) return false; // ziyaretçisi var (zaten içeridekiler'de)
+        $busyManagers = $deptManagers->filter(function ($mgr) use ($insideHostIds) {
+            return $insideHostIds->contains($mgr->id);
+        })->values();
+
+        $absentManagers = $deptManagers->filter(function ($mgr) use ($insideHostIds, $latestDoorLogs) {
+            if ($insideHostIds->contains($mgr->id)) return false;
             $lastLog = $latestDoorLogs->get($mgr->id);
-            return $lastLog && $lastLog->type === 'cikis'; // binada değil
+            return !$lastLog || $lastLog->type === 'cikis';
         })->values();
 
         // Eski değişken adını koruyarak view'e gönder
@@ -114,7 +120,7 @@ class GuestLogController extends BaseModuleController
             'logs', 'branches', 'departments',
             'dateFrom', 'dateTo',
             'totalToday', 'stillInside', 'leftCount',
-            'insideNow', 'outsideManagers', 'absentManagers',
+            'insideNow', 'outsideManagers', 'busyManagers', 'absentManagers',
             'page_title'
         ));
     }
@@ -141,18 +147,6 @@ class GuestLogController extends BaseModuleController
 
     public function store(Request $request)
     {
-        // Aynı müdürün yanında zaten içeride bir ziyaretçi varsa engelle
-        if ($request->filled('host_user_id')) {
-            $alreadyInside = GuestLog::where('host_user_id', $request->host_user_id)
-                ->whereNull('check_out_at')
-                ->exists();
-            if ($alreadyInside) {
-                return back()->withInput()->withErrors([
-                    'host_user_id' => 'Bu müdürün yanında zaten içeride bir ziyaretçi var. Önce çıkış kaydedilmeli.'
-                ]);
-            }
-        }
-
         $request->validate([
             'branch_id'      => 'required|exists:branches,id',
             'department_id'  => 'nullable|exists:departments,id',
@@ -167,9 +161,13 @@ class GuestLogController extends BaseModuleController
             'notes'          => 'nullable|string|max:1000',
         ]);
 
+        $hostDeptId = $request->host_user_id
+            ? optional(User::find($request->host_user_id))->department_id
+            : null;
+
         GuestLog::create([
             'branch_id'       => $request->branch_id,
-            'department_id'   => $request->department_id,
+            'department_id'   => $hostDeptId,
             'host_user_id'    => $request->host_user_id,
             'created_by'      => auth()->id(),
             'visitor_name'    => $request->visitor_name,

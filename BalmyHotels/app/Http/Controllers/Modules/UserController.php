@@ -145,8 +145,9 @@ class UserController extends BaseModuleController
         $primaryRole   = in_array('super_admin', $selectedRoles) ? 'super_admin' : $selectedRoles[0];
 
         $data = $request->only(['name', 'email', 'branch_id', 'department_id', 'phone', 'title']);
-        $data['role']      = $primaryRole;
-        $data['is_active'] = $request->boolean('is_active');
+        $data['role']        = $primaryRole;
+        $data['is_active']   = $request->boolean('is_active');
+        $data['fault_notify'] = $request->boolean('fault_notify');
 
         if ($request->filled('password')) {
             $data['password'] = Hash::make($request->password);

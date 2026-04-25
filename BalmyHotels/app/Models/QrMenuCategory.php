@@ -9,13 +9,14 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class QrMenuCategory extends Model
 {
     protected $fillable = [
-        'qr_menu_id', 'title', 'description', 'icon', 'image', 'sort_order', 'is_active',
+        'qr_menu_id', 'title', 'description', 'icon', 'image', 'sort_order', 'is_active', 'sub_headings',
     ];
 
     protected $casts = [
-        'title'       => 'array',
-        'description' => 'array',
-        'is_active'   => 'boolean',
+        'title'        => 'array',
+        'description'  => 'array',
+        'sub_headings' => 'array',
+        'is_active'    => 'boolean',
     ];
 
     public function menu(): BelongsTo

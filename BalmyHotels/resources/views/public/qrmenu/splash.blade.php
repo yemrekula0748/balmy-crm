@@ -4,6 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ $menu->getTitle() }}</title>
+    <!-- Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-7HHCB1JYV7"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-7HHCB1JYV7');
+    </script>
     <meta name="theme-color" content="{{ $menu->theme_color ?? '#1a1a2e' }}">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
@@ -39,7 +47,7 @@
             background-size: cover;
             background-position: center;
             @if($menu->cover_image)
-            background-image: url('{{ asset('storage/'.$menu->cover_image) }}');
+            background-image: url('{{ asset('uploads/'.$menu->cover_image) }}');
             @endif
             filter: brightness(.35) saturate(.8);
         }
@@ -195,7 +203,7 @@
     <div class="splash-card">
         <div class="logo-wrap">
             @if($menu->logo)
-                <img src="{{ asset('storage/'.$menu->logo) }}" alt="logo" class="logo-img">
+                <img src="{{ asset('uploads/'.$menu->logo) }}" alt="logo" class="logo-img">
             @else
                 <div class="logo-placeholder">{{ strtoupper(substr($menu->name, 0, 1)) }}</div>
             @endif

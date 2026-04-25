@@ -8,10 +8,12 @@ use App\Http\Controllers\Modules\VehicleController;
 use App\Http\Controllers\Modules\VehicleOperationController;
 use App\Http\Controllers\Modules\VehicleMaintenanceController;
 use App\Http\Controllers\Modules\VehicleInsuranceController;
+use App\Http\Controllers\Modules\VehicleTripController;
 use App\Http\Controllers\Modules\UserController;
 use App\Http\Controllers\Modules\DepartmentController;
 use App\Http\Controllers\Modules\DoorLogController;
 use App\Http\Controllers\Modules\DoorLogReportController;
+use App\Http\Controllers\Modules\HrReportController;
 use App\Http\Controllers\Modules\GuestLogController;
 use App\Http\Controllers\Modules\FaultController;
 use App\Http\Controllers\Modules\FaultLocationController;
@@ -21,10 +23,13 @@ use App\Http\Controllers\Modules\AssetController;
 use App\Http\Controllers\Modules\AssetExitController;
 use App\Http\Controllers\Modules\QrMenuController;
 use App\Http\Controllers\Modules\QrMenuCategoryController;
+use App\Http\Controllers\Modules\MenuShowcaseController;
+use App\Http\Controllers\Modules\FoodLibraryController;
 use App\Http\Controllers\QrMenuPublicController;
 use App\Http\Controllers\Modules\SurveyController;
 use App\Http\Controllers\SurveyPublicController;
 use App\Http\Controllers\Modules\FoodLabelController;
+use App\Http\Controllers\Modules\PrinterController;
 use App\Http\Controllers\FoodLabelPublicController;
 use App\Http\Controllers\StaffSurveyPublicController;
 use App\Http\Controllers\Modules\StaffSurveyController;
@@ -33,6 +38,32 @@ use App\Http\Controllers\Modules\PdfConverterController;
 use App\Http\Controllers\Modules\PdfMergerController;
 use App\Http\Controllers\Modules\RoleController;
 use App\Http\Controllers\Modules\CarbonFootprintController;
+use App\Http\Controllers\Modules\ShuttleRouteController;
+use App\Http\Controllers\Modules\ShuttleVehicleController;
+use App\Http\Controllers\Modules\ShuttleOperationController;
+use App\Http\Controllers\Modules\ShuttleReportController;
+use App\Http\Controllers\Modules\RestaurantController;
+use App\Http\Controllers\Modules\OrderController;
+use App\Http\Controllers\Modules\OrderReportController;
+use App\Http\Controllers\Modules\OrderAnalyticsController;
+use App\Http\Controllers\Modules\OrderAiAnalysisController;
+use App\Http\Controllers\Modules\OrderGuestAnalysisController;
+use App\Http\Controllers\Modules\OcrController;
+use App\Http\Controllers\Modules\AuditTypeController;
+use App\Http\Controllers\Modules\AuditController;
+use App\Http\Controllers\Modules\AuditNonconformityController;
+use App\Http\Controllers\Modules\AuditAnalyticsController;
+use App\Http\Controllers\Modules\ItComputerController;
+use App\Http\Controllers\Modules\ItBackupController;
+use App\Http\Controllers\Modules\MikroTikController;
+use App\Http\Controllers\Modules\LoginLogController;
+use App\Http\Controllers\Modules\MyTaskController;
+use App\Http\Controllers\Modules\AgencyController;
+use App\Http\Controllers\Modules\AgencyContractController;
+use App\Http\Controllers\Modules\FrontDeskBedTypeController;
+use App\Http\Controllers\Modules\FrontDeskRoomTypeController;
+use App\Http\Controllers\Modules\FrontDeskRoomController;
+use App\Http\Controllers\AssetPublicController;
 
 /*
 |--------------------------------------------------------------------------
@@ -46,6 +77,38 @@ Route::middleware('guest')->group(function () {
 
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout')->middleware('auth');
 
+// Profil
+use App\Http\Controllers\ProfileController;
+Route::middleware('auth')->group(function () {
+    Route::get('/profil',  [ProfileController::class, 'index'])->name('profile.index');
+    Route::post('/profil', [ProfileController::class, 'update'])->name('profile.update');
+
+    // Sunucudaki mevcut storage dosyalarının izinlerini düz (0644) yap — bir kez çalıştırılır
+    Route::get('/storage-fix-permissions', function () {
+        $dir = storage_path('app/public');
+        $fixed = 0;
+        foreach (new RecursiveIteratorIterator(new RecursiveDirectoryIterator($dir, FilesystemIterator::SKIP_DOTS)) as $file) {
+            if ($file->isFile()) {
+                @chmod($file->getPathname(), 0644);
+                $fixed++;
+            }
+        }
+        foreach (new RecursiveIteratorIterator(new RecursiveDirectoryIterator($dir, FilesystemIterator::SKIP_DOTS), RecursiveIteratorIterator::SELF_FIRST) as $item) {
+            if ($item->isDir()) {
+                @chmod($item->getPathname(), 0755);
+            }
+        }
+        return response("Tamam: {$fixed} dosya 0644, klasörler 0755 yapıldı.");
+    })->middleware('auth');
+});
+
+/*
+|--------------------------------------------------------------------------
+| Demirbaş QR — Public (auth gerekmez)
+|--------------------------------------------------------------------------
+*/
+Route::get('/demirbaslar/qr/{token}', [AssetPublicController::class, 'show'])->name('assets.public.qr');
+
 /*
 |--------------------------------------------------------------------------
 | QR Menü — Public (auth gerekmez)
@@ -53,6 +116,7 @@ Route::post('/logout', [AuthController::class, 'logout'])->name('logout')->middl
 */
 Route::get('/menu/{slug}', [QrMenuPublicController::class, 'splash'])->name('qrmenu.show');
 Route::get('/menu/{slug}/{lang}', [QrMenuPublicController::class, 'view'])->name('qrmenu.view');
+Route::get('/vitrin/{slug}', [QrMenuPublicController::class, 'showcase'])->name('showcase.show');
 
 /*
 |--------------------------------------------------------------------------
@@ -187,6 +251,28 @@ Route::middleware('auth')->group(function () {
 
     /*
     |--------------------------------------------------------------------------
+    | Araç Görev Takip
+    |--------------------------------------------------------------------------
+    */
+    Route::prefix('arac-gorevler')->name('vehicle-trips.')->group(function () {
+        Route::get('/',                                  [VehicleTripController::class, 'index'])->name('index');
+        Route::get('/yeni',                              [VehicleTripController::class, 'create'])->name('create');
+        Route::post('/',                                 [VehicleTripController::class, 'store'])->name('store');
+        Route::get('/aktif-gorevim',                     [VehicleTripController::class, 'myTrip'])->name('my');
+        Route::get('/kontrol',                           [VehicleTripController::class, 'control'])->name('control');
+        Route::get('/{vehicleTrip}',                     [VehicleTripController::class, 'show'])->name('show');
+        Route::get('/{vehicleTrip}/yazdir',              [VehicleTripController::class, 'printTrip'])->name('print');
+        Route::get('/{vehicleTrip}/bitir',               [VehicleTripController::class, 'complete'])->name('complete');
+        Route::put('/{vehicleTrip}',                     [VehicleTripController::class, 'update'])->name('update');
+        Route::delete('/{vehicleTrip}',                  [VehicleTripController::class, 'destroy'])->name('destroy');
+        // API: konum kaydet
+        Route::post('/{vehicleTrip}/konum',              [VehicleTripController::class, 'storeLocation'])->name('location');
+        // API: kontrol sayfası konum polling
+        Route::get('/{vehicleTrip}/konumlar',            [VehicleTripController::class, 'controlLocations'])->name('control-locations');
+    });
+
+    /*
+    |--------------------------------------------------------------------------
     | Kullanıcı / Çalışan Modülü
     |--------------------------------------------------------------------------
     */
@@ -215,6 +301,9 @@ Route::middleware('auth')->group(function () {
         Route::post('/manuel',        [DoorLogController::class, 'store'])->name('store');
         Route::post('/hizli',         [DoorLogController::class, 'quick'])->name('quick');
         Route::delete('/{doorLog}',   [DoorLogController::class, 'destroy'])->name('destroy');
+        Route::get('/ik-rapor',              [HrReportController::class, 'index'])->name('hr-report');
+        Route::get('/ik-rapor/pdf',          [HrReportController::class, 'pdf'])->name('hr-report-pdf');
+        Route::get('/ik-rapor/personeller',  [HrReportController::class, 'staffByBranch'])->name('hr-report-staff');
     });
 
     /*
@@ -258,12 +347,15 @@ Route::middleware('auth')->group(function () {
         Route::get('/bildirdiklerim',            [FaultController::class, 'myReports'])->name('my-reports');
         Route::get('/departmanim',               [FaultController::class, 'myDepartment'])->name('my-department');
         Route::get('/istatistikler',              [FaultController::class, 'stats'])->name('stats');
+        Route::get('/analiz',                    [FaultController::class, 'analysis'])->name('analysis');
+        Route::post('/analiz/gonder',            [FaultController::class, 'sendAnalysisReport'])->name('analysis.send');
 
         // AJAX cascading dropdown
         Route::get('/ajax/departmanlar',         [FaultController::class, 'ajaxDepartments'])->name('ajax.departments');
         Route::get('/ajax/konumlar',             [FaultController::class, 'ajaxLocations'])->name('ajax.locations');
         Route::get('/ajax/alanlar',              [FaultController::class, 'ajaxAreas'])->name('ajax.areas');
         Route::get('/ajax/ariza-turleri',        [FaultController::class, 'ajaxFaultTypes'])->name('ajax.fault-types');
+        Route::get('/ajax/gelen-yeni',           [FaultController::class, 'ajaxNewIncoming'])->name('ajax.new-incoming');
 
         // Konum + Alan yönetimi
         Route::prefix('konumlar')->name('locations.')->group(function () {
@@ -302,12 +394,13 @@ Route::middleware('auth')->group(function () {
     */
     // Kategori yönetimi
     Route::prefix('demirbaslar/kategoriler')->name('asset-categories.')->group(function () {
-        Route::get('/',                              [AssetCategoryController::class, 'index'])->name('index');
-        Route::get('/ekle',                          [AssetCategoryController::class, 'create'])->name('create');
-        Route::post('/ekle',                         [AssetCategoryController::class, 'store'])->name('store');
-        Route::get('/{assetCategory}/duzenle',       [AssetCategoryController::class, 'edit'])->name('edit');
-        Route::put('/{assetCategory}',               [AssetCategoryController::class, 'update'])->name('update');
-        Route::delete('/{assetCategory}',            [AssetCategoryController::class, 'destroy'])->name('destroy');
+        Route::get('/',                                          [AssetCategoryController::class, 'index'])->name('index');
+        Route::get('/ekle',                                      [AssetCategoryController::class, 'create'])->name('create');
+        Route::post('/ekle',                                     [AssetCategoryController::class, 'store'])->name('store');
+        Route::get('/{assetCategory}/alt-kategoriler',           [AssetCategoryController::class, 'subcategories'])->name('subcategories');
+        Route::get('/{assetCategory}/duzenle',                   [AssetCategoryController::class, 'edit'])->name('edit');
+        Route::put('/{assetCategory}',                           [AssetCategoryController::class, 'update'])->name('update');
+        Route::delete('/{assetCategory}',                        [AssetCategoryController::class, 'destroy'])->name('destroy');
     });
 
     // Eşya çıkış formları  (assets'ten önce tanımlanmalı — prefix çakışmasını önlemek için)
@@ -329,6 +422,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/ekle',                   [AssetController::class, 'store'])->name('store');
         Route::get('/kategori/{assetCategory}/alanlar', [AssetController::class, 'categoryFields'])->name('categoryFields');
         Route::get('/{asset}',                 [AssetController::class, 'show'])->name('show');
+        Route::get('/{asset}/qr-yazdir',       [AssetController::class, 'qrPrint'])->name('qrPrint');
         Route::get('/{asset}/duzenle',         [AssetController::class, 'edit'])->name('edit');
         Route::put('/{asset}',                 [AssetController::class, 'update'])->name('update');
         Route::delete('/{asset}',              [AssetController::class, 'destroy'])->name('destroy');
@@ -357,6 +451,7 @@ Route::middleware('auth')->group(function () {
     Route::prefix('yemek-isimlikler')->name('food-labels.')->group(function () {
         Route::get('/',                     [FoodLabelController::class, 'index'])->name('index');
         Route::get('/export',               [FoodLabelController::class, 'export'])->name('export');
+        Route::post('/json-import',         [FoodLabelController::class, 'importJson'])->name('json-import');
         Route::get('/ekle',                 [FoodLabelController::class, 'create'])->name('create');
         Route::post('/ekle',                [FoodLabelController::class, 'store'])->name('store');
         Route::post('/yazdir',              [FoodLabelController::class, 'printBulk'])->name('print-bulk');
@@ -385,6 +480,15 @@ Route::middleware('auth')->group(function () {
     // QR Menü Yönetimi
     Route::prefix('qr-menuler')->name('qrmenus.')->group(function () {
         Route::get('/', [QrMenuController::class, 'index'])->name('index');
+        // Vitrinler (showcase)
+        Route::prefix('vitrinler')->name('showcases.')->group(function () {
+            Route::get('/',                    [MenuShowcaseController::class, 'index'])->name('index');
+            Route::get('/ekle',                [MenuShowcaseController::class, 'create'])->name('create');
+            Route::post('/ekle',               [MenuShowcaseController::class, 'store'])->name('store');
+            Route::get('/{showcase}/duzenle',  [MenuShowcaseController::class, 'edit'])->name('edit');
+            Route::put('/{showcase}',          [MenuShowcaseController::class, 'update'])->name('update');
+            Route::delete('/{showcase}',       [MenuShowcaseController::class, 'destroy'])->name('destroy');
+        });
         Route::get('/ekle', [QrMenuController::class, 'create'])->name('create');
         Route::post('/ekle', [QrMenuController::class, 'store'])->name('store');
         Route::get('/{qrmenu}', [QrMenuController::class, 'show'])->name('show');
@@ -392,6 +496,7 @@ Route::middleware('auth')->group(function () {
         Route::put('/{qrmenu}', [QrMenuController::class, 'update'])->name('update');
         Route::delete('/{qrmenu}', [QrMenuController::class, 'destroy'])->name('destroy');
         Route::post('/{qrmenu}/toggle', [QrMenuController::class, 'toggle'])->name('toggle');
+        Route::post('/{qrmenu}/klonla', [QrMenuController::class, 'clone'])->name('clone');
         // Kategori
         Route::get('/{qrmenu}/kategori/ekle', [QrMenuCategoryController::class, 'createCategory'])->name('category.create');
         Route::post('/{qrmenu}/kategori/ekle', [QrMenuCategoryController::class, 'storeCategory'])->name('category.store');
@@ -404,6 +509,38 @@ Route::middleware('auth')->group(function () {
         Route::get('/{qrmenu}/kategori/{category}/urun/{item}/duzenle', [QrMenuCategoryController::class, 'editItem'])->name('item.edit');
         Route::put('/{qrmenu}/kategori/{category}/urun/{item}', [QrMenuCategoryController::class, 'updateItem'])->name('item.update');
         Route::delete('/{qrmenu}/kategori/{category}/urun/{item}', [QrMenuCategoryController::class, 'destroyItem'])->name('item.destroy');
+        // Kütüphaneden Ürün Ekle
+        Route::post('/{qrmenu}/kategoriler/{category}/kutuphane', [QrMenuCategoryController::class, 'addFromLibrary'])->name('category.addFromLibrary');
+    });
+
+    // Yemek Kütüphanesi
+    Route::prefix('yemek-kutuphane')->name('food-library.')->group(function () {
+        Route::get('/', [FoodLibraryController::class, 'index'])->name('index');
+        Route::get('/kategoriler/ekle', [FoodLibraryController::class, 'createCategory'])->name('categories.create');
+        Route::post('/kategoriler', [FoodLibraryController::class, 'storeCategory'])->name('categories.store');
+        Route::post('/kategoriler/json-aktar', [FoodLibraryController::class, 'importCategoriesJson'])->name('categories.json-import');
+        Route::get('/kategoriler/{category}/duzenle', [FoodLibraryController::class, 'editCategory'])->name('categories.edit');
+        Route::put('/kategoriler/{category}', [FoodLibraryController::class, 'updateCategory'])->name('categories.update');
+        Route::delete('/kategoriler/{category}', [FoodLibraryController::class, 'destroyCategory'])->name('categories.destroy');
+        Route::delete('/kategoriler/{category}/urunlerle-sil', [FoodLibraryController::class, 'destroyCategoryWithProducts'])->name('categories.destroy-with-products');
+        Route::get('/urunler', [FoodLibraryController::class, 'products'])->name('products');
+        Route::get('/urunler/ekle', [FoodLibraryController::class, 'createProduct'])->name('product.create');
+        Route::post('/urunler', [FoodLibraryController::class, 'storeProduct'])->name('product.store');
+        Route::post('/urunler/json-aktar', [FoodLibraryController::class, 'importProductsJson'])->name('product.json-import');
+        Route::get('/urunler/{product}/duzenle', [FoodLibraryController::class, 'editProduct'])->name('product.edit');
+        Route::put('/urunler/{product}', [FoodLibraryController::class, 'updateProduct'])->name('product.update');
+        Route::delete('/urunler/{product}', [FoodLibraryController::class, 'destroyProduct'])->name('product.destroy');
+        Route::get('/api/urunler', [FoodLibraryController::class, 'apiProducts'])->name('api.products');
+        Route::get('/api/urunler/{product}', [FoodLibraryController::class, 'apiProduct'])->name('api.product');
+    });
+
+    // Yazıcılar
+    Route::prefix('yazicilar')->name('printers.')->group(function () {
+        Route::get('/',                   [PrinterController::class, 'index'])->name('index');
+        Route::post('/',                  [PrinterController::class, 'store'])->name('store');
+        Route::get('/{printer}/duzenle',  [PrinterController::class, 'edit'])->name('edit');
+        Route::put('/{printer}',          [PrinterController::class, 'update'])->name('update');
+        Route::delete('/{printer}',       [PrinterController::class, 'destroy'])->name('destroy');
     });
 
     /*
@@ -459,16 +596,285 @@ Route::middleware('auth')->group(function () {
 
     /*
     |--------------------------------------------------------------------------
+    | OCR — Yazıya Çevir
+    |--------------------------------------------------------------------------
+    */
+    Route::prefix('yaziya-cevir')->name('ocr.')->group(function () {
+        Route::get('/',      [OcrController::class, 'index'])->name('index');
+        Route::post('/cevir',[OcrController::class, 'extract'])->name('extract');
+    });
+
+    /*
+    |--------------------------------------------------------------------------
+    | Raporlar — TripAdvisor
+    |--------------------------------------------------------------------------
+    */
+    Route::prefix('raporlar')->name('reports.')->group(function () {
+        Route::get('/tripadvisor', [\App\Http\Controllers\Modules\TripAdvisorReportController::class, 'index'])->name('tripadvisor');
+        Route::post('/tripadvisor/snapshot', [\App\Http\Controllers\Modules\TripAdvisorReportController::class, 'snapshot'])->name('tripadvisor.snapshot');
+        Route::get('/google', [\App\Http\Controllers\Modules\GoogleReportController::class, 'index'])->name('google');
+        Route::post('/google/snapshot', [\App\Http\Controllers\Modules\GoogleReportController::class, 'snapshot'])->name('google.snapshot');
+    });
+
+    /*
+    |--------------------------------------------------------------------------
+    | Servis Takip Modülü
+    |--------------------------------------------------------------------------
+    */
+    Route::prefix('servis-takip')->name('shuttle.')->group(function () {
+
+        // Güzergah tanımları
+        Route::prefix('guzergahlar')->name('routes.')->group(function () {
+            Route::get('/',             [ShuttleRouteController::class, 'index'])->name('index');
+            Route::get('/ekle',         [ShuttleRouteController::class, 'create'])->name('create');
+            Route::post('/',            [ShuttleRouteController::class, 'store'])->name('store');
+            Route::get('/{route}/duzenle', [ShuttleRouteController::class, 'edit'])->name('edit');
+            Route::put('/{route}',      [ShuttleRouteController::class, 'update'])->name('update');
+            Route::delete('/{route}',   [ShuttleRouteController::class, 'destroy'])->name('destroy');
+        });
+
+        // Araçlar
+        Route::prefix('araclar')->name('vehicles.')->group(function () {
+            Route::get('/',              [ShuttleVehicleController::class, 'index'])->name('index');
+            Route::get('/ekle',          [ShuttleVehicleController::class, 'create'])->name('create');
+            Route::post('/',             [ShuttleVehicleController::class, 'store'])->name('store');
+            Route::get('/{vehicle}/duzenle', [ShuttleVehicleController::class, 'edit'])->name('edit');
+            Route::put('/{vehicle}',     [ShuttleVehicleController::class, 'update'])->name('update');
+            Route::delete('/{vehicle}',  [ShuttleVehicleController::class, 'destroy'])->name('destroy');
+        });
+
+        // Operasyon
+        Route::prefix('operasyon')->name('operations.')->group(function () {
+            Route::get('/',                     [ShuttleOperationController::class, 'index'])->name('index');
+            Route::post('/',                    [ShuttleOperationController::class, 'store'])->name('store');
+            Route::get('/{operation}/duzenle',      [ShuttleOperationController::class, 'edit'])->name('edit');
+            Route::put('/{operation}',               [ShuttleOperationController::class, 'update'])->name('update');
+            Route::patch('/{operation}/donus',       [ShuttleOperationController::class, 'departure'])->name('departure');
+            Route::delete('/{operation}',            [ShuttleOperationController::class, 'destroy'])->name('destroy');
+        });
+
+        // Raporlar
+        Route::prefix('raporlar')->name('reports.')->group(function () {
+            Route::get('/',    [ShuttleReportController::class, 'index'])->name('index');
+            Route::get('/pdf', [ShuttleReportController::class, 'pdf'])->name('pdf');
+        });
+
+    });
+
+    /*
+    |--------------------------------------------------------------------------
+    | Sipariş Modülü (Garson)
+    |--------------------------------------------------------------------------
+    */
+    Route::prefix('siparisler')->name('orders.')->group(function () {
+
+        // Ana sayfa: restoran + masa seçimi
+        Route::get('/',                              [OrderController::class, 'take'])->name('take');
+
+        // Masayı aç
+        Route::post('/masa-ac/{table}',              [OrderController::class, 'openTable'])->name('open-table');
+
+        // Aktif seans sayfası
+        Route::get('/seans/{session}',               [OrderController::class, 'session'])->name('session');
+
+        // Sipariş kaydet
+        Route::post('/seans/{session}/siparis',      [OrderController::class, 'storeOrder'])->name('store-order');
+
+        // Sipariş fişi
+        Route::get('/seans/{session}/siparis/{order}/fis', [OrderController::class, 'receipt'])->name('receipt');
+
+        // Sipariş kalemi sil
+        Route::delete('/seans/{session}/kalem/{item}', [OrderController::class, 'destroyOrderItem'])->name('destroy-item');
+
+        // Masayı kapat
+        Route::post('/seans/{session}/kapat',        [OrderController::class, 'closeTable'])->name('close-table');
+
+        // Raporlar
+        Route::get('/raporlar',                      [OrderReportController::class, 'index'])->name('report');
+
+        // Analiz
+        Route::get('/analiz',                        [OrderAnalyticsController::class, 'index'])->name('analytics');
+        Route::get('/analiz/pdf',                    [OrderAnalyticsController::class, 'pdf'])->name('analytics.pdf');
+
+        // AI Analiz
+        Route::get('/ai-analiz',                     [OrderAiAnalysisController::class, 'index'])->name('ai-analysis');
+
+        // Misafir Tüketim Analizi (hasılatsız)
+        Route::get('/misafir-analiz',                [OrderGuestAnalysisController::class, 'index'])->name('guest-analysis');
+
+        // Restoran tanımları
+        Route::prefix('restoranlar')->name('restaurants.')->group(function () {
+            Route::get('/',                                               [RestaurantController::class, 'index'])->name('index');
+            Route::get('/ekle',                                           [RestaurantController::class, 'create'])->name('create');
+            Route::post('/ekle',                                          [RestaurantController::class, 'store'])->name('store');
+            Route::get('/{restaurant}',                                   [RestaurantController::class, 'show'])->name('show');
+            Route::get('/{restaurant}/duzenle',                           [RestaurantController::class, 'edit'])->name('edit');
+            Route::put('/{restaurant}',                                   [RestaurantController::class, 'update'])->name('update');
+            Route::delete('/{restaurant}',                                [RestaurantController::class, 'destroy'])->name('destroy');
+            Route::post('/{restaurant}/masalar',                          [RestaurantController::class, 'storeTable'])->name('tables.store');
+            Route::post('/{restaurant}/masalar-toplu',                    [RestaurantController::class, 'storeBulkTables'])->name('tables.store-bulk');
+            Route::delete('/{restaurant}/masalar/{table}',                [RestaurantController::class, 'destroyTable'])->name('tables.destroy');
+            Route::post('/{restaurant}/yazicilar',                        [RestaurantController::class, 'savePrinters'])->name('printers.save');
+        });
+    });
+
+    /*
+    |--------------------------------------------------------------------------
+    | İç Denetim Modülü
+    |--------------------------------------------------------------------------
+    */
+    Route::prefix('ic-denetim')->name('audit.')->group(function () {
+
+        // AJAX
+        Route::get('ajax/departmanlar', [AuditController::class, 'ajaxDepartments'])->name('ajax.departments');
+
+        // Denetim Tipleri Yönetimi
+        Route::get('tipler',                    [AuditTypeController::class, 'index'])->name('types.index');
+        Route::post('tipler',                   [AuditTypeController::class, 'store'])->name('types.store');
+        Route::put('tipler/{auditType}',        [AuditTypeController::class, 'update'])->name('types.update');
+        Route::delete('tipler/{auditType}',     [AuditTypeController::class, 'destroy'])->name('types.destroy');
+
+        // Uygunsuzluklarım
+        Route::get('uygunsuzluklarim',          [AuditNonconformityController::class, 'index'])->name('nonconformities.index');
+        Route::patch('uygunsuzluk/{nonconformity}/coz', [AuditNonconformityController::class, 'resolve'])->name('nonconformities.resolve');
+
+        // Analiz & PDF (static routes before {audit} wildcard)
+        Route::get('analiz',                    [AuditAnalyticsController::class, 'index'])->name('analytics.index');
+        Route::get('analiz/pdf',                [AuditAnalyticsController::class, 'pdf'])->name('analytics.pdf');
+
+        // Denetimler (parameterized routes LAST)
+        Route::get('olustur',                   [AuditController::class, 'create'])->name('create');
+        Route::get('',                          [AuditController::class, 'index'])->name('index');
+        Route::post('',                         [AuditController::class, 'store'])->name('store');
+        Route::get('{audit}',                   [AuditController::class, 'show'])->name('show');
+        Route::delete('{audit}',                [AuditController::class, 'destroy'])->name('destroy');
+    });
+
+    /*
+    |--------------------------------------------------------------------------
     | Rol & Yetki Yönetimi (sadece super_admin)
     |--------------------------------------------------------------------------
     */
-    Route::prefix('roller')->name('roles.')->group(function () {
-        Route::get('/',                          [RoleController::class, 'index'])->name('index');
+    Route::prefix('roller')->name('roles.')->group(function () {        Route::get('/',                          [RoleController::class, 'index'])->name('index');
         Route::post('/',                         [RoleController::class, 'store'])->name('store');
         Route::put('/{role}',                    [RoleController::class, 'update'])->name('update');
         Route::delete('/{role}',                 [RoleController::class, 'destroy'])->name('destroy');
         Route::get('/{role}/izinler',            [RoleController::class, 'permissions'])->name('permissions');
         Route::post('/{role}/izinler',           [RoleController::class, 'updatePermissions'])->name('updatePermissions');
+    });
+
+    /*
+    |--------------------------------------------------------------------------
+    | Bilgi İşlem Modülü
+    |--------------------------------------------------------------------------
+    */
+    Route::prefix('bilgi-islem')->name('it.')->group(function () {
+        // Bilgisayarlar (manuel envanter)
+        Route::get('bilgisayarlar',               [ItComputerController::class, 'index'])->name('computers.index');
+        Route::get('bilgisayarlar/{computer}',    [ItComputerController::class, 'show'])->name('computers.show');
+        Route::post('bilgisayarlar',              [ItComputerController::class, 'store'])->name('computers.store');
+        Route::put('bilgisayarlar/{computer}',    [ItComputerController::class, 'update'])->name('computers.update');
+        Route::delete('bilgisayarlar/{computer}', [ItComputerController::class, 'destroy'])->name('computers.destroy');
+
+        // Ajan Envanter (Windows Agent otomatik toplama)
+        Route::get('ajan-envanter',                        [\App\Http\Controllers\Modules\AgentInventoryController::class, 'index'])->name('agent.index');
+        Route::get('ajan-envanter/istatistikler',          [\App\Http\Controllers\Modules\AgentInventoryController::class, 'stats'])->name('agent.stats');
+        Route::post('ajan-envanter/snapshot-temizle',      [\App\Http\Controllers\Modules\AgentInventoryController::class, 'clearSnapshotFields'])->name('agent.snapshot-temizle');
+        Route::get('ajan-envanter/{agentComputer}',        [\App\Http\Controllers\Modules\AgentInventoryController::class, 'show'])->name('agent.show');
+        Route::get('ajan-envanter/{agentComputer}/programlar',    [\App\Http\Controllers\Modules\AgentInventoryController::class, 'programs'])->name('agent.programs');
+        Route::get('ajan-envanter/{agentComputer}/dosya-olaylari',    [\App\Http\Controllers\Modules\AgentInventoryController::class, 'fileEvents'])->name('agent.file-events');
+        Route::get('ajan-envanter/{agentComputer}/program-degisiklikleri', [\App\Http\Controllers\Modules\AgentInventoryController::class, 'programEvents'])->name('agent.program-events');
+        Route::get('ajan-envanter/{agentComputer}/silinen-dosyalar',   [\App\Http\Controllers\Modules\AgentInventoryController::class, 'deletions'])->name('agent.deletions');
+        Route::get('ajan-envanter/{agentComputer}/tarayici-gecmisi',   [\App\Http\Controllers\Modules\AgentInventoryController::class, 'browserHistory'])->name('agent.browser-history');
+        Route::post('ajan-envanter/{agentComputer}/komut',             [\App\Http\Controllers\Modules\AgentInventoryController::class, 'sendCommand'])->name('agent.send-command');
+        Route::post('ajan-envanter/{agentComputer}/screenshot',        [\App\Http\Controllers\Modules\AgentInventoryController::class, 'requestScreenshot'])->name('agent.request-screenshot');
+        Route::delete('ajan-envanter/{agentComputer}/screenshot',       [\App\Http\Controllers\Modules\AgentInventoryController::class, 'clearScreenshots'])->name('agent.clear-screenshots');
+        Route::get('ajan-envanter/{agentComputer}/son-ekran',          [\App\Http\Controllers\Modules\AgentInventoryController::class, 'latestScreenshot'])->name('agent.latest-screenshot');
+        Route::get('ajan-envanter/{agentComputer}/vnc',                [\App\Http\Controllers\Modules\VncBrowserController::class, 'show'])->name('agent.vnc');
+        Route::post('ajan-envanter/{agentComputer}/vnc/connect',       [\App\Http\Controllers\Modules\VncBrowserController::class, 'connect'])->name('agent.vnc.connect');
+        Route::post('ajan-envanter/{agentComputer}/wol',               [\App\Http\Controllers\Modules\AgentInventoryController::class, 'wakeOnLan'])->name('agent.wol');
+        Route::delete('ajan-envanter/{agentComputer}',                 [\App\Http\Controllers\Modules\AgentInventoryController::class, 'destroy'])->name('agent.destroy');
+
+        // Yedekleme
+        Route::get('yedekleme',            [ItBackupController::class, 'index'])->name('backup.index');
+        Route::post('yedekleme',           [ItBackupController::class, 'run'])->name('backup.run');
+        Route::get('yedekleme/indir/{filename}',   [ItBackupController::class, 'download'])->name('backup.download')
+            ->where('filename', '[^/]+');
+        Route::delete('yedekleme/{filename}',      [ItBackupController::class, 'deleteFile'])->name('backup.delete')
+            ->where('filename', '[^/]+');
+
+        // Giriş Logları
+        Route::get('giris-loglari', [LoginLogController::class, 'index'])->name('login-logs.index');
+
+        // MikroTik Dashboard
+        Route::get('mikrotik',               [MikroTikController::class, 'index'])->name('mikrotik.index');
+        Route::get('mikrotik/hotspot-aktif', [MikroTikController::class, 'hotspotActive'])->name('mikrotik.hotspot-aktif');
+        Route::get('mikrotik/dhcp',          [MikroTikController::class, 'dhcpLeases'])->name('mikrotik.dhcp');
+        Route::get('mikrotik/kaynaklar',     [MikroTikController::class, 'resources'])->name('mikrotik.kaynaklar');
+        Route::get('mikrotik/kullanim',          [MikroTikController::class, 'usageStats'])->name('mikrotik.kullanim');
+        Route::get('mikrotik/client-kullanim',   [MikroTikController::class, 'clientUsage'])->name('mikrotik.client-kullanim');
+    });
+
+    /*
+    |--------------------------------------------------------------------------
+    | İşlerim (Kişisel Görev Listesi)
+    |--------------------------------------------------------------------------
+    */
+    Route::prefix('islerim')->name('islerim.')->group(function () {
+        Route::get('/',              [MyTaskController::class, 'index'])->name('index');
+        Route::post('/',             [MyTaskController::class, 'store'])->name('store');
+        Route::put('/{userTask}',    [MyTaskController::class, 'update'])->name('update');
+        Route::patch('/{userTask}/tamamla', [MyTaskController::class, 'complete'])->name('complete');
+        Route::delete('/{userTask}', [MyTaskController::class, 'destroy'])->name('destroy');
+    });
+
+    /*
+    |--------------------------------------------------------------------------
+    | Acenteler
+    |--------------------------------------------------------------------------
+    */
+    Route::prefix('acenteler')->name('agencies.')->group(function () {
+        Route::get('/',              [AgencyController::class, 'index'])->name('index');
+        Route::get('/yeni',          [AgencyController::class, 'create'])->name('create');
+        Route::post('/',             [AgencyController::class, 'store'])->name('store');
+        Route::put('/{agency}',      [AgencyController::class, 'update'])->name('update');
+        Route::delete('/{agency}',   [AgencyController::class, 'destroy'])->name('destroy');
+
+        Route::prefix('kontratlar')->name('contracts.')->group(function () {
+            Route::get('/',              [AgencyContractController::class, 'index'])->name('index');
+            Route::get('/yeni',          [AgencyContractController::class, 'create'])->name('create');
+            Route::post('/',             [AgencyContractController::class, 'store'])->name('store');
+            Route::put('/{contract}',    [AgencyContractController::class, 'update'])->name('update');
+            Route::delete('/{contract}', [AgencyContractController::class, 'destroy'])->name('destroy');
+        });
+    });
+
+    /*
+    |--------------------------------------------------------------------------
+    | Önbüro (Front Desk)
+    |--------------------------------------------------------------------------
+    */
+    Route::prefix('onburo')->name('frontdesk.')->group(function () {
+        Route::get('yatak-tipleri',             [FrontDeskBedTypeController::class, 'index'])->name('bed-types.index');
+        Route::post('yatak-tipleri',            [FrontDeskBedTypeController::class, 'store'])->name('bed-types.store');
+        Route::put('yatak-tipleri/{bedType}',   [FrontDeskBedTypeController::class, 'update'])->name('bed-types.update');
+        Route::delete('yatak-tipleri/{bedType}',[FrontDeskBedTypeController::class, 'destroy'])->name('bed-types.destroy');
+
+        Route::get('oda-tipleri',               [FrontDeskRoomTypeController::class, 'index'])->name('room-types.index');
+        Route::post('oda-tipleri',              [FrontDeskRoomTypeController::class, 'store'])->name('room-types.store');
+        Route::put('oda-tipleri/{roomType}',    [FrontDeskRoomTypeController::class, 'update'])->name('room-types.update');
+        Route::delete('oda-tipleri/{roomType}', [FrontDeskRoomTypeController::class, 'destroy'])->name('room-types.destroy');
+
+        Route::get('odalar',                    [FrontDeskRoomController::class, 'index'])->name('rooms.index');
+        Route::post('odalar',                   [FrontDeskRoomController::class, 'store'])->name('rooms.store');
+        Route::put('odalar/{room}',             [FrontDeskRoomController::class, 'update'])->name('rooms.update');
+        Route::delete('odalar/{room}',          [FrontDeskRoomController::class, 'destroy'])->name('rooms.destroy');
+
+        Route::get('rezervasyonlar',            [FrontDeskReservationController::class, 'index'])->name('reservations.index');
+        Route::get('rezervasyonlar/yeni',       [FrontDeskReservationController::class, 'create'])->name('reservations.create');
+        Route::post('rezervasyonlar',           [FrontDeskReservationController::class, 'store'])->name('reservations.store');
+        Route::get('rezervasyonlar/{reservation}', [FrontDeskReservationController::class, 'show'])->name('reservations.show');
+        Route::delete('rezervasyonlar/{reservation}', [FrontDeskReservationController::class, 'destroy'])->name('reservations.destroy');
     });
 
 }); // auth middleware group

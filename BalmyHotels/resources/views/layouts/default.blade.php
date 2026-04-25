@@ -21,11 +21,20 @@
 	<meta name="description" content="@yield('page_description', $page_description ?? '')"/>
 	<meta property="og:title" content="balmyhotels | @yield('title', $page_title ?? '')" />
 	<meta property="og:description" content="{{ config('dz.name') }} | @yield('title', $page_title ?? '')" />
-	<meta property="og:image" content="public/images/logo.svg">
+	<meta property="og:image" content="{{ asset('images/logo.svg') }}">
 	<meta name="format-detection" content="telephone=no">
 
 	<!-- Mobile Specific -->
 	<meta name="viewport" content="width=device-width, initial-scale=1">
+
+	<!-- Google Analytics -->
+	<script async src="https://www.googletagmanager.com/gtag/js?id=G-7HHCB1JYV7"></script>
+	<script>
+	  window.dataLayer = window.dataLayer || [];
+	  function gtag(){dataLayer.push(arguments);}
+	  gtag('js', new Date());
+	  gtag('config', 'G-7HHCB1JYV7');
+	</script>
 
 	<!-- Favicon icon -->
 	<link rel="icon" type="image/svg+xml" href="{{ asset('images/logo-icon.svg')}}">

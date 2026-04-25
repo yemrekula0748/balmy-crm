@@ -114,6 +114,7 @@ class DashboardController extends Controller
 
         $page_title = 'Ana Sayfa';
 
+
         return view('dashboard.index', compact(
             'user', 'stats',
             'recentFaults', 'myFaultsOpen', 'myFaultsTotal', 'myRecentFaults',

@@ -151,12 +151,22 @@
                                 @error('department_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
                             </div>
 
-                            {{-- Aktif / Pasif --}}
+                            {{-- Aktif / Pasif & Arıza Bildirimleri --}}
                             <div class="col-12 mb-4">
-                                <div class="form-check form-switch">
+                                <div class="form-check form-switch mb-2">
                                     <input class="form-check-input" type="checkbox" name="is_active"
                                         id="is_active" value="1" @checked(old('is_active', $user->is_active))>
                                     <label class="form-check-label" for="is_active">Hesap Aktif</label>
+                                </div>
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" name="fault_notify"
+                                        id="fault_notify" value="1" @checked(old('fault_notify', $user->fault_notify ?? true))>
+                                    <label class="form-check-label" for="fault_notify">
+                                        Arıza Bildirimi E-postası Alsın
+                                        <small class="text-muted d-block" style="font-size:.75rem">
+                                            Departmanına arıza bildirilince mail gönderilsin
+                                        </small>
+                                    </label>
                                 </div>
                             </div>
 

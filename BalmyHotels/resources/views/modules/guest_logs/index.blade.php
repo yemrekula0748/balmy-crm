@@ -173,12 +173,12 @@
                     </div>
                     <span class="text-white fw-semibold fs-6">
                         Müsait Müdürler
-                        <span class="badge bg-white ms-1" style="color:#0f766e;">{{ $outsideManagers->count() }}</span>
+                        <span class="badge bg-white ms-1" style="color:#0f766e;">{{ $outsideManagers->count() + $busyManagers->count() }}</span>
                     </span>
                     <small class="text-white opacity-75 ms-auto">Binada — ziyaretçi beklenebilir</small>
                 </div>
                 <div class="card-body p-0">
-                    @if($outsideManagers->isEmpty() && $absentManagers->isEmpty())
+                    @if($outsideManagers->isEmpty() && $busyManagers->isEmpty() && $absentManagers->isEmpty())
                         <div class="text-center text-muted py-4">
                             <i class="fas fa-users fa-2x mb-2 d-block opacity-25"></i>
                             <p class="mb-0 small">Tüm müdürlerin yanında ziyaretçi var</p>
@@ -225,10 +225,51 @@
                             </div>
                             @endforeach
 
-                            @if($outsideManagers->isEmpty())
+                            @if($outsideManagers->isEmpty() && $busyManagers->isEmpty())
                             <div class="text-center text-muted py-3">
                                 <p class="mb-0 small">Binada müsait müdür yok</p>
                             </div>
+                            @endif
+
+                            {{-- MEŞGUL: aktif ziyaretçisi var --}}
+                            @if($busyManagers->isNotEmpty())
+                            <div class="px-3 pt-2 pb-1" style="background:#fef2f2;border-top:2px solid #fecaca;">
+                                <small style="font-size:11px;color:#b91c1c;font-weight:700;text-transform:uppercase;letter-spacing:.5px;">
+                                    <i class="fas fa-user-friends me-1"></i>Ziyaretçisi Var
+                                </small>
+                            </div>
+                            @foreach($busyManagers as $mgr)
+                            @php
+                                $visitorCount = \App\Models\GuestLog::where('host_user_id', $mgr->id)->whereNull('check_out_at')->count();
+                            @endphp
+                            <div class="d-flex align-items-center gap-3 px-3 py-2"
+                                 style="border-bottom:1px solid #f1f5f9;background:#fff5f5;">
+                                <span class="rounded-circle d-inline-flex align-items-center justify-content-center text-white fw-bold flex-shrink-0"
+                                      style="width:34px;height:34px;font-size:13px;background:#ef4444;">
+                                    {{ strtoupper(substr($mgr->name, 0, 1)) }}
+                                </span>
+                                <div class="flex-grow-1">
+                                    <div class="fw-semibold" style="font-size:13px;color:#1e293b;">{{ $mgr->name }}</div>
+                                    @if($mgr->department)
+                                        <span class="badge rounded-pill" style="font-size:10px;background:{{ $mgr->department->color ?? '#6b7280' }}20;color:{{ $mgr->department->color ?? '#6b7280' }};">
+                                            {{ $mgr->department->name }}
+                                        </span>
+                                    @endif
+                                </div>
+                                <div class="text-end flex-shrink-0">
+                                    <span class="badge rounded-pill" style="background:rgba(239,68,68,.1);color:#b91c1c;font-size:11px;padding:4px 8px;">
+                                        <i class="fas fa-users me-1"></i>{{ $visitorCount }} ziyaretçi
+                                    </span>
+                                    <div class="mt-1">
+                                        <a href="{{ route('guest-logs.create') }}?host_user_id={{ $mgr->id }}"
+                                           class="btn btn-sm"
+                                           style="background:rgba(67,97,238,.1);color:#4361ee;border:none;border-radius:20px;font-size:11px;padding:2px 10px;font-weight:600;">
+                                            <i class="fas fa-plus me-1"></i>Ziyaretçi
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                            @endforeach
                             @endif
 
                             {{-- BİNADA DEĞİL --}}

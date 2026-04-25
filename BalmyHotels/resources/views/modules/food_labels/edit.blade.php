@@ -288,7 +288,7 @@ function renderIngredientsTabs() {
         tabs    += `<li class="nav-item"><a class="nav-link ${active} py-1 px-2 small" data-bs-toggle="tab" href="#ing_${lang}">${info.flag} ${info.name}</a></li>`;
         content += `<div class="tab-pane fade ${show}" id="ing_${lang}">
                         <textarea name="ingredients[${lang}]" class="form-control form-control-sm" rows="4"
-                                  placeholder="${info.name} dilinde malzemeler..." oninput="saveState()">${ing}</textarea>
+                                  placeholder="${info.name} dilinde malzemeler..." oninput="saveState(); autoDetectAllergens()">${ing}</textarea>
                         <small class="text-muted">Örn: Un, Şeker, Yumurta, Tereyağı</small>
                     </div>`;
     });
@@ -297,11 +297,56 @@ function renderIngredientsTabs() {
 }
 function styleAllergen(el) {
     const card = el.closest('.allergen-card');
-    card.style.background    = el.checked ? '#fff0f0' : '';
-    card.style.borderColor   = el.checked ? '#ef4444' : '';
+    card.style.background  = el.checked ? '#fff0f0' : '';
+    card.style.borderColor = el.checked ? '#ef4444' : '';
+    if (!el.checked) card.querySelector('.auto-tag')?.remove();
 }
 function toggleAllAllergens(check) {
     document.querySelectorAll('.allergen-check').forEach(el => { el.checked = check; styleAllergen(el); });
+}
+
+const ALLERGEN_KEYWORDS = {
+    gluten:       ['un','ekmek','makarna','erişte','eriste','bulgur','arpa','buğday','bugday','yulaf','çavdar','börek','borek','yufka','simit','pide','galeta','kuskus','spaghetti','lazanya','ravioli','tortellini','milföy','milfoy','hamur','kraker','bisküvi','biskuvi','kek','tart','şehriye','sehriye','fide','flour','bread','wheat','barley','rye','oat','noodle','pasta','dough','crouton','focaccia','breadcrumb','cracker','biscuit','pastry','mehl','brot','teig','semmelbrösel','weizen','hafer','мука','хлеб','макарон'],
+    crustaceans:  ['karides','ıstakoz','istakoz','yengeç','yengec','pavurya','shrimp','prawn','lobster','crab','crayfish','scampi','garnele','hummer','krebs','креветк','лобстер','краб'],
+    eggs:         ['yumurta','mayonez','mayo','mayonnaise','egg','eggs','eier'],
+    fish:         ['balık','balik','somon','levrek','çipura','cipura','tuna','barbun','hamsi','ançuez','ancuez','istavrit','palamut','alabalık','alabalik','kefal','mezgit','sardalya','uskumru','lüfer','lufer','kalkan','havyar','ikra','roe','fish','salmon','anchovy','trout','cod','lachs','fisch','forelle','thunfisch','рыб','лосос'],
+    peanuts:      ['yer fıstığı','yer fistigi','yerfıstığı','yerfistigi','peanut','peanuts','erdnuss','арахис'],
+    soybeans:     ['soya','tofu','tempeh','edamame','soybean','soja','соя'],
+    milk:         ['süt','sut','tereyağı','tereyagi','peynir','yoğurt','yogurt','krema','kaymak','dondurma','labne','feta','mozzarella','parmesan','ricotta','mascarpone','muhallebi','sütlaç','sutlac','cacık','cacik','ayran','milk','butter','cheese','cream','yoghurt','milch','käse','sahne','joghurt','молоко','масл','сливк','сыр'],
+    nuts:         ['ceviz','badem','fındık','findik','antepfıstığı','antepfistigi','kaju','pekan','krokant','walnut','almond','hazelnut','pistachio','cashew','pecan','walnuss','mandel','haselnuss','pistazie','орех','миндал','фундук'],
+    celery:       ['kereviz','celery','sellerie','сельдерей'],
+    mustard:      ['hardal','mustard','dijon','senf','горчиц'],
+    sesame:       ['susam','tahin','sesame','tahini','sesam','кунжут'],
+    sulphites:    ['şarap','sarap','balzamik','balsamic','wine','wein','sulphite','sulfite','вин'],
+    lupin:        ['acı bakla','aci bakla','bakla','lupin','люпин'],
+    molluscs:     ['ahtapot','kalamar','midye','istiridye','salyangoz','squid','octopus','oyster','mussel','clam','tintenfisch','oktopus','моллюск','кальмар'],
+};
+
+function autoDetectAllergens() {
+    const texts = [...document.querySelectorAll('#ingredientsTabs textarea')].map(t => t.value.toLowerCase()).join(' ');
+    if (!texts.trim()) return;
+
+    document.querySelectorAll('.allergen-check').forEach(chk => {
+        const key = chk.value;
+        const keywords = ALLERGEN_KEYWORDS[key];
+        if (!keywords) return;
+        const detected = keywords.some(kw => {
+            const re = new RegExp('\\b' + kw.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\b', 'u');
+            return re.test(texts);
+        });
+        if (detected && !chk.checked) {
+            chk.checked = true;
+            styleAllergen(chk);
+            const card = chk.closest('.allergen-card');
+            if (!card.querySelector('.auto-tag')) {
+                const tag = document.createElement('span');
+                tag.className = 'auto-tag badge rounded-pill ms-auto';
+                tag.style.cssText = 'background:#e0f2fe;color:#0369a1;font-size:9px;padding:2px 5px;font-weight:500';
+                tag.textContent = 'oto';
+                card.appendChild(tag);
+            }
+        }
+    });
 }
 function escHtml(str) {
     if (!str) return '';

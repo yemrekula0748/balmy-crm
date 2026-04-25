@@ -1,17 +1,32 @@
-@extends('layouts.default')
+﻿@extends('layouts.default')
+
+@section('title', 'Arıza İstatistikleri')
+
+@push('styles')
+<style>
+.tw-stat-card{background:#fff;border-radius:.875rem;border:1px solid #e8ecf0;box-shadow:0 1px 6px rgba(15,23,42,.06)}
+.tw-table-head th{font-size:.65rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#94a3b8;padding:.6rem 1rem;border-bottom:2px solid #f1f5f9}
+.tw-table-body td{padding:.55rem 1rem;font-size:.8rem;border-bottom:1px solid #f1f5f9;vertical-align:middle}
+.kpi-pill{display:inline-flex;align-items:center;gap:4px;font-size:.68rem;font-weight:700;padding:3px 10px;border-radius:99px}
+</style>
+@endpush
 
 @section('content')
-<div class="container-fluid">
+<div class="container-fluid pb-5">
 
     {{-- Başlık --}}
-    <div class="row page-titles mx-0">
+    <div class="row page-titles mx-0 mb-0">
         <div class="col-sm-6 p-md-0">
             <div class="welcome-text">
-                <h4><i class="fas fa-chart-bar me-2" style="color:#4361ee"></i>Arıza İstatistikleri & Skor Tablosu</h4>
+                <h4 class="mb-0 d-flex align-items-center gap-2">
+                    <i class="fas fa-chart-line text-primary" style="font-size:1rem"></i>
+                    Arıza İstatistikleri
+                </h4>
+                <span class="text-muted" style="font-size:.8rem">Departman performansı · Arıza türü analizi · SLA uyum takibi</span>
             </div>
         </div>
-        <div class="col-sm-6 p-md-0 justify-content-sm-end mt-2 mt-sm-0 d-flex">
-            <ol class="breadcrumb">
+        <div class="col-sm-6 p-md-0 justify-content-sm-end mt-2 mt-sm-0 d-flex align-items-center">
+            <ol class="breadcrumb mb-0">
                 <li class="breadcrumb-item"><a href="{{ url('/') }}">Anasayfa</a></li>
                 <li class="breadcrumb-item"><a href="{{ route('faults.index') }}">Teknik Arıza</a></li>
                 <li class="breadcrumb-item active">İstatistikler</li>
@@ -20,309 +35,380 @@
     </div>
 
     {{-- Dönem Filtresi --}}
-    <div class="card border-0 shadow-sm mb-4">
-        <div class="card-body py-2">
-            <form method="GET" class="d-flex align-items-center gap-3 flex-wrap">
-                <label class="fw-semibold mb-0 small">Dönem:</label>
-                @foreach(['7'=>'Son 7 Gün','30'=>'Son 30 Gün','90'=>'Son 90 Gün','365'=>'Son 1 Yıl','all'=>'Tüm Zamanlar'] as $val=>$lbl)
-                    <div class="form-check form-check-inline mb-0">
-                        <input class="form-check-input" type="radio" name="period" id="p_{{ $val }}" value="{{ $val }}"
-                               @checked($period === $val) onchange="this.form.submit()">
-                        <label class="form-check-label small" for="p_{{ $val }}">{{ $lbl }}</label>
-                    </div>
-                @endforeach
-            </form>
+    <div class="tw-stat-card mb-3 mt-2 px-4 py-2">
+        <div class="d-flex align-items-center gap-2 flex-wrap">
+            <span class="text-muted fw-semibold" style="font-size:.78rem"><i class="fas fa-calendar-alt me-1"></i>Dönem:</span>
+            @foreach(['7'=>'Son 7 Gün','30'=>'Son 30 Gün','90'=>'Son 90 Gün','365'=>'Son 1 Yıl','all'=>'Tüm Zamanlar'] as $val=>$lbl)
+            <a href="{{ route('faults.stats', ['period'=>$val]) }}"
+               class="btn btn-sm rounded-pill {{ $period === $val ? 'btn-dark' : 'btn-outline-secondary' }}"
+               style="font-size:.72rem;padding:3px 12px">{{ $lbl }}</a>
+            @endforeach
         </div>
     </div>
 
-    {{-- Özet Kartlar --}}
-    <div class="row g-3 mb-4">
-        @php
-        $summaryCards = [
-            ['label'=>'Toplam Arıza',    'value'=>$summary['total'],       'color'=>'#4361ee','bg'=>'#eef0ff','icon'=>'fa-clipboard-list'],
-            ['label'=>'Açık',            'value'=>$summary['open'],        'color'=>'#dc3545','bg'=>'#fdecea','icon'=>'fa-exclamation-circle'],
-            ['label'=>'İşlemde',         'value'=>$summary['in_progress'], 'color'=>'#f97316','bg'=>'#fff3e0','icon'=>'fa-tools'],
-            ['label'=>'Kapalı',          'value'=>$summary['closed'],      'color'=>'#10b981','bg'=>'#e8f5e9','icon'=>'fa-check-double'],
-            ['label'=>'Ort. Çözüm (sa)', 'value'=>$summary['avg_hours'] ?? '—','color'=>'#8b5cf6','bg'=>'#f5f0ff','icon'=>'fa-clock'],
-            ['label'=>'SLA Uyumu',       'value'=>($summary['sla_pct'] !== null ? '%'.$summary['sla_pct'] : '—'),'color'=>'#0ea5e9','bg'=>'#e0f2fe','icon'=>'fa-shield-alt'],
-        ];
-        @endphp
-        @foreach($summaryCards as $card)
+    {{-- ═══════════════════════════════════════════════════
+         BÖLÜM 1: KPI KART SATIRI
+    ════════════════════════════════════════════════════ --}}
+    @php
+    $kpiCards = [
+        ['label'=>'TOPLAM ARIZA',  'value'=>$summary['total'],
+         'sub'=>'Seçili dönemde',   'color'=>'#6366f1','bg'=>'rgba(99,102,241,.08)','icon'=>'fa-layer-group'],
+        ['label'=>'AÇIK / ACİL',   'value'=>$summary['open'],
+         'sub'=>($summary['total'] > 0 ? round($summary['open']/$summary['total']*100) : 0).'% oran',
+         'color'=>'#ef4444','bg'=>'rgba(239,68,68,.08)','icon'=>'fa-circle-exclamation'],
+        ['label'=>'İŞLEMDE',       'value'=>$summary['in_progress'],
+         'sub'=>'Aktif müdahale',    'color'=>'#f59e0b','bg'=>'rgba(245,158,11,.08)','icon'=>'fa-rotate'],
+        ['label'=>'KAPALI',        'value'=>$summary['closed'],
+         'sub'=>($summary['total'] > 0 ? round($summary['closed']/$summary['total']*100) : 0).'% kapanma',
+         'color'=>'#10b981','bg'=>'rgba(16,185,129,.08)','icon'=>'fa-circle-check'],
+        ['label'=>'ORT. ÇÖZÜM',    'value'=>\App\Models\Fault::formatHours($summary['avg_hours']),
+         'sub'=>'Yanıt süresi',      'color'=>'#0891b2','bg'=>'rgba(8,145,178,.08)','icon'=>'fa-hourglass-half'],
+        ['label'=>'SLA UYUM',      'value'=>$summary['sla_pct'] !== null ? '%'.$summary['sla_pct'] : '—',
+         'sub'=>($summary['sla_pct'] >= 80 ? 'Hedef karşılandı' : ($summary['sla_pct'] >= 50 ? 'İyileştirme gerekli' : 'Kritik seviye')),
+         'color'=>$summary['sla_pct'] >= 80 ? '#10b981' : ($summary['sla_pct'] >= 50 ? '#f59e0b' : '#ef4444'),
+         'bg'=>$summary['sla_pct'] >= 80 ? 'rgba(16,185,129,.08)' : ($summary['sla_pct'] >= 50 ? 'rgba(245,158,11,.08)' : 'rgba(239,68,68,.08)'),
+         'icon'=>'fa-shield-halved'],
+    ];
+    @endphp
+    <div class="row g-2 mb-3">
+        @foreach($kpiCards as $card)
         <div class="col-xl-2 col-md-4 col-sm-6">
-            <div class="card border-0 h-100" style="box-shadow:0 2px 12px rgba(0,0,0,.07);border-bottom:3px solid {{ $card['color'] }} !important">
-                <div class="card-body d-flex align-items-center gap-3 py-3 px-3">
-                    <div class="rounded-2 d-flex align-items-center justify-content-center flex-shrink-0"
-                         style="width:44px;height:44px;background:{{ $card['bg'] }}">
-                        <i class="fas {{ $card['icon'] }}" style="color:{{ $card['color'] }};font-size:18px"></i>
-                    </div>
-                    <div>
-                        <div class="fw-bold" style="font-size:1.4rem;color:{{ $card['color'] }};line-height:1.2">{{ $card['value'] }}</div>
-                        <div class="text-muted" style="font-size:0.72rem">{{ $card['label'] }}</div>
+            <div class="tw-stat-card p-3" style="border-left:3px solid {{ $card['color'] }}">
+                <div class="d-flex align-items-start justify-content-between mb-2">
+                    <div style="width:36px;height:36px;border-radius:9px;background:{{ $card['bg'] }};display:flex;align-items:center;justify-content:center">
+                        <i class="fas {{ $card['icon'] }}" style="color:{{ $card['color'] }};font-size:.9rem"></i>
                     </div>
                 </div>
+                <div class="fw-bold lh-1 mb-1" style="font-size:1.5rem;color:#1e293b">{{ $card['value'] }}</div>
+                <div style="font-size:.62rem;font-weight:700;letter-spacing:.06em;color:{{ $card['color'] }};text-transform:uppercase">{{ $card['label'] }}</div>
+                <div class="text-muted mt-1" style="font-size:.68rem">{{ $card['sub'] }}</div>
             </div>
         </div>
         @endforeach
     </div>
 
-    <div class="row g-4 mb-4 align-items-start">
-
-        {{-- DEPARTMAN SKOR TABLOSU --}}
-        <div class="col-12">
-            <div class="card border-0 shadow-sm">
-                <div class="card-header d-flex align-items-center gap-2" style="background:linear-gradient(135deg,#4361ee,#3a4fe0);border:0">
-                    <i class="fas fa-trophy text-warning"></i>
-                    <h5 class="card-title mb-0 text-white">Departman Skor Tablosu</h5>
+    {{-- ═══════════════════════════════════════════════════
+         BÖLÜM 2: AYLИК TREND + ÖNCELİK DAĞILIMI
+    ════════════════════════════════════════════════════ --}}
+    <div class="row g-3 mb-3">
+        @if($monthlyTrend->count())
+        <div class="col-xl-8">
+            <div class="tw-stat-card">
+                <div class="d-flex align-items-center gap-2 px-4 py-3" style="border-bottom:1px solid #f1f5f9">
+                    <i class="fas fa-chart-bar" style="color:#6366f1"></i>
+                    <span class="fw-semibold" style="font-size:.85rem;color:#1e293b">Aylık Arıza Trendi</span>
+                    <span class="ms-auto text-muted" style="font-size:.72rem">Son {{ $monthlyTrend->count() }} ay</span>
                 </div>
-                <div class="card-body p-0">
-                    <div class="table-responsive">
-                        <table class="table table-hover align-middle mb-0">
-                            <thead class="table-light">
-                                <tr>
-                                    <th style="width:36px">#</th>
-                                    <th>Departman</th>
-                                    <th class="text-center">Toplam</th>
-                                    <th class="text-center text-danger">Açık</th>
-                                    <th class="text-center text-warning">İşlemde</th>
-                                    <th class="text-center text-success">Kapalı</th>
-                                    <th class="text-center">Ort. Süre (sa)</th>
-                                    <th style="min-width:140px">SLA Uyumu</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @forelse($deptScoreboard as $i => $row)
-                                @php
-                                    $sla = $row['sla_pct'];
-                                    $slaColor = $sla === null ? 'secondary' : ($sla >= 80 ? 'success' : ($sla >= 50 ? 'warning' : 'danger'));
-                                    $medalIcons = ['🥇','🥈','🥉'];
-                                @endphp
-                                <tr>
-                                    <td class="text-center fw-bold" style="font-size:1.1rem">
-                                        {{ $medalIcons[$i] ?? ($i+1) }}
-                                    </td>
-                                    <td>
-                                        <div class="fw-semibold">{{ $row['dept']?->name ?? '—' }}</div>
-                                        @if($row['dept']?->branch)
-                                            <div class="text-muted small">{{ $row['dept']->branch->name }}</div>
-                                        @endif
-                                    </td>
-                                    <td class="text-center fw-bold">{{ $row['total'] }}</td>
-                                    <td class="text-center">
-                                        @if($row['open'] > 0)
-                                            <span class="badge bg-danger">{{ $row['open'] }}</span>
-                                        @else
-                                            <span class="text-muted">—</span>
-                                        @endif
-                                    </td>
-                                    <td class="text-center">
-                                        @if($row['in_progress'] > 0)
-                                            <span class="badge bg-warning text-dark">{{ $row['in_progress'] }}</span>
-                                        @else
-                                            <span class="text-muted">—</span>
-                                        @endif
-                                    </td>
-                                    <td class="text-center">
-                                        <span class="badge bg-success">{{ $row['closed'] }}</span>
-                                    </td>
-                                    <td class="text-center">
-                                        @if($row['avg_hours'] !== null)
-                                            <span class="fw-semibold">{{ $row['avg_hours'] }}</span>
-                                        @else
-                                            <span class="text-muted">—</span>
-                                        @endif
-                                    </td>
-                                    <td>
-                                        @if($sla !== null)
-                                            <div class="d-flex align-items-center gap-2">
-                                                <div class="flex-fill">
-                                                    <div class="progress" style="height:8px;border-radius:4px">
-                                                        <div class="progress-bar bg-{{ $slaColor }}" style="width:{{ $sla }}%"></div>
-                                                    </div>
-                                                </div>
-                                                <span class="text-{{ $slaColor }} fw-semibold small">%{{ $sla }}</span>
-                                            </div>
-                                            <div class="text-muted" style="font-size:10px">{{ $row['sla_count'] }} ölçüm</div>
-                                        @else
-                                            <span class="text-muted small">Veri yok</span>
-                                        @endif
-                                    </td>
-                                </tr>
-                                @empty
-                                <tr><td colspan="8" class="text-center text-muted py-4">Kayıt bulunamadı.</td></tr>
-                                @endforelse
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-    </div>
-
-    <div class="row g-4 mb-4 align-items-start">
-
-        {{-- ARIZA TÜRÜ PERFORMANSI --}}
-        <div class="col-lg-7">
-            <div class="card border-0 shadow-sm h-100">
-                <div class="card-header d-flex align-items-center gap-2" style="background:linear-gradient(135deg,#f97316,#ea6c0a);border:0">
-                    <i class="fas fa-tags text-white"></i>
-                    <h5 class="card-title mb-0 text-white">Arıza Türü Performansı</h5>
-                </div>
-                <div class="card-body p-0">
-                    <div class="table-responsive">
-                        <table class="table table-hover align-middle mb-0">
-                            <thead class="table-light">
-                                <tr>
-                                    <th>Tür</th>
-                                    <th class="text-center">Toplam</th>
-                                    <th class="text-center text-danger">Açık</th>
-                                    <th class="text-center">Hedef (sa)</th>
-                                    <th class="text-center">Ort. (sa)</th>
-                                    <th style="min-width:120px">SLA</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @forelse($typeStats as $row)
-                                @php
-                                    $sla = $row['sla_pct'];
-                                    $slaColor = $sla === null ? 'secondary' : ($sla >= 80 ? 'success' : ($sla >= 50 ? 'warning' : 'danger'));
-                                    $avgOk = $row['avg_hours'] && $row['avg_hours'] <= $row['target_hours'];
-                                @endphp
-                                <tr>
-                                    <td class="fw-semibold">{{ $row['type_name'] }}</td>
-                                    <td class="text-center">{{ $row['total'] }}</td>
-                                    <td class="text-center">
-                                        @if($row['open'] > 0)<span class="badge bg-danger">{{ $row['open'] }}</span>
-                                        @else<span class="text-muted">—</span>@endif
-                                    </td>
-                                    <td class="text-center text-muted">{{ $row['target_hours'] }}</td>
-                                    <td class="text-center">
-                                        @if($row['avg_hours'] !== null)
-                                            <span class="fw-semibold text-{{ $avgOk ? 'success' : 'danger' }}">{{ $row['avg_hours'] }}</span>
-                                        @else<span class="text-muted">—</span>@endif
-                                    </td>
-                                    <td>
-                                        @if($sla !== null)
-                                            <div class="progress" style="height:6px;margin-bottom:2px">
-                                                <div class="progress-bar bg-{{ $slaColor }}" style="width:{{ $sla }}%"></div>
-                                            </div>
-                                            <small class="text-{{ $slaColor }}">%{{ $sla }}</small>
-                                        @else<span class="text-muted small">—</span>@endif
-                                    </td>
-                                </tr>
-                                @empty
-                                <tr><td colspan="6" class="text-center text-muted py-4">Veri yok.</td></tr>
-                                @endforelse
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        {{-- KONUM BAZLI + ALAN TOP 10 --}}
-        <div class="col-lg-5">
-            {{-- Konum --}}
-            <div class="card border-0 shadow-sm mb-4">
-                <div class="card-header d-flex align-items-center gap-2" style="background:linear-gradient(135deg,#10b981,#059669);border:0">
-                    <i class="fas fa-map-marker-alt text-white"></i>
-                    <h5 class="card-title mb-0 text-white">Konum Bazlı (Top 10)</h5>
-                </div>
-                <div class="card-body p-3">
-                    @php $maxLoc = $locationStats->max('total') ?: 1; @endphp
-                    @forelse($locationStats as $row)
-                    <div class="mb-2">
-                        <div class="d-flex justify-content-between align-items-center mb-1">
-                            <span class="small fw-semibold">{{ $row['name'] }}</span>
-                            <div class="d-flex gap-1 align-items-center">
-                                @if($row['open'] > 0)<span class="badge bg-danger" style="font-size:10px">{{ $row['open'] }} açık</span>@endif
-                                <span class="badge bg-secondary" style="font-size:10px">{{ $row['total'] }}</span>
-                            </div>
-                        </div>
-                        <div class="progress" style="height:6px;border-radius:3px">
-                            <div class="progress-bar bg-success" style="width:{{ round($row['total']/$maxLoc*100) }}%"></div>
-                        </div>
-                    </div>
-                    @empty
-                    <p class="text-muted text-center small mb-0">Veri yok.</p>
-                    @endforelse
-                </div>
-            </div>
-
-            {{-- Alan Top 10 --}}
-            @if($areaStats->isNotEmpty())
-            <div class="card border-0 shadow-sm">
-                <div class="card-header d-flex align-items-center gap-2" style="background:linear-gradient(135deg,#8b5cf6,#7c3aed);border:0">
-                    <i class="fas fa-layer-group text-white"></i>
-                    <h5 class="card-title mb-0 text-white">Alan Top 10</h5>
-                </div>
-                <div class="card-body p-0">
-                    <table class="table table-sm mb-0">
-                        <thead class="table-light"><tr><th>Alan</th><th>Konum</th><th class="text-center">Toplam</th><th class="text-center text-danger">Açık</th></tr></thead>
-                        <tbody>
-                        @foreach($areaStats as $row)
-                        <tr>
-                            <td class="small fw-semibold">{{ $row['area_name'] }}</td>
-                            <td class="small text-muted">{{ $row['loc_name'] }}</td>
-                            <td class="text-center"><span class="badge bg-secondary">{{ $row['total'] }}</span></td>
-                            <td class="text-center">
-                                @if($row['open'] > 0)<span class="badge bg-danger">{{ $row['open'] }}</span>
-                                @else<span class="text-muted">—</span>@endif
-                            </td>
-                        </tr>
-                        @endforeach
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-            @endif
-        </div>
-
-    </div>
-
-    {{-- AYLIK TREND + ŞUBE --}}
-    <div class="row g-4 mb-4 align-items-start">
-        <div class="col-{{ $branchStats ? 'lg-8' : '12' }}">
-            <div class="card border-0 shadow-sm">
-                <div class="card-header"><h5 class="card-title mb-0"><i class="fas fa-chart-line me-2 text-primary"></i>Aylık Arıza Trendi</h5></div>
-                <div class="card-body">
-                    <div style="position:relative;height:{{ $branchStats ? '240px' : '280px' }}">
-                        <canvas id="trendChart"></canvas>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        @if($branchStats)
-        <div class="col-lg-4">
-            <div class="card border-0 shadow-sm h-100">
-                <div class="card-header d-flex align-items-center gap-2" style="background:linear-gradient(135deg,#0ea5e9,#0284c7);border:0">
-                    <i class="fas fa-building text-white"></i>
-                    <h5 class="card-title mb-0 text-white">Şube Karşılaştırması</h5>
-                </div>
-                <div class="card-body p-3">
-                    @php $maxBranch = $branchStats->max('total') ?: 1; @endphp
-                    @foreach($branchStats as $row)
-                    <div class="mb-3">
-                        <div class="d-flex justify-content-between mb-1">
-                            <span class="small fw-semibold">{{ $row['name'] }}</span>
-                            <span class="small text-muted">{{ $row['total'] }} toplam</span>
-                        </div>
-                        <div class="progress" style="height:10px;border-radius:5px">
-                            <div class="progress-bar" style="width:{{ round($row['total']/$maxBranch*100) }}%;background:#0ea5e9"></div>
-                        </div>
-                        <div class="d-flex gap-2 mt-1">
-                            <span class="badge bg-danger" style="font-size:10px">{{ $row['open'] }} açık</span>
-                            <span class="badge bg-success" style="font-size:10px">{{ $row['closed'] }} kapalı</span>
-                        </div>
-                    </div>
-                    @endforeach
+                <div class="p-4" style="position:relative;height:220px">
+                    <canvas id="trendChart"></canvas>
                 </div>
             </div>
         </div>
         @endif
-
+        @if($priorityStats->count())
+        <div class="col-xl-4">
+            <div class="tw-stat-card h-100">
+                <div class="d-flex align-items-center gap-2 px-4 py-3" style="border-bottom:1px solid #f1f5f9">
+                    <i class="fas fa-flag" style="color:#ef4444"></i>
+                    <span class="fw-semibold" style="font-size:.85rem;color:#1e293b">Öncelik Dağılımı</span>
+                </div>
+                <div class="p-4 position-relative" style="height:220px">
+                    <canvas id="priorityChart"></canvas>
+                </div>
+            </div>
+        </div>
+        @endif
     </div>
+
+    {{-- ═══════════════════════════════════════════════════
+         BÖLÜM 3: DEPARTMAN SCOREBOARD + PERFORMANS ANALİZİ
+    ════════════════════════════════════════════════════ --}}
+    @if($deptScoreboard->count())
+    <div class="tw-stat-card mb-3 overflow-hidden">
+        <div class="d-flex align-items-center gap-3 px-4 py-3" style="background:#1e293b">
+            <i class="fas fa-trophy" style="color:#f59e0b;font-size:1rem"></i>
+            <div>
+                <div class="fw-bold text-white" style="font-size:.88rem">Departman Performans Sıralaması</div>
+                <div style="font-size:.7rem;color:#94a3b8;margin-top:2px">
+                    SLA Uyum Hedefi: &nbsp;
+                    <span style="color:#4ade80">&#9632;</span> ≥80% İyi &nbsp;&nbsp;
+                    <span style="color:#fbbf24">&#9632;</span> ≥50% Orta &nbsp;&nbsp;
+                    <span style="color:#f87171">&#9632;</span> &lt;50% Kritik
+                </div>
+            </div>
+        </div>
+        @php $maxTotal = $deptScoreboard->max('total') ?: 1; @endphp
+        <div class="p-3">
+            @foreach($deptScoreboard as $i => $row)
+            @php
+                $slaFg2       = $row['sla_pct'] >= 80 ? '#15803d' : ($row['sla_pct'] >= 50 ? '#a16207' : '#dc2626');
+                $slaBarColor  = $row['sla_pct'] >= 80 ? '#22c55e' : ($row['sla_pct'] >= 50 ? '#eab308' : '#ef4444');
+                $deptColor    = $row['dept']?->color ?? '#6366f1';
+                $deptInitial  = strtoupper(substr($row['dept']?->name ?? '?', 0, 2));
+                $rankMedal    = $i === 0 ? '🥇' : ($i === 1 ? '🥈' : ($i === 2 ? '🥉' : ''));
+                $rowBg        = $i === 0 ? '#fffceb' : ($i % 2 === 0 ? '#f9fafb' : '#fff');
+                $rowBorder    = $i === 0 ? '#fde68a' : '#f1f5f9';
+                $closedPct    = $row['total'] > 0 ? round($row['closed']      / $row['total'] * 100) : 0;
+                $openPct      = $row['total'] > 0 ? round($row['open']        / $row['total'] * 100) : 0;
+                $progressPct  = $row['total'] > 0 ? round($row['in_progress'] / $row['total'] * 100) : 0;
+            @endphp
+            <div class="d-flex align-items-center gap-3 p-3 mb-2 rounded-3"
+                 style="background:{{ $rowBg }};border:1px solid {{ $rowBorder }}">
+
+                {{-- Rank --}}
+                <div style="width:32px;text-align:center;flex-shrink:0">
+                    @if($rankMedal)
+                    <span style="font-size:1.4rem;line-height:1">{{ $rankMedal }}</span>
+                    @else
+                    <span style="font-size:.95rem;font-weight:700;color:#94a3b8">{{ $i+1 }}</span>
+                    @endif
+                </div>
+
+                {{-- Avatar --}}
+                <div style="width:42px;height:42px;border-radius:10px;background:{{ $deptColor }};display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 2px 8px {{ $deptColor }}55">
+                    <span style="font-size:.8rem;font-weight:800;color:#fff;letter-spacing:1px">{{ $deptInitial }}</span>
+                </div>
+
+                {{-- Info + bar --}}
+                <div style="flex:1;min-width:0">
+                    <div style="font-size:.875rem;font-weight:700;color:#1e293b;margin-bottom:5px">{{ $row['dept']?->name ?? '—' }}</div>
+                    {{-- Stacked progress bar --}}
+                    <div style="height:7px;border-radius:99px;overflow:hidden;background:#e8ecf0;display:flex;margin-bottom:5px">
+                        <div style="width:{{ $closedPct }}%;background:#22c55e" title="Kapalı: {{ $row['closed'] }}"></div>
+                        <div style="width:{{ $progressPct }}%;background:#f59e0b" title="İşlemde: {{ $row['in_progress'] }}"></div>
+                        <div style="width:{{ $openPct }}%;background:#ef4444" title="Açık: {{ $row['open'] }}"></div>
+                    </div>
+                    <div class="d-flex gap-2" style="font-size:.68rem;color:#94a3b8;flex-wrap:wrap">
+                        <span><span style="color:#22c55e">●</span> Kapalı: <strong style="color:#374151">{{ $row['closed'] }}</strong></span>
+                        <span><span style="color:#f59e0b">●</span> İşlemde: <strong style="color:#374151">{{ $row['in_progress'] }}</strong></span>
+                        <span><span style="color:#ef4444">●</span> Açık: <strong style="color:#374151">{{ $row['open'] }}</strong></span>
+                        <span class="ms-auto">Toplam: <strong style="color:#1e293b">{{ $row['total'] }}</strong></span>
+                    </div>
+                </div>
+
+                {{-- Avg hours --}}
+                <div style="text-align:center;flex-shrink:0;width:58px">
+                    <div style="font-size:.65rem;color:#94a3b8;margin-bottom:2px;text-transform:uppercase;letter-spacing:.04em">Süre</div>
+                    <div style="font-size:.95rem;font-weight:700;color:#1e293b">{{ \App\Models\Fault::formatHours($row['avg_hours']) }}</div>
+                </div>
+
+                {{-- SLA gauge --}}
+                <div style="flex-shrink:0;text-align:center;width:68px">
+                    <div style="font-size:.65rem;color:#94a3b8;margin-bottom:3px;text-transform:uppercase;letter-spacing:.04em">SLA</div>
+                    @if($row['sla_pct'] !== null)
+                    <div style="font-size:1.1rem;font-weight:800;color:{{ $slaFg2 }};line-height:1.1">%{{ $row['sla_pct'] }}</div>
+                    <div style="height:3px;border-radius:99px;background:#e8ecf0;overflow:hidden;margin-top:4px">
+                        <div style="width:{{ $row['sla_pct'] }}%;height:100%;background:{{ $slaBarColor }}"></div>
+                    </div>
+                    @else
+                    <div style="font-size:.85rem;color:#94a3b8">—</div>
+                    @endif
+                </div>
+            </div>
+            @endforeach
+        </div>
+    </div>
+    @endif
+
+    {{-- ═══════════════════════════════════════════════════
+         BÖLÜM 4: DEPARTMAN AYLIK ÇÖZÜM SÜRESİ
+    ════════════════════════════════════════════════════ --}}
+    @if($deptMonthlyResolution->count())
+    <div class="tw-stat-card mb-3 overflow-hidden">
+        <div class="d-flex align-items-center gap-2 px-4 py-3" style="background:#1e40af">
+            <i class="fas fa-clock" style="color:#bfdbfe"></i>
+            <span class="fw-bold text-white" style="font-size:.85rem">Departman Aylık Çözüm Süresi (Son 12 Ay)</span>
+        </div>
+        <div class="p-4" style="position:relative;height:280px">
+            <canvas id="deptMonthlyChart"></canvas>
+        </div>
+    </div>
+    @endif
+
+    {{-- ═══════════════════════════════════════════════════
+         BÖLÜM 5: ARIZA TÜRÜ KPI + SLA
+    ════════════════════════════════════════════════════ --}}
+    @if($typeStats->count())
+    <div class="tw-stat-card mb-3 overflow-hidden">
+        <div class="d-flex align-items-center gap-3 px-4 py-3" style="background:#065f46">
+            <i class="fas fa-tags" style="color:#6ee7b7;font-size:1rem"></i>
+            <div>
+                <div class="fw-bold text-white" style="font-size:.88rem">Arıza Türü KPI & SLA Performansı</div>
+                <div style="font-size:.7rem;color:#6ee7b7;margin-top:2px">SLA = arızanın belirlenen hedef süre içinde kapatılma oranı</div>
+            </div>
+        </div>
+        <div class="table-responsive">
+            <table class="table mb-0">
+                <thead><tr class="tw-table-head">
+                    <th>Arıza Türü</th>
+                    <th class="text-center">SLA Hedef</th>
+                    <th class="text-center">Toplam</th>
+                    <th class="text-center">Açık</th>
+                    <th class="text-center">Ort. Çözüm</th>
+                    <th class="text-center">SLA %</th>
+                    <th>SLA Bar</th>
+                </tr></thead>
+                <tbody>
+                    @foreach($typeStats as $row)
+                    @php
+                        $slaBg2 = $row['sla_pct'] >= 80 ? '#f0fdf4' : ($row['sla_pct'] >= 50 ? '#fffbeb' : '#fef2f2');
+                        $slaFg2 = $row['sla_pct'] >= 80 ? '#16a34a' : ($row['sla_pct'] >= 50 ? '#d97706' : '#dc2626');
+                        $slaBar = $row['sla_pct'] >= 80 ? '#10b981' : ($row['sla_pct'] >= 50 ? '#f59e0b' : '#ef4444');
+                    @endphp
+                    <tr>
+                        <td class="tw-table-body fw-semibold" style="color:#1e293b">{{ $row['type_name'] }}</td>
+                        <td class="tw-table-body text-center">
+                            <span class="kpi-pill" style="background:#f1f5f9;color:#64748b">
+                                <i class="fas fa-clock" style="font-size:.55rem"></i>{{ $row['target_hours'] }}s
+                            </span>
+                        </td>
+                        <td class="tw-table-body text-center fw-bold" style="color:#1e293b">{{ $row['total'] }}</td>
+                        <td class="tw-table-body text-center">
+                            <span class="kpi-pill" style="background:#fef2f2;color:#dc2626">{{ $row['open'] }}</span>
+                        </td>
+                        <td class="tw-table-body text-center" style="color:#64748b">
+                            {{ \App\Models\Fault::formatHours($row['avg_hours']) }}
+                            @if($row['avg_hours'] !== null && $row['avg_hours'] > $row['target_hours'])
+                            <i class="fas fa-exclamation-triangle text-warning ms-1" style="font-size:.65rem" title="SLA aşımı"></i>
+                            @endif
+                        </td>
+                        <td class="tw-table-body text-center">
+                            @if($row['sla_pct'] !== null)
+                            <span class="kpi-pill" style="background:{{ $slaBg2 }};color:{{ $slaFg2 }}">
+                                %{{ $row['sla_pct'] }}
+                            </span>
+                            @else<span class="text-muted">—</span>@endif
+                        </td>
+                        <td class="tw-table-body" style="min-width:100px">
+                            @if($row['sla_pct'] !== null)
+                            <div style="background:#f1f5f9;border-radius:99px;height:6px;overflow:hidden">
+                                <div style="width:{{ $row['sla_pct'] }}%;height:100%;background:{{ $slaBar }};border-radius:99px"></div>
+                            </div>
+                            @endif
+                        </td>
+                    </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
+    </div>
+    @endif
+
+    {{-- ═══════════════════════════════════════════════════
+         BÖLÜM 6: DETAYLI KONUM İSTATİSTİKLERİ
+    ════════════════════════════════════════════════════ --}}
+    @if($locationTypeStats->count())
+    <div class="tw-stat-card mb-3 overflow-hidden">
+        <div class="d-flex align-items-center gap-2 px-4 py-3" style="background:#134e4a">
+            <i class="fas fa-map-marker-alt" style="color:#5eead4"></i>
+            <span class="fw-bold text-white" style="font-size:.85rem">Detaylı Konum İstatistikleri</span>
+        </div>
+        <div class="table-responsive">
+            <table class="table mb-0">
+                <thead><tr class="tw-table-head">
+                    <th>Konum</th>
+                    <th class="text-center">Toplam Arıza</th>
+                    <th class="text-center">Açık Arıza</th>
+                    <th class="text-center">Kapalı Arıza</th>
+                    <th>En Sık Arıza Türü</th>
+                    <th>Dağılım</th>
+                </tr></thead>
+                <tbody>
+                    @php $maxLoc = $locationTypeStats->max('total') ?: 1; @endphp
+                    @foreach($locationTypeStats as $row)
+                    <tr>
+                        <td class="tw-table-body fw-semibold" style="color:#1e293b">{{ $row['location'] }}</td>
+                        <td class="tw-table-body text-center fw-bold" style="color:#1e293b">{{ $row['total'] }}</td>
+                        <td class="tw-table-body text-center">
+                            <span class="kpi-pill" style="background:#fef2f2;color:#dc2626">{{ $row['open'] }}</span>
+                        </td>
+                        <td class="tw-table-body text-center">
+                            <span class="kpi-pill" style="background:#f0fdf4;color:#16a34a">{{ $row['closed'] }}</span>
+                        </td>
+                        <td class="tw-table-body" style="color:#64748b;max-width:180px">
+                            <span class="text-truncate d-block" title="{{ $row['top_type'] }}">{{ $row['top_type'] }}</span>
+                        </td>
+                        <td class="tw-table-body" style="min-width:80px">
+                            <div style="background:#f1f5f9;border-radius:99px;height:5px;overflow:hidden">
+                                <div style="width:{{ round($row['total']/$maxLoc*100) }}%;height:100%;background:#0891b2;border-radius:99px"></div>
+                            </div>
+                        </td>
+                    </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
+    </div>
+    @endif
+
+    {{-- ═══════════════════════════════════════════════════
+         BÖLÜM 7: DETAYLI ALAN İSTATİSTİKLERİ
+    ════════════════════════════════════════════════════ --}}
+    @if($areaTypeStats->count())
+    <div class="tw-stat-card mb-3 overflow-hidden">
+        <div class="d-flex align-items-center gap-2 px-4 py-3" style="background:#4c1d95">
+            <i class="fas fa-door-open" style="color:#c4b5fd"></i>
+            <span class="fw-bold text-white" style="font-size:.85rem">Detaylı Alan İstatistikleri</span>
+        </div>
+        <div class="table-responsive">
+            <table class="table mb-0">
+                <thead><tr class="tw-table-head">
+                    <th>Alan</th>
+                    <th>Konum</th>
+                    <th class="text-center">Toplam</th>
+                    <th class="text-center">Açık</th>
+                    <th class="text-center">Kapalı</th>
+                    <th>En Sık Arıza Türü</th>
+                </tr></thead>
+                <tbody>
+                    @foreach($areaTypeStats as $row)
+                    <tr>
+                        <td class="tw-table-body fw-semibold" style="color:#1e293b">{{ $row['area'] }}</td>
+                        <td class="tw-table-body" style="color:#64748b">{{ $row['location'] }}</td>
+                        <td class="tw-table-body text-center fw-bold" style="color:#1e293b">{{ $row['total'] }}</td>
+                        <td class="tw-table-body text-center">
+                            <span class="kpi-pill" style="background:#fef2f2;color:#dc2626">{{ $row['open'] }}</span>
+                        </td>
+                        <td class="tw-table-body text-center">
+                            <span class="kpi-pill" style="background:#f0fdf4;color:#16a34a">{{ $row['closed'] }}</span>
+                        </td>
+                        <td class="tw-table-body" style="color:#64748b">{{ $row['top_type'] }}</td>
+                    </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
+    </div>
+    @endif
+
+    {{-- ═══════════════════════════════════════════════════
+         BÖLÜM 8: ŞUBE KARŞILAŞTIRMA (super admin)
+    ════════════════════════════════════════════════════ --}}
+    @if($branchStats && $branchStats->count())
+    <div class="tw-stat-card mb-3 overflow-hidden">
+        <div class="d-flex align-items-center gap-2 px-4 py-3" style="background:#374151">
+            <i class="fas fa-hotel" style="color:#d1d5db"></i>
+            <span class="fw-bold text-white" style="font-size:.85rem">Şube Karşılaştırma</span>
+        </div>
+        <div class="table-responsive">
+            <table class="table mb-0">
+                <thead><tr class="tw-table-head">
+                    <th>Şube</th><th class="text-center">Toplam</th><th class="text-center">Açık</th><th class="text-center">Kapalı</th>
+                </tr></thead>
+                <tbody>
+                    @foreach($branchStats as $row)
+                    <tr>
+                        <td class="tw-table-body fw-semibold" style="color:#1e293b">{{ $row['name'] }}</td>
+                        <td class="tw-table-body text-center fw-bold" style="color:#1e293b">{{ $row['total'] }}</td>
+                        <td class="tw-table-body text-center"><span class="kpi-pill" style="background:#fef2f2;color:#dc2626">{{ $row['open'] }}</span></td>
+                        <td class="tw-table-body text-center"><span class="kpi-pill" style="background:#f0fdf4;color:#16a34a">{{ $row['closed'] }}</span></td>
+                    </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
+    </div>
+    @endif
 
 </div>
 @endsection
@@ -331,49 +417,95 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script>
 (function () {
-    const trendData = @json($monthlyTrend);
-    if (!trendData.length) return;
 
-    const labels = trendData.map(r => {
-        const [y, m] = r.month.split('-');
-        const months = ['Oca','Şub','Mar','Nis','May','Haz','Tem','Ağu','Eyl','Eki','Kas','Ara'];
-        return months[parseInt(m)-1] + ' ' + y;
-    });
+    /* ── Monthly trend bar chart ──────────────────────────────── */
+    var trendData = @json($monthlyTrend);
+    if (trendData.length) {
+        var mNames = ['Oca','Şub','Mar','Nis','May','Haz','Tem','Ağu','Eyl','Eki','Kas','Ara'];
+        var tLabels = trendData.map(function(r) {
+            var p = r.month.split('-');
+            return mNames[parseInt(p[1]) - 1] + ' ' + p[0].slice(2);
+        });
+        new Chart(document.getElementById('trendChart'), {
+            type: 'bar',
+            data: {
+                labels: tLabels,
+                datasets: [
+                    { label: 'Toplam', data: trendData.map(function(r){return r.total;}), backgroundColor: 'rgba(99,102,241,.75)', borderRadius: 6, borderWidth:0 },
+                    { label: 'Kapalı', data: trendData.map(function(r){return r.closed;}), backgroundColor: 'rgba(16,185,129,.75)', borderRadius: 6, borderWidth:0 }
+                ]
+            },
+            options: {
+                responsive:true, maintainAspectRatio:false,
+                plugins:{ legend:{ position:'bottom', labels:{ boxWidth:10, padding:10, font:{size:11} } } },
+                scales:{ x:{grid:{display:false}}, y:{beginAtZero:true, ticks:{stepSize:1}, grid:{color:'#f1f5f9'} } }
+            }
+        });
+    }
 
-    new Chart(document.getElementById('trendChart'), {
-        type: 'bar',
-        data: {
-            labels,
-            datasets: [
-                {
-                    label: 'Yeni Arıza',
-                    data: trendData.map(r => r.total),
-                    backgroundColor: 'rgba(67,97,238,0.6)',
-                    borderColor: '#4361ee',
-                    borderWidth: 1,
-                    borderRadius: 4,
+    /* ── Priority donut chart ─────────────────────────────────── */
+    var prioData = @json($priorityStats);
+    if (prioData.length && document.getElementById('priorityChart')) {
+        var prioColors = { low:'#10b981', medium:'#f59e0b', high:'#ef4444', critical:'#1e293b' };
+        new Chart(document.getElementById('priorityChart'), {
+            type: 'doughnut',
+            data: {
+                labels: prioData.map(function(r){return r.label;}),
+                datasets: [{
+                    data: prioData.map(function(r){return r.total;}),
+                    backgroundColor: prioData.map(function(r){return prioColors[r.priority]||'#94a3b8';}),
+                    borderWidth: 0, hoverOffset: 4
+                }]
+            },
+            options: {
+                responsive:true, maintainAspectRatio:false,
+                plugins:{ legend:{ position:'bottom', labels:{ boxWidth:10, padding:8, font:{size:11} } } },
+                cutout:'65%'
+            }
+        });
+    }
+
+    /* ── Dept monthly resolution line chart ──────────────────── */
+    var deptMonthly = @json($deptMonthlyResolution);
+    if (deptMonthly.length && document.getElementById('deptMonthlyChart')) {
+        // Collect all unique months
+        var allMonths = {};
+        deptMonthly.forEach(function(d) { d.monthly.forEach(function(m){ allMonths[m.month]=1; }); });
+        var sortedMonths = Object.keys(allMonths).sort();
+        var mN = ['Oca','Şub','Mar','Nis','May','Haz','Tem','Ağu','Eyl','Eki','Kas','Ara'];
+        var dmLabels = sortedMonths.map(function(m){ var p=m.split('-'); return mN[parseInt(p[1])-1]+' '+p[0].slice(2); });
+        var palette = ['#6366f1','#f59e0b','#10b981','#ef4444','#0891b2','#7c3aed','#db2777','#0369a1','#92400e','#4d7c0f'];
+        var datasets = deptMonthly.map(function(d, idx) {
+            var monthMap = {};
+            d.monthly.forEach(function(m){ monthMap[m.month] = m.avg_hours; });
+            return {
+                label: d.dept ? d.dept.name : '—',
+                data: sortedMonths.map(function(m){ return monthMap[m] || null; }),
+                borderColor: palette[idx % palette.length],
+                backgroundColor: 'transparent',
+                tension: 0.3, borderWidth: 2, pointRadius: 3,
+                spanGaps: true
+            };
+        });
+        new Chart(document.getElementById('deptMonthlyChart'), {
+            type: 'line',
+            data: { labels: dmLabels, datasets: datasets },
+            options: {
+                responsive:true, maintainAspectRatio:false,
+                interaction: { mode:'index', intersect:false },
+                plugins:{
+                    legend:{ position:'bottom', labels:{ boxWidth:12, padding:10, font:{size:11} } },
+                    tooltip:{ callbacks:{ label: function(ctx){ return ctx.dataset.label+': '+(ctx.parsed.y||0)+'s'; } } }
                 },
-                {
-                    label: 'Kapalı',
-                    data: trendData.map(r => r.closed),
-                    backgroundColor: 'rgba(16,185,129,0.5)',
-                    borderColor: '#10b981',
-                    borderWidth: 1,
-                    borderRadius: 4,
-                    type: 'line',
-                    tension: 0.3,
-                    fill: false,
-                    pointRadius: 4,
+                scales:{
+                    x:{ grid:{display:false} },
+                    y:{ beginAtZero:true, grid:{color:'#f1f5f9'}, ticks:{ callback:function(v){return v+'s';} } }
                 }
-            ]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: { legend: { position: 'bottom' } },
-            scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
-        }
-    });
+            }
+        });
+    }
+
 })();
 </script>
 @endpush
+

@@ -2,11 +2,26 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\MenuShowcase;
 use App\Models\QrMenu;
 use Illuminate\Http\Request;
 
 class QrMenuPublicController extends Controller
 {
+    /**
+     * Vitrin (showcase) — misafir menü seçim ekranı
+     * GET /vitrin/{slug}
+     */
+    public function showcase(string $slug)
+    {
+        $showcase = MenuShowcase::where('slug', $slug)
+            ->where('is_active', true)
+            ->with(['items' => fn($q) => $q->orderBy('sort_order')->with('menu')])
+            ->firstOrFail();
+
+        return view('public.qrmenu.showcase', compact('showcase'));
+    }
+
     /**
      * Dil seçim ekranı (splash)
      * GET /menu/{slug}
@@ -14,9 +29,12 @@ class QrMenuPublicController extends Controller
     public function splash(string $slug)
     {
         $menu = QrMenu::where('name', $slug)
-            ->where('is_active', true)
             ->with('languages')
             ->firstOrFail();
+
+        if (!$menu->is_active) {
+            return response(view('public.qrmenu.unavailable', compact('menu')), 503);
+        }
 
         // Tek dil varsa direkt menüyo at
         if ($menu->languages->count() === 1) {
@@ -33,15 +51,20 @@ class QrMenuPublicController extends Controller
     public function view(string $slug, string $lang)
     {
         $menu = QrMenu::where('name', $slug)
-            ->where('is_active', true)
             ->with(['languages', 'categories' => function ($q) {
                 $q->where('is_active', true)
                   ->orderBy('sort_order')
                   ->with(['items' => function ($qi) {
-                      $qi->where('is_active', true)->orderBy('sort_order');
+                      $qi->where('is_active', true)
+                         ->orderBy('sort_order')
+                         ->with('foodProduct');
                   }]);
             }])
             ->firstOrFail();
+
+        if (!$menu->is_active) {
+            return response(view('public.qrmenu.unavailable', compact('menu')), 503);
+        }
 
         // Dil geçerliliğini kontrol et
         $language = $menu->languages->firstWhere('code', $lang);
@@ -63,6 +86,15 @@ class QrMenuPublicController extends Controller
 
         $categories = $menu->categories;
 
-        return view('public.qrmenu.menu', compact('menu', 'language', 'lang', 'featured', 'categories'));
+        $themeName = $menu->theme ?? 'default';
+        $view = match($themeName) {
+            'forest'     => 'public.qrmenu.menu_forest',
+            'bohemian'   => 'public.qrmenu.menu_bohemian',
+            'light'      => 'public.qrmenu.menu_light',
+            'light_card' => 'public.qrmenu.menu_light_card',
+            default      => 'public.qrmenu.menu',
+        };
+
+        return view($view, compact('menu', 'language', 'lang', 'featured', 'categories'));
     }
 }

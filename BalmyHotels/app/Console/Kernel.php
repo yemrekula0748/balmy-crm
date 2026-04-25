@@ -12,8 +12,13 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule): void
     {
-        // $schedule->command('inspire')->hourly();
-    }
+        // Her gece 06:00'da TripAdvisor puanlarını kaydet
+        $schedule->command('tripadvisor:snapshot')->dailyAt('06:00');
+        // Her gece 06:10'da Google puanlarını kaydet
+        $schedule->command('google:snapshot')->dailyAt('06:10');        // Her sabah 08:00'de yarın son tarihi olan göreveleri hatırlat
+        $schedule->command('tasks:send-reminders')->dailyAt('08:00');
+        // Her 5 dakikada bir aktif hotspot oturumlarını kaydet
+        $schedule->command('mikrotik:poll-usage')->everyFiveMinutes();    }
 
     /**
      * Register the commands for the application.

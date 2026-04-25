@@ -13,11 +13,7 @@
                         </div>
                         <h4 class="text-center mb-4">Hesabınıza Giriş Yapın</h4>
 
-                        @if($errors->any())
-                            <div class="alert alert-danger">
-                                {{ $errors->first() }}
-                            </div>
-                        @endif
+
 
                         <form action="{{ route('login') }}" method="POST">
                             @csrf
@@ -51,4 +47,22 @@
             </div>
         </div>
     </div>
-@endsection    
+@endsection
+
+@if($errors->any())
+@push('scripts')
+<link rel="stylesheet" href="{{ asset('vendor/sweetalert2/dist/sweetalert2.min.css') }}">
+<script src="{{ asset('vendor/sweetalert2/dist/sweetalert2.min.js') }}"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        Swal.fire({
+            icon: 'error',
+            title: 'Giriş Başarısız',
+            text: '{{ addslashes($errors->first()) }}',
+            confirmButtonText: 'Tamam',
+            confirmButtonColor: '#c19b77'
+        });
+    });
+</script>
+@endpush
+@endif

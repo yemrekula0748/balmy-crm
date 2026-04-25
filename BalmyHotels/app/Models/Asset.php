@@ -30,13 +30,15 @@ class Asset extends Model
     ];
 
     protected $fillable = [
-        'asset_code', 'category_id', 'branch_id', 'name', 'description',
+        'asset_code', 'category_id', 'branch_id', 'department_id', 'name', 'description',
         'location', 'status', 'purchase_date', 'purchase_price',
         'serial_no', 'warranty_until', 'photo', 'properties',
+        'qr_token', 'custom_fields',
     ];
 
     protected $casts = [
         'properties'    => 'array',
+        'custom_fields' => 'array',
         'purchase_date' => 'date',
         'warranty_until'=> 'date',
         'purchase_price'=> 'float',
@@ -52,9 +54,19 @@ class Asset extends Model
         return $this->belongsTo(Branch::class);
     }
 
+    public function department(): BelongsTo
+    {
+        return $this->belongsTo(Department::class);
+    }
+
     public function exits(): HasMany
     {
         return $this->hasMany(AssetExit::class);
+    }
+
+    public function histories(): HasMany
+    {
+        return $this->hasMany(AssetHistory::class)->latest();
     }
 
     public function activeExit(): ?AssetExit
@@ -82,5 +94,13 @@ class Asset extends Model
     public function isWarrantyExpired(): bool
     {
         return $this->warranty_until && $this->warranty_until->isPast();
+    }
+
+    /**
+     * Public QR tarama URL'si
+     */
+    public function publicQrUrl(): string
+    {
+        return url('/demirbaslar/qr/' . $this->qr_token);
     }
 }

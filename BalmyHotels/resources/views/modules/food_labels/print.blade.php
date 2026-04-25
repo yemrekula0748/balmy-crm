@@ -37,17 +37,17 @@
             margin-bottom: 12px;
         }
 
-        /* Yatay A4 sayfa */
+        /* Dikey A4 sayfa - 3×3 = 9 kart */
         .a4-page {
             width: 297mm;
-            min-height: 210mm;
+            height: 210mm;
             background: #fff;
             margin: 0 auto 20px;
-            padding: 8mm;
+            padding: 5mm;
             box-shadow: 0 4px 20px rgba(0,0,0,0.12);
             display: flex;
             flex-wrap: wrap;
-            gap: 2.5mm;
+            gap: 2mm;
             align-content: flex-start;
             page-break-after: always;
         }
@@ -55,11 +55,11 @@
         .a4-page:last-child { page-break-after: auto; }
 
         /* =====================================================
-           LABEL KARTI — 138mm × 95mm  (sayfa başına 4 kart, 2×2)
+           LABEL KARTI — 94mm × 99mm  (sayfa başına 6 kart, 3×2 yatay A4)
            ===================================================== */
         .label-card {
-            width: 138mm;
-            height: 95mm;
+            width: 94mm;
+            height: 99mm;
             border: 0.5pt solid #d1d5db;
             border-radius: 2.5mm;
             overflow: hidden;
@@ -89,7 +89,7 @@
         .label-top .diet-badges { display: flex; gap: 1mm; align-items: center; }
         .diet-badge { font-size: 10pt; line-height: 1; }
 
-        .diet-pills { display: flex; flex-wrap: wrap; gap: 0.8mm; }
+        .diet-pills { display: flex; flex-wrap: wrap; gap: 0.8mm; flex-shrink: 0; }
         .diet-pill {
             display: inline-flex;
             align-items: center;
@@ -120,22 +120,28 @@
 
         .label-left {
             flex: 1;
-            padding: 3mm 3mm 2mm 3.5mm;
-            overflow: hidden;
+            padding: 4mm 2mm 2mm 3mm;
             display: flex;
             flex-direction: column;
-            gap: 1.2mm;
+            gap: 1.5mm;
             min-height: 0;
+            overflow: hidden;
         }
 
         .name-tr {
-            font-size: 15pt;
+            font-size: 12pt;
             font-weight: 800;
             color: #1a1a2e;
-            line-height: 1.2;
+            line-height: 1.25;
+            flex-shrink: 0;
         }
 
-        .name-other { font-size: 10pt; color: #4b5563; line-height: 1.35; }
+        .name-other {
+            font-size: 12pt;
+            color: #4b5563;
+            line-height: 1.35;
+            flex-shrink: 0;
+        }
         .name-other span { display: block; }
 
         .cal-pill {
@@ -145,10 +151,11 @@
             background: #fff8e1;
             border: 0.5pt solid #f9a825;
             border-radius: 1.5mm;
-            padding: 0.6mm 2mm;
-            font-size: 7.5pt;
+            padding: 0.4mm 1.5mm;
+            font-size: 6pt;
             font-weight: 700;
             color: #b45309;
+            flex-shrink: 0;
         }
 
         .ing-title {
@@ -158,6 +165,7 @@
             text-transform: uppercase;
             letter-spacing: 0.3px;
             margin-bottom: 0.5mm;
+            flex-shrink: 0;
         }
 
         .ing-text {
@@ -175,15 +183,17 @@
         .ing-text .lang-row span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; min-width: 0; }
         .ing-text .lang-code { font-size: 4.8pt; font-weight: 800; color: #9ca3af; letter-spacing: 0.2px; min-width: 5mm; flex-shrink: 0; }
 
-        /* Sağ sütun: allerjen ızgarası */
+        /* Sağ sütun: sadece QR */
         .label-right {
-            width: 46mm;
+            width: 32mm;
             flex-shrink: 0;
-            padding: 3mm 3mm 2mm 2mm;
+            padding: 2mm;
             border-left: 0.5pt solid #f3f4f6;
             display: flex;
             flex-direction: column;
-            gap: 1mm;
+            align-items: center;
+            justify-content: flex-start;
+            padding-top: 3mm;
         }
 
         .allergen-title {
@@ -194,68 +204,71 @@
             letter-spacing: 0.3px;
         }
 
-        .allergen-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(8mm, 1fr));
-            gap: 1mm;
-        }
-
-        .allergen-box {
-            height: 9mm;
-            border-radius: 1.2mm;
+        .allergen-items {
             display: flex;
-            flex-direction: column;
+            flex-wrap: wrap;
+            gap: 1mm;
+            align-content: flex-start;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        .allergen-item {
+            display: inline-flex;
             align-items: center;
-            justify-content: center;
-            font-size: 11pt;
-            line-height: 1;
-            border: 0.4pt solid;
-        }
-
-        .allergen-box.present { background: #fef2f2; border-color: #fca5a5; }
-        .allergen-box.absent  { background: #f9fafb; border-color: #e5e7eb; opacity: 0.25; }
-
-        .allergen-box .eu-num {
-            font-size: 4.5pt;
+            gap: 0.7mm;
+            background: #fef2f2;
+            border: 0.4pt solid #fca5a5;
+            border-radius: 1.5mm;
+            padding: 0.5mm 1.5mm;
+            font-size: 5.2pt;
             font-weight: 700;
-            color: #6b7280;
-            line-height: 1;
-            margin-top: 0.2mm;
+            color: #b91c1c;
+            white-space: nowrap;
         }
 
-        .allergen-box.present .eu-num { color: #b91c1c; }
+        .allergen-item .a-icon { font-size: 9pt; line-height: 1; }
 
-        /* Alt şerit: allerjen refs + logo + QR */
+        /* Alt şerit */
         .label-bottom {
-            height: 20mm;
-            padding: 2mm 3mm 2mm 3.5mm;
+            height: 30mm;
+            padding: 3mm 3mm 20mm 3mm;
             flex-shrink: 0;
             display: flex;
-            align-items: center;
+            align-items: flex-start;
             justify-content: space-between;
-            gap: 1.5mm;
+            gap: 2mm;
             background: linear-gradient(135deg, #fdfcfb 0%, #f9f5f0 100%);
+            border-top: 0.5pt solid #f3f4f6;
         }
 
-        .allergen-refs { font-size: 5.5pt; color: #9ca3af; line-height: 1.45; flex: 1; overflow: hidden; }
-        .allergen-refs .lang-row { display: flex; align-items: baseline; gap: 0.8mm; margin-bottom: 0.2mm; }
-        .allergen-refs .lang-code { font-size: 4.8pt; font-weight: 800; color: #6b7280; letter-spacing: 0.2px; min-width: 5mm; flex-shrink: 0; }
-        .allergen-refs strong { color: #ef4444; font-weight: 600; }
+        .bottom-allergens {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 1mm;
+            overflow: hidden;
+            min-height: 0;
+        }
 
-        .bottom-right { display: flex; align-items: center; gap: 2mm; flex-shrink: 0; }
+        .bottom-allergens .allergen-title {
+            margin-bottom: 0.5mm;
+        }
+
+        .bottom-right { display: flex; align-items: center; flex-shrink: 0; }
 
         .card-logo {
             height: 12mm;
             width: auto;
-            opacity: 0.6;
+            opacity: 0.75;
             flex-shrink: 0;
-            filter: sepia(0.3) saturate(1.5);
+            filter: grayscale(1) brightness(0.35);
         }
 
-        .qr-container { width: 16mm; height: 16mm; flex-shrink: 0; }
+        .qr-container { width: 26mm; height: 26mm; flex-shrink: 0; }
         .qr-container canvas, .qr-container img {
-            width: 16mm !important;
-            height: 16mm !important;
+            width: 26mm !important;
+            height: 26mm !important;
             display: block;
         }
 
@@ -301,7 +314,7 @@
                 width: 297mm;
                 height: 210mm;
                 margin: 0;
-                padding: 8mm;
+                padding: 5mm;
                 box-shadow: none;
                 page-break-after: always;
                 overflow: hidden;
@@ -355,7 +368,7 @@
     <h5>🖨️ Yemek İsimlik Baskı Önizleme</h5>
     <div class="meta">
         {{ $labels->count() }} isimlik —
-        {{ ceil($labels->count() / 4) }} sayfa (yatay A4, sayfa başına 4 kart)
+        {{ ceil($labels->count() / 6) }} sayfa (yatay A4, sayfa başına 6 kart)
     </div>
     <button class="btn-print" onclick="window.print()">
         🖨️ Yazdır / PDF Kaydet
@@ -364,7 +377,7 @@
 </div>
 
 @php
-    $chunks = $labels->chunk(4);
+    $chunks = $labels->chunk(6);
 
     // Kategori renkleri
     $catColors = [
@@ -416,11 +429,6 @@
     @endphp
     <div class="label-card">
 
-        {{-- Üst bant --}}
-        <div class="label-top" style="background:{{ $color['bg'] }}">
-            <span class="cat-name" style="color:{{ $color['text'] }}">{{ $catName }}</span>
-        </div>
-
         {{-- Gövde: sol (isim/kalori/malzeme) + sağ (allerjenler) --}}
         <div class="label-body">
 
@@ -431,67 +439,49 @@
                 <div class="name-other">
                     @foreach($nameOthers as $lang => $n)
                         @php $info = \App\Models\FoodLabel::LANGUAGES[$lang] ?? ['flag'=>'🌐']; @endphp
-                        <span>{{ $info['flag'] }} {{ $n }}</span>
-                    @endforeach
-                </div>
-                @endif
-                @if($label->is_vegan || $label->is_vegetarian || $label->is_halal)
-                <div class="diet-pills">
-                    @if($label->is_vegan)<span class="diet-pill">🌱 Vegan</span>@endif
-                    @if($label->is_vegetarian && !$label->is_vegan)<span class="diet-pill">🥗 Vejetaryen</span>@endif
-                    @if($label->is_halal)<span class="diet-pill halal">☪ Helal</span>@endif
-                </div>
-                @endif
-                @if($label->calories)
-                <div><span class="cal-pill">🔥 {{ $label->calories }} kcal</span></div>
-                @endif
-                @if($ingByLang->isNotEmpty())
-                <div class="ing-title">İçindekiler / Ingredients / Zutaten / Состав</div>
-                <div class="ing-text">
-                    @foreach($ingByLang as $langCode => $ing)
-                    <div class="lang-row">
-                        <span class="lang-code">{{ $langCode }}</span>
-                        <span>{{ implode(', ', array_slice($ing, 0, 10)) }}{{ count($ing) > 10 ? '…' : '' }}</span>
-                    </div>
+                        <span style="display:block;margin-bottom:1.5mm">{{ $info['flag'] }} {{ $n }}</span>
                     @endforeach
                 </div>
                 @endif
             </div>
 
-            {{-- Sağ sütun: 14 allerjen --}}
+            {{-- Sağ sütun: QR + diyet/kalori --}}
             <div class="label-right">
-                <div class="allergen-title">Allergens</div>
-                <div class="allergen-grid">
-                    @foreach($allergens as $key => $info)
-                    <div class="allergen-box {{ in_array($key, $labelAllergens) ? 'present' : 'absent' }}"
-                         title="{{ $info['label_en'] }} ({{ $info['label'] }})">
-                        <span>{{ $info['icon'] }}</span>
-                        <span class="eu-num">{{ $info['eu'] }}</span>
-                    </div>
-                    @endforeach
+                <div class="qr-container" id="qr-{{ $label->id }}"
+                     data-url="{{ route('food-labels.public', $label->qr_token) }}"></div>
+                @if($label->is_vegan || $label->is_vegetarian || $label->is_halal || $label->calories)
+                <div style="margin-top:2mm;display:flex;flex-direction:column;align-items:center;gap:1mm;width:100%">
+                    @if($label->is_vegan)<span class="diet-pill" style="justify-content:center">🌱 Vegan</span>@endif
+                    @if($label->is_vegetarian && !$label->is_vegan)<span class="diet-pill" style="justify-content:center">🥗 Vejetaryen</span>@endif
+                    @if($label->is_halal)<span class="diet-pill halal" style="justify-content:center">☪ Helal</span>@endif
+                    @if($label->calories)<span class="cal-pill" style="justify-content:center">🔥 {{ $label->calories }} kcal</span>@endif
                 </div>
+                @endif
             </div>
 
         </div>
 
-        {{-- Alt şerit: allerjen refs + logo + QR --}}
+        {{-- Alt şerit: allerjenler (sol) + logo (sağ) --}}
         <div class="label-bottom">
-            <div class="allergen-refs">
+            <div class="bottom-allergens">
+                <div class="allergen-title">Allergens</div>
                 @if(!empty($labelAllergens))
-                    @foreach($presentByLang as $langCode => $names)
-                        @if($names->isNotEmpty())
-                        <div class="lang-row">
-                            <span class="lang-code">{{ $langCode }}</span>
-                            <strong>{{ $names->implode(', ') }}</strong>
+                <div class="allergen-items">
+                    @foreach($allergens as $key => $info)
+                        @if(in_array($key, $labelAllergens))
+                        <div class="allergen-item">
+                            <span class="a-icon">{{ $info['icon'] }}</span>
+                            <span>{{ $info['label'] }}</span>
                         </div>
                         @endif
                     @endforeach
+                </div>
+                @else
+                <div style="font-size:5.5pt;color:#9ca3af;font-style:italic;margin-top:1mm">Alerjen bulunmamaktadır</div>
                 @endif
             </div>
             <div class="bottom-right">
                 <img src="{{ asset('images/logo.svg') }}" class="card-logo" alt="">
-                <div class="qr-container" id="qr-{{ $label->id }}"
-                     data-url="{{ route('food-labels.public', $label->qr_token) }}"></div>
             </div>
         </div>
 
@@ -499,7 +489,7 @@
     @endforeach
 
     {{-- Boş hücre dolgusu (9'u tamamlamak için) --}}
-    @for($i = $chunk->count(); $i < 9; $i++)
+    @for($i = $chunk->count(); $i < 6; $i++)
     <div class="label-card" style="border:0.5pt dashed #e5e7eb;background:transparent"></div>
     @endfor
 </div>
@@ -510,8 +500,8 @@
     document.querySelectorAll('.qr-container[data-url]').forEach(function(el) {
         new QRCode(el, {
             text: el.dataset.url,
-            width: 120,
-            height: 120,
+            width: 200,
+            height: 200,
             colorDark: '#1a1a2e',
             colorLight: '#ffffff',
             correctLevel: QRCode.CorrectLevel.M

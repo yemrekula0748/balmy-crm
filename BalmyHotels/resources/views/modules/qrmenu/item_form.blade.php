@@ -145,6 +145,41 @@
                             </div>
                         </div>
 
+                        {{-- Bardak / Şişe Fiyatları --}}
+                        <div class="row g-3 mt-1">
+                            <div class="col-12">
+                                <label class="form-label fw-semibold text-muted" style="font-size:.8rem">🥃 Bardak / 🍾 Şişe Fiyatları <small class="fw-normal">(isteğe bağlı)</small></label>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Bardak Fiyatı ({{ $menu->currency_symbol ?? $menu->currency }})</label>
+                                <input type="number" name="price_glass" class="form-control"
+                                       min="0" step="0.01"
+                                       value="{{ old('price_glass', $isEdit ? $item->price_glass : '') }}"
+                                       placeholder="0.00">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Bardak cl</label>
+                                <input type="number" name="cl_glass" class="form-control"
+                                       min="0" step="1"
+                                       value="{{ old('cl_glass', $isEdit ? $item->cl_glass : '') }}"
+                                       placeholder="örn: 20">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Şişe Fiyatı ({{ $menu->currency_symbol ?? $menu->currency }})</label>
+                                <input type="number" name="price_bottle" class="form-control"
+                                       min="0" step="0.01"
+                                       value="{{ old('price_bottle', $isEdit ? $item->price_bottle : '') }}"
+                                       placeholder="0.00">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Şişe cl</label>
+                                <input type="number" name="cl_bottle" class="form-control"
+                                       min="0" step="1"
+                                       value="{{ old('cl_bottle', $isEdit ? $item->cl_bottle : '') }}"
+                                       placeholder="örn: 75">
+                            </div>
+                        </div>
+
                         {{-- Öne çıkan --}}
                         <div class="form-check form-switch mt-3">
                             <input class="form-check-input" type="checkbox" name="is_featured"
@@ -158,6 +193,31 @@
 
                     </div>
                 </div>
+
+                @if($category->sub_headings && count($category->sub_headings) > 0)
+                {{-- Alt Başlık / Grup --}}
+                <div class="card mt-3">
+                    <div class="card-header d-flex align-items-center gap-2">
+                        <h4 class="card-title mb-0">Alt Başlık / Grup</h4>
+                        <small class="text-muted">(bu üründen önce hangi grup altında görünsün)</small>
+                    </div>
+                    <div class="card-body">
+                        @php
+                            $currentShTr = $isEdit ? ($item->sub_heading['tr'] ?? '') : old('sub_heading_tr', '');
+                        @endphp
+                        <select name="sub_heading" class="form-select">
+                            <option value="">— Grup yok —</option>
+                            @foreach($category->sub_headings as $sh)
+                                <option value="{{ json_encode($sh, JSON_UNESCAPED_UNICODE) }}"
+                                    @if($currentShTr !== '' && $currentShTr === ($sh['tr'] ?? '')) selected @endif>
+                                    {{ $sh['tr'] ?? '' }}@if($sh['en'] ?? '') / {{ $sh['en'] }}@endif
+                                </option>
+                            @endforeach
+                        </select>
+                        <small class="text-muted mt-2 d-block">Seçilen grup başlığı halka açık menüde bölüm ayracı olarak görünür.</small>
+                    </div>
+                </div>
+                @endif
 
                 {{-- Rozetler --}}
                 <div class="card mt-3">
@@ -192,7 +252,7 @@
                     <div class="card-body">
                         @if($isEdit && $item->image)
                             <div class="mb-3 text-center">
-                                <img src="{{ asset('storage/'.$item->image) }}" alt="görsel"
+                                <img src="{{ asset('uploads/'.$item->image) }}" alt="görsel"
                                      class="rounded" style="max-height:140px;object-fit:cover">
                             </div>
                         @endif

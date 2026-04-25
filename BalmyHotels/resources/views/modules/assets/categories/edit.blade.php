@@ -23,6 +23,19 @@
                     <form action="{{ route('asset-categories.update', $assetCategory) }}" method="POST">
                         @csrf @method('PUT')
                         <div class="mb-3">
+                            <label class="form-label fw-semibold">Ana Kategori <small class="text-muted">(boş = ana kategori)</small></label>
+                            <select name="parent_id" class="form-select @error('parent_id') is-invalid @enderror">
+                                <option value="">— Ana Kategori (bağımsız) —</option>
+                                @foreach($parentCats as $p)
+                                    <option value="{{ $p->id }}"
+                                        @selected(old('parent_id', $assetCategory->parent_id) == $p->id)>
+                                        {{ $p->name }}
+                                    </option>
+                                @endforeach
+                            </select>
+                            @error('parent_id')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                        </div>
+                        <div class="mb-3">
                             <label class="form-label fw-semibold">Kategori Adı <span class="text-danger">*</span></label>
                             <input type="text" name="name" class="form-control @error('name') is-invalid @enderror"
                                    value="{{ old('name', $assetCategory->name) }}">

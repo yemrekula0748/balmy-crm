@@ -19,13 +19,22 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
 	<meta name="keywords" content="	admin dashboard, admin template, administration, analytics, bootstrap, cafe admin, elegant, food, health, kitchen, modern, responsive admin dashboard, restaurant dashboard">
 	<meta name="description" content="@yield('page_description', $page_description ?? '')"/>
-	<meta property="og:title" content="Koki - Restaurant Food Admin Dashboard Template">
+	<meta property="og:title" content="{{ config('dz.name') }} | @yield('title', $page_title ?? '')" />
 	<meta property="og:description" content="{{ config('dz.name') }} | @yield('title', $page_title ?? '')" />
-	<meta property="og:image" content="https://koki.dexignzone.com/xhtml/social-image.png">
+	<meta property="og:image" content="{{ asset('images/logo.svg') }}">
 	<meta name="format-detection" content="telephone=no">
 
 	<!-- Mobile Specific -->
 	<meta name="viewport" content="width=device-width, initial-scale=1">
+
+	<!-- Google Analytics -->
+	<script async src="https://www.googletagmanager.com/gtag/js?id=G-7HHCB1JYV7"></script>
+	<script>
+	  window.dataLayer = window.dataLayer || [];
+	  function gtag(){dataLayer.push(arguments);}
+	  gtag('js', new Date());
+	  gtag('config', 'G-7HHCB1JYV7');
+	</script>
 
 	<!-- Favicon icon -->
 	<link rel="icon" type="image/svg+xml" href="{{ asset('images/logo-icon.svg')}}">

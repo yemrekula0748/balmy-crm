@@ -1,12 +1,16 @@
 @extends('layouts.default')
 
+@section('title', 'Teknik Arıza Takip')
+
 @section('content')
-<div class="container-fluid">
-    <div class="row page-titles mx-0">
+<div class="container-fluid pb-5">
+
+    {{-- Başlık --}}
+    <div class="row page-titles mx-0 mb-0">
         <div class="col-sm-6 p-md-0">
             <div class="welcome-text">
-                <h4>Teknik Arıza Takip</h4>
-                <span>Otel arıza bildirimleri ve takibi</span>
+                <h4 class="mb-0">Teknik Arıza Takip</h4>
+                <span class="text-muted" style="font-size:.82rem">Tüm arıza bildirimleri ve durum takibi</span>
             </div>
         </div>
         <div class="col-sm-6 p-md-0 justify-content-sm-end mt-2 mt-sm-0 d-flex">
@@ -18,296 +22,317 @@
     </div>
 
     @if(session('success'))
-        <div class="alert alert-success alert-dismissible fade show">{{ session('success') }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
+    <div class="alert alert-success alert-dismissible fade show border-0 shadow-sm mb-3 mt-2">
+        <i class="fas fa-check-circle me-2"></i>{{ session('success') }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
     @endif
 
-    {{-- ═══════════════════════════════════════════════════════════
-         İSTATİSTİK KARTI SATIRI
-    ═══════════════════════════════════════════════════════════ --}}
-    <div class="row mb-3">
-        {{-- Açık --}}
-        <div class="col-xl-3 col-sm-6 mb-3">
-            <div class="card border-0 shadow-sm h-100">
-                <div class="card-body d-flex align-items-center justify-content-between">
-                    <div>
-                        <p class="text-muted small mb-1">Açık Arızalar</p>
-                        <h2 class="fw-bold mb-0 text-danger">{{ $statsByStatus['open'] ?? 0 }}</h2>
+    {{-- Özet Stat Kartları --}}
+    <div class="row g-2 mb-3 mt-1">
+        <div class="col-xl col-md-4 col-sm-6">
+            <div class="card border-0" style="border-radius:12px;background:linear-gradient(135deg,#ef4444,#f87171);box-shadow:0 2px 12px rgba(239,68,68,.22)">
+                <div class="card-body py-3 px-3 d-flex align-items-center gap-3">
+                    <div class="rounded-3 d-flex align-items-center justify-content-center flex-shrink-0"
+                         style="width:40px;height:40px;background:rgba(255,255,255,.18)">
+                        <i class="fas fa-circle-exclamation text-white" style="font-size:1rem"></i>
                     </div>
-                    <div class="rounded-circle d-flex align-items-center justify-content-center"
-                         style="width:52px;height:52px;background:#fdecea;">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none"
-                             stroke="#dc3545" stroke-width="2" viewBox="0 0 24 24">
-                            <circle cx="12" cy="12" r="10"></circle>
-                            <line x1="12" y1="8" x2="12" y2="12"></line>
-                            <line x1="12" y1="16" x2="12.01" y2="16"></line>
-                        </svg>
+                    <div>
+                        <div class="text-white fw-bold lh-1" style="font-size:1.4rem">{{ $statsByStatus['open'] ?? 0 }}</div>
+                        <div class="text-white-50" style="font-size:.7rem;letter-spacing:.4px">AÇIK ARIZA</div>
                     </div>
                 </div>
             </div>
         </div>
-        {{-- İşlemde --}}
-        <div class="col-xl-3 col-sm-6 mb-3">
-            <div class="card border-0 shadow-sm h-100">
-                <div class="card-body d-flex align-items-center justify-content-between">
-                    <div>
-                        <p class="text-muted small mb-1">İşlemdeki</p>
-                        <h2 class="fw-bold mb-0 text-warning">{{ $statsByStatus['in_progress'] ?? 0 }}</h2>
+        <div class="col-xl col-md-4 col-sm-6">
+            <div class="card border-0" style="border-radius:12px;background:linear-gradient(135deg,#f59e0b,#fbbf24);box-shadow:0 2px 12px rgba(245,158,11,.22)">
+                <div class="card-body py-3 px-3 d-flex align-items-center gap-3">
+                    <div class="rounded-3 d-flex align-items-center justify-content-center flex-shrink-0"
+                         style="width:40px;height:40px;background:rgba(255,255,255,.18)">
+                        <i class="fas fa-rotate text-white" style="font-size:1rem"></i>
                     </div>
-                    <div class="rounded-circle d-flex align-items-center justify-content-center"
-                         style="width:52px;height:52px;background:#fff8e1;">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none"
-                             stroke="#ffc107" stroke-width="2" viewBox="0 0 24 24">
-                            <polyline points="23 4 23 10 17 10"></polyline>
-                            <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
-                        </svg>
+                    <div>
+                        <div class="text-white fw-bold lh-1" style="font-size:1.4rem">{{ $statsByStatus['in_progress'] ?? 0 }}</div>
+                        <div class="text-white-50" style="font-size:.7rem;letter-spacing:.4px">İŞLEMDE</div>
                     </div>
                 </div>
             </div>
         </div>
-        {{-- Çözüldü --}}
-        <div class="col-xl-3 col-sm-6 mb-3">
-            <div class="card border-0 shadow-sm h-100">
-                <div class="card-body d-flex align-items-center justify-content-between">
-                    <div>
-                        <p class="text-muted small mb-1">Çözülen</p>
-                        <h2 class="fw-bold mb-0 text-success">{{ $statsByStatus['resolved'] ?? 0 }}</h2>
+        <div class="col-xl col-md-4 col-sm-6">
+            <div class="card border-0" style="border-radius:12px;background:linear-gradient(135deg,#10b981,#34d399);box-shadow:0 2px 12px rgba(16,185,129,.22)">
+                <div class="card-body py-3 px-3 d-flex align-items-center gap-3">
+                    <div class="rounded-3 d-flex align-items-center justify-content-center flex-shrink-0"
+                         style="width:40px;height:40px;background:rgba(255,255,255,.18)">
+                        <i class="fas fa-circle-check text-white" style="font-size:1rem"></i>
                     </div>
-                    <div class="rounded-circle d-flex align-items-center justify-content-center"
-                         style="width:52px;height:52px;background:#e8f5e9;">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none"
-                             stroke="#28a745" stroke-width="2" viewBox="0 0 24 24">
-                            <polyline points="20 6 9 17 4 12"></polyline>
-                        </svg>
+                    <div>
+                        <div class="text-white fw-bold lh-1" style="font-size:1.4rem">{{ $statsByStatus['resolved'] ?? 0 }}</div>
+                        <div class="text-white-50" style="font-size:.7rem;letter-spacing:.4px">ÇÖZÜLDÜ</div>
                     </div>
                 </div>
             </div>
         </div>
-        {{-- Ort. Çözüm Süresi --}}
-        <div class="col-xl-3 col-sm-6 mb-3">
-            <div class="card border-0 shadow-sm h-100">
-                <div class="card-body d-flex align-items-center justify-content-between">
-                    <div>
-                        <p class="text-muted small mb-1">Ort. Çözüm Süresi</p>
-                        <h2 class="fw-bold mb-0" style="color:#c19b77;">
-                            {{ ($avgResolution ?? null) ? round($avgResolution) . ' sa.' : '-' }}
-                        </h2>
+        <div class="col-xl col-md-4 col-sm-6">
+            <div class="card border-0" style="border-radius:12px;background:linear-gradient(135deg,#6b7280,#9ca3af);box-shadow:0 2px 12px rgba(107,114,128,.22)">
+                <div class="card-body py-3 px-3 d-flex align-items-center gap-3">
+                    <div class="rounded-3 d-flex align-items-center justify-content-center flex-shrink-0"
+                         style="width:40px;height:40px;background:rgba(255,255,255,.18)">
+                        <i class="fas fa-circle-xmark text-white" style="font-size:1rem"></i>
                     </div>
-                    <div class="rounded-circle d-flex align-items-center justify-content-center"
-                         style="width:52px;height:52px;background:#fdf5ee;">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none"
-                             stroke="#c19b77" stroke-width="2" viewBox="0 0 24 24">
-                            <circle cx="12" cy="12" r="10"></circle>
-                            <polyline points="12 6 12 12 16 14"></polyline>
-                        </svg>
+                    <div>
+                        <div class="text-white fw-bold lh-1" style="font-size:1.4rem">{{ $statsByStatus['closed'] ?? 0 }}</div>
+                        <div class="text-white-50" style="font-size:.7rem;letter-spacing:.4px">KAPALI</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl col-md-4 col-sm-6">
+            <div class="card border-0" style="border-radius:12px;background:linear-gradient(135deg,#6366f1,#818cf8);box-shadow:0 2px 12px rgba(99,102,241,.22)">
+                <div class="card-body py-3 px-3 d-flex align-items-center gap-3">
+                    <div class="rounded-3 d-flex align-items-center justify-content-center flex-shrink-0"
+                         style="width:40px;height:40px;background:rgba(255,255,255,.18)">
+                        <i class="fas fa-clock text-white" style="font-size:1rem"></i>
+                    </div>
+                    <div>
+                        <div class="text-white fw-bold lh-1" style="font-size:1.4rem">
+                            {{ $avgResolution ? round($avgResolution).'sa' : '—' }}
+                        </div>
+                        <div class="text-white-50" style="font-size:.7rem;letter-spacing:.4px">ORT. ÇÖZÜM</div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    {{-- ═══════════════════════════════════════════════════════════
-         GRAFİK SATIRI
-    ═══════════════════════════════════════════════════════════ --}}
-    <div class="row mb-4">
-        {{-- Öncelik Dağılımı --}}
-        <div class="col-xl-4 col-lg-6 mb-3">
-            <div class="card h-100">
-                <div class="card-header"><h5 class="card-title mb-0">Öncelik Dağılımı</h5></div>
-                <div class="card-body d-flex align-items-center justify-content-center">
-                    <canvas id="priorityChart" height="220"></canvas>
-                </div>
-            </div>
-        </div>
-        {{-- Durum Dağılımı --}}
-        <div class="col-xl-4 col-lg-6 mb-3">
-            <div class="card h-100">
-                <div class="card-header"><h5 class="card-title mb-0">Durum Dağılımı</h5></div>
-                <div class="card-body d-flex align-items-center justify-content-center">
-                    <canvas id="statusChart" height="220"></canvas>
-                </div>
-            </div>
-        </div>
-        {{-- Aylık Trend --}}
-        <div class="col-xl-4 col-lg-12 mb-3">
-            <div class="card h-100">
-                <div class="card-header"><h5 class="card-title mb-0">Aylık Trend (6 Ay)</h5></div>
+    {{-- Grafik + Departman --}}
+    <div class="row g-3 mb-3">
+        <div class="col-lg-5">
+            <div class="card border-0 shadow-sm" style="border-radius:12px">
                 <div class="card-body">
-                    <canvas id="trendChart" height="220"></canvas>
+                    <div class="d-flex align-items-center gap-2 mb-3">
+                        <i class="fas fa-chart-donut" style="color:#6366f1"></i>
+                        <span class="fw-semibold" style="font-size:.88rem">Durum Dağılımı</span>
+                    </div>
+                    <div style="position:relative;height:200px">
+                        <canvas id="statusChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4">
+            <div class="card border-0 shadow-sm" style="border-radius:12px">
+                <div class="card-body">
+                    <div class="d-flex align-items-center gap-2 mb-3">
+                        <i class="fas fa-chart-bar" style="color:#f59e0b"></i>
+                        <span class="fw-semibold" style="font-size:.88rem">Aylık Trend (6 Ay)</span>
+                    </div>
+                    <div style="position:relative;height:200px">
+                        <canvas id="trendChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3">
+            <div class="card border-0 shadow-sm" style="border-radius:12px">
+                <div class="card-body">
+                    <div class="d-flex align-items-center gap-2 mb-3">
+                        <i class="fas fa-sitemap" style="color:#10b981"></i>
+                        <span class="fw-semibold" style="font-size:.88rem">Departman Bazında</span>
+                    </div>
+                    @php $deptTotal = $statsByDept->sum('total'); @endphp
+                    @forelse($statsByDept->sortByDesc('total')->take(6) as $row)
+                    @php
+                        $dept = $departments->firstWhere('id', $row->assigned_department_id);
+                        $pct  = $deptTotal > 0 ? round($row->total / $deptTotal * 100) : 0;
+                        $col  = $dept?->color ?? '#6366f1';
+                    @endphp
+                    <div class="mb-2">
+                        <div class="d-flex justify-content-between mb-1">
+                            <span class="text-truncate" style="font-size:.72rem;font-weight:600;color:#374151;max-width:120px">
+                                {{ $dept?->name ?? 'Atanmamış' }}
+                            </span>
+                            <span style="font-size:.68rem;color:#94a3b8">{{ $row->total }}</span>
+                        </div>
+                        <div class="rounded-pill" style="height:5px;background:#f1f5f9">
+                            <div class="rounded-pill h-100" style="width:{{ $pct }}%;background:{{ $col }}"></div>
+                        </div>
+                    </div>
+                    @empty
+                    <p class="text-muted small text-center mb-0">Kayıt yok.</p>
+                    @endforelse
                 </div>
             </div>
         </div>
     </div>
 
-    {{-- Departman Bazlı --}}
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-header"><h5 class="card-title mb-0">Departmana Göre Arızalar</h5></div>
-                <div class="card-body">
-                    @foreach($statsByDept->sortByDesc('total') as $row)
-                        @php $pct = $row->total / max($statsByDept->sum('total'), 1) * 100; @endphp
-                        <div class="d-flex align-items-center mb-2 gap-2">
-                            <div style="width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" class="small fw-semibold">
-                                {{ $row->department?->name ?? 'Atanmamış' }}
-                            </div>
-                            <div class="flex-fill">
-                                <div class="progress" style="height:14px;border-radius:8px;">
-                                    <div class="progress-bar" role="progressbar"
-                                         style="width:{{ $pct }}%;background-color:{{ $row->department?->color ?? '#c19b77' }};">
+    {{-- Filtre + Tablo Kartı --}}
+    <div class="card border-0 shadow-sm" style="border-radius:12px">
+        <div class="card-header bg-white d-flex justify-content-between align-items-center py-3 px-4"
+             style="border-bottom:1px solid #f1f5f9;border-radius:12px 12px 0 0">
+            <div class="d-flex align-items-center gap-2">
+                <i class="fas fa-list" style="color:#6366f1"></i>
+                <span class="fw-bold" style="font-size:.9rem">Arıza Kayıtları</span>
+                <span class="badge rounded-pill bg-light text-secondary border" style="font-size:.7rem">
+                    {{ number_format($faults->total()) }} kayıt
+                </span>
+            </div>
+            <a href="{{ route('faults.create') }}" class="btn btn-danger btn-sm fw-semibold">
+                <i class="fas fa-plus me-1"></i> Arıza Bildir
+            </a>
+        </div>
+
+        {{-- Filtreler --}}
+        <div class="px-4 py-3" style="background:#fafbff;border-bottom:1px solid #f1f5f9">
+            <form method="GET">
+                <div class="row g-2 align-items-end">
+                    <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6">
+                        <select name="branch_id" class="form-select form-select-sm" style="border-radius:8px">
+                            <option value="">Tüm Şubeler</option>
+                            @foreach($branches as $b)
+                            <option value="{{ $b->id }}" @selected(request('branch_id') == $b->id)>{{ $b->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6">
+                        <select name="department_id" class="form-select form-select-sm" style="border-radius:8px">
+                            <option value="">Tüm Departmanlar</option>
+                            @foreach($departments as $d)
+                            <option value="{{ $d->id }}" @selected(request('department_id') == $d->id)>{{ $d->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6">
+                        <select name="status" class="form-select form-select-sm" style="border-radius:8px">
+                            <option value="">Tüm Durumlar</option>
+                            @foreach(\App\Models\Fault::STATUSES as $val => $lbl)
+                            <option value="{{ $val }}" @selected(request('status') === $val)>{{ $lbl }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="col-xl-3 col-lg-3 col-md-6">
+                        <div class="input-group input-group-sm">
+                            <span class="input-group-text bg-light border-end-0 text-muted"><i class="fas fa-search" style="font-size:.75rem"></i></span>
+                            <input type="text" name="search" class="form-control border-start-0 ps-0" style="border-radius:0 8px 8px 0"
+                                   placeholder="Başlık veya açıklama..." value="{{ request('search') }}">
+                        </div>
+                    </div>
+                    <div class="col-xl-3 col-lg-12 d-flex gap-2">
+                        <button type="submit" class="btn btn-primary btn-sm px-3" style="border-radius:8px">
+                            <i class="fas fa-search me-1"></i>Filtrele
+                        </button>
+                        @if(request()->hasAny(['branch_id','department_id','status','search']))
+                        <a href="{{ route('faults.index') }}" class="btn btn-outline-secondary btn-sm" style="border-radius:8px">
+                            <i class="fas fa-xmark me-1"></i>Temizle
+                        </a>
+                        @endif
+                        <a href="{{ route('faults.stats') }}" class="btn btn-outline-secondary btn-sm ms-auto" style="border-radius:8px">
+                            <i class="fas fa-chart-bar me-1"></i>İstatistikler
+                        </a>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        {{-- Arıza Satırları --}}
+        <div class="p-3 d-flex flex-column gap-2">
+            @forelse($faults as $fault)
+            @php
+                $scMap  = ['open'=>['#ef4444','#fef2f2'],'in_progress'=>['#f59e0b','#fffbeb'],'resolved'=>['#10b981','#f0fdf4'],'closed'=>['#6b7280','#f1f5f9']];
+                [$sFg,$sBg] = $scMap[$fault->status] ?? ['#6b7280','#f1f5f9'];
+                $deptColor  = $fault->department?->color ?? '#6366f1';
+            @endphp
+            <div class="card border-0" style="border-radius:10px;border-left:4px solid {{ $sFg }}!important;box-shadow:0 1px 8px rgba(0,0,0,.06);transition:box-shadow .15s"
+                 onmouseenter="this.style.boxShadow='0 3px 16px rgba(0,0,0,.1)'"
+                 onmouseleave="this.style.boxShadow='0 1px 8px rgba(0,0,0,.06)'">
+                <div class="card-body py-2 px-3">
+                    <div class="row align-items-center g-0">
+
+                        {{-- ID + Başlık + Departman --}}
+                        <div class="col-xl-4 col-lg-4 col-md-6 pe-3">
+                            <div class="d-flex align-items-start gap-2">
+                                <div class="rounded-3 d-flex align-items-center justify-content-center flex-shrink-0 mt-1"
+                                     style="width:30px;height:30px;background:{{ $sBg }}">
+                                    <i class="fas fa-wrench" style="font-size:.7rem;color:{{ $sFg }}"></i>
+                                </div>
+                                <div style="min-width:0">
+                                    <a href="{{ route('faults.show', $fault) }}"
+                                       class="fw-semibold text-dark text-decoration-none d-block text-truncate"
+                                       style="font-size:.83rem" title="{{ $fault->title }}">{{ $fault->title }}</a>
+                                    <div class="d-flex align-items-center gap-1 mt-1">
+                                        @if($fault->department)
+                                        <span class="badge" style="font-size:.65rem;background:{{ $deptColor }};color:#fff;border-radius:5px">
+                                            {{ $fault->department->name }}
+                                        </span>
+                                        @endif
+                                        <span class="text-muted" style="font-size:.65rem">#{{ $fault->id }}</span>
                                     </div>
                                 </div>
                             </div>
-                            <span class="badge bg-secondary ms-1">{{ $row->total }}</span>
                         </div>
-                    @endforeach
-                    @if($statsByDept->isEmpty())
-                        <p class="text-muted text-center mb-0">Henüz kayıt yok.</p>
-                    @endif
+
+                        {{-- Durum + Konum --}}
+                        <div class="col-xl-3 col-lg-3 col-md-6 d-none d-md-block border-start ps-3 pe-3" style="border-color:#f1f5f9!important">
+                            <span class="badge rounded-pill mb-1" style="font-size:.72rem;background:{{ $sBg }};color:{{ $sFg }}">
+                                <span class="rounded-circle d-inline-block me-1" style="width:6px;height:6px;background:{{ $sFg }}"></span>
+                                {{ \App\Models\Fault::STATUSES[$fault->status] }}
+                            </span>
+                            @if($fault->faultLocation)
+                            <div class="text-truncate" style="font-size:.68rem;color:#64748b">
+                                <i class="fas fa-map-marker-alt me-1" style="color:#94a3b8"></i>
+                                {{ $fault->faultLocation->name }}{{ $fault->faultArea ? ' / '.$fault->faultArea->name : '' }}
+                            </div>
+                            @endif
+                            @if($fault->faultType)
+                            <div class="text-truncate" style="font-size:.65rem;color:#94a3b8">
+                                <i class="fas fa-tag me-1"></i>{{ $fault->faultType->name }}
+                            </div>
+                            @endif
+                        </div>
+
+                        {{-- Şube + Bildiren --}}
+                        <div class="col-xl-3 col-lg-3 d-none d-lg-block border-start ps-3 pe-3" style="border-color:#f1f5f9!important">
+                            <div style="font-size:.72rem;color:#374151;font-weight:600" class="mb-1">
+                                <i class="fas fa-building me-1" style="color:#94a3b8"></i>{{ $fault->branch?->name ?? '—' }}
+                            </div>
+                            <div style="font-size:.68rem;color:#64748b">
+                                <i class="fas fa-user me-1" style="color:#94a3b8"></i>{{ $fault->reporter?->name ?? '—' }}
+                            </div>
+                            <div style="font-size:.65rem;color:#94a3b8" class="mt-1">
+                                {{ $fault->created_at->format('d.m.Y H:i') }}
+                                &middot; {{ $fault->created_at->diffForHumans() }}
+                            </div>
+                        </div>
+
+                        {{-- Eylemler --}}
+                        <div class="col-xl-2 col-lg-2 col-md-12 d-flex justify-content-end align-items-center gap-1 mt-2 mt-lg-0">
+                            <a href="{{ route('faults.show', $fault) }}"
+                               class="btn btn-sm btn-outline-primary" style="border-radius:7px;padding:3px 8px">
+                                <i class="fas fa-eye" style="font-size:.75rem"></i>
+                            </a>
+                            <button class="btn btn-sm btn-outline-danger btn-sil"
+                                    style="border-radius:7px;padding:3px 8px"
+                                    data-id="{{ $fault->id }}" data-name="{{ $fault->title }}">
+                                <i class="fas fa-trash-alt" style="font-size:.75rem"></i>
+                            </button>
+                            <form id="form-sil-{{ $fault->id }}" action="{{ route('faults.destroy', $fault) }}"
+                                  method="POST" class="d-none">@csrf @method('DELETE')</form>
+                        </div>
+                    </div>
                 </div>
             </div>
-        </div>
-    </div>
-
-    {{-- ═══════════════════════════════════════════════════════════
-         ARIZA LİSTESİ
-    ═══════════════════════════════════════════════════════════ --}}
-    <div class="card">
-        <div class="card-header d-flex justify-content-between align-items-center">
-            <h4 class="card-title mb-0">Arıza Kayıtları</h4>
-            <a href="{{ route('faults.create') }}" class="btn btn-danger btn-sm">
-                + Arıza Bildir
-            </a>
-        </div>
-        <div class="card-body">
-
-            {{-- FİLTRELER --}}
-            <form method="GET" class="row g-2 mb-4">
-                <div class="col-md-2">
-                    <select name="branch_id" class="form-select form-select-sm">
-                        <option value="">Tüm Şubeler</option>
-                        @foreach($branches as $b)
-                            <option value="{{ $b->id }}" @selected(request('branch_id') == $b->id)>{{ $b->name }}</option>
-                        @endforeach
-                    </select>
-                </div>
-                <div class="col-md-2">
-                    <select name="department_id" class="form-select form-select-sm">
-                        <option value="">Tüm Departmanlar</option>
-                        @foreach($departments as $d)
-                            <option value="{{ $d->id }}" @selected(request('department_id') == $d->id)>{{ $d->name }}</option>
-                        @endforeach
-                    </select>
-                </div>
-                <div class="col-md-2">
-                    <select name="status" class="form-select form-select-sm">
-                        <option value="">Tüm Durumlar</option>
-                        @foreach(\App\Models\Fault::STATUSES as $val => $label)
-                            <option value="{{ $val }}" @selected(request('status') === $val)>{{ $label }}</option>
-                        @endforeach
-                    </select>
-                </div>
-                <div class="col-md-2">
-                    <select name="priority" class="form-select form-select-sm">
-                        <option value="">Tüm Öncelikler</option>
-                        @foreach(\App\Models\Fault::PRIORITIES as $val => $label)
-                            <option value="{{ $val }}" @selected(request('priority') === $val)>{{ $label }}</option>
-                        @endforeach
-                    </select>
-                </div>
-                <div class="col-md-3">
-                    <input type="text" name="search" class="form-control form-control-sm"
-                           placeholder="Başlık, konum, açıklama..." value="{{ request('search') }}">
-                </div>
-                <div class="col-md-1 d-flex gap-1">
-                    <button type="submit" class="btn btn-primary btn-sm flex-fill">Filtrele</button>
-                </div>
-            </form>
-
-            <div class="table-responsive">
-                <table class="table table-hover table-bordered align-middle">
-                    <thead class="table-light">
-                        <tr>
-                            <th>#</th>
-                            <th>Başlık</th>
-                            <th>Öncelik</th>
-                            <th>Durum</th>
-                            <th>Departman</th>
-                            <th>Konum</th>
-                            <th>Bildiren</th>
-                            <th>Şube</th>
-                            <th>Tarih</th>
-                            <th class="text-end">İşlem</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @forelse($faults as $fault)
-                            <tr>
-                                <td class="text-muted small">{{ $fault->id }}</td>
-                                <td>
-                                    <a href="{{ route('faults.show', $fault) }}" class="text-dark fw-semibold text-decoration-none">
-                                        {{ Str::limit($fault->title, 40) }}
-                                    </a>
-                                    @if($fault->updates->count() > 0)
-                                        <span class="badge bg-light text-muted border ms-1">
-                                            {{ $fault->updates->count() }} güncelleme
-                                        </span>
-                                    @endif
-                                </td>
-                                <td>
-                                    @php $pc = \App\Models\Fault::PRIORITY_COLORS[$fault->priority]; @endphp
-                                    <span class="badge badge-{{ $pc }} light">
-                                        {{ \App\Models\Fault::PRIORITIES[$fault->priority] }}
-                                    </span>
-                                </td>
-                                <td>
-                                    @php $sc = \App\Models\Fault::STATUS_COLORS[$fault->status]; @endphp
-                                    <span class="badge badge-{{ $sc }} light">
-                                        {{ \App\Models\Fault::STATUSES[$fault->status] }}
-                                    </span>
-                                </td>
-                                <td>
-                                    @if($fault->department)
-                                        <span class="badge" style="background:{{ $fault->department->color }};">
-                                            {{ $fault->department->name }}
-                                        </span>
-                                    @else
-                                        <span class="text-muted">-</span>
-                                    @endif
-                                </td>
-                                <td><small class="text-muted">{{ $fault->location ?? '-' }}</small></td>
-                                <td><small>{{ $fault->reporter?->name ?? '-' }}</small></td>
-                                <td><small>{{ $fault->branch?->name ?? '-' }}</small></td>
-                                <td>
-                                    <small>{{ $fault->created_at->format('d.m.Y') }}</small><br>
-                                    <small class="text-muted">{{ $fault->created_at->diffForHumans() }}</small>
-                                </td>
-                                <td class="text-end" style="white-space:nowrap;">
-                                    <a href="{{ route('faults.show', $fault) }}"
-                                       class="btn btn-primary btn-xs me-1">Detay</a>
-                                    <button class="btn btn-danger btn-xs btn-sil"
-                                            data-id="{{ $fault->id }}"
-                                            data-name="{{ $fault->title }}">Sil</button>
-                                    <form id="form-sil-{{ $fault->id }}"
-                                          action="{{ route('faults.destroy', $fault) }}"
-                                          method="POST" class="d-none">
-                                        @csrf @method('DELETE')
-                                    </form>
-                                </td>
-                            </tr>
-                        @empty
-                            <tr>
-                                <td colspan="10" class="text-center text-muted py-5">
-                                    Arıza kaydı bulunamadı.
-                                </td>
-                            </tr>
-                        @endforelse
-                    </tbody>
-                </table>
+            @empty
+            <div class="text-center text-muted py-5">
+                <i class="fas fa-inbox fa-3x mb-3 d-block opacity-25"></i>
+                <span>Arıza kaydı bulunamadı.</span>
             </div>
-
-            {{ $faults->links() }}
+            @endforelse
         </div>
+
+        @if($faults->hasPages())
+        <div class="px-4 py-3 border-top">{{ $faults->links() }}</div>
+        @endif
     </div>
+
 </div>
 @endsection
 
@@ -315,80 +340,51 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
 <script src="{{ asset('vendor/sweetalert2/dist/sweetalert2.min.js') }}"></script>
 <script>
-// ── Öncelik Donut
-new Chart(document.getElementById('priorityChart'), {
+var statusChart = new Chart(document.getElementById('statusChart'), {
     type: 'doughnut',
     data: {
-        labels: ['Düşük', 'Orta', 'Yüksek', 'Kritik'],
+        labels: ['Açık','İşlemde','Çözüldü','Kapalı'],
         datasets: [{
-            data: [
-                {{ $statsByPriority['low'] ?? 0 }},
-                {{ $statsByPriority['medium'] ?? 0 }},
-                {{ $statsByPriority['high'] ?? 0 }},
-                {{ $statsByPriority['critical'] ?? 0 }},
-            ],
-            backgroundColor: ['#28a745','#ffc107','#dc3545','#212529'],
-            borderWidth: 2,
+            data: [{{ $statsByStatus['open'] ?? 0 }},{{ $statsByStatus['in_progress'] ?? 0 }},{{ $statsByStatus['resolved'] ?? 0 }},{{ $statsByStatus['closed'] ?? 0 }}],
+            backgroundColor: ['#ef4444','#f59e0b','#10b981','#9ca3af'],
+            borderWidth: 2, borderColor: '#fff'
         }]
     },
-    options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+    options: { responsive:true, maintainAspectRatio:false, plugins:{ legend:{ position:'bottom', labels:{ boxWidth:10, padding:10, font:{ size:11 } } } } }
 });
 
-// ── Durum Donut
-new Chart(document.getElementById('statusChart'), {
-    type: 'doughnut',
-    data: {
-        labels: ['Açık', 'İşlemde', 'Çözüldü', 'Kapalı'],
-        datasets: [{
-            data: [
-                {{ $statsByStatus['open'] ?? 0 }},
-                {{ $statsByStatus['in_progress'] ?? 0 }},
-                {{ $statsByStatus['resolved'] ?? 0 }},
-                {{ $statsByStatus['closed'] ?? 0 }},
-            ],
-            backgroundColor: ['#dc3545','#ffc107','#28a745','#6c757d'],
-            borderWidth: 2,
-        }]
-    },
-    options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
-});
-
-// ── Aylık Trend Bar
-new Chart(document.getElementById('trendChart'), {
+var trendChart = new Chart(document.getElementById('trendChart'), {
     type: 'bar',
     data: {
         labels: {!! json_encode($monthlyTrend->pluck('month')) !!},
         datasets: [{
-            label: 'Bildirilen Arıza',
+            label: 'Arıza',
             data: {!! json_encode($monthlyTrend->pluck('total')) !!},
-            backgroundColor: 'rgba(193,155,119,0.7)',
-            borderColor: '#c19b77',
-            borderWidth: 1,
-            borderRadius: 6,
+            backgroundColor: 'rgba(99,102,241,.7)',
+            borderRadius: 5, borderWidth: 0
         }]
     },
     options: {
-        responsive: true,
-        plugins: { legend: { display: false } },
-        scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
+        responsive:true, maintainAspectRatio:false,
+        plugins:{ legend:{ display:false } },
+        scales:{ y:{ beginAtZero:true, ticks:{ stepSize:1 } }, x:{ grid:{ display:false } } }
     }
 });
 
-// ── SweetAlert Sil
-document.querySelectorAll('.btn-sil').forEach(btn => {
-    btn.addEventListener('click', function () {
+document.querySelectorAll('.btn-sil').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+        var name = this.dataset.name;
+        var id   = this.dataset.id;
         Swal.fire({
             title: 'Emin misiniz?',
-            text: `"${this.dataset.name}" kaydı silinecek!`,
+            text: '"' + name + '" silinecek!',
             icon: 'warning',
             showCancelButton: true,
-            confirmButtonColor: '#d33',
-            cancelButtonColor: '#6c757d',
-            confirmButtonText: 'Evet, Sil',
+            confirmButtonColor: '#ef4444',
+            cancelButtonColor: '#6b7280',
+            confirmButtonText: 'Sil',
             cancelButtonText: 'İptal'
-        }).then(r => {
-            if (r.isConfirmed) document.getElementById('form-sil-' + this.dataset.id).submit();
-        });
+        }).then(function(r) { if (r.isConfirmed) document.getElementById('form-sil-' + id).submit(); });
     });
 });
 </script>

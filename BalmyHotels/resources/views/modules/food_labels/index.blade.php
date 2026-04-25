@@ -83,6 +83,9 @@
                class="btn btn-sm btn-outline-success">
                 <i class="fas fa-file-excel me-1"></i>Excel'e Aktar
             </a>
+            <button type="button" class="btn btn-sm btn-outline-info" data-bs-toggle="modal" data-bs-target="#jsonImportModal">
+                <i class="fas fa-file-code me-1"></i>JSON Yemek Ekle
+            </button>
             <a href="{{ route('food-labels.create') }}" class="btn btn-sm btn-primary">
                 <i class="fas fa-plus me-1"></i>Yeni İsimlik
             </a>
@@ -101,111 +104,115 @@
     </div>
     @else
 
-    {{-- Kategori bazlı gruplama --}}
-    @php
-        $grouped = $labels->getCollection()->groupBy('category');
-        $categoryOrder = array_keys(\App\Models\FoodLabel::CATEGORIES);
-        $categorized = collect($categoryOrder)->mapWithKeys(fn($k) => [$k => $grouped->get($k, collect())])
-            ->filter(fn($g) => $g->isNotEmpty())
-            ->merge($grouped->filter(fn($g,$k) => !array_key_exists($k, \App\Models\FoodLabel::CATEGORIES)));
-    @endphp
-
-    @foreach($categorized as $catKey => $catLabels)
-    @if($catLabels->isNotEmpty())
-    <div class="mb-4">
-        @php $catLabel = \App\Models\FoodLabel::CATEGORIES[$catKey] ?? 'Diğer'; @endphp
-        <h6 class="fw-bold text-muted mb-3 border-bottom pb-2">
-            <i class="fas fa-tag me-2 text-primary"></i>{{ $catLabel }}
-            <span class="badge bg-light text-dark border ms-2">{{ $catLabels->count() }}</span>
-        </h6>
-
-        <div class="row g-3">
-            @foreach($catLabels as $label)
-            <div class="col-lg-4 col-md-6">
-                <div class="card h-100 border @if(!$label->is_active) opacity-60 @endif" style="position:relative;overflow:hidden">
-                    <img src="{{ asset('images/logo.svg') }}" alt=""
-                         style="position:absolute;bottom:42px;right:10px;height:22px;opacity:0.08;pointer-events:none;filter:sepia(1) saturate(2)">
-                    <div class="card-body p-3">
-                        <div class="d-flex justify-content-between align-items-start mb-2">
-                            <div class="flex-grow-1 me-2">
-                                <div class="d-flex align-items-center gap-2 mb-1">
-                                    <input type="checkbox" class="label-checkbox form-check-input"
-                                           value="{{ $label->id }}" onchange="onCheckboxChange(this)">
-                                    <h6 class="fw-bold mb-0">{{ $label->getName() }}</h6>
-                                </div>
-                                @if($name_en = $label->getName('en'))
-                                    @if($name_en !== $label->getName('tr'))
-                                    <div class="text-muted small">{{ $name_en }}</div>
-                                    @endif
-                                @endif
-                            </div>
-                            @if(!$label->is_active)
-                            <span class="badge bg-secondary flex-shrink-0">Pasif</span>
+    <div class="card border-0 shadow-sm" style="border-radius:14px;overflow:hidden">
+        <div class="table-responsive">
+            <table class="table align-middle mb-0" style="font-size:13px">
+                <thead>
+                    <tr style="background:#f8f9fb;border-bottom:1px solid #eef0f4">
+                        <th style="width:42px;padding:10px 14px;font-weight:500;color:#9aa0ac;font-size:11px;text-transform:uppercase;letter-spacing:.5px;border:0"></th>
+                        <th style="padding:10px 8px;font-weight:500;color:#9aa0ac;font-size:11px;text-transform:uppercase;letter-spacing:.5px;border:0;width:44px">#</th>
+                        <th style="padding:10px 8px;font-weight:500;color:#9aa0ac;font-size:11px;text-transform:uppercase;letter-spacing:.5px;border:0">Yemek</th>
+                        <th style="padding:10px 8px;font-weight:500;color:#9aa0ac;font-size:11px;text-transform:uppercase;letter-spacing:.5px;border:0">Özellikler</th>
+                        <th style="padding:10px 8px;font-weight:500;color:#9aa0ac;font-size:11px;text-transform:uppercase;letter-spacing:.5px;border:0">Allerjenler</th>
+                        <th style="padding:10px 14px 10px 8px;font-weight:500;color:#9aa0ac;font-size:11px;text-transform:uppercase;letter-spacing:.5px;border:0;width:120px" class="text-end"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                @foreach($labels as $label)
+                <tr style="border-bottom:1px solid #f2f3f6;transition:background .12s;cursor:pointer @if(!$label->is_active) ;opacity:.55 @endif"
+                    onclick="rowToggle(event, this)"
+                    onmouseenter="rowHover(this, true)" onmouseleave="rowHover(this, false)">
+                    {{-- Checkbox --}}
+                    <td style="padding:10px 0 10px 16px">
+                        <input type="checkbox" class="label-checkbox form-check-input"
+                               value="{{ $label->id }}" onchange="onCheckboxChange(this)"
+                               style="width:15px;height:15px;cursor:pointer">
+                    </td>
+                    {{-- # --}}
+                    <td style="padding:10px 8px;color:#c4c9d4;font-size:11px;font-variant-numeric:tabular-nums">{{ $label->id }}</td>
+                    {{-- Adlar --}}
+                    <td style="padding:10px 8px;max-width:220px">
+                        <div style="font-weight:600;color:#2d3748;line-height:1.3">{{ $label->getName() }}</div>
+                        @if($name_en = $label->getName('en'))
+                            @if($name_en !== $label->getName('tr'))
+                            <div style="font-size:11px;color:#a0aab4;margin-top:1px">{{ $name_en }}</div>
                             @endif
-                        </div>
-
-                        {{-- Diyet bilgileri --}}
-                        <div class="d-flex flex-wrap gap-1 mb-2">
+                        @endif
+                    </td>
+                    {{-- Özellikler --}}
+                    <td style="padding:10px 8px">
+                        <div class="d-flex flex-wrap gap-1">
                             @if($label->calories)
-                            <span class="badge" style="background:#fff3cd;color:#856404;border:1px solid #ffc107">
-                                <i class="fas fa-fire-alt me-1"></i>{{ $label->calories }} kcal
+                            <span style="display:inline-flex;align-items:center;gap:3px;padding:2px 7px;border-radius:20px;font-size:11px;background:#fffbeb;color:#92600a;border:1px solid #fde68a">
+                                <i class="fas fa-fire-alt" style="font-size:9px"></i>{{ $label->calories }}
                             </span>
                             @endif
                             @if($label->is_vegan)
-                            <span class="badge" style="background:#d1fae5;color:#065f46;border:1px solid #10b981">🌱 Vegan</span>
+                            <span style="padding:2px 7px;border-radius:20px;font-size:11px;background:#f0fdf4;color:#166534;border:1px solid #bbf7d0">🌱</span>
                             @endif
                             @if($label->is_vegetarian && !$label->is_vegan)
-                            <span class="badge" style="background:#d1fae5;color:#065f46;border:1px solid #10b981">🥗 Vejetaryen</span>
+                            <span style="padding:2px 7px;border-radius:20px;font-size:11px;background:#f0fdf4;color:#166534;border:1px solid #bbf7d0">🥗</span>
                             @endif
                             @if($label->is_halal)
-                            <span class="badge" style="background:#ede9fe;color:#4c1d95;border:1px solid #7c3aed">☪ Helal</span>
+                            <span style="padding:2px 7px;border-radius:20px;font-size:11px;background:#faf5ff;color:#6b21a8;border:1px solid #e9d5ff">☪</span>
+                            @endif
+                            @if(!$label->is_active)
+                            <span style="padding:2px 7px;border-radius:20px;font-size:11px;background:#f9fafb;color:#9ca3af;border:1px solid #e5e7eb">Pasif</span>
                             @endif
                         </div>
-
-                        {{-- Allerjenler --}}
+                    </td>
+                    {{-- Allerjenler --}}
+                    <td style="padding:10px 8px">
                         @if(!empty($label->allergens))
-                        <div class="d-flex flex-wrap gap-1 mb-2">
+                        <div class="d-flex flex-wrap gap-1">
                             @foreach($label->getAllergenList() as $key => $info)
-                            <span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25"
-                                  title="{{ $info['label'] }} (EU #{{ $info['eu'] }})">
-                                {{ $info['icon'] }} <span class="d-none d-xxxl-inline">{{ $info['eu'] }}</span>
-                            </span>
+                            <span style="display:inline-block;padding:2px 6px;border-radius:20px;font-size:12px;background:#fff5f5;border:1px solid #fecaca;cursor:default"
+                                  title="{{ $info['label'] }}">{{ $info['icon'] }}</span>
                             @endforeach
                         </div>
+                        @else
+                        <span style="color:#d1d5db;font-size:13px">—</span>
                         @endif
-
-                        {{-- Butonlar --}}
-                        <div class="d-flex gap-1 mt-2 pt-2 border-top">
-                            <button type="button" class="btn btn-xs btn-outline-success flex-grow-1"
-                                    style="font-size:11px;padding:2px 6px"
+                    </td>
+                    {{-- İşlemler --}}
+                    <td style="padding:10px 16px 10px 8px" class="text-end" onclick="event.stopPropagation()">
+                        <div class="d-flex gap-1 justify-content-end">
+                            <button type="button"
                                     onclick="showQr('{{ $label->publicUrl() }}', '{{ addslashes($label->getName()) }}')"
-                                    title="QR Kodu Göster">
-                                <i class="fas fa-qrcode me-1"></i>QR
+                                    title="QR Kodu"
+                                    style="border:0;background:transparent;padding:4px 7px;border-radius:7px;color:#6b7280;transition:background .12s"
+                                    onmouseenter="this.style.background='#f3f4f6'" onmouseleave="this.style.background='transparent'">
+                                <i class="fas fa-qrcode" style="font-size:12px"></i>
                             </button>
                             <a href="{{ route('food-labels.print-single', $label) }}" target="_blank"
-                               class="btn btn-xs btn-outline-secondary flex-grow-1" style="font-size:11px;padding:2px 6px">
-                                <i class="fas fa-print me-1"></i>Yazdır
+                               title="Yazdır"
+                               style="display:inline-flex;align-items:center;border:0;background:transparent;padding:4px 7px;border-radius:7px;color:#6b7280;transition:background .12s;text-decoration:none"
+                               onmouseenter="this.style.background='#f3f4f6'" onmouseleave="this.style.background='transparent'">
+                                <i class="fas fa-print" style="font-size:12px"></i>
                             </a>
                             <a href="{{ route('food-labels.edit', $label) }}"
-                               class="btn btn-xs btn-outline-primary" style="font-size:11px;padding:2px 8px">
-                                <i class="fas fa-edit"></i>
+                               title="Düzenle"
+                               style="display:inline-flex;align-items:center;border:0;background:transparent;padding:4px 7px;border-radius:7px;color:#4f76f6;transition:background .12s;text-decoration:none"
+                               onmouseenter="this.style.background='#eef2ff'" onmouseleave="this.style.background='transparent'">
+                                <i class="fas fa-pen" style="font-size:11px"></i>
                             </a>
                             <form action="{{ route('food-labels.destroy', $label) }}" method="POST"
                                   onsubmit="return confirm('Silmek istediğinizden emin misiniz?')">
                                 @csrf @method('DELETE')
-                                <button class="btn btn-xs btn-outline-danger" style="font-size:11px;padding:2px 8px">
-                                    <i class="fas fa-trash"></i>
+                                <button type="submit" title="Sil"
+                                        style="border:0;background:transparent;padding:4px 7px;border-radius:7px;color:#ef4444;transition:background .12s"
+                                        onmouseenter="this.style.background='#fef2f2'" onmouseleave="this.style.background='transparent'">
+                                    <i class="fas fa-trash" style="font-size:11px"></i>
                                 </button>
                             </form>
                         </div>
-                    </div>
-                </div>
-            </div>
-            @endforeach
+                    </td>
+                </tr>
+                @endforeach
+                </tbody>
+            </table>
         </div>
     </div>
-    @endif
-    @endforeach
 
     {{-- Sayfalama --}}
     @if($labels->hasPages())
@@ -222,6 +229,30 @@
     </form>
 
     @endif
+
+{{-- JSON Import Modal --}}
+<div class="modal fade" id="jsonImportModal" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h6 class="modal-title fw-bold"><i class="fas fa-file-code me-2 text-info"></i>JSON ile Yemek Ekle</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-muted small mb-2">Tek bir yemek objesi veya <code>[{...}, {...}]</code> şeklinde dizi yapıştırabilirsiniz.</p>
+                <textarea id="jsonImportInput" class="form-control font-monospace" rows="18"
+                          placeholder='{ "name": { "tr": "...", "en": "..." }, "category": "main", ... }'></textarea>
+                <div id="jsonImportAlert" class="mt-2" style="display:none"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
+                <button type="button" class="btn btn-info text-white" id="jsonImportBtn" onclick="submitJsonImport()">
+                    <i class="fas fa-upload me-1"></i>İçe Aktar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
 
 {{-- QR Modal --}}
 <div class="modal fade" id="qrModal" tabindex="-1">
@@ -271,13 +302,6 @@ function clearSelection() {
     refreshUI();
 }
 
-function onCheckboxChange(cb) {
-    const sel = getSelected();
-    cb.checked ? sel.add(cb.value) : sel.delete(cb.value);
-    saveSelected(sel);
-    refreshUI();
-}
-
 function toggleSelectAll() {
     const cbs  = document.querySelectorAll('.label-checkbox');
     const sel  = getSelected();
@@ -302,11 +326,43 @@ function refreshUI() {
         : '<i class="fas fa-check-square me-1"></i>Tümünü Seç';
 }
 
-// Sayfa yüklenince önceki seçimleri geri yükle
+function rowToggle(event, tr) {
+    // checkbox veya label'e zaten tıklandıysa çift tetiklenmesin
+    if (event.target.closest('input[type="checkbox"]')) return;
+    const cb = tr.querySelector('.label-checkbox');
+    if (!cb) return;
+    cb.checked = !cb.checked;
+    onCheckboxChange(cb);
+    rowHover(tr, true);
+}
+
+function rowHover(tr, entering) {
+    const cb = tr.querySelector('.label-checkbox');
+    const isChecked = cb && cb.checked;
+    if (entering) {
+        tr.style.background = isChecked ? '#eef3ff' : '#fafbff';
+    } else {
+        tr.style.background = isChecked ? '#f4f7ff' : '';
+    }
+}
+
+// Seçim değişince satır arka planını da güncelle
+function onCheckboxChange(cb) {
+    const sel = getSelected();
+    cb.checked ? sel.add(cb.value) : sel.delete(cb.value);
+    saveSelected(sel);
+    const tr = cb.closest('tr');
+    if (tr) tr.style.background = cb.checked ? '#f4f7ff' : '';
+    refreshUI();
+}
 document.addEventListener('DOMContentLoaded', function() {
     const sel = getSelected();
     document.querySelectorAll('.label-checkbox').forEach(cb => {
-        if (sel.has(cb.value)) cb.checked = true;
+        if (sel.has(cb.value)) {
+            cb.checked = true;
+            const tr = cb.closest('tr');
+            if (tr) tr.style.background = '#f4f7ff';
+        }
     });
     refreshUI();
 });
@@ -344,6 +400,60 @@ function downloadQr() {
     link.download = 'qr-yemek.png';
     link.href = canvas.toDataURL('image/png');
     link.click();
+}
+
+// ---- JSON Import ----
+function submitJsonImport() {
+    const textarea  = document.getElementById('jsonImportInput');
+    const alertBox  = document.getElementById('jsonImportAlert');
+    const btn       = document.getElementById('jsonImportBtn');
+    const jsonData  = textarea.value.trim();
+
+    alertBox.style.display = 'none';
+    alertBox.innerHTML     = '';
+
+    if (!jsonData) {
+        showImportAlert('danger', 'Lütfen JSON yapıştırın.');
+        return;
+    }
+
+    btn.disabled   = true;
+    btn.innerHTML  = '<i class="fas fa-spinner fa-spin me-1"></i>İşleniyor...';
+
+    fetch('{{ route("food-labels.json-import") }}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': '{{ csrf_token() }}',
+            'Accept': 'application/json',
+        },
+        body: JSON.stringify({ json_data: jsonData }),
+    })
+    .then(r => r.json().then(data => ({ ok: r.ok, data })))
+    .then(({ ok, data }) => {
+        if (ok && data.success) {
+            showImportAlert('success', '<i class="fas fa-check me-1"></i>' + data.message);
+            textarea.value = '';
+            setTimeout(() => {
+                bootstrap.Modal.getInstance(document.getElementById('jsonImportModal')).hide();
+                window.location.reload();
+            }, 1200);
+        } else {
+            showImportAlert('danger', data.error || 'Bir hata oluştu.');
+        }
+    })
+    .catch(() => showImportAlert('danger', 'Sunucuya ulaşılamadı.'))
+    .finally(() => {
+        btn.disabled  = false;
+        btn.innerHTML = '<i class="fas fa-upload me-1"></i>İçe Aktar';
+    });
+}
+
+function showImportAlert(type, html) {
+    const box = document.getElementById('jsonImportAlert');
+    box.className = 'alert alert-' + type + ' py-2 small mt-2';
+    box.innerHTML = html;
+    box.style.display = 'block';
 }
 </script>
 @endpush

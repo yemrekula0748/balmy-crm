@@ -6,7 +6,9 @@ use App\Http\Controllers\Controller;
 use App\Models\Asset;
 use App\Models\AssetCategory;
 use App\Models\Branch;
+use App\Models\Department;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 
 class AssetController extends BaseModuleController
 {
@@ -25,7 +27,16 @@ class AssetController extends BaseModuleController
 
     public function index(Request $request)
     {
-        $query = Asset::with(['category', 'branch'])->latest();
+        $user         = auth()->user();
+        $isSuperAdmin = $user->isSuperAdmin();
+        $deptId       = $user->department_id;
+
+        $query = Asset::with(['category', 'branch', 'department'])->latest();
+
+        // Departman filtresi: super admin değilse yalnızca kendi departmanı
+        if (!$isSuperAdmin && $deptId) {
+            $query->where('department_id', $deptId);
+        }
 
         if ($request->branch_id) {
             $query->where('branch_id', $request->branch_id);
@@ -50,16 +61,20 @@ class AssetController extends BaseModuleController
         $branches   = Branch::orderBy('name')->get();
         $categories = AssetCategory::orderBy('name')->get();
 
-        // İstatistikler
+        // İstatistikler — departman filtreli
+        $statsBase = (!$isSuperAdmin && $deptId)
+            ? Asset::where('department_id', $deptId)
+            : Asset::query();
+
         $stats = [
-            'total'       => Asset::count(),
-            'available'   => Asset::where('status', 'available')->count(),
-            'in_use'      => Asset::where('status', 'in_use')->count(),
-            'maintenance' => Asset::where('status', 'maintenance')->count(),
-            'retired'     => Asset::where('status', 'retired')->count(),
+            'total'       => (clone $statsBase)->count(),
+            'available'   => (clone $statsBase)->where('status', 'available')->count(),
+            'in_use'      => (clone $statsBase)->where('status', 'in_use')->count(),
+            'maintenance' => (clone $statsBase)->where('status', 'maintenance')->count(),
+            'retired'     => (clone $statsBase)->where('status', 'retired')->count(),
         ];
 
-        $page_title = 'Demirbaş Yönetimi';
+        $page_title = $isSuperAdmin ? 'Demirbaş Yönetimi' : 'Demirbaşlarım';
 
         return view('modules.assets.index', compact(
             'assets', 'branches', 'categories', 'stats', 'page_title'
@@ -68,18 +83,39 @@ class AssetController extends BaseModuleController
 
     public function create()
     {
-        $categories = AssetCategory::orderBy('name')->get();
-        $branches   = Branch::orderBy('name')->get();
-        $page_title = 'Demirbaş Ekle';
-        $nextCode   = Asset::generateCode();
+        $user       = auth()->user();
+        $isSuperAdmin = $user->isSuperAdmin();
 
-        return view('modules.assets.create', compact('categories', 'branches', 'page_title', 'nextCode'));
+        $categories = AssetCategory::whereNull('parent_id')
+            ->withCount('children')
+            ->orderBy('name')
+            ->get();
+
+        // Super admin tüm şubeleri görebilir; diğerleri sadece kendi şubesini
+        $branches = $isSuperAdmin
+            ? Branch::orderBy('name')->get()
+            : Branch::where('id', $user->branch_id)->get();
+
+        $lockedBranchId = $isSuperAdmin ? null : $user->branch_id;
+
+        // Departmanlar
+        $departments      = Department::orderBy('name')->get();
+        $lockedDeptId     = $isSuperAdmin ? null : $user->department_id;
+
+        $page_title  = 'Demirbaş Ekle';
+        $nextCode    = Asset::generateCode();
+        $showSubSelect = false;
+
+        return view('modules.assets.create', compact(
+            'categories', 'branches', 'departments', 'lockedDeptId',
+            'page_title', 'nextCode', 'showSubSelect', 'isSuperAdmin', 'lockedBranchId'
+        ));
     }
 
     public function store(Request $request)
     {
         $request->validate([
-            'asset_code'   => 'required|string|max:50|unique:assets,asset_code',
+            'asset_code'    => 'required|string|max:50|unique:assets,asset_code',
             'category_id'  => 'required|exists:asset_categories,id',
             'branch_id'    => 'required|exists:branches,id',
             'name'         => 'required|string|max:255',
@@ -90,9 +126,10 @@ class AssetController extends BaseModuleController
             'purchase_price'=> 'nullable|numeric|min:0',
             'serial_no'    => 'nullable|string|max:255',
             'warranty_until'=> 'nullable|date',
+            'photo'        => 'nullable|image|mimes:jpeg,png,jpg,webp|max:4096',
         ]);
 
-        // Dinamik alanları işle
+        // Kategori dinamik alanları
         $category = AssetCategory::find($request->category_id);
         $properties = [];
         if ($category && $category->field_definitions) {
@@ -101,10 +138,41 @@ class AssetController extends BaseModuleController
             }
         }
 
-        Asset::create([
+        // Per-asset custom fields
+        $customFields = [];
+        if ($request->has('cf_label')) {
+            foreach ($request->cf_label as $i => $label) {
+                $label = trim($label ?? '');
+                if ($label === '') continue;
+                $customFields[] = [
+                    'label' => $label,
+                    'value' => $request->cf_value[$i] ?? '',
+                    'unit'  => $request->cf_unit[$i] ?? '',
+                ];
+            }
+        }
+
+        // Fotoğraf yükle
+        $photoPath = null;
+        if ($request->hasFile('photo')) {
+            $photoPath = $request->file('photo')->store('assets', 'public');
+        }
+
+        // Şube kilidi: super admin değilse kendi şubesini zorla
+        $branchId = auth()->user()->isSuperAdmin()
+            ? $request->branch_id
+            : auth()->user()->branch_id;
+
+        // Departman kilidi: super admin değilse kendi departmanını zorla
+        $deptId = auth()->user()->isSuperAdmin()
+            ? ($request->department_id ?: null)
+            : auth()->user()->department_id;
+
+        $asset = Asset::create([
             'asset_code'    => strtoupper($request->asset_code),
             'category_id'   => $request->category_id,
-            'branch_id'     => $request->branch_id,
+            'branch_id'     => $branchId,
+            'department_id' => $deptId,
             'name'          => $request->name,
             'description'   => $request->description,
             'location'      => $request->location,
@@ -113,7 +181,16 @@ class AssetController extends BaseModuleController
             'purchase_price'=> $request->purchase_price,
             'serial_no'     => $request->serial_no,
             'warranty_until'=> $request->warranty_until,
+            'photo'         => $photoPath,
             'properties'    => $properties ?: null,
+            'custom_fields' => $customFields ?: null,
+            'qr_token'      => Str::uuid()->toString(),
+        ]);
+
+        $asset->histories()->create([
+            'user_id' => auth()->id(),
+            'action'  => 'created',
+            'note'    => 'Demirbaş sisteme eklendi.',
         ]);
 
         return redirect()->route('assets.index')
@@ -122,7 +199,12 @@ class AssetController extends BaseModuleController
 
     public function show(Asset $asset)
     {
-        $asset->load(['category', 'branch', 'exits.staff', 'exits.approver', 'exits.branch']);
+        // Auto-generate QR token for assets created before this feature
+        if (!$asset->qr_token) {
+            $asset->update(['qr_token' => Str::uuid()->toString()]);
+        }
+
+        $asset->load(['category', 'branch', 'exits.staff', 'exits.approver', 'exits.branch', 'histories.user']);
         $page_title = $asset->name;
 
         return view('modules.assets.show', compact('asset', 'page_title'));
@@ -130,11 +212,14 @@ class AssetController extends BaseModuleController
 
     public function edit(Asset $asset)
     {
-        $categories = AssetCategory::orderBy('name')->get();
-        $branches   = Branch::orderBy('name')->get();
-        $page_title = 'Demirbaş Düzenle';
-
-        return view('modules.assets.edit', compact('asset', 'categories', 'branches', 'page_title'));
+        $categories  = AssetCategory::whereNull('parent_id')
+            ->withCount('children')
+            ->orderBy('name')
+            ->get();
+        $branches    = Branch::orderBy('name')->get();
+        $departments = Department::orderBy('name')->get();
+        $page_title  = 'Demirbaş Düzenle';
+        return view('modules.assets.edit', compact('asset', 'categories', 'branches', 'departments', 'page_title'));
     }
 
     public function update(Request $request, Asset $asset)
@@ -151,6 +236,7 @@ class AssetController extends BaseModuleController
             'purchase_price'=> 'nullable|numeric|min:0',
             'serial_no'     => 'nullable|string|max:255',
             'warranty_until'=> 'nullable|date',
+            'photo'         => 'nullable|image|mimes:jpeg,png,jpg,webp|max:4096',
         ]);
 
         $category = AssetCategory::find($request->category_id);
@@ -161,10 +247,51 @@ class AssetController extends BaseModuleController
             }
         }
 
+        // Per-asset custom fields
+        $customFields = [];
+        if ($request->has('cf_label')) {
+            foreach ($request->cf_label as $i => $label) {
+                $label = trim($label ?? '');
+                if ($label === '') continue;
+                $customFields[] = [
+                    'label' => $label,
+                    'value' => $request->cf_value[$i] ?? '',
+                    'unit'  => $request->cf_unit[$i] ?? '',
+                ];
+            }
+        }
+
+        // Değişiklik takibi: eski değerleri sakla
+        $watchFields = ['name', 'status', 'location', 'branch_id', 'category_id', 'serial_no', 'description', 'asset_code'];
+        $oldReadable = [];
+        foreach ($watchFields as $wf) {
+            $val = (string)($asset->$wf ?? '');
+            if ($wf === 'status')       $val = Asset::STATUSES[$val] ?? $val;
+            elseif ($wf === 'branch_id')    $val = $asset->branch?->name ?? $val;
+            elseif ($wf === 'category_id')  $val = $asset->category?->name ?? $val;
+            $oldReadable[$wf] = $val;
+        }
+        $photoChanged = false;
+
+        // Fotoğraf güncelle
+        $photoPath = $asset->photo;
+        if ($request->hasFile('photo')) {
+            if ($asset->photo) {
+                \Storage::disk('public')->delete($asset->photo);
+            }
+            $photoPath = $request->file('photo')->store('assets', 'public');
+            $photoChanged = true;
+        } elseif ($request->input('remove_photo') === '1' && $asset->photo) {
+            \Storage::disk('public')->delete($asset->photo);
+            $photoPath = null;
+            $photoChanged = true;
+        }
+
         $asset->update([
             'asset_code'    => strtoupper($request->asset_code),
             'category_id'   => $request->category_id,
             'branch_id'     => $request->branch_id,
+            'department_id' => $request->department_id ?: null,
             'name'          => $request->name,
             'description'   => $request->description,
             'location'      => $request->location,
@@ -173,8 +300,36 @@ class AssetController extends BaseModuleController
             'purchase_price'=> $request->purchase_price,
             'serial_no'     => $request->serial_no,
             'warranty_until'=> $request->warranty_until,
+            'photo'         => $photoPath,
             'properties'    => $properties ?: null,
+            'custom_fields' => $customFields ?: null,
         ]);
+
+        // Değişiklikleri geçmişe kaydet
+        $asset->load(['branch', 'category']);
+        foreach ($watchFields as $wf) {
+            $newVal = (string)($asset->$wf ?? '');
+            if ($wf === 'status')       $newVal = Asset::STATUSES[$newVal] ?? $newVal;
+            elseif ($wf === 'branch_id')    $newVal = $asset->branch?->name ?? $newVal;
+            elseif ($wf === 'category_id')  $newVal = $asset->category?->name ?? $newVal;
+            if ($oldReadable[$wf] !== $newVal) {
+                $asset->histories()->create([
+                    'user_id'   => auth()->id(),
+                    'action'    => 'updated',
+                    'field'     => $wf,
+                    'old_value' => $oldReadable[$wf] ?: null,
+                    'new_value' => $newVal ?: null,
+                ]);
+            }
+        }
+        if ($photoChanged) {
+            $asset->histories()->create([
+                'user_id' => auth()->id(),
+                'action'  => 'updated',
+                'field'   => 'photo',
+                'note'    => 'Fotoğraf güncellendi.',
+            ]);
+        }
 
         return redirect()->route('assets.show', $asset)
             ->with('success', 'Demirbaş güncellendi.');
@@ -196,5 +351,13 @@ class AssetController extends BaseModuleController
     public function categoryFields(AssetCategory $assetCategory)
     {
         return response()->json($assetCategory->field_definitions ?? []);
+    }
+
+    /**
+     * 80mm termal yazıcı için QR yazdırma sayfası
+     */
+    public function qrPrint(Asset $asset)
+    {
+        return view('modules.assets.qr-print', compact('asset'));
     }
 }
