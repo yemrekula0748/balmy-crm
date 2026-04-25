@@ -19,6 +19,7 @@ class QrMenu extends Model
         'default'  => 'Klasik (Koyu Altın)',
         'forest'   => 'Forest — Bohemian Modern',
         'bohemian' => 'Bohem — Tek Sayfa',
+        'light'    => 'Açık — Bohem Beyaz',
     ];
 
     protected $casts = [

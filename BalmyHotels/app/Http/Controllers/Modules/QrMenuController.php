@@ -142,7 +142,7 @@ class QrMenuController extends BaseModuleController
             'name'         => 'required|string|max:100|unique:qr_menus,name,' . $qrmenu->id . '|regex:/^[a-z0-9\-]+$/',
             'branch_id'    => 'nullable|exists:branches,id',
             'theme_color'  => 'nullable|string|max:20',
-            'theme'        => 'nullable|string|in:default,forest,bohemian',
+            'theme'        => 'nullable|string|in:default,forest,bohemian,light',
             'currency'     => 'required|string|max:10',
             'languages'    => 'required|array|min:1',
             'languages.*'  => 'required|string|max:10',
