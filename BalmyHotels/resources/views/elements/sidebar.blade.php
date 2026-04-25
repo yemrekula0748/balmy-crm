@@ -519,6 +519,11 @@
                         <a href="{{ route('orders.ai-analysis') }}">Stratejik AI Analizi</a>
                     </li>
                     @endif
+                    @if($user->hasPermission('order_analytics','index'))
+                    <li @class(['mm-active' => request()->is('siparisler/misafir-analiz*')])>
+                        <a href="{{ route('orders.guest-analysis') }}">Misafir Tüketim Analizi</a>
+                    </li>
+                    @endif
                     @if($user->hasPermission('restaurant_settings','index'))
                     <li @class(['mm-active' => request()->is('siparisler/restoranlar*')])>
                         <a href="{{ route('orders.restaurants.index') }}">Restoran Tanımları</a>
