@@ -692,6 +692,7 @@ Route::middleware('auth')->group(function () {
 
         // Analiz
         Route::get('/analiz',                        [OrderAnalyticsController::class, 'index'])->name('analytics');
+        Route::get('/analiz/pdf',                    [OrderAnalyticsController::class, 'pdf'])->name('analytics.pdf');
 
         // Restoran tanımları
         Route::prefix('restoranlar')->name('restaurants.')->group(function () {

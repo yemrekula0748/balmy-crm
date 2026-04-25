@@ -6,6 +6,7 @@ use App\Models\Restaurant;
 use App\Models\RestaurantOrder;
 use App\Models\RestaurantOrderItem;
 use App\Models\TableSession;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -220,5 +221,108 @@ class OrderAnalyticsController extends BaseModuleController
             'avgDuration',
             'page_title'
         ));
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    //  PDF: Gün Bazlı Sipariş Raporu
+    // ─────────────────────────────────────────────────────────────────────────
+    public function pdf(Request $request)
+    {
+        $dateFrom     = $request->date_from ?? now()->startOfWeek()->toDateString();
+        $dateTo       = $request->date_to   ?? now()->toDateString();
+        $restaurantId = $request->restaurant_id;
+
+        // ── Baz query ────────────────────────────────────────────────────────
+        $itemBase = RestaurantOrderItem::query()
+            ->join('restaurant_orders',  'restaurant_orders.id',  '=', 'restaurant_order_items.order_id')
+            ->join('table_sessions',     'table_sessions.id',     '=', 'restaurant_orders.table_session_id')
+            ->join('restaurant_tables',  'restaurant_tables.id',  '=', 'table_sessions.restaurant_table_id')
+            ->join('restaurants',        'restaurants.id',        '=', 'restaurant_tables.restaurant_id')
+            ->whereDate('table_sessions.opened_at', '>=', $dateFrom)
+            ->whereDate('table_sessions.opened_at', '<=', $dateTo);
+
+        if ($restaurantId) {
+            $itemBase->where('restaurants.id', $restaurantId);
+        }
+
+        // ── Özet ─────────────────────────────────────────────────────────────
+        $summaryRaw = (clone $itemBase)
+            ->selectRaw('
+                SUM(restaurant_order_items.unit_price * restaurant_order_items.quantity) as total_revenue,
+                SUM(CASE WHEN restaurant_order_items.unit_price > 0 THEN restaurant_order_items.unit_price * restaurant_order_items.quantity ELSE 0 END) as paid_revenue,
+                SUM(restaurant_order_items.quantity) as total_qty,
+                COUNT(DISTINCT restaurant_orders.table_session_id) as total_sessions,
+                COUNT(DISTINCT restaurant_orders.id) as total_orders
+            ')
+            ->first();
+
+        $summary = [
+            'paid_revenue'   => round($summaryRaw->paid_revenue   ?? 0, 2),
+            'total_qty'      => (int)($summaryRaw->total_qty       ?? 0),
+            'total_sessions' => (int)($summaryRaw->total_sessions  ?? 0),
+            'total_orders'   => (int)($summaryRaw->total_orders    ?? 0),
+        ];
+
+        // ── Restoran bazında toplamlar ────────────────────────────────────────
+        $restaurantTotals = (clone $itemBase)
+            ->selectRaw('
+                restaurants.id as restaurant_id,
+                restaurants.name as restaurant_name,
+                SUM(restaurant_order_items.quantity) as total_qty,
+                SUM(CASE WHEN restaurant_order_items.unit_price > 0
+                    THEN restaurant_order_items.unit_price * restaurant_order_items.quantity ELSE 0 END) as total_revenue,
+                COUNT(DISTINCT restaurant_orders.table_session_id) as sessions
+            ')
+            ->groupBy('restaurants.id', 'restaurants.name')
+            ->orderByDesc('total_revenue')
+            ->get()
+            ->keyBy('restaurant_id');
+
+        // ── Detay: restoran × gün × ürün ─────────────────────────────────────
+        $detailRows = (clone $itemBase)
+            ->selectRaw('
+                restaurants.id as restaurant_id,
+                restaurants.name as restaurant_name,
+                DATE(table_sessions.opened_at) as order_date,
+                restaurant_order_items.item_name,
+                SUM(restaurant_order_items.quantity) as qty,
+                AVG(restaurant_order_items.unit_price) as avg_price,
+                SUM(CASE WHEN restaurant_order_items.unit_price > 0
+                    THEN restaurant_order_items.unit_price * restaurant_order_items.quantity ELSE 0 END) as line_total
+            ')
+            ->groupBy('restaurants.id', 'restaurants.name', DB::raw('DATE(table_sessions.opened_at)'), 'restaurant_order_items.item_name')
+            ->orderBy('restaurants.name')
+            ->orderBy(DB::raw('DATE(table_sessions.opened_at)'))
+            ->orderByDesc('qty')
+            ->get();
+
+        // Gruplama: restaurant_id → order_date → rows[]
+        $byRestaurant = $detailRows->groupBy('restaurant_id')->map(fn($rows) => $rows->groupBy('order_date'));
+
+        $filters = [
+            'restaurant' => $restaurantId ? Restaurant::find($restaurantId)?->name : null,
+            'date_from'  => $dateFrom,
+            'date_to'    => $dateTo,
+        ];
+
+        $generatedAt = now()->format('d.m.Y H:i');
+
+        $fontCache = storage_path('fonts');
+        if (!is_dir($fontCache)) mkdir($fontCache, 0755, true);
+
+        $pdf = Pdf::loadView('modules.orders.analytics_pdf', compact(
+            'summary', 'restaurantTotals', 'byRestaurant', 'filters', 'generatedAt'
+        ))
+        ->setPaper('a4', 'portrait')
+        ->setOption([
+            'defaultFont'          => 'dejavu sans',
+            'isHtml5ParserEnabled' => true,
+            'isRemoteEnabled'      => false,
+            'fontCache'            => $fontCache,
+        ]);
+
+        $filename = 'siparis-raporu-' . now()->format('Ymd-His') . '.pdf';
+
+        return $pdf->download($filename);
     }
 }

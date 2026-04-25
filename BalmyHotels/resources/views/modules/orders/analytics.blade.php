@@ -7,8 +7,12 @@
         <div class="col-sm-6 p-md-0">
             <div class="welcome-text"><h4>Sipariş Analizi</h4></div>
         </div>
-        <div class="col-sm-6 p-md-0 justify-content-sm-end mt-2 mt-sm-0 d-flex">
-            <ol class="breadcrumb">
+        <div class="col-sm-6 p-md-0 justify-content-sm-end mt-2 mt-sm-0 d-flex align-items-center gap-2">
+            <button type="button" id="btnPdfRapor" class="btn btn-sm text-white d-flex align-items-center gap-1" style="background:#1a1a2e;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16"><path d="M14 14V4.5L9.5 0H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2zM9.5 3A1.5 1.5 0 0 0 11 4.5h2V14a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1h5.5v2z"/><path d="M4.603 14.087a.81.81 0 0 1-.438-.42c-.195-.388-.13-.776.08-1.102.198-.307.526-.568.897-.787a7.68 7.68 0 0 1 1.482-.645 19.697 19.697 0 0 0 1.062-2.227 7.269 7.269 0 0 1-.43-1.295c-.086-.4-.119-.796-.046-1.136.075-.354.274-.672.65-.823.192-.077.4-.12.602-.077a.7.7 0 0 1 .477.365c.088.164.12.356.127.538.007.188-.012.396-.047.614-.084.51-.27 1.134-.52 1.794a10.954 10.954 0 0 0 .98 1.686 5.753 5.753 0 0 1 1.334.05c.364.066.734.195.96.465.12.144.193.32.2.518.007.192-.047.382-.138.563a1.04 1.04 0 0 1-.354.416.856.856 0 0 1-.51.138c-.331-.014-.654-.196-.933-.417a5.712 5.712 0 0 1-.911-.95 11.651 11.651 0 0 0-1.997.406 11.307 11.307 0 0 1-1.02 1.51c-.292.35-.609.656-.927.787a.793.793 0 0 1-.58.029zm1.379-1.901c-.166.076-.32.156-.459.238-.328.194-.541.383-.647.547-.094.145-.096.25-.04.361.01.022.02.036.026.044a.266.266 0 0 0 .035-.012c.137-.056.355-.235.635-.572a8.18 8.18 0 0 0 .45-.606zm1.64-1.33a12.71 12.71 0 0 1 1.01-.193 11.744 11.744 0 0 1-.51-.858 20.801 20.801 0 0 1-.5 1.05zm2.446.45c.15.163.296.3.435.41.24.19.407.253.498.256a.107.107 0 0 0 .07-.015.307.307 0 0 0 .094-.125.436.436 0 0 0 .059-.2.095.095 0 0 0-.026-.063c-.052-.062-.2-.152-.518-.209a3.876 3.876 0 0 0-.612-.053zM8.078 7.8a6.7 6.7 0 0 0 .2-.828c.031-.188.043-.343.038-.465a.613.613 0 0 0-.032-.198.517.517 0 0 0-.145.04c-.087.035-.158.106-.196.283-.04.192-.03.469.046.822.024.111.054.227.09.346z"/></svg>
+                Gün Bazlı PDF Raporu
+            </button>
+            <ol class="breadcrumb mb-0">
                 <li class="breadcrumb-item"><a href="{{ url('/') }}">Anasayfa</a></li>
                 <li class="breadcrumb-item"><a href="{{ route('orders.take') }}">Sipariş</a></li>
                 <li class="breadcrumb-item active">Analiz</li>
@@ -493,5 +497,101 @@ new Chart(document.getElementById('chartDuration'), {
     }
 });
 @endif
+</script>
+
+{{-- SweetAlert2 --}}
+<link rel="stylesheet" href="{{ asset('vendor/sweetalert2/dist/sweetalert2.min.css') }}">
+<script src="{{ asset('vendor/sweetalert2/dist/sweetalert2.min.js') }}"></script>
+
+<script>
+document.getElementById('btnPdfRapor').addEventListener('click', function () {
+    const today    = new Date();
+    const fmt      = d => d.toISOString().split('T')[0];
+
+    function startOf(unit) {
+        const d = new Date(today);
+        if (unit === 'week') {
+            const day = d.getDay(); // 0=Sun
+            const diff = day === 0 ? -6 : 1 - day;
+            d.setDate(d.getDate() + diff);
+        } else if (unit === 'month') {
+            d.setDate(1);
+        } else if (unit === 'year') {
+            d.setMonth(0, 1);
+        }
+        return d;
+    }
+
+    Swal.fire({
+        title: '<strong>Gün Bazlı PDF Raporu</strong>',
+        html: `
+            <p class="text-muted mb-3" style="font-size:0.92rem;">Rapor oluşturmak istediğiniz dönemi seçin.</p>
+            <div class="d-grid gap-2">
+                <button class="btn btn-outline-dark btn-sm period-btn" data-period="week">📅 Bu Hafta</button>
+                <button class="btn btn-outline-dark btn-sm period-btn" data-period="month">📆 Bu Ay</button>
+                <button class="btn btn-outline-dark btn-sm period-btn" data-period="year">🗓️ Bu Yıl</button>
+                <button class="btn btn-outline-secondary btn-sm period-btn" data-period="custom">✏️ Özel Tarih Aralığı</button>
+            </div>`,
+        showConfirmButton: false,
+        showCloseButton: true,
+        customClass: { popup: 'shadow-lg' },
+        didOpen: function () {
+            document.querySelectorAll('.period-btn').forEach(function (btn) {
+                btn.addEventListener('click', function () {
+                    const period = this.dataset.period;
+
+                    if (period === 'custom') {
+                        Swal.fire({
+                            title: 'Tarih Aralığı Seçin',
+                            html: `
+                                <div class="mb-3 text-start">
+                                    <label class="form-label small fw-semibold">Başlangıç Tarihi</label>
+                                    <input type="date" id="swal-date-from" class="form-control form-control-sm" value="${fmt(startOf('month'))}">
+                                </div>
+                                <div class="text-start">
+                                    <label class="form-label small fw-semibold">Bitiş Tarihi</label>
+                                    <input type="date" id="swal-date-to" class="form-control form-control-sm" value="${fmt(today)}">
+                                </div>`,
+                            showCancelButton: true,
+                            confirmButtonText: '<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" fill="currentColor" viewBox="0 0 16 16"><path d="M14 14V4.5L9.5 0H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2z"/></svg> PDF Oluştur',
+                            cancelButtonText: 'İptal',
+                            confirmButtonColor: '#1a1a2e',
+                            preConfirm: function () {
+                                const from = document.getElementById('swal-date-from').value;
+                                const to   = document.getElementById('swal-date-to').value;
+                                if (!from || !to) {
+                                    Swal.showValidationMessage('Lütfen her iki tarihi de giriniz.');
+                                    return false;
+                                }
+                                if (from > to) {
+                                    Swal.showValidationMessage('Başlangıç tarihi bitiş tarihinden büyük olamaz.');
+                                    return false;
+                                }
+                                return { from, to };
+                            }
+                        }).then(function (result) {
+                            if (result.isConfirmed) {
+                                openPdf(result.value.from, result.value.to);
+                            }
+                        });
+                    } else {
+                        const from = fmt(startOf(period));
+                        const to   = fmt(today);
+                        Swal.close();
+                        openPdf(from, to);
+                    }
+                });
+            });
+        }
+    });
+
+    function openPdf(from, to) {
+        const params = new URLSearchParams({ date_from: from, date_to: to });
+        @if(isset($restaurantId) && $restaurantId)
+        params.set('restaurant_id', '{{ $restaurantId }}');
+        @endif
+        window.open('{{ route("orders.analytics.pdf") }}?' + params.toString(), '_blank');
+    }
+});
 </script>
 @endpush
