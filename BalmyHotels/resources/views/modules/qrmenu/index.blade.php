@@ -114,6 +114,13 @@
                             <i class="fa fa-{{ $menu->is_active ? 'pause' : 'play' }}"></i>
                         </button>
                     </form>
+                    <form method="POST" action="{{ route('qrmenus.clone', $menu) }}" class="d-inline"
+                          onsubmit="return confirm('&quot;{{ addslashes($menu->getTitle()) }}&quot; menüsünü klonlamak istiyor musunuz? Pasif olarak oluşturulacak.')">
+                        @csrf
+                        <button type="submit" class="btn btn-sm btn-outline-info" title="Klonla">
+                            <i class="fa fa-copy"></i>
+                        </button>
+                    </form>
                     <form method="POST" action="{{ route('qrmenus.destroy', $menu) }}" class="d-inline"
                           onsubmit="return confirm('Bu menüyü silmek istediğinize emin misiniz?')">
                         @csrf @method('DELETE')

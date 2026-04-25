@@ -494,6 +494,7 @@ Route::middleware('auth')->group(function () {
         Route::put('/{qrmenu}', [QrMenuController::class, 'update'])->name('update');
         Route::delete('/{qrmenu}', [QrMenuController::class, 'destroy'])->name('destroy');
         Route::post('/{qrmenu}/toggle', [QrMenuController::class, 'toggle'])->name('toggle');
+        Route::post('/{qrmenu}/klonla', [QrMenuController::class, 'clone'])->name('clone');
         // Kategori
         Route::get('/{qrmenu}/kategori/ekle', [QrMenuCategoryController::class, 'createCategory'])->name('category.create');
         Route::post('/{qrmenu}/kategori/ekle', [QrMenuCategoryController::class, 'storeCategory'])->name('category.store');
