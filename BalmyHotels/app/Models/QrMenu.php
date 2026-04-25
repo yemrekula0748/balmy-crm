@@ -16,10 +16,11 @@ class QrMenu extends Model
     ];
 
     const THEMES = [
-        'default'  => 'Klasik (Koyu Altın)',
-        'forest'   => 'Forest — Bohemian Modern',
-        'bohemian' => 'Bohem — Tek Sayfa',
-        'light'    => 'Açık — Bohem Beyaz',
+        'default'    => 'Klasik (Koyu Altın)',
+        'forest'     => 'Forest — Bohemian Modern',
+        'bohemian'   => 'Bohem — Tek Sayfa',
+        'light'      => 'Açık — Bohem Beyaz',
+        'light_card' => 'Açık — Kartlı & Resimli',
     ];
 
     protected $casts = [

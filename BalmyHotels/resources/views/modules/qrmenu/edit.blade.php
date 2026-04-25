@@ -37,7 +37,8 @@
 .theme-preview--default  { background: #0d1117; }
 .theme-preview--forest   { background: #0b1508; }
 .theme-preview--bohemian { background: #1a0f0a; }
-.theme-preview--light    { background: #fdfaf6; }
+.theme-preview--light      { background: #fdfaf6; }
+.theme-preview--light_card { background: #fdfaf6; border: 2px dashed #C19B77; }
 .theme-option-card.selected .theme-label,
 .theme-option-card:hover .theme-label { color: #8b6a4f; }
 .theme-label {

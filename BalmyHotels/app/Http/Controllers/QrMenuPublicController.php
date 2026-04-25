@@ -88,10 +88,11 @@ class QrMenuPublicController extends Controller
 
         $themeName = $menu->theme ?? 'default';
         $view = match($themeName) {
-            'forest'   => 'public.qrmenu.menu_forest',
-            'bohemian' => 'public.qrmenu.menu_bohemian',
-            'light'    => 'public.qrmenu.menu_light',
-            default    => 'public.qrmenu.menu',
+            'forest'     => 'public.qrmenu.menu_forest',
+            'bohemian'   => 'public.qrmenu.menu_bohemian',
+            'light'      => 'public.qrmenu.menu_light',
+            'light_card' => 'public.qrmenu.menu_light_card',
+            default      => 'public.qrmenu.menu',
         };
 
         return view($view, compact('menu', 'language', 'lang', 'featured', 'categories'));
