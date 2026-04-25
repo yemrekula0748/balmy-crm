@@ -395,7 +395,7 @@ table.day-table tfoot td.r { text-align: right; color: #C19B77; }
         @forelse($restaurantTotals as $rt)
         @php
             $pct  = $grandRevenue > 0 ? round(($rt->total_revenue / $grandRevenue) * 100, 1) : 0;
-            $barW = max(2, (int)$pct);
+            $barW = (int)$pct;
             $rowClass = ($i % 2 === 0) ? 'even' : 'odd';
         @endphp
         <tr class="{{ $rowClass }}">
