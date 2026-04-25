@@ -485,7 +485,7 @@
             @endif
 
             {{-- SİPARİŞ MODÜLÜ --}}
-            @if($user->hasPermission('orders','index') || $user->hasPermission('restaurant_settings','index') || $user->hasPermission('order_reports','index') || $user->hasPermission('order_analytics','index'))
+            @if($user->hasPermission('orders','index') || $user->hasPermission('restaurant_settings','index') || $user->hasPermission('order_reports','index') || $user->hasPermission('order_analytics','index') || $user->hasPermission('order_ai_analysis','index') || $user->hasPermission('order_guest_analysis','index'))
             <li @class(['mm-active' => request()->is('siparisler*')])>
                 <a class="has-arrow ai-icon" href="javascript:void()" aria-expanded="false">
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
@@ -514,12 +514,12 @@
                         <a href="{{ route('orders.analytics') }}">Sipariş Analizi</a>
                     </li>
                     @endif
-                    @if($user->hasPermission('order_analytics','index'))
+                    @if($user->hasPermission('order_ai_analysis','index'))
                     <li @class(['mm-active' => request()->is('siparisler/ai-analiz*')])>
                         <a href="{{ route('orders.ai-analysis') }}">Stratejik AI Analizi</a>
                     </li>
                     @endif
-                    @if($user->hasPermission('order_analytics','index'))
+                    @if($user->hasPermission('order_guest_analysis','index'))
                     <li @class(['mm-active' => request()->is('siparisler/misafir-analiz*')])>
                         <a href="{{ route('orders.guest-analysis') }}">Misafir Tüketim Analizi</a>
                     </li>

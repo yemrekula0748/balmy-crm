@@ -14,7 +14,7 @@ class OrderAiAnalysisController extends BaseModuleController
 {
     public function __construct()
     {
-        $this->requirePermission('order_analytics', ['index'], [], [], [], []);
+        $this->requirePermission('order_ai_analysis', ['index'], [], [], [], []);
     }
 
     public function index(Request $request)

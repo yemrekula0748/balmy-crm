@@ -81,10 +81,12 @@ class RolePermission extends Model
             'shuttle_reports'    => 'Servis Raporları',
         ],
         'Sipariş Modülü' => [
-            'restaurant_settings' => 'Restoran & Masa Tanımları',
-            'orders'              => 'Sipariş Al',
-            'order_reports'       => 'Sipariş Raporları',
-            'order_analytics'    => 'Sipariş Analizi',
+            'restaurant_settings'  => 'Restoran & Masa Tanımları',
+            'orders'               => 'Sipariş Al',
+            'order_reports'        => 'Sipariş Raporları',
+            'order_analytics'      => 'Sipariş Analizi',
+            'order_ai_analysis'    => 'Stratejik AI Analizi',
+            'order_guest_analysis' => 'Misafir Tüketim Analizi',
         ],
         'İç Denetim' => [
             'audit_types'            => 'Denetim Tipleri Yönetimi',
