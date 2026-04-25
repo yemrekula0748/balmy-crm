@@ -510,8 +510,13 @@
                     </li>
                     @endif
                     @if($user->hasPermission('order_analytics','index'))
-                    <li @class(['mm-active' => request()->is('siparisler/analiz*')])>
+                    <li @class(['mm-active' => request()->is('siparisler/analiz*') && !request()->is('siparisler/ai-analiz*')])>
                         <a href="{{ route('orders.analytics') }}">Sipariş Analizi</a>
+                    </li>
+                    @endif
+                    @if($user->hasPermission('order_analytics','index'))
+                    <li @class(['mm-active' => request()->is('siparisler/ai-analiz*')])>
+                        <a href="{{ route('orders.ai-analysis') }}">Stratejik AI Analizi</a>
                     </li>
                     @endif
                     @if($user->hasPermission('restaurant_settings','index'))

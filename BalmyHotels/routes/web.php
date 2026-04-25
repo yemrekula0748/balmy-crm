@@ -46,6 +46,7 @@ use App\Http\Controllers\Modules\RestaurantController;
 use App\Http\Controllers\Modules\OrderController;
 use App\Http\Controllers\Modules\OrderReportController;
 use App\Http\Controllers\Modules\OrderAnalyticsController;
+use App\Http\Controllers\Modules\OrderAiAnalysisController;
 use App\Http\Controllers\Modules\OcrController;
 use App\Http\Controllers\Modules\AuditTypeController;
 use App\Http\Controllers\Modules\AuditController;
@@ -693,6 +694,9 @@ Route::middleware('auth')->group(function () {
         // Analiz
         Route::get('/analiz',                        [OrderAnalyticsController::class, 'index'])->name('analytics');
         Route::get('/analiz/pdf',                    [OrderAnalyticsController::class, 'pdf'])->name('analytics.pdf');
+
+        // AI Analiz
+        Route::get('/ai-analiz',                     [OrderAiAnalysisController::class, 'index'])->name('ai-analysis');
 
         // Restoran tanımları
         Route::prefix('restoranlar')->name('restaurants.')->group(function () {
