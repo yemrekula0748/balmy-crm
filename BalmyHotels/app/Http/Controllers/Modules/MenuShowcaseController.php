@@ -134,7 +134,7 @@ class MenuShowcaseController extends BaseModuleController
             MenuShowcaseItem::create([
                 'showcase_id'  => $showcase->id,
                 'qr_menu_id'   => (int)$menuId,
-                'label'        => $labels[$menuId] ?? null,
+                'label'        => $labels[$idx] ?? null,
                 'sort_order'   => $idx,
             ]);
         }

@@ -4,8 +4,9 @@
     $selectedMenuIds = old('menus',
         $showcase ? $showcase->items->sortBy('sort_order')->pluck('qr_menu_id')->toArray() : []
     );
-    $labelsMap = old('labels',
-        $showcase ? $showcase->items->pluck('label', 'qr_menu_id')->filter()->toArray() : []
+    // Positional labels array — index matches $selectedMenuIds index (supports duplicate menus)
+    $labelsArr = old('labels',
+        $showcase ? array_values($showcase->items->sortBy('sort_order')->pluck('label')->toArray()) : []
     );
 @endphp
 
@@ -229,7 +230,7 @@
     @endphp
     const menuData = @json($menuDataArr);
 
-    const labelsMap    = @json((object)$labelsMap);
+    const labelsArr    = @json(array_values((array)$labelsArr));
     const initialOrder = @json(array_values((array)$selectedMenuIds));
 
     // ── Sort-zone DOM ─────────────────────────────────────────────────────────
@@ -259,32 +260,42 @@
                 <div class="fw-semibold small text-truncate">${d.title}</div>
                 <div class="text-muted" style="font-size:.72rem">${d.url}</div>
             </div>
-            <input type="text" name="labels[${menuId}]" value="${labelVal ?? ''}"
+            <input type="text" name="labels[]" value="${labelVal ?? ''}"
                    class="form-control form-control-sm" style="min-width:110px;max-width:145px"
                    placeholder="Görünen ad (ops.)">
+            <button type="button" class="btn btn-link text-muted p-0 duplicate-btn"
+                    title="Aynı menüyü tekrar ekle" style="font-size:.9rem;line-height:1">
+                <i class="fa fa-plus-circle"></i>
+            </button>
             <button type="button" class="btn btn-link text-danger p-0 ms-1 remove-btn"
-                    data-id="${menuId}" title="Kaldır" style="font-size:.9rem;line-height:1">
+                    title="Kaldır" style="font-size:.9rem;line-height:1">
                 <i class="fa fa-times"></i>
             </button>`;
-        card.querySelector('.remove-btn').addEventListener('click', () => removeItem(menuId));
+        card.querySelector('.duplicate-btn').addEventListener('click', () => addItem(menuId, ''));
+        card.querySelector('.remove-btn').addEventListener('click', () => removeCard(card));
         return card;
     }
 
     function addItem(menuId, labelVal) {
-        const id = String(menuId);
-        if (sortZone.querySelector(`[data-id="${id}"]`)) return;
         const card = createCard(menuId, labelVal ?? '');
         if (!card) return;
         sortZone.appendChild(card);
+        const id = String(menuId);
+        const cb = document.getElementById('menu-cb-' + id);
+        if (cb && !cb.checked) cb.checked = true;
+        document.querySelector(`.menu-choice-row[data-id="${id}"]`)?.classList.add('is-selected');
         updateUI();
     }
 
-    function removeItem(menuId) {
-        const id = String(menuId);
-        sortZone.querySelector(`[data-id="${id}"]`)?.remove();
-        const cb = document.getElementById('menu-cb-' + id);
-        if (cb) cb.checked = false;
-        document.querySelector(`.menu-choice-row[data-id="${id}"]`)?.classList.remove('is-selected');
+    function removeCard(card) {
+        const id = card.dataset.id;
+        card.remove();
+        const remaining = sortZone.querySelectorAll(`.sort-card[data-id="${id}"]`).length;
+        if (remaining === 0) {
+            const cb = document.getElementById('menu-cb-' + id);
+            if (cb) cb.checked = false;
+            document.querySelector(`.menu-choice-row[data-id="${id}"]`)?.classList.remove('is-selected');
+        }
         updateUI();
     }
 
@@ -295,9 +306,8 @@
     }
 
     // ── Başlangıç verilerini yükle (sort_order sırasıyla) ────────────────────
-    initialOrder.forEach(id => {
-        addItem(id, labelsMap[id] ?? '');
-        document.querySelector(`.menu-choice-row[data-id="${id}"]`)?.classList.add('is-selected');
+    initialOrder.forEach((id, pos) => {
+        addItem(id, labelsArr[pos] ?? '');
     });
     updateUI();
 
@@ -316,9 +326,11 @@
             const row = this.closest('.menu-choice-row');
             if (this.checked) {
                 addItem(id, '');
-                row.classList.add('is-selected');
             } else {
-                removeItem(id);
+                // Remove all instances of this menu from the sort zone
+                sortZone.querySelectorAll(`.sort-card[data-id="${id}"]`).forEach(c => c.remove());
+                row.classList.remove('is-selected');
+                updateUI();
             }
         });
     });
