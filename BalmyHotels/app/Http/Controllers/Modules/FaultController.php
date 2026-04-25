@@ -3,7 +3,9 @@
 namespace App\Http\Controllers\Modules;
 
 use App\Http\Controllers\Controller;
+use App\Mail\FaultAnalysisReport;
 use App\Mail\FaultReported;
+use Barryvdh\DomPDF\Facade\Pdf;
 use App\Models\Branch;
 use App\Models\Department;
 use App\Models\Fault;
@@ -29,7 +31,7 @@ class FaultController extends BaseModuleController
             ['edit', 'update', 'updateStatus', 'addComment', 'assign'],
             ['destroy']
         );
-        $this->middleware('perm:fault_stats,index')->only(['stats', 'analysis']);
+        $this->middleware('perm:fault_stats,index')->only(['stats', 'analysis', 'sendAnalysisReport']);
     }
 
 
@@ -1236,4 +1238,432 @@ class FaultController extends BaseModuleController
             'dayBeforeFaults', 'windowStart', 'now', 'page_title'
         ));
     }
+
+    /* ---------------------------------------------------------------
+     | ANALİZ RAPORU E-POSTA GÖNDER (AJAX POST)
+     --------------------------------------------------------------- */
+    public function sendAnalysisReport(Request $request)
+    {
+        $request->validate([
+            'email' => 'required|email|max:255',
+        ]);
+
+        $user        = auth()->user();
+        $branchIds   = $user->visibleBranchIds();
+        $now         = now();
+        $todayStart  = $now->copy()->startOfDay();
+        $windowStart = $now->copy()->subDays(2)->startOfDay();
+
+        $allFaults = Fault::with([
+                'department', 'branch', 'faultType',
+                'faultLocation', 'faultArea', 'reporter', 'updates',
+            ])
+            ->whereIn('branch_id', $branchIds)
+            ->where('created_at', '>=', $windowStart)
+            ->get();
+
+        $todayFaults  = $allFaults->filter(fn($f) => $f->created_at->gte($todayStart));
+        $yestStart    = $now->copy()->subDay()->startOfDay();
+
+        // Aynı analiz mantığını kullan
+        $insights = $this->buildAnalysisInsights($allFaults, $now, $todayStart, $yestStart, $windowStart);
+
+        $grouped = collect($insights)->groupBy('level');
+        $viewData = [
+            'insights'      => $insights,
+            'windowStart'   => $windowStart->format('d.m.Y'),
+            'reportDate'    => $now->format('d.m.Y H:i'),
+            'totalFaults'   => $allFaults->count(),
+            'criticalCount' => $grouped->get('critical', collect())->count(),
+            'warningCount'  => $grouped->get('warning',  collect())->count(),
+            'infoCount'     => $grouped->get('info',     collect())->count(),
+            'positiveCount' => $grouped->get('positive', collect())->count(),
+            'todayCount'    => $todayFaults->count(),
+            'findingCount'  => count($insights),
+        ];
+
+        $pdf = Pdf::loadView('pdf.fault_analysis', $viewData)
+            ->setPaper('a4', 'portrait')
+            ->setOptions([
+                'defaultFont'         => 'DejaVu Sans',
+                'isHtml5ParserEnabled'=> true,
+                'isRemoteEnabled'     => false,
+            ]);
+
+        $mailable = new FaultAnalysisReport(
+            pdfContent:    $pdf->output(),
+            reportDate:    $now->format('d.m.Y H:i'),
+            totalFaults:   $allFaults->count(),
+            criticalCount: $viewData['criticalCount'],
+            findingCount:  count($insights),
+        );
+        $mailable->with($viewData);
+
+        Mail::to($request->email)->send($mailable);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Rapor başarıyla ' . $request->email . ' adresine gönderildi.',
+        ]);
+    }
+
+    /* ---------------------------------------------------------------
+     | ORTAK: ANALİZ HESAPLAMA
+     --------------------------------------------------------------- */
+    private function buildAnalysisInsights($allFaults, $now, $todayStart, $yestStart, $windowStart): array
+    {
+        $todayFaults = $allFaults->filter(fn($f) => $f->created_at->gte($todayStart));
+        $yestFaults  = $allFaults->filter(fn($f) =>
+            $f->created_at->gte($yestStart) && $f->created_at->lt($todayStart)
+        );
+        $insights = [];
+
+        // 1. Aynı alan + aynı tür: ardışık günlerde tekrar
+        $areaTypeGroups = $allFaults
+            ->filter(fn($f) => $f->fault_area_id && $f->fault_type_id)
+            ->groupBy(fn($f) => $f->fault_area_id . '|' . $f->fault_type_id);
+        foreach ($areaTypeGroups as $group) {
+            $hasToday = $group->filter(fn($f) => $f->created_at->gte($todayStart))->count() > 0;
+            $hasYest  = $group->filter(fn($f) =>
+                $f->created_at->gte($yestStart) && $f->created_at->lt($todayStart)
+            )->count() > 0;
+            if ($hasToday && $hasYest) {
+                $first    = $group->first();
+                $areaName = $first->faultArea?->name    ?? '—';
+                $locName  = $first->faultLocation?->name ?? '—';
+                $typeName = $first->faultType?->name    ?? '—';
+                $deptName = $first->department?->name   ?? '—';
+                $has3Day  = $group->filter(fn($f) => $f->created_at->lt($yestStart))->count() > 0;
+                $extra    = $has3Day
+                    ? ' <strong>3 gün üst üste aynı sorun kayıt altına alınmaktadır.</strong>'
+                    : '';
+                $insights[] = [
+                    'level'  => 'critical',
+                    'icon'   => 'fa-triangle-exclamation',
+                    'title'  => '"' . $locName . ' — ' . $areaName . '" Alanında Ardışık Günlerde ' . $typeName . ' Tekrarı',
+                    'body'   => sprintf(
+                        '<strong>%s</strong> konumundaki <strong>%s</strong> alanında <strong>%s</strong> arızası hem dün hem bugün kayıt altına alınmıştır.%s '
+                        . '<strong>%s</strong> departmanı bu vakayı köklü onarım perspektifiyle ele almalıdır. '
+                        . 'Bu alan–tür kombinasyonu son 3 günde toplam <strong>%d</strong> kez bildirilmiştir.',
+                        $locName, $areaName, $typeName, $extra, $deptName, $group->count()
+                    ),
+                    'faults' => $group,
+                    'metric' => ['value' => $group->count() . '×', 'label' => '3 günde tekrar'],
+                    'tags'   => [$typeName, $locName, $has3Day ? '3 Gün Üst Üste' : 'Ardışık Gün'],
+                ];
+            }
+        }
+        // 2. Alan hacmi
+        $areaVolume = $allFaults->filter(fn($f) => $f->fault_area_id)->groupBy('fault_area_id');
+        foreach ($areaVolume as $group) {
+            $first    = $group->first();
+            $areaName = $first->faultArea?->name    ?? '—';
+            $locName  = $first->faultLocation?->name ?? '—';
+            if ($group->count() >= 3) {
+                $openCnt  = $group->whereNotIn('status', ['resolved', 'closed'])->count();
+                $typeList = $group->groupBy('fault_type_id')
+                    ->map(fn($g) => $g->first()->faultType?->name ?? '—')->join(', ');
+                $insights[] = [
+                    'level'  => 'critical', 'icon' => 'fa-fire',
+                    'title'  => '"' . $locName . ' — ' . $areaName . '" Son 3 Günün Arıza Odak Noktası (' . $group->count() . ' Vaka)',
+                    'body'   => sprintf(
+                        '<strong>%s</strong> konumundaki <strong>%s</strong> alanında son 3 günde <strong>%d</strong> arıza kayıt altına alındı. '
+                        . 'Arıza türleri: <em>%s</em>. Hâlâ <strong>%d</strong> arıza açık konumdadır.',
+                        $locName, $areaName, $group->count(), $typeList, $openCnt
+                    ),
+                    'faults' => $group,
+                    'metric' => ['value' => $group->count(), 'label' => 'arıza / 3 gün'],
+                    'tags'   => [$locName, $areaName, 'Yoğun Alan'],
+                ];
+            } elseif ($group->count() === 2 && $group->pluck('fault_type_id')->unique()->count() === 1) {
+                $typeName = $first->faultType?->name ?? '—';
+                $deptName = $first->department?->name ?? '—';
+                $sorted   = $group->sortBy('created_at');
+                $insights[] = [
+                    'level'  => 'warning', 'icon' => 'fa-rotate',
+                    'title'  => '"' . $areaName . '" Alanında ' . $typeName . ' İki Kez Tekrarlandı',
+                    'body'   => sprintf(
+                        '<strong>%s</strong> konumundaki <strong>%s</strong> alanında <strong>%s</strong> arızası 3 günlük dönemde iki kez meydana geldi. '
+                        . 'İlk vaka <strong>%s</strong>, ikinci vaka <strong>%s</strong>. '
+                        . '<strong>%s</strong> departmanı ilk müdahaleyi gözden geçirmelidir.',
+                        $locName, $areaName, $typeName,
+                        $sorted->first()->created_at->format('d.m.Y H:i'),
+                        $sorted->last()->created_at->format('d.m.Y H:i'),
+                        $deptName
+                    ),
+                    'faults' => $group,
+                    'metric' => ['value' => '2×', 'label' => 'tekrar'],
+                    'tags'   => [$typeName, 'Yinelenen Arıza'],
+                ];
+            }
+        }
+        // 3. Yavaş çözüm (6 sa+)
+        $slowResolved = $allFaults->filter(fn($f) =>
+            $f->resolved_at && $f->created_at->diffInMinutes($f->resolved_at) / 60 > 6
+        );
+        if ($slowResolved->count() > 0) {
+            $worst    = $slowResolved->sortByDesc(fn($f) => $f->created_at->diffInMinutes($f->resolved_at))->first();
+            $wH       = round($worst->created_at->diffInMinutes($worst->resolved_at) / 60, 1);
+            $wA       = $worst->faultArea?->name ?? ($worst->faultLocation?->name ?? 'Belirtilmemiş');
+            $avgH     = round($slowResolved->avg(fn($f) => $f->created_at->diffInMinutes($f->resolved_at) / 60), 1);
+            $insights[] = [
+                'level'  => 'warning', 'icon' => 'fa-clock',
+                'title'  => $slowResolved->count() . ' Arıza 6 Saatin Üzerinde Çözüm Süresiyle Kapatıldı',
+                'body'   => sprintf(
+                    'Son 3 günde <strong>%d</strong> vaka 6 saatin üzerinde çözüm gerektirdi. '
+                    . 'Ortalama çözüm süresi <strong>%.1f saat</strong>. '
+                    . 'En yavaş vaka: <strong>%s</strong> alanındaki <strong>%s</strong> — <strong>%.1f saat</strong>.',
+                    $slowResolved->count(), $avgH, $wA, $worst->faultType?->name ?? '—', $wH
+                ),
+                'faults' => $slowResolved,
+                'metric' => ['value' => Fault::formatHours($avgH), 'label' => 'ort. gecikme'],
+                'tags'   => ['Çözüm Süresi', 'SLA Riski'],
+            ];
+        }
+        // 4. Askıda (12 sa+)
+        $staleFaults = $allFaults->filter(fn($f) =>
+            in_array($f->status, ['open', 'in_progress']) && $f->created_at->diffInHours($now) > 12
+        );
+        if ($staleFaults->count() > 0) {
+            $oldest = $staleFaults->sortBy('created_at')->first();
+            $insights[] = [
+                'level'  => 'warning', 'icon' => 'fa-hourglass-half',
+                'title'  => $staleFaults->count() . ' Arıza 12 Saatin Üzerinde Çözüm Bekliyor',
+                'body'   => sprintf(
+                    'Son 3 günde <strong>%d</strong> arıza 12 saatten fazla bekliyor. '
+                    . 'En eski: <strong>%s</strong> tarihinde %s alanında açılan <strong>%s</strong> — <strong>%.1f saat</strong> geçti.',
+                    $staleFaults->count(), $oldest->created_at->format('d.m.Y H:i'),
+                    $oldest->faultArea?->name ?? ($oldest->faultLocation?->name ?? '—'),
+                    $oldest->faultType?->name ?? '—',
+                    round($oldest->created_at->diffInHours($now), 1)
+                ),
+                'faults' => $staleFaults,
+                'metric' => ['value' => $staleFaults->count(), 'label' => 'bekleyen'],
+                'tags'   => ['Uzun Bekleme', 'Aksiyon Gerekli'],
+            ];
+        }
+        // 5. Kritik açık
+        $criticalOpen = $allFaults->filter(fn($f) =>
+            $f->priority === 'critical' && !in_array($f->status, ['resolved', 'closed'])
+        );
+        if ($criticalOpen->count() > 0) {
+            $minAge = $criticalOpen->min(fn($f) => $f->created_at->diffInMinutes($now) / 60);
+            $maxAge = $criticalOpen->max(fn($f) => $f->created_at->diffInMinutes($now) / 60);
+            $insights[] = [
+                'level'  => 'critical', 'icon' => 'fa-skull-crossbones',
+                'title'  => 'KRİTİK: ' . $criticalOpen->count() . ' Acil Öncelikli Arıza Hâlâ Kapatılmadı',
+                'body'   => sprintf(
+                    'Son 3 günde <strong>%d</strong> kritik öncelikli arıza çözüme kavuşturulamamıştır. '
+                    . 'Bekleyen süre <strong>%s</strong> ile <strong>%s</strong> arasında değişmektedir. İvedi müdahale ve yönetim bilgilendirmesi gereklidir.',
+                    $criticalOpen->count(), Fault::formatHours($minAge), Fault::formatHours($maxAge)
+                ),
+                'faults' => $criticalOpen,
+                'metric' => ['value' => $criticalOpen->count(), 'label' => 'kritik açık'],
+                'tags'   => ['KRİTİK', 'Acil Müdahale'],
+            ];
+        }
+        // 6. SLA ihlali
+        $slaBreaches = $allFaults->filter(fn($f) =>
+            $f->resolved_at && $f->faultType
+            && ($f->created_at->diffInMinutes($f->resolved_at) / 60) > $f->faultType->completion_hours
+        );
+        if ($slaBreaches->count() > 0) {
+            $avgEx = round($slaBreaches->avg(fn($f) =>
+                $f->created_at->diffInMinutes($f->resolved_at) / 60 - $f->faultType->completion_hours
+            ), 1);
+            $wB = $slaBreaches->sortByDesc(fn($f) =>
+                $f->created_at->diffInMinutes($f->resolved_at) / 60 - $f->faultType->completion_hours
+            )->first();
+            $wEx = round($wB->created_at->diffInMinutes($wB->resolved_at) / 60 - $wB->faultType->completion_hours, 1);
+            $insights[] = [
+                'level'  => 'warning', 'icon' => 'fa-shield-halved',
+                'title'  => $slaBreaches->count() . ' Arızada SLA Hedefi Aşıldı — Ort. ' . $avgEx . ' Sa. Fazla',
+                'body'   => sprintf(
+                    'Son 3 günde <strong>%d</strong> arıza SLA hedefini aşmıştır. Ortalama aşım <strong>%.1f saat</strong>. '
+                    . 'En büyük ihlal <strong>%s</strong> türünde — hedefin <strong>%.1f saat</strong> üzerinde.',
+                    $slaBreaches->count(), $avgEx, $wB->faultType?->name ?? '—', $wEx
+                ),
+                'faults' => $slaBreaches,
+                'metric' => ['value' => $slaBreaches->count(), 'label' => 'SLA ihlali'],
+                'tags'   => ['SLA İhlali', 'Servis Kalitesi'],
+            ];
+        }
+        // 7. Bugün yanıtsız acil
+        $urgentStale = $todayFaults->filter(fn($f) =>
+            in_array($f->priority, ['critical', 'high']) && $f->status === 'open'
+            && $f->created_at->diffInHours($now) >= 2
+        );
+        if ($urgentStale->count() > 0)
+            $insights[] = [
+                'level'  => 'critical', 'icon' => 'fa-bell-slash',
+                'title'  => 'Bugün Açılan ' . $urgentStale->count() . ' Yüksek/Kritik Arıza 2+ Saattir Yanıtsız',
+                'body'   => sprintf(
+                    'Bugün açılan <strong>%d</strong> yüksek veya kritik öncelikli arıza, bildirimi takiben 2+ saat yanıtsız kalmaktadır. '
+                    . 'İlgili departman yöneticilerine ivedilikle iletilmelidir.',
+                    $urgentStale->count()
+                ),
+                'faults' => $urgentStale,
+                'metric' => ['value' => $urgentStale->count(), 'label' => 'yanıtsız acil'],
+                'tags'   => ['Acil', 'Yanıtsız', 'Bugün'],
+            ];
+        // 8. Departman yük
+        if ($allFaults->count() >= 3) {
+            $deptLoad = $allFaults->groupBy('assigned_department_id')
+                ->map(fn($g) => [
+                    'dept'       => $g->first()->department,
+                    'count'      => $g->count(),
+                    'open'       => $g->whereNotIn('status', ['resolved', 'closed'])->count(),
+                    'todayCount' => $g->filter(fn($f) => $f->created_at->gte($todayStart))->count(),
+                ])->sortByDesc('count');
+            $topDept = $deptLoad->first();
+            if ($topDept && $deptLoad->count() > 1) {
+                $secondDept = $deptLoad->skip(1)->first();
+                $loadRatio  = $allFaults->count() > 0 ? round($topDept['count'] / $allFaults->count() * 100) : 0;
+                $insights[] = [
+                    'level'  => 'info', 'icon' => 'fa-sitemap',
+                    'title'  => ($topDept['dept']?->name ?? '—') . ' Departmanı En Yüksek Arıza Yükünü Taşıyor (%' . $loadRatio . ')',
+                    'body'   => sprintf(
+                        'Toplam arızanın <strong>%%%d</strong>\'i (<strong>%d arıza</strong>) <strong>%s</strong> departmanına yönlendirildi. '
+                        . 'Bu departmanda <strong>%d</strong> açık arıza mevcut; bugün <strong>%d</strong> yeni arıza geldi. '
+                        . 'İkinci sırada <strong>%s</strong> (%d arıza).',
+                        $loadRatio, $topDept['count'], $topDept['dept']?->name ?? '—',
+                        $topDept['open'], $topDept['todayCount'],
+                        $secondDept['dept']?->name ?? '—', $secondDept['count']
+                    ),
+                    'faults' => null,
+                    'metric' => ['value' => '%' . $loadRatio, 'label' => 'dept payı'],
+                    'tags'   => ['Departman Yükü', $topDept['dept']?->name ?? '—'],
+                ];
+            }
+        }
+        // 9. Pik saat
+        if ($allFaults->count() >= 3) {
+            $hourDist  = $allFaults->groupBy(fn($f) => (int) $f->created_at->format('H'))
+                ->map(fn($g) => $g->count())->sortByDesc(fn($v) => $v);
+            $peakHour  = $hourDist->keys()->first();
+            $peakCount = $hourDist->first();
+            if ($peakCount >= 2)
+                $insights[] = [
+                    'level'  => 'info', 'icon' => 'fa-clock-rotate-left',
+                    'title'  => sprintf('Arıza Bildirimlerinde Pik Saat: %02d:00–%02d:00', $peakHour, ($peakHour + 1) % 24),
+                    'body'   => sprintf(
+                        '<strong>%02d:00–%02d:00</strong> saatleri arasında <strong>%d</strong> arıza kaydı oluşturulmuştur; '
+                        . 'bu dilimde ekip hazırlık düzeyi artırılmalıdır.',
+                        $peakHour, ($peakHour + 1) % 24, $peakCount
+                    ),
+                    'faults' => null,
+                    'metric' => ['value' => sprintf('%02d:00', $peakHour), 'label' => 'pik saat'],
+                    'tags'   => ['Zaman Analizi', sprintf('%02d:00 Pik', $peakHour)],
+                ];
+        }
+        // 10. Gece arıza
+        $nightFaults = $allFaults->filter(fn($f) => $f->created_at->hour >= 22 || $f->created_at->hour < 6);
+        if ($nightFaults->count() >= 2)
+            $insights[] = [
+                'level'  => 'info', 'icon' => 'fa-moon',
+                'title'  => 'Gece Saatlerinde (22:00–06:00) ' . $nightFaults->count() . ' Arıza Bildirimi Alındı',
+                'body'   => sprintf(
+                    'Son 3 günde <strong>%d</strong> arıza gece saatlerinde iletilmiştir. '
+                    . 'Gece nöbet çizelgesi ve teknik personel kapasitesi gözden geçirilmelidir.',
+                    $nightFaults->count()
+                ),
+                'faults' => $nightFaults,
+                'metric' => ['value' => $nightFaults->count(), 'label' => 'gece arızası'],
+                'tags'   => ['Gece Vardiyası', 'Nöbet Analizi'],
+            ];
+        // 11. Sıcak konum
+        $locGroups = $allFaults->groupBy('fault_location_id')
+            ->map(fn($g) => [
+                'name'     => $g->first()->faultLocation?->name ?? 'Belirtilmemiş',
+                'count'    => $g->count(),
+                'open'     => $g->whereNotIn('status', ['resolved', 'closed'])->count(),
+                'typeList' => $g->groupBy('fault_type_id')
+                    ->map(fn($tg) => $tg->first()->faultType?->name ?? '—')->join(', '),
+            ])->sortByDesc('count');
+        $hotLoc = $locGroups->first();
+        if ($hotLoc && $hotLoc['count'] >= 2 && $locGroups->count() > 1)
+            $insights[] = [
+                'level'  => 'warning', 'icon' => 'fa-location-dot',
+                'title'  => '"' . $hotLoc['name'] . '" Son 3 Günün En Sorunlu Konumu (' . $hotLoc['count'] . ' Arıza)',
+                'body'   => sprintf(
+                    '<strong>%s</strong> bölgesi son 3 günde <strong>%d</strong> arıza kaydıyla öne çıktı. '
+                    . 'Türler: <em>%s</em>. Hâlâ <strong>%d</strong> açık arıza mevcut.',
+                    $hotLoc['name'], $hotLoc['count'], $hotLoc['typeList'], $hotLoc['open']
+                ),
+                'faults' => null,
+                'metric' => ['value' => $hotLoc['count'], 'label' => 'konum arızası'],
+                'tags'   => [$hotLoc['name'], 'Sıcak Nokta'],
+            ];
+        // 12. Günlük karşılaştırma
+        $todayCnt    = $todayFaults->count();
+        $yestCnt     = $yestFaults->count();
+        $todayClosed = $todayFaults->filter(fn($f) => in_array($f->status, ['resolved', 'closed']))->count();
+        if ($todayCnt > 0 || $yestCnt > 0) {
+            $diff  = $todayCnt - $yestCnt;
+            $level = match (true) { $diff >= 4 => 'warning', $diff <= -3 => 'positive', default => 'info' };
+            $trendMsg = match (true) {
+                $diff > 0  => sprintf('Dünle kıyaslandığında <strong>%d</strong> arıza daha fazla bildirildi.', $diff),
+                $diff < 0  => sprintf('Dünle kıyaslandığında <strong>%d</strong> arıza daha az bildirildi.', abs($diff)),
+                default    => 'Bugünkü arıza sayısı dünkü ile aynı seviyede.',
+            };
+            $insights[] = [
+                'level'  => $level, 'icon' => 'fa-chart-simple',
+                'title'  => 'Günlük Karşılaştırma — Bugün: ' . $todayCnt . ' | Dün: ' . $yestCnt,
+                'body'   => sprintf(
+                    'Bugün <strong>%d</strong> arıza açıldı, <strong>%d</strong> adedi aynı gün kapatıldı. %s '
+                    . 'Kritik: <strong>%d</strong>, Yüksek: <strong>%d</strong>.',
+                    $todayCnt, $todayClosed, $trendMsg,
+                    $todayFaults->where('priority', 'critical')->count(),
+                    $todayFaults->where('priority', 'high')->count()
+                ),
+                'faults' => null,
+                'metric' => ['value' => ($diff >= 0 ? '+' : '') . $diff, 'label' => 'dünden fark'],
+                'tags'   => ['Günlük Özet', 'Trend'],
+            ];
+        }
+        // 13. Hızlı çözüm (2 sa-)
+        $fastToday = $todayFaults->filter(fn($f) =>
+            $f->resolved_at && $f->created_at->diffInHours($f->resolved_at) <= 2
+        );
+        if ($fastToday->count() > 0) {
+            $fastAvg = round($fastToday->avg(fn($f) => $f->created_at->diffInMinutes($f->resolved_at)), 0);
+            $insights[] = [
+                'level'  => 'positive', 'icon' => 'fa-bolt',
+                'title'  => 'Bugün ' . $fastToday->count() . ' Arıza 2 Saat İçinde Çözüme Kavuşturuldu',
+                'body'   => sprintf(
+                    'Bugün açılan <strong>%d</strong> arıza en fazla 2 saat içinde kapatıldı. '
+                    . 'Ortalama çözüm süresi <strong>%d dakika</strong>. Yüksek operasyonel hazırlık.',
+                    $fastToday->count(), $fastAvg
+                ),
+                'faults' => $fastToday,
+                'metric' => ['value' => $fastToday->count(), 'label' => 'hızlı çözüm'],
+                'tags'   => ['Başarılı', 'Hızlı Yanıt', 'Olumlu'],
+            ];
+        }
+        // 14. Sessiz gün
+        if ($todayFaults->count() === 0 && $allFaults->count() > 0)
+            $insights[] = [
+                'level'  => 'positive', 'icon' => 'fa-circle-check',
+                'title'  => 'Bugün Henüz Hiç Arıza Bildirimi Alınmadı',
+                'body'   => 'Bugün sisteme arıza kaydı iletilmemiştir. Teknik altyapı ve ekipman bakımının etkili sürdürüldüğünün göstergesidir.',
+                'faults' => null,
+                'metric' => ['value' => '0', 'label' => 'bugün arıza'],
+                'tags'   => ['Sessiz Gün', 'Olumlu'],
+            ];
+        // 15. Tamamen boş
+        if ($allFaults->count() === 0)
+            $insights[] = [
+                'level'  => 'positive', 'icon' => 'fa-circle-check',
+                'title'  => 'Son 3 Günde Herhangi Bir Arıza Kaydı Bulunmamaktadır',
+                'body'   => 'Analiz edilen 3 günlük dönem boyunca hiçbir arıza bildirimi sisteme iletilmemiştir.',
+                'faults' => null,
+                'metric' => ['value' => '0', 'label' => '3 günde arıza'],
+                'tags'   => ['Mükemmel', 'Sorunsuz'],
+            ];
+
+        $order = ['critical' => 0, 'warning' => 1, 'info' => 2, 'positive' => 3];
+        usort($insights, fn($a, $b) => ($order[$a['level']] ?? 9) <=> ($order[$b['level']] ?? 9));
+        return $insights;
+    }
 }
+

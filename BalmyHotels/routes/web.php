@@ -346,6 +346,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/departmanim',               [FaultController::class, 'myDepartment'])->name('my-department');
         Route::get('/istatistikler',              [FaultController::class, 'stats'])->name('stats');
         Route::get('/analiz',                    [FaultController::class, 'analysis'])->name('analysis');
+        Route::post('/analiz/gonder',            [FaultController::class, 'sendAnalysisReport'])->name('analysis.send');
 
         // AJAX cascading dropdown
         Route::get('/ajax/departmanlar',         [FaultController::class, 'ajaxDepartments'])->name('ajax.departments');

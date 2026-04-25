@@ -299,6 +299,16 @@ $levelMeta = [
                     <i class="fas fa-rotate" style="font-size:.7rem"></i>
                     Yenile
                 </a>
+                <button id="btn-send-report"
+                   style="display:inline-flex;align-items:center;gap:7px;
+                          background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);
+                          border-radius:8px;padding:7px 14px;font-size:.78rem;color:#fff;
+                          font-weight:600;cursor:pointer;transition:background .15s"
+                   onmouseover="this.style.background='rgba(255,255,255,.2)'"
+                   onmouseout="this.style.background='rgba(255,255,255,.12)'">
+                    <i class="fas fa-envelope" style="font-size:.7rem"></i>
+                    E-posta Gönder
+                </button>
             </div>
         </div>
     </div>
@@ -493,3 +503,63 @@ $levelMeta = [
 
 </div>
 @endsection
+
+@push('scripts')
+<script src="{{ asset('vendor/sweetalert2/dist/sweetalert2.min.js') }}"></script>
+<script>
+document.getElementById('btn-send-report').addEventListener('click', function () {
+    Swal.fire({
+        title: '<strong>Raporu E-posta ile Gönder</strong>',
+        html: '<p style="color:#64748b;margin:0 0 4px">Yapay Zeka Analiz Raporu PDF olarak hazırlanacak<br>ve belirttiğiniz adrese gönderilecektir.</p>',
+        input: 'email',
+        inputLabel: 'E-posta Adresi',
+        inputPlaceholder: 'ornek@otel.com',
+        inputAttributes: { autocomplete: 'email' },
+        showCancelButton: true,
+        confirmButtonText: '<i class="fas fa-paper-plane"></i>&nbsp; Gönder',
+        cancelButtonText: 'İptal',
+        confirmButtonColor: '#6366f1',
+        cancelButtonColor: '#94a3b8',
+        showLoaderOnConfirm: true,
+        inputValidator: (value) => {
+            if (!value) return 'Lütfen bir e-posta adresi girin.';
+            const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!re.test(value)) return 'Geçerli bir e-posta adresi girin.';
+        },
+        preConfirm: (email) => {
+            return fetch('{{ route('faults.analysis.send') }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                    'Accept': 'application/json',
+                },
+                body: JSON.stringify({ email }),
+            })
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(data => {
+                        throw new Error(data.message || 'Sunucu hatası oluştu.');
+                    });
+                }
+                return response.json();
+            })
+            .catch(error => {
+                Swal.showValidationMessage(error.message || 'Gönderilemedi. Lütfen tekrar deneyin.');
+            });
+        },
+        allowOutsideClick: () => !Swal.isLoading(),
+    }).then((result) => {
+        if (result.isConfirmed && result.value?.success) {
+            Swal.fire({
+                icon: 'success',
+                title: 'Rapor Gönderildi!',
+                html: '<p>' + (result.value.message || 'Rapor başarıyla gönderildi.') + '</p>',
+                confirmButtonColor: '#6366f1',
+                confirmButtonText: 'Tamam',
+            });
+        }
+    });
+});
+</script>
+@endpush
