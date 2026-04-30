@@ -345,8 +345,13 @@ class FaultController extends BaseModuleController
         $query->orderBy('created_at', 'desc');
 
         $faults      = $query->paginate(20)->withQueryString();
-        $departments = Department::where('fault_assignable', true)->orderBy('name')->get();
-        $locations   = FaultLocation::where('is_active', true)->orderBy('name')->get();
+        $branchId    = $user->branch_id;
+        $departments = Department::where('fault_assignable', true)
+            ->where('branch_id', $branchId)
+            ->orderBy('name')->get();
+        $locations   = FaultLocation::where('is_active', true)
+            ->where('branch_id', $branchId)
+            ->orderBy('name')->get();
         $areas       = $request->filled('location_id')
             ? FaultArea::where('fault_location_id', $request->location_id)->where('is_active', true)->orderBy('name')->get()
             : collect();
