@@ -23,21 +23,88 @@
 
     {{-- Filtre --}}
     <div class="card mb-3">
-        <div class="card-body py-2">
-            <form method="GET" class="row g-2 align-items-center">
-                <div class="col-auto"><label class="col-form-label-sm fw-semibold">Durum:</label></div>
-                <div class="col-auto">
-                    <select name="status" class="form-select form-select-sm" onchange="this.form.submit()" style="min-width:150px">
+        <div class="card-body py-3">
+            <form method="GET" id="filterForm" class="row g-2 align-items-end">
+
+                {{-- Durum --}}
+                <div class="col-sm-6 col-md-3 col-lg-2">
+                    <label class="form-label form-label-sm fw-semibold mb-1">Durum</label>
+                    <select name="status" class="form-select form-select-sm" onchange="this.form.submit()">
                         <option value="">Tümü</option>
                         @foreach(\App\Models\Fault::STATUSES as $val => $lbl)
                             <option value="{{ $val }}" @selected(request('status') == $val)>{{ $lbl }}</option>
                         @endforeach
                     </select>
                 </div>
-                @if(request('status'))
-                    <div class="col-auto"><a href="{{ route('faults.my-reports') }}" class="btn btn-sm btn-outline-secondary">Temizle</a></div>
-                @endif
-                <div class="col-auto ms-auto">
+
+                {{-- Konum --}}
+                <div class="col-sm-6 col-md-3 col-lg-2">
+                    <label class="form-label form-label-sm fw-semibold mb-1">Konum</label>
+                    <select name="location_id" class="form-select form-select-sm" id="locationSelect" onchange="onLocationChange()">
+                        <option value="">Tümü</option>
+                        @foreach($locations as $loc)
+                            <option value="{{ $loc->id }}" @selected(request('location_id') == $loc->id)>{{ $loc->name }}</option>
+                        @endforeach
+                    </select>
+                </div>
+
+                {{-- Alan --}}
+                <div class="col-sm-6 col-md-3 col-lg-2">
+                    <label class="form-label form-label-sm fw-semibold mb-1">Alan</label>
+                    <select name="area_id" class="form-select form-select-sm" id="areaSelect">
+                        <option value="">Tümü</option>
+                        @foreach($areas as $area)
+                            <option value="{{ $area->id }}" @selected(request('area_id') == $area->id)>{{ $area->name }}</option>
+                        @endforeach
+                    </select>
+                </div>
+
+                {{-- Arıza Türü --}}
+                <div class="col-sm-6 col-md-3 col-lg-2">
+                    <label class="form-label form-label-sm fw-semibold mb-1">Arıza Türü</label>
+                    <select name="fault_type_id" class="form-select form-select-sm" onchange="this.form.submit()">
+                        <option value="">Tümü</option>
+                        @foreach($faultTypes as $ft)
+                            <option value="{{ $ft->id }}" @selected(request('fault_type_id') == $ft->id)>{{ $ft->name }}</option>
+                        @endforeach
+                    </select>
+                </div>
+
+                {{-- Departman --}}
+                <div class="col-sm-6 col-md-3 col-lg-2">
+                    <label class="form-label form-label-sm fw-semibold mb-1">Departman</label>
+                    <select name="department_id" class="form-select form-select-sm" onchange="this.form.submit()">
+                        <option value="">Tümü</option>
+                        @foreach($departments as $dept)
+                            <option value="{{ $dept->id }}" @selected(request('department_id') == $dept->id)>{{ $dept->name }}</option>
+                        @endforeach
+                    </select>
+                </div>
+
+                {{-- Tarih Aralığı --}}
+                <div class="col-sm-6 col-md-3 col-lg-2">
+                    <label class="form-label form-label-sm fw-semibold mb-1">Başlangıç</label>
+                    <input type="date" name="date_from" class="form-control form-control-sm" value="{{ request('date_from') }}">
+                </div>
+                <div class="col-sm-6 col-md-3 col-lg-2">
+                    <label class="form-label form-label-sm fw-semibold mb-1">Bitiş</label>
+                    <input type="date" name="date_to" class="form-control form-control-sm" value="{{ request('date_to') }}">
+                </div>
+
+                {{-- Butonlar --}}
+                <div class="col-sm-6 col-md-3 col-lg-2 d-flex gap-2 align-items-end">
+                    <button type="submit" class="btn btn-primary btn-sm">
+                        <i class="fas fa-filter me-1"></i>Filtrele
+                    </button>
+                    @if(request()->hasAny(['status','location_id','area_id','fault_type_id','department_id','date_from','date_to']))
+                        <a href="{{ route('faults.my-reports') }}" class="btn btn-outline-secondary btn-sm">
+                            <i class="fas fa-times me-1"></i>Temizle
+                        </a>
+                    @endif
+                </div>
+
+                {{-- Yeni Arıza (sağ tarafa) --}}
+                <div class="col-auto ms-auto d-flex align-items-end">
                     <a href="{{ route('faults.create') }}" class="btn btn-danger btn-sm">
                         <i class="fas fa-plus me-1"></i> Yeni Arıza Bildir
                     </a>
@@ -151,4 +218,33 @@
     <div class="mt-3">{{ $faults->links() }}</div>
     @endif
 </div>
+
+@push('scripts')
+<script>
+function onLocationChange() {
+    const locationId = document.getElementById('locationSelect').value;
+    const areaSelect = document.getElementById('areaSelect');
+
+    // Konum seçilmemişse alanı temizle ve formu gönder
+    if (!locationId) {
+        areaSelect.innerHTML = '<option value="">Tümü</option>';
+        document.getElementById('filterForm').submit();
+        return;
+    }
+
+    fetch(`/arizalar/ajax/alanlar?location_id=${locationId}`)
+        .then(r => r.json())
+        .then(data => {
+            areaSelect.innerHTML = '<option value="">Tümü</option>';
+            data.forEach(a => {
+                const opt = document.createElement('option');
+                opt.value = a.id;
+                opt.textContent = a.name;
+                areaSelect.appendChild(opt);
+            });
+            document.getElementById('filterForm').submit();
+        });
+}
+</script>
+@endpush
 @endsection

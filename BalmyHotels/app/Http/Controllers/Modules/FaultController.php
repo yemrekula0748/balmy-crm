@@ -246,13 +246,35 @@ class FaultController extends BaseModuleController
             // Departmansız kullanıcı → sadece kendi bildirdikleri
             $query->where('reported_by', $user->id);
         }
-        if ($request->filled('status')) $query->where('status', $request->status);
+
+        if ($request->filled('status'))       $query->where('status', $request->status);
+        if ($request->filled('location_id'))  $query->where('fault_location_id', $request->location_id);
+        if ($request->filled('area_id'))      $query->where('fault_area_id', $request->area_id);
+        if ($request->filled('fault_type_id')) $query->where('fault_type_id', $request->fault_type_id);
+        if ($request->filled('department_id')) $query->where('assigned_department_id', $request->department_id);
+        if ($request->filled('date_from'))    $query->whereDate('created_at', '>=', $request->date_from);
+        if ($request->filled('date_to'))      $query->whereDate('created_at', '<=', $request->date_to);
+
         $query->orderBy('created_at', 'desc');
 
         $faults     = $query->paginate(20)->withQueryString();
         $page_title = 'Bildirdiklerim';
 
-        return view('modules.faults.my_reports', compact('faults', 'page_title'));
+        $branchId = $user->branch_id;
+        $locations   = FaultLocation::where('is_active', true)
+            ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
+            ->orderBy('name')->get();
+        $areas       = $request->filled('location_id')
+            ? FaultArea::where('fault_location_id', $request->location_id)->where('is_active', true)->orderBy('name')->get()
+            : collect();
+        $faultTypes  = FaultType::where('is_active', true)
+            ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
+            ->orderBy('name')->get();
+        $departments = Department::orderBy('name')->get();
+
+        return view('modules.faults.my_reports', compact(
+            'faults', 'page_title', 'locations', 'areas', 'faultTypes', 'departments'
+        ));
     }
 
     /* ---------------------------------------------------------------
