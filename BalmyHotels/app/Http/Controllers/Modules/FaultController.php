@@ -334,13 +334,25 @@ class FaultController extends BaseModuleController
             // Departmansız kullanıcı → sadece kendi bildirdikleri
             $query->where('reported_by', $user->id);
         }
-        if ($request->filled('status')) $query->where('status', $request->status);
+
+        if ($request->filled('status'))        $query->where('status', $request->status);
+        if ($request->filled('department_id')) $query->where('assigned_department_id', $request->department_id);
+        if ($request->filled('location_id'))   $query->where('fault_location_id', $request->location_id);
+        if ($request->filled('area_id'))       $query->where('fault_area_id', $request->area_id);
+        if ($request->filled('date_from'))     $query->whereDate('created_at', '>=', $request->date_from);
+        if ($request->filled('date_to'))       $query->whereDate('created_at', '<=', $request->date_to);
+
         $query->orderBy('created_at', 'desc');
 
-        $faults     = $query->paginate(20)->withQueryString();
-        $page_title = 'Bildirdiklerim';
+        $faults      = $query->paginate(20)->withQueryString();
+        $departments = Department::where('fault_assignable', true)->orderBy('name')->get();
+        $locations   = FaultLocation::where('is_active', true)->orderBy('name')->get();
+        $areas       = $request->filled('location_id')
+            ? FaultArea::where('fault_location_id', $request->location_id)->where('is_active', true)->orderBy('name')->get()
+            : collect();
+        $page_title  = 'Bildirdiklerim';
 
-        return view('modules.faults.my_reports', compact('faults', 'page_title'));
+        return view('modules.faults.my_reports', compact('faults', 'page_title', 'departments', 'locations', 'areas'));
     }
 
     /* ---------------------------------------------------------------
