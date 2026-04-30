@@ -263,8 +263,12 @@ class FaultController extends BaseModuleController
             ->sortBy('name')
             ->values();
 
-        if ($request->filled('status'))     $query->where('status', $request->status);
-        if ($request->filled('fault_type')) $query->where('fault_type_id', $request->fault_type);
+        if ($request->filled('status'))      $query->where('status', $request->status);
+        if ($request->filled('fault_type'))    $query->where('fault_type_id', $request->fault_type);
+        if ($request->filled('location_id'))   $query->where('fault_location_id', $request->location_id);
+        if ($request->filled('area_id'))       $query->where('fault_area_id', $request->area_id);
+        if ($request->filled('date_from'))     $query->whereDate('created_at', '>=', $request->date_from);
+        if ($request->filled('date_to'))       $query->whereDate('created_at', '<=', $request->date_to);
         if ($request->filled('search')) {
             $s = $request->search;
             $query->where(fn($q) => $q->where('title', 'like', "%$s%")->orWhere('description', 'like', "%$s%"));
@@ -272,9 +276,14 @@ class FaultController extends BaseModuleController
 
         $faults    = $query->paginate(20)->withQueryString();
         $canUpdate = $user->isSuperAdmin() || $user->isBranchManager() || $user->isDeptManager();
+        $branchId  = $user->branch_id;
+        $locations = FaultLocation::where('is_active', true)->where('branch_id', $branchId)->orderBy('name')->get();
+        $areas     = $request->filled('location_id')
+            ? FaultArea::where('fault_location_id', $request->location_id)->where('is_active', true)->orderBy('name')->get()
+            : collect();
         $page_title = 'Gelen Arızalar';
 
-        return view('modules.faults.incoming', compact('faults', 'canUpdate', 'dept', 'stats', 'page_title', 'faultTypes'));
+        return view('modules.faults.incoming', compact('faults', 'canUpdate', 'dept', 'stats', 'page_title', 'faultTypes', 'locations', 'areas'));
     }
 
     /* ---------------------------------------------------------------

@@ -121,11 +121,17 @@
 
     {{-- Filter --}}
     <div class="filter-card">
-        <form method="GET" class="row g-2 align-items-end" id="filter-form">
-            <div class="col-md-3">
-                <label class="form-label mb-1" style="font-size:.78rem;font-weight:600;color:#6b7280"><i class="fas fa-search me-1"></i>Arama</label>
-                <input type="text" name="search" class="form-control" placeholder="Başlık veya açıklama ara…" value="{{ request('search') }}">
+        <form method="GET" action="{{ route('faults.incoming') }}" class="row g-2 align-items-end" id="filter-form">
+            {{-- Tarih --}}
+            <div class="col-md-2">
+                <label class="form-label mb-1" style="font-size:.78rem;font-weight:600;color:#6b7280"><i class="fas fa-calendar-alt me-1"></i>Başlangıç Tarihi</label>
+                <input type="date" name="date_from" class="form-control" value="{{ request('date_from') }}">
             </div>
+            <div class="col-md-2">
+                <label class="form-label mb-1" style="font-size:.78rem;font-weight:600;color:#6b7280"><i class="fas fa-calendar-alt me-1"></i>Bitiş Tarihi</label>
+                <input type="date" name="date_to" class="form-control" value="{{ request('date_to') }}">
+            </div>
+            {{-- Durum --}}
             <div class="col-md-2">
                 <label class="form-label mb-1" style="font-size:.78rem;font-weight:600;color:#6b7280"><i class="fas fa-circle me-1"></i>Durum</label>
                 <select name="status" class="form-select">
@@ -135,7 +141,8 @@
                     @endforeach
                 </select>
             </div>
-            <div class="col-md-3">
+            {{-- Arıza Türü --}}
+            <div class="col-md-2">
                 <label class="form-label mb-1" style="font-size:.78rem;font-weight:600;color:#6b7280"><i class="fas fa-wrench me-1"></i>Arıza Türü</label>
                 <select name="fault_type" class="form-select">
                     <option value="">— Tüm Türler —</option>
@@ -144,12 +151,37 @@
                     @endforeach
                 </select>
             </div>
-            <div class="col-md-4 d-flex gap-2 align-items-end flex-wrap">
+            {{-- Konum --}}
+            <div class="col-md-2">
+                <label class="form-label mb-1" style="font-size:.78rem;font-weight:600;color:#6b7280"><i class="fas fa-map-marker-alt me-1"></i>Konum</label>
+                <select name="location_id" class="form-select" id="location-select">
+                    <option value="">— Tüm Konumlar —</option>
+                    @foreach($locations as $loc)
+                        <option value="{{ $loc->id }}" @selected(request('location_id') == $loc->id)>{{ $loc->name }}</option>
+                    @endforeach
+                </select>
+            </div>
+            {{-- Alan --}}
+            <div class="col-md-2">
+                <label class="form-label mb-1" style="font-size:.78rem;font-weight:600;color:#6b7280"><i class="fas fa-layer-group me-1"></i>Alan</label>
+                <select name="area_id" class="form-select" id="area-select">
+                    <option value="">— Tüm Alanlar —</option>
+                    @foreach($areas as $area)
+                        <option value="{{ $area->id }}" @selected(request('area_id') == $area->id)>{{ $area->name }}</option>
+                    @endforeach
+                </select>
+            </div>
+            {{-- Arama --}}
+            <div class="col-md-3">
+                <label class="form-label mb-1" style="font-size:.78rem;font-weight:600;color:#6b7280"><i class="fas fa-search me-1"></i>Arama</label>
+                <input type="text" name="search" class="form-control" placeholder="Başlık veya açıklama ara…" value="{{ request('search') }}">
+            </div>
+            <div class="col-md-9 d-flex gap-2 align-items-end flex-wrap">
                 <button type="submit" class="btn btn-sm"
                     style="background:#4361ee;color:#fff;border-radius:9px;padding:9px 18px;font-size:.83rem;font-weight:600;border:none">
                     <i class="fas fa-search me-1"></i>Ara
                 </button>
-                @if(request('search') || request('status') || request('fault_type'))
+                @if(request('search') || request('status') || request('fault_type') || request('location_id') || request('area_id') || request('date_from') || request('date_to'))
                     <a href="{{ route('faults.incoming') }}" class="btn btn-sm btn-outline-secondary" style="border-radius:9px;padding:9px 14px">
                         <i class="fas fa-times"></i>
                     </a>
@@ -370,6 +402,24 @@
 
 @push('scripts')
 <script>
+// ── Konum → Alan cascade ─────────────────────────────────────────────────────
+document.getElementById('location-select').addEventListener('change', function() {
+    var locationId = this.value;
+    var areaSelect = document.getElementById('area-select');
+    areaSelect.innerHTML = '<option value="">— Tüm Alanlar —</option>';
+    if (!locationId) return;
+    fetch('{{ route("faults.ajax.areas") }}?location_id=' + locationId)
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            data.forEach(function(area) {
+                var opt = document.createElement('option');
+                opt.value = area.id;
+                opt.textContent = area.name;
+                areaSelect.appendChild(opt);
+            });
+        });
+});
+
 // ── Yazdırma ────────────────────────────────────────────────────────────────
 document.getElementById('print-btn').addEventListener('click', function() {
     var deptName = @json($dept->name ?? 'Departman');
