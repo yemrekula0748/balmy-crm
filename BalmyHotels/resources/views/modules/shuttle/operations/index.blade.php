@@ -239,6 +239,18 @@
                                             (string) $trip->branch_id => ['departure' => (int) $trip->departure_count],
                                         ];
                                     }
+                                    $departurePayloadJson = e(json_encode([
+                                        'tripId' => (int) $trip->id,
+                                        'departureTime' => $trip->departure_time ? substr($trip->departure_time, 0, 5) : '',
+                                        'departureCount' => (int) $trip->departure_count,
+                                        'branchMovements' => $departureMovementValues,
+                                    ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+                                    $emptyDeparturePayloadJson = e(json_encode([
+                                        'tripId' => (int) $trip->id,
+                                        'departureTime' => '',
+                                        'departureCount' => 0,
+                                        'branchMovements' => [],
+                                    ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
                                 @endphp
                                 <tr style="border-bottom:1px solid #f0f2f5">
                                     <td class="ps-4">
@@ -276,12 +288,8 @@
                                                     type="button"
                                                     class="btn btn-sm d-block mx-auto mt-1"
                                                     style="background:#f4f6fb;color:#1e2d3d;border:1px solid #dde3ef;font-size:.7rem;padding:1px 7px"
-                                                    onclick='openDepartureModal(@json([
-                                                        "tripId" => $trip->id,
-                                                        "departureTime" => substr($trip->departure_time ?? "", 0, 5),
-                                                        "departureCount" => (int) $trip->departure_count,
-                                                        "branchMovements" => $departureMovementValues,
-                                                    ]))'
+                                                    data-departure-payload="{{ $departurePayloadJson }}"
+                                                    onclick="openDepartureModal(JSON.parse(this.dataset.departurePayload))"
                                                 >
                                                     <i class="fas fa-edit"></i> Guncelle
                                                 </button>
@@ -293,12 +301,8 @@
                                                     type="button"
                                                     class="btn btn-sm d-block mx-auto mt-1"
                                                     style="background:#eef6f2;color:#2e7d52;border:1px solid #c3e6cb;font-size:.72rem;padding:2px 9px;font-weight:600"
-                                                    onclick='openDepartureModal(@json([
-                                                        "tripId" => $trip->id,
-                                                        "departureTime" => "",
-                                                        "departureCount" => 0,
-                                                        "branchMovements" => [],
-                                                    ]))'
+                                                    data-departure-payload="{{ $emptyDeparturePayloadJson }}"
+                                                    onclick="openDepartureModal(JSON.parse(this.dataset.departurePayload))"
                                                 >
                                                     <i class="fas fa-plus me-1"></i>Donus Ekle
                                                 </button>
