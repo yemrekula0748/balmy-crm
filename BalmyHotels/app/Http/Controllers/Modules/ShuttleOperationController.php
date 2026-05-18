@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Modules;
 
 use App\Http\Controllers\Modules\BaseModuleController;
 use App\Models\Branch;
-use App\Models\ShuttleRoute;
 use App\Models\ShuttleTrip;
 use App\Models\ShuttleVehicle;
 use Carbon\Carbon;
@@ -43,7 +42,7 @@ class ShuttleOperationController extends BaseModuleController
             ->orderBy('name')
             ->get();
 
-        $routes = ShuttleRoute::with('branch')
+        $routes = \App\Models\ShuttleRoute::with('branch')
             ->where('is_active', true)
             ->whereIn('branch_id', $branchIds)
             ->orderBy('branch_id')
@@ -99,18 +98,21 @@ class ShuttleOperationController extends BaseModuleController
         $user = Auth::user();
         $branchIds = $user->visibleBranchIds();
         abort_unless(in_array((int) $operation->branch_id, array_map('intval', $branchIds), true), 403);
+
         $vehicles = ShuttleVehicle::with(['branch', 'routes'])
             ->where('is_active', true)
             ->whereIn('branch_id', $branchIds)
             ->orderBy('branch_id')
             ->orderBy('name')
             ->get();
-        $routes = ShuttleRoute::with('branch')
+
+        $routes = \App\Models\ShuttleRoute::with('branch')
             ->where('is_active', true)
             ->whereIn('branch_id', $branchIds)
             ->orderBy('branch_id')
             ->orderBy('name')
             ->get();
+
         $branches = Branch::where('is_active', true)->whereIn('id', $branchIds)->get();
         $shifts = ShuttleTrip::SHIFTS;
 
@@ -144,13 +146,39 @@ class ShuttleOperationController extends BaseModuleController
 
     public function departure(Request $request, ShuttleTrip $operation)
     {
-        abort_unless(in_array((int) $operation->branch_id, array_map('intval', Auth::user()->visibleBranchIds()), true), 403);
+        $visibleBranchIds = array_map('intval', Auth::user()->visibleBranchIds());
+        abort_unless(in_array((int) $operation->branch_id, $visibleBranchIds, true), 403);
+
         $data = $request->validate([
             'departure_time' => 'nullable|date_format:H:i',
-            'departure_count' => 'required|integer|min:0|max:500',
+            'departure_count' => 'nullable|integer|min:0|max:500',
+            'branch_movements' => 'nullable|array',
+            'branch_movements.*.departure' => 'nullable|integer|min:0|max:500',
         ]);
 
-        $operation->update($data);
+        $departureMovements = $this->normaliseBranchMovements(
+            $request->input('branch_movements', []),
+            $visibleBranchIds,
+            ['departure']
+        );
+
+        $totals = $this->calculateMovementTotals($departureMovements);
+        $data['departure_count'] = $totals['departure'];
+
+        DB::transaction(function () use ($operation, $data, $departureMovements) {
+            $operation->update([
+                'departure_time' => $data['departure_time'] ?? null,
+                'departure_count' => $data['departure_count'],
+            ]);
+
+            $operation->branchMovements()
+                ->where('movement_type', 'departure')
+                ->delete();
+
+            if ($departureMovements !== []) {
+                $operation->branchMovements()->createMany($departureMovements);
+            }
+        });
 
         return redirect()->route('shuttle.operations.index', [
             'branch_id' => $operation->branch_id,
@@ -180,15 +208,15 @@ class ShuttleOperationController extends BaseModuleController
             'shift' => 'required|in:' . implode(',', ShuttleTrip::SHIFTS),
             'trip_date' => 'required|date',
             'arrival_time' => 'nullable|date_format:H:i',
-            'arrival_count' => 'required|integer|min:0|max:500',
+            'arrival_count' => 'nullable|integer|min:0|max:500',
             'departure_time' => 'nullable|date_format:H:i',
-            'departure_count' => 'required|integer|min:0|max:500',
+            'departure_count' => 'nullable|integer|min:0|max:500',
             'notes' => 'nullable|string|max:500',
             'arrived_with_different_vehicle' => 'nullable|boolean',
             'is_transfer' => 'nullable|boolean',
             'branch_movements' => 'nullable|array',
-            'branch_movements.*.pickup' => 'nullable|integer|min:0|max:500',
-            'branch_movements.*.dropoff' => 'nullable|integer|min:0|max:500',
+            'branch_movements.*.arrival' => 'nullable|integer|min:0|max:500',
+            'branch_movements.*.departure' => 'nullable|integer|min:0|max:500',
         ]);
 
         $visibleBranchIds = array_map('intval', $visibleBranchIds);
@@ -238,10 +266,14 @@ class ShuttleOperationController extends BaseModuleController
             $visibleBranchIds
         );
 
+        $totals = $this->calculateMovementTotals($branchMovements);
+        $data['arrival_count'] = $totals['arrival'];
+        $data['departure_count'] = $totals['departure'];
+
         return [$data, $vehicle, $branchMovements];
     }
 
-    private function normaliseBranchMovements(array $rawMovements, array $visibleBranchIds): array
+    private function normaliseBranchMovements(array $rawMovements, array $visibleBranchIds, array $movementTypes = ['arrival', 'departure']): array
     {
         $movements = [];
 
@@ -251,7 +283,7 @@ class ShuttleOperationController extends BaseModuleController
                 continue;
             }
 
-            foreach (['pickup', 'dropoff'] as $movementType) {
+            foreach ($movementTypes as $movementType) {
                 $value = isset($counts[$movementType]) ? (int) $counts[$movementType] : 0;
                 if ($value <= 0) {
                     continue;
@@ -266,6 +298,18 @@ class ShuttleOperationController extends BaseModuleController
         }
 
         return $movements;
+    }
+
+    private function calculateMovementTotals(array $movements): array
+    {
+        return [
+            'arrival' => (int) collect($movements)
+                ->where('movement_type', 'arrival')
+                ->sum('headcount'),
+            'departure' => (int) collect($movements)
+                ->where('movement_type', 'departure')
+                ->sum('headcount'),
+        ];
     }
 
     private function syncBranchMovements(ShuttleTrip $trip, array $movements): void

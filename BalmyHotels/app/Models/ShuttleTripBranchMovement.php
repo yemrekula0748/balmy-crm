@@ -8,8 +8,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class ShuttleTripBranchMovement extends Model
 {
     public const TYPES = [
-        'pickup' => 'Alinan',
-        'dropoff' => 'Indirilen',
+        'arrival' => 'Gelen',
+        'departure' => 'Giden',
     ];
 
     protected $fillable = [

@@ -126,7 +126,7 @@
                     </div>
                     <div>
                         <div class="fw-bold" style="font-size:1.6rem;line-height:1;color:#1e2d3d">{{ $totalDeparture }}</div>
-                        <div class="text-muted small mt-1">Donen Personel</div>
+                        <div class="text-muted small mt-1">Giden Personel</div>
                     </div>
                 </div>
             </div>
@@ -193,10 +193,10 @@
                                 <th class="py-3 fw-semibold border-0" style="background:#1e2d3d;color:#fff">Arac</th>
                                 <th class="py-3 fw-semibold border-0" style="background:#1e2d3d;color:#fff">Guzergah</th>
                                 <th class="py-3 fw-semibold border-0 text-center" style="background:#1e2d3d;color:#fff">
-                                    <span style="color:#93b8e8">↑</span> Gelis
+                                    <span style="color:#93b8e8">&uarr;</span> Gelen
                                 </th>
                                 <th class="py-3 fw-semibold border-0 text-center" style="background:#1e2d3d;color:#fff">
-                                    <span style="color:#7ec8a0">↓</span> Donus
+                                    <span style="color:#7ec8a0">&darr;</span> Giden
                                 </th>
                                 <th class="py-3 fw-semibold border-0 text-center" style="background:#1e2d3d;color:#fff">Doluluk</th>
                                 <th class="py-3 fw-semibold border-0" style="background:#1e2d3d;color:#fff">Durum / Not</th>
@@ -209,8 +209,7 @@
                             @foreach($trips as $trip)
                                 @if($lastShift !== $trip->shift)
                                     <tr>
-                                        <td colspan="9" class="py-1 ps-4"
-                                            style="background:#f5f7fa;border-top:2px solid #e2e8f0">
+                                        <td colspan="9" class="py-1 ps-4" style="background:#f5f7fa;border-top:2px solid #e2e8f0">
                                             <small class="fw-bold text-uppercase" style="color:#1e2d3d;letter-spacing:.5px;font-size:.7rem">
                                                 <i class="fas fa-clock me-1 opacity-60"></i>{{ $trip->shift }}
                                             </small>
@@ -222,8 +221,24 @@
                                     $cap = $trip->vehicle->capacity;
                                     $arrPct = ($cap > 0) ? round($trip->arrival_count / $cap * 100) : null;
                                     $depPct = ($cap > 0) ? round($trip->departure_count / $cap * 100) : null;
-                                    $pickupMovements = $trip->branchMovements->where('movement_type', 'pickup');
-                                    $dropoffMovements = $trip->branchMovements->where('movement_type', 'dropoff');
+                                    $arrivalMovements = $trip->branchMovements->where('movement_type', 'arrival');
+                                    $departureMovements = $trip->branchMovements->where('movement_type', 'departure');
+                                    $arrivalSummaryText = $arrivalMovements->isNotEmpty()
+                                        ? $arrivalMovements->map(fn ($movement) => ($movement->branch->name ?? '-') . ' ' . $movement->headcount)->implode(', ')
+                                        : ((int) $trip->arrival_count > 0 ? ($trip->branch->name ?? '-') . ' ' . $trip->arrival_count : null);
+                                    $departureSummaryText = $departureMovements->isNotEmpty()
+                                        ? $departureMovements->map(fn ($movement) => ($movement->branch->name ?? '-') . ' ' . $movement->headcount)->implode(', ')
+                                        : ((int) $trip->departure_count > 0 ? ($trip->branch->name ?? '-') . ' ' . $trip->departure_count : null);
+                                    $departureMovementValues = $departureMovements
+                                        ->mapWithKeys(fn ($movement) => [
+                                            (string) $movement->branch_id => ['departure' => (int) $movement->headcount],
+                                        ])
+                                        ->all();
+                                    if ($departureMovementValues === [] && (int) $trip->departure_count > 0) {
+                                        $departureMovementValues = [
+                                            (string) $trip->branch_id => ['departure' => (int) $trip->departure_count],
+                                        ];
+                                    }
                                 @endphp
                                 <tr style="border-bottom:1px solid #f0f2f5">
                                     <td class="ps-4">
@@ -257,20 +272,34 @@
                                                 {{ $trip->departure_count }}
                                             </span>
                                             @if(auth()->user()->hasPermission('shuttle_operations','edit'))
-                                                <button type="button"
-                                                        class="btn btn-sm d-block mx-auto mt-1"
-                                                        style="background:#f4f6fb;color:#1e2d3d;border:1px solid #dde3ef;font-size:.7rem;padding:1px 7px"
-                                                        onclick="openDepartureModal({{ $trip->id }}, '{{ substr($trip->departure_time ?? '', 0, 5) }}', {{ $trip->departure_count }})">
+                                                <button
+                                                    type="button"
+                                                    class="btn btn-sm d-block mx-auto mt-1"
+                                                    style="background:#f4f6fb;color:#1e2d3d;border:1px solid #dde3ef;font-size:.7rem;padding:1px 7px"
+                                                    onclick='openDepartureModal(@json([
+                                                        "tripId" => $trip->id,
+                                                        "departureTime" => substr($trip->departure_time ?? "", 0, 5),
+                                                        "departureCount" => (int) $trip->departure_count,
+                                                        "branchMovements" => $departureMovementValues,
+                                                    ]))'
+                                                >
                                                     <i class="fas fa-edit"></i> Guncelle
                                                 </button>
                                             @endif
                                         @else
                                             <span class="text-muted" style="font-size:.78rem">-</span>
                                             @if(auth()->user()->hasPermission('shuttle_operations','edit'))
-                                                <button type="button"
-                                                        class="btn btn-sm d-block mx-auto mt-1"
-                                                        style="background:#eef6f2;color:#2e7d52;border:1px solid #c3e6cb;font-size:.72rem;padding:2px 9px;font-weight:600"
-                                                        onclick="openDepartureModal({{ $trip->id }}, '', 0)">
+                                                <button
+                                                    type="button"
+                                                    class="btn btn-sm d-block mx-auto mt-1"
+                                                    style="background:#eef6f2;color:#2e7d52;border:1px solid #c3e6cb;font-size:.72rem;padding:2px 9px;font-weight:600"
+                                                    onclick='openDepartureModal(@json([
+                                                        "tripId" => $trip->id,
+                                                        "departureTime" => "",
+                                                        "departureCount" => 0,
+                                                        "branchMovements" => [],
+                                                    ]))'
+                                                >
                                                     <i class="fas fa-plus me-1"></i>Donus Ekle
                                                 </button>
                                             @endif
@@ -279,9 +308,9 @@
                                     <td class="text-center">
                                         @if($arrPct !== null)
                                             <div style="font-size:.78rem">
-                                                <span style="color:#2a5298">↑{{ $arrPct }}%</span>
+                                                <span style="color:#2a5298">&uarr;{{ $arrPct }}%</span>
                                                 <span class="text-muted mx-1">/</span>
-                                                <span style="color:#2e7d52">↓{{ $depPct }}%</span>
+                                                <span style="color:#2e7d52">&darr;{{ $depPct }}%</span>
                                             </div>
                                         @else
                                             <span class="text-muted">-</span>
@@ -296,16 +325,16 @@
                                                 <span class="badge" style="background:#fff7e7;color:#9b6a11;border:1px solid #f1ddb2">Aktarim yapildi</span>
                                             @endif
                                         </div>
-                                        @if($pickupMovements->isNotEmpty())
+                                        @if($arrivalSummaryText)
                                             <div class="text-muted mb-1">
-                                                <strong>Alinan:</strong>
-                                                {{ $pickupMovements->map(fn ($movement) => ($movement->branch->name ?? '-') . ' ' . $movement->headcount)->implode(', ') }}
+                                                <strong>Gelen:</strong>
+                                                {{ $arrivalSummaryText }}
                                             </div>
                                         @endif
-                                        @if($dropoffMovements->isNotEmpty())
+                                        @if($departureSummaryText)
                                             <div class="text-muted mb-1">
-                                                <strong>Indirilen:</strong>
-                                                {{ $dropoffMovements->map(fn ($movement) => ($movement->branch->name ?? '-') . ' ' . $movement->headcount)->implode(', ') }}
+                                                <strong>Giden:</strong>
+                                                {{ $departureSummaryText }}
                                             </div>
                                         @endif
                                         <div class="text-muted">{{ $trip->notes ? \Illuminate\Support\Str::limit($trip->notes, 65) : '-' }}</div>
@@ -365,13 +394,12 @@
 
 @if(auth()->user()->hasPermission('shuttle_operations', 'create'))
     @php
-        $oldBranchMovements = old('branch_movements', []);
+        $oldBranchMovements = old('_departure_trip_id') ? [] : old('branch_movements', []);
     @endphp
     <div class="modal fade" id="addTripModal" tabindex="-1">
         <div class="modal-dialog modal-lg">
             <div class="modal-content border-0 shadow" style="border-radius:12px;overflow:hidden">
-                <div class="modal-header border-0 px-4 py-3"
-                     style="background:linear-gradient(135deg,#1e2d3d,#2c3e50)">
+                <div class="modal-header border-0 px-4 py-3" style="background:linear-gradient(135deg,#1e2d3d,#2c3e50)">
                     <h5 class="modal-title text-white fw-semibold">
                         <i class="fas fa-plus me-2"></i>Yeni Sefer Ekle
                     </h5>
@@ -379,7 +407,6 @@
                 </div>
                 <form action="{{ route('shuttle.operations.store') }}" method="POST" id="createTripForm">
                     @csrf
-                    <input type="hidden" name="departure_count" value="{{ old('departure_count', 0) }}">
                     <div class="modal-body px-4 py-3">
                         <div class="row g-3">
                             <div class="col-md-6">
@@ -432,8 +459,7 @@
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label fw-semibold small">Tarih <span class="text-danger">*</span></label>
-                                <input type="date" name="trip_date" value="{{ old('trip_date', $date->toDateString()) }}"
-                                       class="form-control" required>
+                                <input type="date" name="trip_date" value="{{ old('trip_date', $date->toDateString()) }}" class="form-control" required>
                             </div>
 
                             <div class="col-12">
@@ -472,21 +498,41 @@
                                 </div>
                             </div>
 
-                            <div class="col-12">
-                                <div class="p-3 rounded" style="background:#f0f4ff;border:1px solid #d0ddf5">
+                            <div class="col-md-6">
+                                <div class="p-3 rounded h-100" style="background:#f0f4ff;border:1px solid #d0ddf5">
                                     <div class="fw-semibold small mb-2" style="color:#2a5298">
                                         <i class="fas fa-arrow-right me-1"></i>Gelis Bilgileri
                                     </div>
                                     <div class="row g-2">
-                                        <div class="col-md-6">
+                                        <div class="col-12">
                                             <label class="form-label small">Gelis Saati</label>
                                             <input type="time" name="arrival_time" value="{{ old('arrival_time') }}"
                                                    class="form-control form-control-sm" data-auto-time-picker="1">
                                         </div>
-                                        <div class="col-md-6">
-                                            <label class="form-label small">Gelen Kisi <span class="text-danger">*</span></label>
+                                        <div class="col-12">
+                                            <label class="form-label small">Toplam Gelen</label>
                                             <input type="number" name="arrival_count" value="{{ old('arrival_count', 0) }}"
-                                                   min="0" max="500" class="form-control form-control-sm" required>
+                                                   min="0" max="500" class="form-control form-control-sm" id="createArrivalTotal" readonly>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <div class="p-3 rounded h-100" style="background:#eef6f2;border:1px solid #cfe3d8">
+                                    <div class="fw-semibold small mb-2" style="color:#2e7d52">
+                                        <i class="fas fa-arrow-left me-1"></i>Donus Bilgileri
+                                    </div>
+                                    <div class="row g-2">
+                                        <div class="col-12">
+                                            <label class="form-label small">Donus Saati</label>
+                                            <input type="time" name="departure_time" value="{{ old('departure_time') }}"
+                                                   class="form-control form-control-sm" data-auto-time-picker="1">
+                                        </div>
+                                        <div class="col-12">
+                                            <label class="form-label small">Toplam Giden</label>
+                                            <input type="number" name="departure_count" value="{{ old('departure_count', 0) }}"
+                                                   min="0" max="500" class="form-control form-control-sm" id="createDepartureTotal" readonly>
                                         </div>
                                     </div>
                                 </div>
@@ -508,8 +554,7 @@
                     </div>
                     <div class="modal-footer border-0 px-4 pb-4">
                         <button type="button" class="btn btn-light" data-bs-dismiss="modal">Iptal</button>
-                        <button type="submit" class="btn fw-semibold px-4"
-                                style="background:#1e2d3d;color:#fff;border-radius:8px">
+                        <button type="submit" class="btn fw-semibold px-4" style="background:#1e2d3d;color:#fff;border-radius:8px">
                             <i class="fas fa-save me-1"></i> Seferi Kaydet
                         </button>
                     </div>
@@ -520,11 +565,13 @@
 @endif
 
 @if(auth()->user()->hasPermission('shuttle_operations', 'edit'))
+    @php
+        $oldDepartureBranchMovements = old('_departure_trip_id') ? old('branch_movements', []) : [];
+    @endphp
     <div class="modal fade" id="departureModal" tabindex="-1">
-        <div class="modal-dialog modal-sm">
+        <div class="modal-dialog modal-md">
             <div class="modal-content border-0 shadow" style="border-radius:12px;overflow:hidden">
-                <div class="modal-header border-0 px-4 py-3"
-                     style="background:linear-gradient(135deg,#2e7d52,#3d7a5e)">
+                <div class="modal-header border-0 px-4 py-3" style="background:linear-gradient(135deg,#2e7d52,#3d7a5e)">
                     <h5 class="modal-title text-white fw-semibold" style="font-size:.95rem">
                         <i class="fas fa-arrow-left me-2"></i>Donus Bilgisi
                     </h5>
@@ -533,21 +580,34 @@
                 <form id="departureForm" method="POST">
                     @csrf
                     @method('PATCH')
+                    <input type="hidden" name="_departure_trip_id" id="depTripId" value="{{ old('_departure_trip_id') }}">
                     <div class="modal-body px-4 py-3">
                         <div class="mb-3">
                             <label class="form-label fw-semibold small">Donus Saati</label>
-                            <input type="time" name="departure_time" id="depTime" class="form-control" data-auto-time-picker="1">
+                            <input type="time" name="departure_time" id="depTime" class="form-control" value="{{ old('departure_time') }}" data-auto-time-picker="1">
                         </div>
-                        <div class="mb-1">
-                            <label class="form-label fw-semibold small">Donen Kisi Sayisi <span class="text-danger">*</span></label>
-                            <input type="number" name="departure_count" id="depCount" value="0"
-                                   min="0" max="500" class="form-control" required>
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold small">Toplam Giden</label>
+                            <input type="number" name="departure_count" id="depCount" value="{{ old('departure_count', 0) }}"
+                                   min="0" max="500" class="form-control" readonly>
+                            <div class="small text-muted mt-1">
+                                Toplam, asagidaki sube satirlarindaki giden sayilarindan otomatik hesaplanir.
+                            </div>
                         </div>
+                        @include('modules.shuttle.operations._branch_movements', [
+                            'branches' => $branches,
+                            'movementValues' => $oldDepartureBranchMovements,
+                            'title' => 'Sube Bazli Donus Dagilimi',
+                            'description' => 'Foresta ve Beach icin giden personeli ayri gir; toplam otomatik olusur.',
+                            'showArrival' => false,
+                            'showDeparture' => true,
+                            'theme' => 'departure',
+                            'compact' => true,
+                        ])
                     </div>
                     <div class="modal-footer border-0 px-4 pb-4">
                         <button type="button" class="btn btn-light btn-sm" data-bs-dismiss="modal">Iptal</button>
-                        <button type="submit" class="btn btn-sm fw-semibold px-4"
-                                style="background:#2e7d52;color:#fff;border-radius:8px">
+                        <button type="submit" class="btn btn-sm fw-semibold px-4" style="background:#2e7d52;color:#fff;border-radius:8px">
                             <i class="fas fa-save me-1"></i> Kaydet
                         </button>
                     </div>
@@ -678,12 +738,76 @@ function wireTripForm(branchSelector, vehicleSelector, routeSelector, flagsSelec
     syncVehicles();
 }
 
-function openDepartureModal(tripId, depTime, depCount) {
-    const baseUrl = '{{ url("servis-takip/operasyon") }}';
-    document.getElementById('departureForm').action = baseUrl + '/' + tripId + '/donus';
-    document.getElementById('depTime').value = depTime;
-    document.getElementById('depCount').value = depCount;
+function wireMovementTotals(formSelector, arrivalTotalSelector, departureTotalSelector) {
+    const form = document.querySelector(formSelector);
+    if (!form) {
+        return;
+    }
+
+    if (form.dataset.movementTotalsBound === '1') {
+        if (typeof form._movementTotalsUpdater === 'function') {
+            form._movementTotalsUpdater();
+        }
+        return;
+    }
+
+    const updateTotals = () => {
+        const arrivalInputs = form.querySelectorAll('input[data-movement-kind="arrival"]');
+        const departureInputs = form.querySelectorAll('input[data-movement-kind="departure"]');
+
+        const arrivalTotal = Array.from(arrivalInputs).reduce((total, input) => total + (parseInt(input.value || '0', 10) || 0), 0);
+        const departureTotal = Array.from(departureInputs).reduce((total, input) => total + (parseInt(input.value || '0', 10) || 0), 0);
+
+        const arrivalField = arrivalTotalSelector ? form.querySelector(arrivalTotalSelector) : null;
+        const departureField = departureTotalSelector ? form.querySelector(departureTotalSelector) : null;
+
+        if (arrivalField) {
+            arrivalField.value = arrivalTotal;
+        }
+
+        if (departureField) {
+            departureField.value = departureTotal;
+        }
+    };
+
+    form.querySelectorAll('input[data-movement-kind]').forEach((input) => {
+        input.addEventListener('input', updateTotals);
+        input.addEventListener('change', updateTotals);
+    });
+
+    form.dataset.movementTotalsBound = '1';
+    form._movementTotalsUpdater = updateTotals;
+    updateTotals();
+}
+
+function openDepartureModal(payload) {
     const modalElement = document.getElementById('departureModal');
+    if (!modalElement) {
+        return;
+    }
+
+    const baseUrl = '{{ url("servis-takip/operasyon") }}';
+    const form = document.getElementById('departureForm');
+    form.action = baseUrl + '/' + payload.tripId + '/donus';
+    document.getElementById('depTripId').value = payload.tripId || '';
+    document.getElementById('depTime').value = payload.departureTime || '';
+
+    form.querySelectorAll('input[data-movement-kind="departure"]').forEach((input) => {
+        input.value = 0;
+    });
+
+    Object.entries(payload.branchMovements || {}).forEach(([branchId, values]) => {
+        const input = form.querySelector(`input[name="branch_movements[${branchId}][departure]"]`);
+        if (input) {
+            input.value = values.departure || 0;
+        }
+    });
+
+    const depCount = document.getElementById('depCount');
+    depCount.value = payload.departureCount || 0;
+
+    wireMovementTotals('#departureForm', null, '#depCount');
+
     const modal = new bootstrap.Modal(modalElement);
     modal.show();
 
@@ -704,12 +828,23 @@ document.addEventListener('DOMContentLoaded', () => {
         '#createTripFlagsBox',
         '#createTripRouteHelp'
     );
+    wireMovementTotals('#createTripForm', '#createArrivalTotal', '#createDepartureTotal');
+    wireMovementTotals('#departureForm', null, '#depCount');
 
-    @if($errors->any() && auth()->user()->hasPermission('shuttle_operations', 'create'))
+    @if($errors->any() && auth()->user()->hasPermission('shuttle_operations', 'create') && !old('_departure_trip_id'))
         const addTripModal = document.getElementById('addTripModal');
         if (addTripModal) {
             new bootstrap.Modal(addTripModal).show();
         }
+    @endif
+
+    @if($errors->any() && auth()->user()->hasPermission('shuttle_operations', 'edit') && old('_departure_trip_id'))
+        openDepartureModal({
+            tripId: @json(old('_departure_trip_id')),
+            departureTime: @json(old('departure_time', '')),
+            departureCount: @json((int) old('departure_count', 0)),
+            branchMovements: @json($oldDepartureBranchMovements),
+        });
     @endif
 });
 </script>

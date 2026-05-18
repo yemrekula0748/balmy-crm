@@ -164,16 +164,16 @@
     <thead>
         <tr>
             <th>Sube</th>
-            <th class="text-center">Alinan</th>
-            <th class="text-center">Indirilen</th>
+            <th class="text-center">Gelen</th>
+            <th class="text-center">Giden</th>
         </tr>
     </thead>
     <tbody>
         @foreach($branchMovementSummary as $summary)
             <tr>
                 <td>{{ $summary['branch']->name }}</td>
-                <td class="text-center">{{ $summary['pickup'] }}</td>
-                <td class="text-center">{{ $summary['dropoff'] }}</td>
+                <td class="text-center">{{ $summary['arrival'] }}</td>
+                <td class="text-center">{{ $summary['departure'] }}</td>
             </tr>
         @endforeach
     </tbody>
@@ -198,14 +198,20 @@
         <tbody>
             @foreach($trips as $trip)
                 @php
-                    $pickupSummary = $trip->branchMovements
-                        ->where('movement_type', 'pickup')
+                    $arrivalSummary = $trip->branchMovements
+                        ->where('movement_type', 'arrival')
                         ->map(fn ($movement) => ($movement->branch->name ?? '-') . ' ' . $movement->headcount)
                         ->implode(', ');
-                    $dropoffSummary = $trip->branchMovements
-                        ->where('movement_type', 'dropoff')
+                    $departureSummary = $trip->branchMovements
+                        ->where('movement_type', 'departure')
                         ->map(fn ($movement) => ($movement->branch->name ?? '-') . ' ' . $movement->headcount)
                         ->implode(', ');
+                    if ($arrivalSummary === '' && (int) $trip->arrival_count > 0) {
+                        $arrivalSummary = ($trip->branch->name ?? '-') . ' ' . $trip->arrival_count;
+                    }
+                    if ($departureSummary === '' && (int) $trip->departure_count > 0) {
+                        $departureSummary = ($trip->branch->name ?? '-') . ' ' . $trip->departure_count;
+                    }
                 @endphp
                 <tr>
                     <td>{{ $trip->trip_date->format('d.m.Y') }}</td>
@@ -232,13 +238,13 @@
                         @endif
                     </td>
                     <td style="font-size:9px">
-                        @if($pickupSummary)
-                            <div><strong>Alinan:</strong> {{ $pickupSummary }}</div>
+                        @if($arrivalSummary)
+                            <div><strong>Gelen:</strong> {{ $arrivalSummary }}</div>
                         @endif
-                        @if($dropoffSummary)
-                            <div><strong>Indirilen:</strong> {{ $dropoffSummary }}</div>
+                        @if($departureSummary)
+                            <div><strong>Giden:</strong> {{ $departureSummary }}</div>
                         @endif
-                        @if(! $pickupSummary && ! $dropoffSummary)
+                        @if(! $arrivalSummary && ! $departureSummary)
                             -
                         @endif
                     </td>

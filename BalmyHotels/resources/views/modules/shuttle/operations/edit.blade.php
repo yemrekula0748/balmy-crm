@@ -21,15 +21,26 @@
             ->groupBy('branch_id')
             ->map(function ($items) {
                 return [
-                    'pickup' => (int) optional($items->firstWhere('movement_type', 'pickup'))->headcount,
-                    'dropoff' => (int) optional($items->firstWhere('movement_type', 'dropoff'))->headcount,
+                    'arrival' => (int) optional($items->firstWhere('movement_type', 'arrival'))->headcount,
+                    'departure' => (int) optional($items->firstWhere('movement_type', 'departure'))->headcount,
                 ];
             })
             ->toArray();
+
+        if ($movementValues === []) {
+            $movementValues = [
+                $operation->branch_id => [
+                    'arrival' => (int) $operation->arrival_count,
+                    'departure' => (int) $operation->departure_count,
+                ],
+            ];
+        }
+
+        $oldMovementValues = old('branch_movements', $movementValues);
     @endphp
 
     <div class="row justify-content-center">
-        <div class="col-lg-8">
+        <div class="col-lg-9">
             <div class="card shadow-sm border-0" style="border-radius:14px;overflow:hidden">
                 <div class="card-header border-0 text-white"
                      style="background:linear-gradient(135deg,#1e2d3d,#2c3e50)">
@@ -96,17 +107,23 @@
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label fw-semibold">Tarih <span class="text-danger">*</span></label>
-                                <input type="date" name="trip_date"
-                                       value="{{ old('trip_date', $operation->trip_date->format('Y-m-d')) }}"
-                                       class="form-control @error('trip_date') is-invalid @enderror" required>
+                                <input
+                                    type="date"
+                                    name="trip_date"
+                                    value="{{ old('trip_date', $operation->trip_date->format('Y-m-d')) }}"
+                                    class="form-control @error('trip_date') is-invalid @enderror"
+                                    required
+                                >
                                 @error('trip_date')<div class="invalid-feedback">{{ $message }}</div>@enderror
                             </div>
 
                             <div class="col-12">
-                                <div id="editTripFlagsBox" class="p-3 rounded"
-                                     style="background:#fff4f4;border:1px solid #f0d0d0">
+                                <div id="editTripFlagsBox" class="p-3 rounded" style="background:#fff4f4;border:1px solid #f0d0d0">
                                     <div class="fw-semibold small mb-2" style="color:#a94442">
                                         <i class="fas fa-exclamation-triangle me-1"></i>Operasyon Istisnalari
+                                    </div>
+                                    <div class="small text-muted mb-3">
+                                        Planlanan arac disinda gerceklesen gelis veya transfer durumlarini isaretle.
                                     </div>
                                     <div class="row g-3">
                                         <div class="col-md-6">
@@ -135,45 +152,73 @@
                                 </div>
                             </div>
 
-                            <div class="col-12">
-                                <div class="p-3 rounded" style="background:#f0f4ff;border:1px solid #d0ddf5">
+                            <div class="col-md-6">
+                                <div class="p-3 rounded h-100" style="background:#f0f4ff;border:1px solid #d0ddf5">
                                     <div class="fw-semibold small mb-2" style="color:#2a5298">
                                         <i class="fas fa-arrow-right me-1"></i>Gelis Bilgileri
                                     </div>
                                     <div class="row g-2">
-                                        <div class="col-md-6">
+                                        <div class="col-12">
                                             <label class="form-label small">Gelis Saati</label>
-                                            <input type="time" name="arrival_time"
-                                                   value="{{ old('arrival_time', $operation->arrival_time ? substr($operation->arrival_time, 0, 5) : '') }}"
-                                                   class="form-control" data-auto-time-picker="1">
+                                            <input
+                                                type="time"
+                                                name="arrival_time"
+                                                value="{{ old('arrival_time', $operation->arrival_time ? substr($operation->arrival_time, 0, 5) : '') }}"
+                                                class="form-control"
+                                                data-auto-time-picker="1"
+                                            >
                                         </div>
-                                        <div class="col-md-6">
-                                            <label class="form-label small">Gelen Kisi <span class="text-danger">*</span></label>
-                                            <input type="number" name="arrival_count"
-                                                   value="{{ old('arrival_count', $operation->arrival_count) }}"
-                                                   min="0" max="500" class="form-control" required>
+                                        <div class="col-12">
+                                            <label class="form-label small">Toplam Gelen</label>
+                                            <input
+                                                type="number"
+                                                name="arrival_count"
+                                                value="{{ old('arrival_count', $operation->arrival_count) }}"
+                                                min="0"
+                                                max="500"
+                                                class="form-control"
+                                                id="editArrivalTotal"
+                                                readonly
+                                            >
+                                            <div class="small text-muted mt-1">
+                                                Toplam, asagidaki sube satirlarindan otomatik hesaplanir.
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
                             </div>
 
-                            <div class="col-12">
-                                <div class="p-3 rounded" style="background:#eef6f2;border:1px solid #cfe3d8">
+                            <div class="col-md-6">
+                                <div class="p-3 rounded h-100" style="background:#eef6f2;border:1px solid #cfe3d8">
                                     <div class="fw-semibold small mb-2" style="color:#2e7d52">
                                         <i class="fas fa-arrow-left me-1"></i>Donus Bilgileri
                                     </div>
                                     <div class="row g-2">
-                                        <div class="col-md-6">
+                                        <div class="col-12">
                                             <label class="form-label small">Donus Saati</label>
-                                            <input type="time" name="departure_time"
-                                                   value="{{ old('departure_time', $operation->departure_time ? substr($operation->departure_time, 0, 5) : '') }}"
-                                                   class="form-control" data-auto-time-picker="1">
+                                            <input
+                                                type="time"
+                                                name="departure_time"
+                                                value="{{ old('departure_time', $operation->departure_time ? substr($operation->departure_time, 0, 5) : '') }}"
+                                                class="form-control"
+                                                data-auto-time-picker="1"
+                                            >
                                         </div>
-                                        <div class="col-md-6">
-                                            <label class="form-label small">Donen Kisi <span class="text-danger">*</span></label>
-                                            <input type="number" name="departure_count"
-                                                   value="{{ old('departure_count', $operation->departure_count) }}"
-                                                   min="0" max="500" class="form-control" required>
+                                        <div class="col-12">
+                                            <label class="form-label small">Toplam Giden</label>
+                                            <input
+                                                type="number"
+                                                name="departure_count"
+                                                value="{{ old('departure_count', $operation->departure_count) }}"
+                                                min="0"
+                                                max="500"
+                                                class="form-control"
+                                                id="editDepartureTotal"
+                                                readonly
+                                            >
+                                            <div class="small text-muted mt-1">
+                                                Toplam, asagidaki sube satirlarindan otomatik hesaplanir.
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -182,14 +227,13 @@
                             <div class="col-12">
                                 @include('modules.shuttle.operations._branch_movements', [
                                     'branches' => $branches,
-                                    'movementValues' => old('branch_movements', $movementValues),
+                                    'movementValues' => $oldMovementValues,
                                 ])
                             </div>
 
                             <div class="col-12">
                                 <label class="form-label fw-semibold">Not</label>
-                                <textarea name="notes" rows="2" class="form-control"
-                                          maxlength="500">{{ old('notes', $operation->notes) }}</textarea>
+                                <textarea name="notes" rows="2" class="form-control" maxlength="500">{{ old('notes', $operation->notes) }}</textarea>
                             </div>
                         </div>
 
@@ -197,8 +241,10 @@
                             <button type="submit" class="btn btn-primary">
                                 <i class="fas fa-save me-1"></i> Guncelle
                             </button>
-                            <a href="{{ route('shuttle.operations.index', ['date' => $operation->trip_date->format('Y-m-d'), 'branch_id' => $operation->branch_id]) }}"
-                               class="btn btn-outline-secondary">
+                            <a
+                                href="{{ route('shuttle.operations.index', ['date' => $operation->trip_date->format('Y-m-d'), 'branch_id' => $operation->branch_id]) }}"
+                                class="btn btn-outline-secondary"
+                            >
                                 Iptal
                             </a>
                         </div>
@@ -316,6 +362,48 @@ function wireTripForm(branchSelector, vehicleSelector, routeSelector, flagsSelec
     syncVehicles();
 }
 
+function wireMovementTotals(formSelector, arrivalTotalSelector, departureTotalSelector) {
+    const form = document.querySelector(formSelector);
+    if (!form) {
+        return;
+    }
+
+    if (form.dataset.movementTotalsBound === '1') {
+        if (typeof form._movementTotalsUpdater === 'function') {
+            form._movementTotalsUpdater();
+        }
+        return;
+    }
+
+    const updateTotals = () => {
+        const arrivalInputs = form.querySelectorAll('input[data-movement-kind="arrival"]');
+        const departureInputs = form.querySelectorAll('input[data-movement-kind="departure"]');
+
+        const arrivalTotal = Array.from(arrivalInputs).reduce((total, input) => total + (parseInt(input.value || '0', 10) || 0), 0);
+        const departureTotal = Array.from(departureInputs).reduce((total, input) => total + (parseInt(input.value || '0', 10) || 0), 0);
+
+        const arrivalField = arrivalTotalSelector ? form.querySelector(arrivalTotalSelector) : null;
+        const departureField = departureTotalSelector ? form.querySelector(departureTotalSelector) : null;
+
+        if (arrivalField) {
+            arrivalField.value = arrivalTotal;
+        }
+
+        if (departureField) {
+            departureField.value = departureTotal;
+        }
+    };
+
+    form.querySelectorAll('input[data-movement-kind]').forEach((input) => {
+        input.addEventListener('input', updateTotals);
+        input.addEventListener('change', updateTotals);
+    });
+
+    form.dataset.movementTotalsBound = '1';
+    form._movementTotalsUpdater = updateTotals;
+    updateTotals();
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     bindAutoTimePickers(document);
     wireTripForm(
@@ -327,6 +415,7 @@ document.addEventListener('DOMContentLoaded', () => {
         @json((string) ($operation->route_id ?? '')),
         @json((string) $operation->shuttle_vehicle_id)
     );
+    wireMovementTotals('#editTripForm', '#editArrivalTotal', '#editDepartureTotal');
 });
 </script>
 @endpush

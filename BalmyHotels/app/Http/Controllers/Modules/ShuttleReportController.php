@@ -189,29 +189,35 @@ class ShuttleReportController extends BaseModuleController
 
         $branchMovementSummary = [];
         foreach ($branches as $branch) {
-            $pickupCount = 0;
-            $dropoffCount = 0;
+            $arrivalCount = 0;
+            $departureCount = 0;
 
             foreach ($trips as $trip) {
+                if ($trip->branchMovements->isEmpty() && (int) $trip->branch_id === (int) $branch->id) {
+                    $arrivalCount += (int) $trip->arrival_count;
+                    $departureCount += (int) $trip->departure_count;
+                    continue;
+                }
+
                 foreach ($trip->branchMovements as $movement) {
                     if ((int) $movement->branch_id !== (int) $branch->id) {
                         continue;
                     }
 
-                    if ($movement->movement_type === 'pickup') {
-                        $pickupCount += $movement->headcount;
+                    if ($movement->movement_type === 'arrival') {
+                        $arrivalCount += $movement->headcount;
                     }
 
-                    if ($movement->movement_type === 'dropoff') {
-                        $dropoffCount += $movement->headcount;
+                    if ($movement->movement_type === 'departure') {
+                        $departureCount += $movement->headcount;
                     }
                 }
             }
 
             $branchMovementSummary[$branch->id] = [
                 'branch' => $branch,
-                'pickup' => $pickupCount,
-                'dropoff' => $dropoffCount,
+                'arrival' => $arrivalCount,
+                'departure' => $departureCount,
             ];
         }
 
@@ -311,14 +317,14 @@ class ShuttleReportController extends BaseModuleController
         }
 
         $sheet->setCellValue('L6', 'Sube');
-        $sheet->setCellValue('M6', 'Alinan');
-        $sheet->setCellValue('N6', 'Indirilen');
+        $sheet->setCellValue('M6', 'Gelen');
+        $sheet->setCellValue('N6', 'Giden');
 
         $movementRow = 7;
         foreach ($payload['branchMovementSummary'] as $summary) {
             $sheet->setCellValue('L' . $movementRow, $summary['branch']->name);
-            $sheet->setCellValue('M' . $movementRow, $summary['pickup']);
-            $sheet->setCellValue('N' . $movementRow, $summary['dropoff']);
+            $sheet->setCellValue('M' . $movementRow, $summary['arrival']);
+            $sheet->setCellValue('N' . $movementRow, $summary['departure']);
             $movementRow++;
         }
 
@@ -359,8 +365,8 @@ class ShuttleReportController extends BaseModuleController
             'L1' => 'Donus Doluluk %',
             'M1' => 'Farkli Arac',
             'N1' => 'Aktarim',
-            'O1' => 'Alinan',
-            'P1' => 'Indirilen',
+            'O1' => 'Gelen Dagilimi',
+            'P1' => 'Giden Dagilimi',
             'Q1' => 'Not',
         ];
 
@@ -370,14 +376,22 @@ class ShuttleReportController extends BaseModuleController
 
         $row = 2;
         foreach ($payload['trips'] as $trip) {
-            $pickupSummary = $trip->branchMovements
-                ->where('movement_type', 'pickup')
+            $arrivalSummary = $trip->branchMovements
+                ->where('movement_type', 'arrival')
                 ->map(fn ($movement) => ($movement->branch->name ?? '-') . ': ' . $movement->headcount)
                 ->implode(', ');
-            $dropoffSummary = $trip->branchMovements
-                ->where('movement_type', 'dropoff')
+            $departureSummary = $trip->branchMovements
+                ->where('movement_type', 'departure')
                 ->map(fn ($movement) => ($movement->branch->name ?? '-') . ': ' . $movement->headcount)
                 ->implode(', ');
+
+            if ($arrivalSummary === '' && (int) $trip->arrival_count > 0) {
+                $arrivalSummary = ($trip->branch->name ?? '-') . ': ' . $trip->arrival_count;
+            }
+
+            if ($departureSummary === '' && (int) $trip->departure_count > 0) {
+                $departureSummary = ($trip->branch->name ?? '-') . ': ' . $trip->departure_count;
+            }
 
             $sheet->setCellValue('A' . $row, $trip->trip_date->format('d.m.Y'));
             $sheet->setCellValue('B' . $row, $trip->branch->name ?? '-');
@@ -393,8 +407,8 @@ class ShuttleReportController extends BaseModuleController
             $sheet->setCellValue('L' . $row, $trip->departure_occupancy ?? 0);
             $sheet->setCellValue('M' . $row, $trip->arrived_with_different_vehicle ? 'Evet' : 'Hayir');
             $sheet->setCellValue('N' . $row, $trip->is_transfer ? 'Evet' : 'Hayir');
-            $sheet->setCellValue('O' . $row, $pickupSummary);
-            $sheet->setCellValue('P' . $row, $dropoffSummary);
+            $sheet->setCellValue('O' . $row, $arrivalSummary);
+            $sheet->setCellValue('P' . $row, $departureSummary);
             $sheet->setCellValue('Q' . $row, $trip->notes ?? '');
             $row++;
         }

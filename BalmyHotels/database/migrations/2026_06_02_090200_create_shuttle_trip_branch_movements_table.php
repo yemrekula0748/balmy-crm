@@ -12,7 +12,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('shuttle_trip_id')->constrained('shuttle_trips')->cascadeOnDelete();
             $table->foreignId('branch_id')->constrained('branches')->cascadeOnDelete();
-            $table->enum('movement_type', ['pickup', 'dropoff']);
+            $table->enum('movement_type', ['arrival', 'departure']);
             $table->unsignedSmallInteger('headcount')->default(0);
             $table->timestamps();
 

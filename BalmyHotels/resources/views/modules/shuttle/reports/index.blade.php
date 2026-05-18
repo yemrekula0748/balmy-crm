@@ -249,16 +249,16 @@
                         <thead class="table-light">
                             <tr>
                                 <th>Sube</th>
-                                <th class="text-center">Alinan</th>
-                                <th class="text-center">Indirilen</th>
+                                <th class="text-center">Gelen</th>
+                                <th class="text-center">Giden</th>
                             </tr>
                         </thead>
                         <tbody>
                             @foreach($branchMovementSummary as $summary)
                                 <tr>
                                     <td class="fw-semibold">{{ $summary['branch']->name }}</td>
-                                    <td class="text-center fw-bold text-primary">{{ $summary['pickup'] }}</td>
-                                    <td class="text-center fw-bold text-success">{{ $summary['dropoff'] }}</td>
+                                    <td class="text-center fw-bold text-primary">{{ $summary['arrival'] }}</td>
+                                    <td class="text-center fw-bold text-success">{{ $summary['departure'] }}</td>
                                 </tr>
                             @endforeach
                         </tbody>
