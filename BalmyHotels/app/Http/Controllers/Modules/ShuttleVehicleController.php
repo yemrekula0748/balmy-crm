@@ -26,11 +26,17 @@ class ShuttleVehicleController extends BaseModuleController
     public function index(Request $request)
     {
         $user = Auth::user();
-        $branches = Branch::where('is_active', true)->get();
-        $branchId = $request->branch_id;
+        $visibleBranchIds = array_map('intval', $user->visibleBranchIds());
+        $branches = Branch::where('is_active', true)
+            ->whereIn('id', $visibleBranchIds)
+            ->orderBy('name')
+            ->get();
+        $branchId = $request->filled('branch_id') && in_array((int) $request->branch_id, $visibleBranchIds, true)
+            ? (int) $request->branch_id
+            : null;
 
         $vehicles = ShuttleVehicle::with(['branch', 'routes'])
-            ->whereIn('branch_id', $user->visibleBranchIds())
+            ->whereIn('branch_id', $visibleBranchIds)
             ->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
             ->when($request->search, function ($q) use ($request) {
                 $search = $request->search;

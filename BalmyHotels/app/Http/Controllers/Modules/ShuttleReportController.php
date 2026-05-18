@@ -104,17 +104,14 @@ class ShuttleReportController extends BaseModuleController
             })
             ->forPeriod($from->toDateString(), $to->toDateString());
 
-        $vehicleIds = (clone $visibleTripsQuery)
-            ->distinct()
-            ->pluck('shuttle_vehicle_id')
-            ->filter()
-            ->map(fn ($id) => (int) $id)
-            ->values()
-            ->all();
-
-        $vehicles = ShuttleVehicle::whereIn('id', $vehicleIds)
+        $vehicles = ShuttleVehicle::query()
+            ->whereIn('branch_id', $queryBranchIds)
+            ->where('is_active', true)
             ->orderBy('name')
             ->get();
+        $vehicleIds = $vehicles->pluck('id')
+            ->map(fn ($id) => (int) $id)
+            ->all();
 
         $vehicleId = $request->filled('vehicle_id') && in_array((int) $request->vehicle_id, $vehicleIds, true)
             ? (int) $request->vehicle_id
