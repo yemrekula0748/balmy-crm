@@ -3,34 +3,168 @@
 @section('title', 'Misafir Kontrol')
 
 @push('styles')
-<script>
-    window.tailwind = window.tailwind || {};
-    window.tailwind.config = {
-        prefix: 'tw-',
-        corePlugins: {
-            preflight: false,
-        },
-        theme: {
-            extend: {
-                colors: {
-                    sand: '#c19b77',
-                    clay: '#a07855',
-                    latte: '#efe4d7',
-                    ink: '#1f2937',
-                    fog: '#f8fafc',
-                    stonewarm: '#7c6a58',
-                },
-                boxShadow: {
-                    'soft-xl': '0 22px 55px rgba(15, 23, 42, 0.10)',
-                    'soft-lg': '0 12px 30px rgba(15, 23, 42, 0.08)',
-                },
-            },
-        },
-    };
-</script>
-<script src="https://cdn.tailwindcss.com?plugins=forms"></script>
 <link rel="stylesheet" href="{{ asset('vendor/sweetalert2/dist/sweetalert2.min.css') }}">
 <style>
+    .gc-card {
+        border: 0;
+        border-radius: 1rem;
+        box-shadow: 0 16px 35px rgba(15, 23, 42, .08);
+        overflow: hidden;
+    }
+    .gc-hero {
+        position: relative;
+        color: #fff;
+        background: linear-gradient(135deg, #c19b77 0%, #a07855 55%, #7c5a3f 100%);
+    }
+    .gc-hero::before,
+    .gc-hero::after {
+        content: "";
+        position: absolute;
+        border-radius: 999px;
+        background: rgba(255,255,255,.10);
+        filter: blur(4px);
+    }
+    .gc-hero::before {
+        width: 160px;
+        height: 160px;
+        top: -55px;
+        right: -25px;
+    }
+    .gc-hero::after {
+        width: 110px;
+        height: 110px;
+        bottom: -40px;
+        left: 24px;
+    }
+    .gc-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: .45rem;
+        padding: .45rem .8rem;
+        border-radius: 999px;
+        background: rgba(255,255,255,.14);
+        border: 1px solid rgba(255,255,255,.16);
+        font-size: .73rem;
+        font-weight: 700;
+        letter-spacing: .05em;
+        text-transform: uppercase;
+    }
+    .gc-label {
+        font-size: .78rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: .06em;
+        color: rgba(255,255,255,.78);
+    }
+    .gc-room-wrap {
+        border-radius: .95rem;
+        background: rgba(255,255,255,.14);
+        border: 1px solid rgba(255,255,255,.18);
+        padding: .35rem;
+    }
+    .gc-room-wrap .input-group-text {
+        border: 0;
+        background: #fff;
+        color: #a07855;
+        border-radius: .75rem 0 0 .75rem;
+    }
+    .gc-room-wrap .form-control {
+        border: 0;
+        min-height: 52px;
+        font-weight: 700;
+        color: #3b2a1d;
+        border-radius: 0 .75rem .75rem 0;
+    }
+    .gc-room-wrap .form-control:focus {
+        box-shadow: none;
+    }
+    .gc-btn-theme {
+        border: 0;
+        background: #fff;
+        color: #7c5a3f;
+        font-weight: 700;
+        min-height: 52px;
+        border-radius: .9rem;
+        box-shadow: 0 10px 25px rgba(0,0,0,.08);
+    }
+    .gc-btn-theme:hover {
+        color: #7c5a3f;
+        background: #fdf7f1;
+    }
+    .gc-btn-soft {
+        min-height: 52px;
+        border-radius: .9rem;
+        border: 1px solid rgba(255,255,255,.22);
+        background: rgba(255,255,255,.10);
+        color: #fff;
+        font-weight: 700;
+    }
+    .gc-btn-soft:hover {
+        color: #fff;
+        background: rgba(255,255,255,.16);
+    }
+    .gc-stat-card {
+        border: 1px solid #ece3d8;
+        border-radius: 1rem;
+        background: #fff;
+        box-shadow: 0 10px 26px rgba(15, 23, 42, .05);
+        height: 100%;
+    }
+    .gc-stat-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: .9rem;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(193,155,119,.14);
+        color: #a07855;
+        font-size: 1rem;
+    }
+    .gc-side-card {
+        border: 0;
+        border-radius: 1rem;
+        box-shadow: 0 16px 35px rgba(15, 23, 42, .08);
+    }
+    .gc-side-card .card-header {
+        background: #fff;
+        border-bottom: 1px solid #f0e7dc;
+        padding: 1rem 1.25rem;
+    }
+    .gc-side-card .card-body {
+        padding: 1.25rem;
+    }
+    .gc-step-item {
+        display: flex;
+        gap: .9rem;
+        align-items: flex-start;
+        padding: .95rem 0;
+    }
+    .gc-step-item + .gc-step-item {
+        border-top: 1px solid #f2ebe2;
+    }
+    .gc-step-badge {
+        width: 34px;
+        height: 34px;
+        border-radius: .85rem;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        background: linear-gradient(135deg,#c19b77,#a07855);
+        color: #fff;
+        font-weight: 800;
+        font-size: .85rem;
+    }
+    .gc-status-card {
+        border-left: 4px solid #c19b77;
+    }
+    .gc-mini-note {
+        border-radius: .85rem;
+        background: #faf6f1;
+        border: 1px solid #efe4d7;
+        padding: .85rem .95rem;
+    }
     .guest-alert-popup {
         width: min(920px, calc(100vw - 22px)) !important;
         border-radius: 28px !important;
@@ -269,163 +403,156 @@
         </div>
     @endif
 
-    <div class="tw-relative tw-overflow-hidden tw-rounded-[30px] tw-bg-gradient-to-br tw-from-[#fbf7f2] tw-via-white tw-to-[#f8fafc] tw-shadow-soft-xl">
-        <div class="tw-pointer-events-none tw-absolute tw--left-20 tw-top-10 tw-h-52 tw-w-52 tw-rounded-full tw-bg-[#f2e1cf] tw-blur-3xl"></div>
-        <div class="tw-pointer-events-none tw-absolute tw-right-0 tw-top-0 tw-h-60 tw-w-60 tw-rounded-full tw-bg-[#f7e9dc] tw-blur-3xl"></div>
-        <div class="tw-relative tw-grid tw-gap-6 tw-p-4 md:tw-p-6 xl:tw-grid-cols-[1.4fr,.9fr] xl:tw-gap-8 xl:tw-p-8">
-            <section class="tw-overflow-hidden tw-rounded-[28px] tw-border tw-border-white/70 tw-bg-white/70 tw-shadow-soft-lg tw-backdrop-blur">
-                <div class="tw-relative tw-overflow-hidden tw-rounded-[28px] tw-bg-gradient-to-br tw-from-[#2f241a] tw-via-[#574232] tw-to-[#876247] tw-p-6 tw-text-white md:tw-p-8">
-                    <div class="tw-absolute tw-right-0 tw-top-0 tw-h-36 tw-w-36 tw-rounded-full tw-bg-white/10 tw-blur-2xl"></div>
-                    <div class="tw-absolute tw-bottom-0 tw-left-8 tw-h-28 tw-w-28 tw-rounded-full tw-bg-[#f6d5aa]/20 tw-blur-2xl"></div>
+    <div class="row g-4">
+        <div class="col-xl-8">
+            <div class="card gc-card gc-hero mb-4">
+                <div class="card-body p-4 p-lg-5 position-relative">
+                    <div class="d-flex flex-wrap gap-2 mb-4">
+                        <span class="gc-chip"><i class="fas fa-hotel"></i>{{ $hotel['name'] ?? 'Balmy Foresta' }}</span>
+                        <span class="gc-chip"><i class="fas fa-hashtag"></i>Hotel ID {{ $hotel['hotel_id'] ?? '-' }}</span>
+                        <span class="gc-chip"><i class="fas fa-users"></i>Misafir Kontrol</span>
+                    </div>
 
-                    <div class="tw-relative">
-                        <div class="tw-mb-4 tw-flex tw-flex-wrap tw-gap-2">
-                            <span class="tw-inline-flex tw-items-center tw-gap-2 tw-rounded-full tw-border tw-border-white/15 tw-bg-white/10 tw-px-3 tw-py-1.5 tw-text-[11px] tw-font-bold tw-uppercase tw-tracking-[0.18em]">
-                                <i class="fas fa-hotel tw-text-[#f3cf9f]"></i>{{ $hotel['name'] ?? 'Balmy Foresta' }}
-                            </span>
-                            <span class="tw-inline-flex tw-items-center tw-gap-2 tw-rounded-full tw-border tw-border-white/15 tw-bg-white/10 tw-px-3 tw-py-1.5 tw-text-[11px] tw-font-bold tw-uppercase tw-tracking-[0.18em]">
-                                <i class="fas fa-hashtag tw-text-[#f3cf9f]"></i>Hotel ID {{ $hotel['hotel_id'] ?? '-' }}
-                            </span>
-                            <span class="tw-inline-flex tw-items-center tw-gap-2 tw-rounded-full tw-border tw-border-white/15 tw-bg-white/10 tw-px-3 tw-py-1.5 tw-text-[11px] tw-font-bold tw-uppercase tw-tracking-[0.18em]">
-                                <i class="fas fa-layer-group tw-text-[#f3cf9f]"></i>Misafir Kontrol
-                            </span>
-                        </div>
-
-                        <div class="tw-max-w-2xl">
-                            <h3 class="tw-text-2xl tw-font-black tw-tracking-[-0.03em] md:tw-text-[2.15rem]">
-                                Oda numarasiyla misafiri sorgula, toplu giris-cikis kaydini tek ekrandan yonet.
-                            </h3>
-                            <p class="tw-mt-3 tw-max-w-xl tw-text-sm tw-leading-7 tw-text-white/78 md:tw-text-[15px]">
-                                Eski yesil yapinin yerine, Onburo temasiyla uyumlu daha temiz ve modern bir sorgu karti
-                                hazirladim. Oda bilgisi geldikten sonra aksiyonlar mobil popup altinda sabit kalir.
+                    <div class="row align-items-end g-4">
+                        <div class="col-lg-7">
+                            <h3 class="fw-bold mb-2">Oda bazli sorgu ile misafir giris ve cikis kaydini yonet.</h3>
+                            <p class="mb-0 text-white-50">
+                                Oda numarasini gir, HotelAdvisor uzerinden guncel misafirleri cek ve popup icinden
+                                toplu giris veya cikis kaydini kolayca olustur.
                             </p>
                         </div>
-
-                        <form id="guest-control-query-form" class="tw-mt-7 tw-grid tw-gap-3 md:tw-grid-cols-[1fr,auto,auto] md:tw-items-end">
-                            <div class="tw-relative">
-                                <label for="room_no" class="tw-mb-2 tw-block tw-text-xs tw-font-bold tw-uppercase tw-tracking-[0.16em] tw-text-white/70">
-                                    Oda Numarasi
-                                </label>
-                                <div class="tw-relative">
-                                    <span class="tw-pointer-events-none tw-absolute tw-inset-y-0 tw-left-0 tw-flex tw-items-center tw-pl-4 tw-text-[#8b6b51]">
-                                        <i class="fas fa-door-open"></i>
-                                    </span>
-                                    <input
-                                        type="text"
-                                        id="room_no"
-                                        name="room_no"
-                                        class="tw-block tw-h-14 tw-w-full tw-rounded-2xl tw-border-0 tw-bg-white/95 tw-pl-11 tw-pr-4 tw-text-base tw-font-semibold tw-text-[#2f241a] tw-shadow-lg placeholder:tw-text-[#a8927c] focus:tw-ring-2 focus:tw-ring-[#f3cf9f]"
-                                        placeholder="Orn: 682"
-                                        maxlength="20"
-                                        @disabled(!$integrationReady)
-                                        required
-                                    >
+                        <div class="col-lg-5">
+                            <form id="guest-control-query-form" class="row g-3">
+                                <div class="col-12">
+                                    <label for="room_no" class="gc-label mb-2 d-block">Oda Numarasi</label>
+                                    <div class="gc-room-wrap">
+                                        <div class="input-group">
+                                            <span class="input-group-text"><i class="fas fa-door-open"></i></span>
+                                            <input
+                                                type="text"
+                                                id="room_no"
+                                                name="room_no"
+                                                class="form-control"
+                                                placeholder="Orn: 682"
+                                                maxlength="20"
+                                                @disabled(!$integrationReady)
+                                                required
+                                            >
+                                        </div>
+                                    </div>
                                 </div>
-                            </div>
-                            <button
-                                type="submit"
-                                id="guest-control-query-btn"
-                                class="tw-inline-flex tw-h-14 tw-items-center tw-justify-center tw-gap-2 tw-rounded-2xl tw-bg-white tw-px-5 tw-text-sm tw-font-extrabold tw-text-[#5c3c22] tw-shadow-lg tw-transition hover:tw--translate-y-0.5 hover:tw-bg-[#fff7ef]"
-                                @disabled(!$integrationReady)
-                            >
-                                <i class="fas fa-search"></i>Sorgula
-                            </button>
-                            @if(auth()->user()->hasPermission('guest_control_history', 'index'))
-                                <a href="{{ route('frontdesk.guest-control.history') }}"
-                                   class="tw-inline-flex tw-h-14 tw-items-center tw-justify-center tw-gap-2 tw-rounded-2xl tw-border tw-border-white/20 tw-bg-white/10 tw-px-5 tw-text-sm tw-font-bold tw-text-white tw-backdrop-blur tw-transition hover:tw-bg-white/16">
-                                    <i class="fas fa-table"></i>Kayitlari Ac
-                                </a>
-                            @endif
-                        </form>
+                                <div class="col-sm-{{ auth()->user()->hasPermission('guest_control_history', 'index') ? '6' : '12' }}">
+                                    <button
+                                        type="submit"
+                                        id="guest-control-query-btn"
+                                        class="btn gc-btn-theme w-100"
+                                        @disabled(!$integrationReady)
+                                    >
+                                        <i class="fas fa-search me-2"></i>Sorgula
+                                    </button>
+                                </div>
+                                @if(auth()->user()->hasPermission('guest_control_history', 'index'))
+                                    <div class="col-sm-6">
+                                        <a href="{{ route('frontdesk.guest-control.history') }}" class="btn gc-btn-soft w-100">
+                                            <i class="fas fa-table me-2"></i>Kayitlar
+                                        </a>
+                                    </div>
+                                @endif
+                            </form>
+                        </div>
                     </div>
                 </div>
+            </div>
 
-                <div class="tw-grid tw-gap-4 tw-p-4 md:tw-grid-cols-3 md:tw-p-6">
-                    <div class="tw-rounded-3xl tw-border tw-border-[#ede2d6] tw-bg-[#fffdfb] tw-p-4 tw-shadow-[0_8px_24px_rgba(168,120,85,0.06)]">
-                        <div class="tw-mb-3 tw-inline-flex tw-h-11 tw-w-11 tw-items-center tw-justify-center tw-rounded-2xl tw-bg-[#f5ebe0] tw-text-[#9b6d45]">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <div class="gc-stat-card p-4">
+                        <div class="gc-stat-icon mb-3">
                             <i class="fas fa-wave-square"></i>
                         </div>
-                        <div class="tw-text-sm tw-font-extrabold tw-text-[#31261d]">Canli API Sorgusu</div>
-                        <p class="tw-mt-2 tw-text-sm tw-leading-6 tw-text-[#7c6a58]">Foresta odasindaki guncel misafir listesi anlik olarak geliyor.</p>
+                        <div class="fw-bold text-dark mb-1">Canli API Sorgusu</div>
+                        <small class="text-muted d-block">Foresta odasindaki guncel misafir listesi anlik olarak gelir.</small>
                     </div>
-                    <div class="tw-rounded-3xl tw-border tw-border-[#ede2d6] tw-bg-[#fffdfb] tw-p-4 tw-shadow-[0_8px_24px_rgba(168,120,85,0.06)]">
-                        <div class="tw-mb-3 tw-inline-flex tw-h-11 tw-w-11 tw-items-center tw-justify-center tw-rounded-2xl tw-bg-[#f5ebe0] tw-text-[#9b6d45]">
-                            <i class="fas fa-users"></i>
+                </div>
+                <div class="col-md-4">
+                    <div class="gc-stat-card p-4">
+                        <div class="gc-stat-icon mb-3">
+                            <i class="fas fa-user-check"></i>
                         </div>
-                        <div class="tw-text-sm tw-font-extrabold tw-text-[#31261d]">Toplu Secim</div>
-                        <p class="tw-mt-2 tw-text-sm tw-leading-6 tw-text-[#7c6a58]">Ayni odadaki birden cok misafiri checkbox ile tek seferde isleyebilirsin.</p>
+                        <div class="fw-bold text-dark mb-1">Toplu Islem</div>
+                        <small class="text-muted d-block">Ayni odadaki birden cok misafiri checkbox ile tek seferde isleyebilirsin.</small>
                     </div>
-                    <div class="tw-rounded-3xl tw-border tw-border-[#ede2d6] tw-bg-[#fffdfb] tw-p-4 tw-shadow-[0_8px_24px_rgba(168,120,85,0.06)]">
-                        <div class="tw-mb-3 tw-inline-flex tw-h-11 tw-w-11 tw-items-center tw-justify-center tw-rounded-2xl tw-bg-[#f5ebe0] tw-text-[#9b6d45]">
+                </div>
+                <div class="col-md-4">
+                    <div class="gc-stat-card p-4">
+                        <div class="gc-stat-icon mb-3">
                             <i class="fas fa-mobile-alt"></i>
                         </div>
-                        <div class="tw-text-sm tw-font-extrabold tw-text-[#31261d]">Mobil Dostu Popup</div>
-                        <p class="tw-mt-2 tw-text-sm tw-leading-6 tw-text-[#7c6a58]">Kapat, giris ve cikis butonlari popup altinda sabit kalir; son kullanici zorlanmaz.</p>
+                        <div class="fw-bold text-dark mb-1">Mobil Kolaylik</div>
+                        <small class="text-muted d-block">Popup alt aksiyonlari mobilde sabit kalir, liste ustten kayar.</small>
                     </div>
                 </div>
-            </section>
+            </div>
+        </div>
 
-            <aside class="tw-grid tw-gap-4">
-                <div class="tw-rounded-[28px] tw-border tw-border-white/70 tw-bg-white/80 tw-p-5 tw-shadow-soft-lg tw-backdrop-blur md:tw-p-6">
-                    <div class="tw-flex tw-items-center tw-gap-3">
-                        <div class="tw-inline-flex tw-h-12 tw-w-12 tw-items-center tw-justify-center tw-rounded-2xl tw-bg-[#f5ebe0] tw-text-[#9b6d45]">
-                            <i class="fas fa-compass"></i>
-                        </div>
-                        <div>
-                            <h5 class="tw-text-lg tw-font-black tw-text-[#2f241a]">Calisma Akisi</h5>
-                            <p class="tw-mt-1 tw-text-sm tw-text-[#7c6a58]">Kisa, net ve personelin hizli kullanabilecegi adimlar.</p>
-                        </div>
-                    </div>
-
-                    <div class="tw-mt-5 tw-space-y-3">
-                        <div class="tw-flex tw-gap-3 tw-rounded-2xl tw-border tw-border-[#eee4da] tw-bg-[#fffdfb] tw-p-3">
-                            <div class="tw-flex tw-h-9 tw-w-9 tw-flex-shrink-0 tw-items-center tw-justify-center tw-rounded-2xl tw-bg-[#2f241a] tw-text-sm tw-font-black tw-text-white">1</div>
-                            <div>
-                                <div class="tw-text-sm tw-font-extrabold tw-text-[#2f241a]">Odayi Sorgula</div>
-                                <div class="tw-mt-1 tw-text-sm tw-leading-6 tw-text-[#7c6a58]">Oda numarasini yaz, sistem HotelAdvisor uzerinden listeyi ceksin.</div>
-                            </div>
-                        </div>
-                        <div class="tw-flex tw-gap-3 tw-rounded-2xl tw-border tw-border-[#eee4da] tw-bg-[#fffdfb] tw-p-3">
-                            <div class="tw-flex tw-h-9 tw-w-9 tw-flex-shrink-0 tw-items-center tw-justify-center tw-rounded-2xl tw-bg-[#2f241a] tw-text-sm tw-font-black tw-text-white">2</div>
-                            <div>
-                                <div class="tw-text-sm tw-font-extrabold tw-text-[#2f241a]">Misafirleri Isle</div>
-                                <div class="tw-mt-1 tw-text-sm tw-leading-6 tw-text-[#7c6a58]">Popup icinde checkbox ile sec, sonra giris ya da cikis aksiyonunu ver.</div>
-                            </div>
-                        </div>
-                        <div class="tw-flex tw-gap-3 tw-rounded-2xl tw-border tw-border-[#eee4da] tw-bg-[#fffdfb] tw-p-3">
-                            <div class="tw-flex tw-h-9 tw-w-9 tw-flex-shrink-0 tw-items-center tw-justify-center tw-rounded-2xl tw-bg-[#2f241a] tw-text-sm tw-font-black tw-text-white">3</div>
-                            <div>
-                                <div class="tw-text-sm tw-font-extrabold tw-text-[#2f241a]">Kayitlari Izle</div>
-                                <div class="tw-mt-1 tw-text-sm tw-leading-6 tw-text-[#7c6a58]">Tum hareketler ayri kayit ekraninda rapor gibi listelenir.</div>
-                            </div>
-                        </div>
-                    </div>
+        <div class="col-xl-4">
+            <div class="card gc-side-card gc-status-card mb-4">
+                <div class="card-header">
+                    <h6 class="fw-bold mb-0">
+                        <i class="fas fa-shield-alt me-2" style="color:#c19b77"></i>Entegrasyon Durumu
+                    </h6>
                 </div>
-
-                <div class="tw-rounded-[28px] tw-border tw-border-[#eaded0] tw-bg-gradient-to-br tw-from-[#fffaf5] tw-to-[#f8fafc] tw-p-5 tw-shadow-soft-lg md:tw-p-6">
-                    <div class="tw-inline-flex tw-items-center tw-gap-2 tw-rounded-full tw-bg-[#f5ebe0] tw-px-3 tw-py-1 tw-text-[11px] tw-font-extrabold tw-uppercase tw-tracking-[0.18em] tw-text-[#8d6844]">
-                        <i class="fas fa-shield-alt"></i>Durum
-                    </div>
-                    <div class="tw-mt-4 tw-text-lg tw-font-black tw-text-[#2f241a]">
+                <div class="card-body">
+                    <div class="fw-bold text-dark mb-2">
                         {{ $integrationReady ? 'Entegrasyon kullanima hazir' : 'Entegrasyon bilgisi eksik' }}
                     </div>
-                    <p class="tw-mt-2 tw-text-sm tw-leading-6 tw-text-[#7c6a58]">
+                    <p class="text-muted small mb-3">
                         {{ $integrationReady
-                            ? 'Foresta API bilgileri tanimliysa sorgu ve kayit aksiyonlari dogrudan calisacak.'
-                            : 'Bu ekranda sorgu acilmaz. Once .env icinde gerekli HotelAdvisor alanlarini doldurmalisin.' }}
+                            ? 'Foresta API bilgileri tanimliysa sorgu ve kayit aksiyonlari bu ekrandan dogrudan calisir.'
+                            : 'Sorgu acilmaz. Once .env icinde gerekli HotelAdvisor alanlarini doldurmalisin.' }}
                     </p>
-                    <div class="tw-mt-4 tw-grid tw-gap-3">
-                        <div class="tw-rounded-2xl tw-border tw-border-[#eee4da] tw-bg-white/80 tw-p-3">
-                            <div class="tw-text-[11px] tw-font-bold tw-uppercase tw-tracking-[0.16em] tw-text-[#a38b73]">Otel</div>
-                            <div class="tw-mt-1 tw-text-sm tw-font-extrabold tw-text-[#2f241a]">{{ $hotel['name'] ?? 'Balmy Foresta' }}</div>
+
+                    <div class="gc-mini-note mb-3">
+                        <div class="text-muted small text-uppercase fw-bold mb-1">Otel</div>
+                        <div class="fw-semibold text-dark">{{ $hotel['name'] ?? 'Balmy Foresta' }}</div>
+                    </div>
+                    <div class="gc-mini-note">
+                        <div class="text-muted small text-uppercase fw-bold mb-1">Kaynak</div>
+                        <div class="fw-semibold text-dark">HotelAdvisor Hotspot API</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card gc-side-card">
+                <div class="card-header">
+                    <h6 class="fw-bold mb-0">
+                        <i class="fas fa-compass me-2" style="color:#c19b77"></i>Calisma Akisi
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="gc-step-item pt-0">
+                        <span class="gc-step-badge">1</span>
+                        <div>
+                            <div class="fw-bold text-dark">Odayi sorgula</div>
+                            <small class="text-muted">Oda numarasini gir ve sistemin guncel misafir listesini cekmesini bekle.</small>
                         </div>
-                        <div class="tw-rounded-2xl tw-border tw-border-[#eee4da] tw-bg-white/80 tw-p-3">
-                            <div class="tw-text-[11px] tw-font-bold tw-uppercase tw-tracking-[0.16em] tw-text-[#a38b73]">Varsayilan Kaynak</div>
-                            <div class="tw-mt-1 tw-text-sm tw-font-extrabold tw-text-[#2f241a]">HotelAdvisor Hotspot API</div>
+                    </div>
+                    <div class="gc-step-item">
+                        <span class="gc-step-badge">2</span>
+                        <div>
+                            <div class="fw-bold text-dark">Misafirleri sec</div>
+                            <small class="text-muted">Popup icinden kayda dahil edecegin misafirleri checkbox ile isaretle.</small>
+                        </div>
+                    </div>
+                    <div class="gc-step-item pb-0">
+                        <span class="gc-step-badge">3</span>
+                        <div>
+                            <div class="fw-bold text-dark">Aksiyonu kaydet</div>
+                            <small class="text-muted">Giris Yapti veya Cikis Yapti ile kaydi sisteme ekle, sonra gecmisten izle.</small>
                         </div>
                     </div>
                 </div>
-            </aside>
+            </div>
         </div>
     </div>
 </div>
