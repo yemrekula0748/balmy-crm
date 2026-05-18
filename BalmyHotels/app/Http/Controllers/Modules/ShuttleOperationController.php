@@ -19,7 +19,7 @@ class ShuttleOperationController extends BaseModuleController
     {
         $this->requirePermission(
             'shuttle_operations',
-            ['index'],
+            ['index', 'departure'],
             [],
             ['create', 'store'],
             ['edit', 'update'],

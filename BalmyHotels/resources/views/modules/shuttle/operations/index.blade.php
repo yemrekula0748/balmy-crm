@@ -263,7 +263,7 @@
                                                     <i class="fas fa-edit"></i> Kaynak Duzenle
                                                 </a>
                                             @endif
-                                            @if($contextRole === 'destination' && auth()->user()->hasPermission('shuttle_operations', 'edit'))
+                                            @if($contextRole === 'destination' && auth()->user()->hasPermission('shuttle_operations', 'index'))
                                                 <button
                                                     type="button"
                                                     class="btn btn-sm"
@@ -437,7 +437,7 @@
     </div>
 @endif
 
-@if(auth()->user()->hasPermission('shuttle_operations', 'edit'))
+@if(auth()->user()->hasPermission('shuttle_operations', 'index'))
     <div class="modal fade" id="destinationProcessModal" tabindex="-1">
         <div class="modal-dialog modal-md">
             <div class="modal-content border-0 shadow" style="border-radius:12px;overflow:hidden">
@@ -673,7 +673,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     @endif
 
-    @if($errors->any() && auth()->user()->hasPermission('shuttle_operations', 'edit') && old('_destination_trip_id'))
+    @if($errors->any() && auth()->user()->hasPermission('shuttle_operations', 'index') && old('_destination_trip_id'))
         openDestinationModal({
             tripId: @json(old('_destination_trip_id')),
             contextBranchId: @json((int) old('context_branch_id', $activeBranchId)),
