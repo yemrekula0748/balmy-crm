@@ -4,12 +4,14 @@ namespace App\Http\Controllers\Modules;
 
 use App\Http\Controllers\Modules\BaseModuleController;
 use App\Models\Branch;
+use App\Models\ShuttleRoute;
 use App\Models\ShuttleTrip;
 use App\Models\ShuttleVehicle;
-use App\Models\ShuttleRoute;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class ShuttleOperationController extends BaseModuleController
 {
@@ -27,115 +29,124 @@ class ShuttleOperationController extends BaseModuleController
 
     public function index(Request $request)
     {
-        $user      = Auth::user();
+        $user = Auth::user();
         $branchIds = $user->visibleBranchIds();
-        $branches  = Branch::where('is_active', true)->whereIn('id', $branchIds)->get();
+        $branches = Branch::where('is_active', true)->whereIn('id', $branchIds)->get();
 
-        $date     = $request->date ? Carbon::parse($request->date) : Carbon::today();
+        $date = $request->date ? Carbon::parse($request->date) : Carbon::today();
         $branchId = $request->branch_id ?? ($branches->count() === 1 ? $branches->first()->id : null);
 
-        // Araçları seçili şubeye göre filtrele
-        $vehicles = ShuttleVehicle::where('is_active', true)
-            ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
+        $vehicles = ShuttleVehicle::with(['branch', 'routes'])
+            ->where('is_active', true)
             ->whereIn('branch_id', $branchIds)
+            ->orderBy('branch_id')
             ->orderBy('name')
             ->get();
 
-        $routes = ShuttleRoute::where('is_active', true)
-            ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
+        $routes = ShuttleRoute::with('branch')
+            ->where('is_active', true)
             ->whereIn('branch_id', $branchIds)
+            ->orderBy('branch_id')
             ->orderBy('name')
             ->get();
 
-        // Bugünün seferleri
-        $trips = ShuttleTrip::with(['vehicle', 'route', 'creator'])
+        $trips = ShuttleTrip::with(['vehicle', 'route', 'creator', 'branchMovements.branch'])
             ->whereIn('branch_id', $branchIds)
-            ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
+            ->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
             ->where('trip_date', $date->toDateString())
             ->orderBy('shift')
             ->orderBy('arrival_time')
             ->get();
 
-        // Günlük özet
-        $totalArrival   = $trips->sum('arrival_count');
+        $totalArrival = $trips->sum('arrival_count');
         $totalDeparture = $trips->sum('departure_count');
-        $totalTrips     = $trips->count();
+        $totalTrips = $trips->count();
 
         return view('modules.shuttle.operations.index', compact(
-            'trips', 'vehicles', 'routes', 'branches', 'branchId', 'date',
-            'totalArrival', 'totalDeparture', 'totalTrips'
+            'trips',
+            'vehicles',
+            'routes',
+            'branches',
+            'branchId',
+            'date',
+            'totalArrival',
+            'totalDeparture',
+            'totalTrips'
         ));
     }
 
     public function store(Request $request)
     {
         $user = Auth::user();
-
-        $data = $request->validate([
-            'shuttle_vehicle_id' => 'required|exists:shuttle_vehicles,id',
-            'route_id'           => 'nullable|exists:shuttle_routes,id',
-            'branch_id'          => 'required|exists:branches,id',
-            'shift'              => 'required|in:A Shifti,B Shifti,C Shifti,Ara Shift 12-9,İdari,Lojman',
-            'trip_date'          => 'required|date',
-            'arrival_time'       => 'nullable|date_format:H:i',
-            'arrival_count'      => 'required|integer|min:0|max:500',
-            'departure_time'     => 'nullable|date_format:H:i',
-            'departure_count'    => 'required|integer|min:0|max:500',
-            'notes'              => 'nullable|string|max:500',
-        ]);
+        $branchIds = $user->visibleBranchIds();
+        [$data, $vehicle, $branchMovements] = $this->validateTripPayload($request, $branchIds);
 
         $data['created_by'] = $user->id;
-        ShuttleTrip::create($data);
+
+        DB::transaction(function () use ($data, $branchMovements) {
+            $trip = ShuttleTrip::create($data);
+            $this->syncBranchMovements($trip, $branchMovements);
+        });
 
         return redirect()->route('shuttle.operations.index', [
-            'branch_id' => $data['branch_id'],
-            'date'      => $data['trip_date'],
+            'branch_id' => $vehicle->branch_id,
+            'date' => $data['trip_date'],
         ])->with('success', 'Sefer kaydedildi.');
     }
 
     public function edit(ShuttleTrip $operation)
     {
-        $user      = Auth::user();
+        $user = Auth::user();
         $branchIds = $user->visibleBranchIds();
-        $vehicles  = ShuttleVehicle::where('is_active', true)
-            ->whereIn('branch_id', $branchIds)->orderBy('name')->get();
-        $routes = ShuttleRoute::where('is_active', true)
-            ->whereIn('branch_id', $branchIds)->orderBy('name')->get();
+        abort_unless(in_array((int) $operation->branch_id, array_map('intval', $branchIds), true), 403);
+        $vehicles = ShuttleVehicle::with(['branch', 'routes'])
+            ->where('is_active', true)
+            ->whereIn('branch_id', $branchIds)
+            ->orderBy('branch_id')
+            ->orderBy('name')
+            ->get();
+        $routes = ShuttleRoute::with('branch')
+            ->where('is_active', true)
+            ->whereIn('branch_id', $branchIds)
+            ->orderBy('branch_id')
+            ->orderBy('name')
+            ->get();
         $branches = Branch::where('is_active', true)->whereIn('id', $branchIds)->get();
-        $shifts   = ShuttleTrip::SHIFTS;
+        $shifts = ShuttleTrip::SHIFTS;
+
+        $operation->load('branchMovements');
 
         return view('modules.shuttle.operations.edit', compact(
-            'operation', 'vehicles', 'routes', 'branches', 'shifts'
+            'operation',
+            'vehicles',
+            'routes',
+            'branches',
+            'shifts'
         ));
     }
 
     public function update(Request $request, ShuttleTrip $operation)
     {
-        $data = $request->validate([
-            'shuttle_vehicle_id' => 'required|exists:shuttle_vehicles,id',
-            'route_id'           => 'nullable|exists:shuttle_routes,id',
-            'branch_id'          => 'required|exists:branches,id',
-            'shift'              => 'required|in:A Shifti,B Shifti,C Shifti,Ara Shift 12-9,İdari,Lojman',
-            'trip_date'          => 'required|date',
-            'arrival_time'       => 'nullable|date_format:H:i',
-            'arrival_count'      => 'required|integer|min:0|max:500',
-            'departure_time'     => 'nullable|date_format:H:i',
-            'departure_count'    => 'required|integer|min:0|max:500',
-            'notes'              => 'nullable|string|max:500',
-        ]);
+        $branchIds = Auth::user()->visibleBranchIds();
+        abort_unless(in_array((int) $operation->branch_id, array_map('intval', $branchIds), true), 403);
+        [$data, $vehicle, $branchMovements] = $this->validateTripPayload($request, $branchIds, $operation);
 
-        $operation->update($data);
+        DB::transaction(function () use ($operation, $data, $branchMovements) {
+            $operation->update($data);
+            $this->syncBranchMovements($operation, $branchMovements);
+        });
 
         return redirect()->route('shuttle.operations.index', [
-            'branch_id' => $data['branch_id'],
-            'date'      => $data['trip_date'],
-        ])->with('success', 'Sefer güncellendi.');
+            'branch_id' => $vehicle->branch_id,
+            'date' => $data['trip_date'],
+        ])->with('success', 'Sefer guncellendi.');
     }
 
     public function departure(Request $request, ShuttleTrip $operation)
     {
+        abort_unless(in_array((int) $operation->branch_id, array_map('intval', Auth::user()->visibleBranchIds()), true), 403);
         $data = $request->validate([
-            'departure_time'  => 'nullable|date_format:H:i',
+            'departure_time' => 'nullable|date_format:H:i',
             'departure_count' => 'required|integer|min:0|max:500',
         ]);
 
@@ -143,19 +154,128 @@ class ShuttleOperationController extends BaseModuleController
 
         return redirect()->route('shuttle.operations.index', [
             'branch_id' => $operation->branch_id,
-            'date'      => $operation->trip_date->toDateString(),
-        ])->with('success', 'Dönüş bilgisi kaydedildi.');
+            'date' => $operation->trip_date->toDateString(),
+        ])->with('success', 'Donus bilgisi kaydedildi.');
     }
 
     public function destroy(ShuttleTrip $operation)
     {
+        abort_unless(in_array((int) $operation->branch_id, array_map('intval', Auth::user()->visibleBranchIds()), true), 403);
         $branchId = $operation->branch_id;
-        $date     = $operation->trip_date->toDateString();
+        $date = $operation->trip_date->toDateString();
         $operation->delete();
 
         return redirect()->route('shuttle.operations.index', [
             'branch_id' => $branchId,
-            'date'      => $date,
+            'date' => $date,
         ])->with('success', 'Sefer silindi.');
+    }
+
+    private function validateTripPayload(Request $request, array $visibleBranchIds, ?ShuttleTrip $operation = null): array
+    {
+        $data = $request->validate([
+            'shuttle_vehicle_id' => 'required|exists:shuttle_vehicles,id',
+            'route_id' => 'nullable|exists:shuttle_routes,id',
+            'branch_id' => 'required|exists:branches,id',
+            'shift' => 'required|in:' . implode(',', ShuttleTrip::SHIFTS),
+            'trip_date' => 'required|date',
+            'arrival_time' => 'nullable|date_format:H:i',
+            'arrival_count' => 'required|integer|min:0|max:500',
+            'departure_time' => 'nullable|date_format:H:i',
+            'departure_count' => 'required|integer|min:0|max:500',
+            'notes' => 'nullable|string|max:500',
+            'arrived_with_different_vehicle' => 'nullable|boolean',
+            'is_transfer' => 'nullable|boolean',
+            'branch_movements' => 'nullable|array',
+            'branch_movements.*.pickup' => 'nullable|integer|min:0|max:500',
+            'branch_movements.*.dropoff' => 'nullable|integer|min:0|max:500',
+        ]);
+
+        $visibleBranchIds = array_map('intval', $visibleBranchIds);
+        if (! in_array((int) $data['branch_id'], $visibleBranchIds, true)) {
+            throw ValidationException::withMessages([
+                'branch_id' => 'Bu sube icin islem yapma yetkin yok.',
+            ]);
+        }
+
+        $vehicle = ShuttleVehicle::with('routes')
+            ->whereIn('branch_id', $visibleBranchIds)
+            ->find($data['shuttle_vehicle_id']);
+
+        if (! $vehicle) {
+            throw ValidationException::withMessages([
+                'shuttle_vehicle_id' => 'Secilen araca erisim iznin yok.',
+            ]);
+        }
+
+        if ((int) $vehicle->branch_id !== (int) $data['branch_id']) {
+            throw ValidationException::withMessages([
+                'shuttle_vehicle_id' => 'Secilen arac yalnizca kendi subesi icin kullanilabilir.',
+            ]);
+        }
+
+        $routeId = $data['route_id'] ? (int) $data['route_id'] : null;
+        if ($routeId !== null) {
+            $allowedRouteIds = $vehicle->routes->pluck('id')->map(fn ($id) => (int) $id)->all();
+            $legacyAllowedRouteId = (
+                $operation
+                && (int) $operation->shuttle_vehicle_id === (int) $vehicle->id
+                && $operation->route_id
+            ) ? (int) $operation->route_id : null;
+
+            if (! in_array($routeId, $allowedRouteIds, true) && $routeId !== $legacyAllowedRouteId) {
+                throw ValidationException::withMessages([
+                    'route_id' => 'Secilen arac bu guzergah icin gorevli degil.',
+                ]);
+            }
+        }
+
+        $data['arrived_with_different_vehicle'] = $request->boolean('arrived_with_different_vehicle');
+        $data['is_transfer'] = $request->boolean('is_transfer');
+
+        $branchMovements = $this->normaliseBranchMovements(
+            $request->input('branch_movements', []),
+            $visibleBranchIds
+        );
+
+        return [$data, $vehicle, $branchMovements];
+    }
+
+    private function normaliseBranchMovements(array $rawMovements, array $visibleBranchIds): array
+    {
+        $movements = [];
+
+        foreach ($rawMovements as $branchId => $counts) {
+            $branchId = (int) $branchId;
+            if (! in_array($branchId, $visibleBranchIds, true)) {
+                continue;
+            }
+
+            foreach (['pickup', 'dropoff'] as $movementType) {
+                $value = isset($counts[$movementType]) ? (int) $counts[$movementType] : 0;
+                if ($value <= 0) {
+                    continue;
+                }
+
+                $movements[] = [
+                    'branch_id' => $branchId,
+                    'movement_type' => $movementType,
+                    'headcount' => $value,
+                ];
+            }
+        }
+
+        return $movements;
+    }
+
+    private function syncBranchMovements(ShuttleTrip $trip, array $movements): void
+    {
+        $trip->branchMovements()->delete();
+
+        if ($movements === []) {
+            return;
+        }
+
+        $trip->branchMovements()->createMany($movements);
     }
 }

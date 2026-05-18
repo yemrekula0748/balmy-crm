@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class ShuttleTrip extends Model
 {
@@ -17,6 +18,8 @@ class ShuttleTrip extends Model
         'arrival_count',
         'departure_time',
         'departure_count',
+        'arrived_with_different_vehicle',
+        'is_transfer',
         'notes',
         'created_by',
     ];
@@ -25,6 +28,8 @@ class ShuttleTrip extends Model
         'trip_date'       => 'date',
         'arrival_count'   => 'integer',
         'departure_count' => 'integer',
+        'arrived_with_different_vehicle' => 'boolean',
+        'is_transfer' => 'boolean',
     ];
 
     public const SHIFTS = [
@@ -56,6 +61,11 @@ class ShuttleTrip extends Model
         return $this->belongsTo(User::class, 'created_by');
     }
 
+    public function branchMovements(): HasMany
+    {
+        return $this->hasMany(ShuttleTripBranchMovement::class, 'shuttle_trip_id');
+    }
+
     /** Doluluk oranı (geliş) % */
     public function getArrivalOccupancyAttribute(): ?float
     {
@@ -85,5 +95,15 @@ class ShuttleTrip extends Model
     public function scopeForPeriod($q, $from, $to)
     {
         return $q->whereBetween('trip_date', [$from, $to]);
+    }
+
+    public function movementCount(int $branchId, string $movementType): int
+    {
+        return (int) optional(
+            $this->branchMovements->first(
+                fn ($movement) => (int) $movement->branch_id === $branchId
+                    && $movement->movement_type === $movementType
+            )
+        )->headcount;
     }
 }

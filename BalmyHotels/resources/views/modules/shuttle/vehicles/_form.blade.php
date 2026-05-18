@@ -1,8 +1,8 @@
 {{-- Shared form fields for vehicle create/edit --}}
 <div class="mb-3">
-    <label class="form-label">Şube <span class="text-danger">*</span></label>
+    <label class="form-label">Sube <span class="text-danger">*</span></label>
     <select name="branch_id" class="form-select @error('branch_id') is-invalid @enderror" required>
-        <option value="">— Seçiniz —</option>
+        <option value="">- Seciniz -</option>
         @foreach($branches as $b)
             <option value="{{ $b->id }}" @selected(old('branch_id', $vehicle->branch_id ?? '') == $b->id)>
                 {{ $b->name }}
@@ -13,10 +13,10 @@
 </div>
 
 <div class="mb-3">
-    <label class="form-label">Araç Adı / Tanımı <span class="text-danger">*</span></label>
+    <label class="form-label">Arac Adi / Tanimi <span class="text-danger">*</span></label>
     <input type="text" name="name" value="{{ old('name', $vehicle->name ?? '') }}"
            class="form-control @error('name') is-invalid @enderror"
-           placeholder="örn: 34 ABC 123 - Minibüs" required maxlength="100">
+           placeholder="Orn: 34 ABC 123 - Minibus" required maxlength="100">
     @error('name')<div class="invalid-feedback">{{ $message }}</div>@enderror
 </div>
 
@@ -29,7 +29,7 @@
         @error('plate')<div class="invalid-feedback">{{ $message }}</div>@enderror
     </div>
     <div class="col-md-6 mb-3">
-        <label class="form-label">Araç Türü <span class="text-danger">*</span></label>
+        <label class="form-label">Arac Turu <span class="text-danger">*</span></label>
         <select name="type" class="form-select @error('type') is-invalid @enderror" required>
             @foreach($types as $val => $label)
                 <option value="{{ $val }}" @selected(old('type', $vehicle->type ?? '') == $val)>{{ $label }}</option>
@@ -43,9 +43,64 @@
     <label class="form-label">Yolcu Kapasitesi <span class="text-danger">*</span></label>
     <input type="number" name="capacity" value="{{ old('capacity', $vehicle->capacity ?? '') }}"
            class="form-control @error('capacity') is-invalid @enderror"
-           min="1" max="200" placeholder="örn: 14" required>
-    <div class="form-text">Araçta maksimum taşınabilecek yolcu sayısı.</div>
+           min="1" max="200" placeholder="Orn: 14" required>
+    <div class="form-text">Aracta maksimum tasinabilecek yolcu sayisi.</div>
     @error('capacity')<div class="invalid-feedback">{{ $message }}</div>@enderror
+</div>
+
+@php
+    $selectedRouteIds = collect(old('route_ids', isset($vehicle) ? $vehicle->routes->pluck('id')->all() : []))
+        ->map(fn ($id) => (int) $id)
+        ->all();
+    $groupedRoutes = collect($routes ?? [])->groupBy(fn ($route) => $route->branch?->name ?? 'Diger');
+@endphp
+
+<div class="mb-3">
+    <label class="form-label">Gorevli Guzergahlar</label>
+    <div class="card border-0 shadow-sm" style="background:#faf7f2;border-radius:12px">
+        <div class="card-body">
+            <div class="small text-muted mb-3">
+                Operasyon ekraninda bu araca yalnizca burada secilen guzergahlar gosterilir.
+            </div>
+
+            @if($groupedRoutes->isEmpty())
+                <div class="alert alert-warning mb-0 py-2 px-3">
+                    Once guzergah tanimi eklemelisin.
+                </div>
+            @else
+                <div class="row g-3">
+                    @foreach($groupedRoutes as $branchName => $branchRoutes)
+                        <div class="col-md-6">
+                            <div class="border rounded-3 h-100 p-3 bg-white">
+                                <div class="fw-semibold mb-2" style="color:#7a5c3d">{{ $branchName }}</div>
+                                @foreach($branchRoutes as $route)
+                                    <div class="form-check mb-2">
+                                        <input
+                                            class="form-check-input"
+                                            type="checkbox"
+                                            name="route_ids[]"
+                                            value="{{ $route->id }}"
+                                            id="route_{{ $route->id }}"
+                                            @checked(in_array((int) $route->id, $selectedRouteIds, true))
+                                        >
+                                        <label class="form-check-label" for="route_{{ $route->id }}">
+                                            {{ $route->name }}
+                                            @if($route->description)
+                                                <small class="text-muted d-block">{{ $route->description }}</small>
+                                            @endif
+                                        </label>
+                                    </div>
+                                @endforeach
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+            @endif
+
+            @error('route_ids')<div class="text-danger small mt-2">{{ $message }}</div>@enderror
+            @error('route_ids.*')<div class="text-danger small mt-2">{{ $message }}</div>@enderror
+        </div>
+    </div>
 </div>
 
 <div class="mb-3">

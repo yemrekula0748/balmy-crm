@@ -9,99 +9,112 @@
         body { font-family: 'dejavu sans', sans-serif; font-size: 10px; color: #2c3e50; background: #fff; }
         .header { background: #1e2d3d; color: #fff; padding: 14px 20px; margin-bottom: 16px; }
         .header h1 { font-size: 18px; letter-spacing: 1px; margin-bottom: 2px; }
-        .header p  { font-size: 10px; opacity: 0.8; }
-        .meta-row { display: flex; gap: 20px; margin-bottom: 14px; padding: 0 10px; }
-        .meta-item { background: #f1f3f5; border-radius: 4px; padding: 8px 14px; flex: 1; text-align: center; }
-        .meta-item .val  { font-size: 18px; font-weight: bold; color: #1e2d3d; }
-        .meta-item .lbl  { font-size: 9px; color: #6c757d; margin-top: 2px; }
-        h2 { font-size: 12px; color: #1e2d3d; border-bottom: 2px solid #1e2d3d; padding-bottom: 4px;
-             margin: 14px 10px 6px; }
-        table { width: calc(100% - 20px); margin: 0 10px; border-collapse: collapse; margin-bottom: 10px; }
+        .header p { font-size: 10px; opacity: 0.8; }
+        .cards { width: calc(100% - 20px); margin: 0 10px 10px; border-collapse: separate; border-spacing: 8px 0; }
+        .cards td { color: #fff; padding: 10px; border-radius: 4px; text-align: center; }
+        .cards .value { font-size: 18px; font-weight: bold; }
+        .cards .label { font-size: 9px; opacity: 0.8; margin-top: 2px; }
+        h2 {
+            font-size: 12px;
+            color: #1e2d3d;
+            border-bottom: 2px solid #1e2d3d;
+            padding-bottom: 4px;
+            margin: 14px 10px 6px;
+        }
+        table { width: calc(100% - 20px); margin: 0 10px 10px; border-collapse: collapse; }
         thead th { background: #1e2d3d; color: #fff; padding: 6px 8px; text-align: left; font-size: 9px; }
         tbody tr:nth-child(even) { background: #f8f9fa; }
-        tbody td { padding: 5px 8px; border-bottom: 1px solid #e9ecef; vertical-align: top; }
+        tbody td, tfoot td { padding: 5px 8px; border-bottom: 1px solid #e9ecef; vertical-align: top; }
         .text-center { text-align: center; }
-        .text-right  { text-align: right; }
+        .text-right { text-align: right; }
         .badge { display: inline-block; padding: 2px 6px; border-radius: 3px; font-size: 9px; }
-        .badge-primary { background: #2a5298; color: #fff; }
-        .badge-success { background: #28a745; color: #fff; }
         .badge-secondary { background: #6c757d; color: #fff; }
+        .badge-alert { background: #fff1f1; color: #b03a3a; }
+        .badge-transfer { background: #fff7e7; color: #9b6a11; }
         .tfoot-row td { background: #e9ecef; font-weight: bold; }
-        .footer { position: fixed; bottom: 0; left: 0; right: 0; text-align: center;
-                  font-size: 8px; color: #999; padding: 6px; border-top: 1px solid #dee2e6; }
-        .page-break { page-break-after: always; }
+        .footer {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            text-align: center;
+            font-size: 8px;
+            color: #999;
+            padding: 6px;
+            border-top: 1px solid #dee2e6;
+        }
     </style>
 </head>
 <body>
 
 <div class="header">
-    <h1>SERVİS RAPORU</h1>
+    <h1>SERVIS RAPORU</h1>
     <p>
-        Dönem: {{ $from->format('d.m.Y') }} — {{ $to->format('d.m.Y') }}
+        Donem: {{ $from->format('d.m.Y') }} - {{ $to->format('d.m.Y') }}
         &nbsp;|&nbsp;
-        {{ $branchFilter ? 'Şube: ' . $branchFilter->name : 'Tüm Şubeler' }}
+        {{ $branchFilter ? 'Sube: ' . $branchFilter->name : 'Tum Subeler' }}
         &nbsp;|&nbsp;
-        Oluşturan: {{ $user->name }}
+        {{ $vehicleFilter ? 'Arac: ' . $vehicleFilter->name : 'Tum Araclar' }}
+        &nbsp;|&nbsp;
+        Olusturan: {{ $user->name }}
         &nbsp;|&nbsp;
         Tarih: {{ now()->format('d.m.Y H:i') }}
     </p>
 </div>
 
-{{-- Özet Satırı --}}
-<table>
+<table class="cards">
     <tr>
-        <td style="width:16%;text-align:center;background:#2a5298;color:#fff;padding:10px;border-radius:4px">
-            <div style="font-size:20px;font-weight:bold">{{ number_format($stats['total_arrival']) }}</div>
-            <div style="font-size:9px;opacity:.8">Toplam Gelen</div>
+        <td style="background:#2a5298">
+            <div class="value">{{ number_format($stats['total_arrival']) }}</div>
+            <div class="label">Toplam Gelen</div>
         </td>
-        <td style="width:4%"></td>
-        <td style="width:16%;text-align:center;background:#28a745;color:#fff;padding:10px;border-radius:4px">
-            <div style="font-size:20px;font-weight:bold">{{ number_format($stats['total_departure']) }}</div>
-            <div style="font-size:9px;opacity:.8">Toplam Dönen</div>
+        <td style="background:#28a745">
+            <div class="value">{{ number_format($stats['total_departure']) }}</div>
+            <div class="label">Toplam Donen</div>
         </td>
-        <td style="width:4%"></td>
-        <td style="width:16%;text-align:center;background:#495057;color:#fff;padding:10px;border-radius:4px">
-            <div style="font-size:20px;font-weight:bold">{{ number_format($stats['total_trips']) }}</div>
-            <div style="font-size:9px;opacity:.8">Toplam Sefer</div>
+        <td style="background:#495057">
+            <div class="value">{{ number_format($stats['total_trips']) }}</div>
+            <div class="label">Toplam Sefer</div>
         </td>
-        <td style="width:4%"></td>
-        <td style="width:16%;text-align:center;background:#6f42c1;color:#fff;padding:10px;border-radius:4px">
-            <div style="font-size:20px;font-weight:bold">{{ $stats['avg_daily_arrival'] }}</div>
-            <div style="font-size:9px;opacity:.8">Günlük Ort. Geliş</div>
+        <td style="background:#d1913c">
+            <div class="value">{{ $stats['total_transfer_trips'] }}</div>
+            <div class="label">Aktarimli Sefer (%{{ $stats['transfer_rate'] }})</div>
         </td>
-        <td style="width:4%"></td>
-        <td style="width:16%;text-align:center;background:#fd7e14;color:#fff;padding:10px;border-radius:4px">
-            <div style="font-size:20px;font-weight:bold">{{ $stats['avg_daily_departure'] }}</div>
-            <div style="font-size:9px;opacity:.8">Günlük Ort. Dönüş</div>
+        <td style="background:#c45c5c">
+            <div class="value">{{ $stats['total_different_vehicle_trips'] }}</div>
+            <div class="label">Farkli Arac (%{{ $stats['different_vehicle_rate'] }})</div>
+        </td>
+        <td style="background:#7a5c3d">
+            <div class="value">{{ $stats['avg_occupancy_arr'] }}%</div>
+            <div class="label">Ort. Gelis Doluluk</div>
         </td>
     </tr>
 </table>
 
-{{-- Vardiya Özeti --}}
-<h2>Vardiya Bazlı Özet</h2>
+<h2>Vardiya Bazli Ozet</h2>
 <table>
     <thead>
         <tr>
             <th>Vardiya</th>
-            <th class="text-center">Sefer Sayısı</th>
-            <th class="text-center">Gelen Personel</th>
-            <th class="text-center">Dönen Personel</th>
-            <th class="text-center">Ortalama Geliş</th>
-            <th class="text-center">Ortalama Dönüş</th>
+            <th class="text-center">Sefer</th>
+            <th class="text-center">Gelen</th>
+            <th class="text-center">Donen</th>
+            <th class="text-center">Aktarim</th>
+            <th class="text-center">Farkli Arac</th>
         </tr>
     </thead>
     <tbody>
         @foreach($byShift as $shiftName => $data)
-        @if($data['count'] > 0)
-        <tr>
-            <td><span class="badge badge-secondary">{{ $shiftName }}</span></td>
-            <td class="text-center">{{ $data['count'] }}</td>
-            <td class="text-center"><strong>{{ $data['arrival'] }}</strong></td>
-            <td class="text-center"><strong>{{ $data['departure'] }}</strong></td>
-            <td class="text-center">{{ $data['count'] > 0 ? round($data['arrival'] / $data['count'], 1) : 0 }}</td>
-            <td class="text-center">{{ $data['count'] > 0 ? round($data['departure'] / $data['count'], 1) : 0 }}</td>
-        </tr>
-        @endif
+            @if($data['count'] > 0)
+                <tr>
+                    <td><span class="badge badge-secondary">{{ $shiftName }}</span></td>
+                    <td class="text-center">{{ $data['count'] }}</td>
+                    <td class="text-center"><strong>{{ $data['arrival'] }}</strong></td>
+                    <td class="text-center"><strong>{{ $data['departure'] }}</strong></td>
+                    <td class="text-center">{{ $data['transfer'] }} (%{{ $data['transfer_rate'] }})</td>
+                    <td class="text-center">{{ $data['different_vehicle'] }} (%{{ $data['different_vehicle_rate'] }})</td>
+                </tr>
+            @endif
         @endforeach
     </tbody>
     <tfoot>
@@ -110,93 +123,146 @@
             <td class="text-center">{{ $stats['total_trips'] }}</td>
             <td class="text-center">{{ $stats['total_arrival'] }}</td>
             <td class="text-center">{{ $stats['total_departure'] }}</td>
-            <td class="text-center">{{ $stats['avg_daily_arrival'] }}</td>
-            <td class="text-center">{{ $stats['avg_daily_departure'] }}</td>
+            <td class="text-center">{{ $stats['total_transfer_trips'] }}</td>
+            <td class="text-center">{{ $stats['total_different_vehicle_trips'] }}</td>
         </tr>
     </tfoot>
 </table>
 
-{{-- Araç Bazlı Özet --}}
-<h2>Araç Bazlı Özet</h2>
+<h2>Arac Bazli Ozet</h2>
 <table>
     <thead>
         <tr>
-            <th>Araç</th>
+            <th>Arac</th>
             <th>Plaka</th>
             <th class="text-center">Sefer</th>
             <th class="text-center">Gelen</th>
-            <th class="text-center">Dönen</th>
-            <th class="text-center">Doluluk % (Geliş)</th>
-            <th class="text-center">Doluluk % (Dönüş)</th>
+            <th class="text-center">Donen</th>
+            <th class="text-center">Aktarim</th>
+            <th class="text-center">Farkli Arac</th>
         </tr>
     </thead>
     <tbody>
         @foreach($byVehicle as $data)
-        @if($data['trips'] > 0)
-        <tr>
-            <td>{{ $data['vehicle']->name }}</td>
-            <td>{{ $data['vehicle']->plate ?: '—' }}</td>
-            <td class="text-center">{{ $data['trips'] }}</td>
-            <td class="text-center">{{ $data['arrival'] }}</td>
-            <td class="text-center">{{ $data['departure'] }}</td>
-            <td class="text-center">{{ $data['occupancy_arr'] }}%</td>
-            <td class="text-center">{{ $data['occupancy_dep'] }}%</td>
-        </tr>
-        @endif
+            @if($data['trips'] > 0)
+                <tr>
+                    <td>{{ $data['vehicle']->name }}</td>
+                    <td>{{ $data['vehicle']->plate ?: '-' }}</td>
+                    <td class="text-center">{{ $data['trips'] }}</td>
+                    <td class="text-center">{{ $data['arrival'] }} (%{{ $data['occupancy_arr'] }})</td>
+                    <td class="text-center">{{ $data['departure'] }} (%{{ $data['occupancy_dep'] }})</td>
+                    <td class="text-center">{{ $data['transfer'] }}</td>
+                    <td class="text-center">{{ $data['different_vehicle'] }}</td>
+                </tr>
+            @endif
         @endforeach
     </tbody>
 </table>
 
-{{-- Tüm Seferler --}}
-@if($trips->count() <= 200)
-<h2>Sefer Detayları</h2>
+<h2>Sube Hareket Ozetleri</h2>
 <table>
     <thead>
         <tr>
-            <th>Tarih</th>
-            <th>Vardiya</th>
-            <th>Araç</th>
-            <th>Güzergah</th>
-            <th class="text-center">Geliş Saat</th>
-            <th class="text-center">Gelen</th>
-            <th class="text-center">Dönüş Saat</th>
-            <th class="text-center">Dönen</th>
-            <th>Not</th>
+            <th>Sube</th>
+            <th class="text-center">Alinan</th>
+            <th class="text-center">Indirilen</th>
         </tr>
     </thead>
     <tbody>
-        @foreach($trips as $t)
-        <tr>
-            <td>{{ $t->trip_date->format('d.m.Y') }}</td>
-            <td><span class="badge badge-secondary">{{ $t->shift }}</span></td>
-            <td>{{ $t->vehicle->name }}</td>
-            <td>{{ $t->route->name ?? '—' }}</td>
-            <td class="text-center">{{ $t->arrival_time ? substr($t->arrival_time, 0, 5) : '—' }}</td>
-            <td class="text-center"><strong>{{ $t->arrival_count }}</strong></td>
-            <td class="text-center">{{ $t->departure_time ? substr($t->departure_time, 0, 5) : '—' }}</td>
-            <td class="text-center"><strong>{{ $t->departure_count }}</strong></td>
-            <td style="font-size:9px">{{ $t->notes ? \Str::limit($t->notes, 50) : '' }}</td>
-        </tr>
+        @foreach($branchMovementSummary as $summary)
+            <tr>
+                <td>{{ $summary['branch']->name }}</td>
+                <td class="text-center">{{ $summary['pickup'] }}</td>
+                <td class="text-center">{{ $summary['dropoff'] }}</td>
+            </tr>
         @endforeach
     </tbody>
-    <tfoot>
-        <tr class="tfoot-row">
-            <td colspan="5" class="text-right">TOPLAM</td>
-            <td class="text-center">{{ $trips->sum('arrival_count') }}</td>
-            <td></td>
-            <td class="text-center">{{ $trips->sum('departure_count') }}</td>
-            <td></td>
-        </tr>
-    </tfoot>
 </table>
+
+@if($trips->count() <= 200)
+    <h2>Sefer Detaylari</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Tarih</th>
+                <th>Vardiya</th>
+                <th>Arac</th>
+                <th>Guzergah</th>
+                <th class="text-center">Gelis</th>
+                <th class="text-center">Donus</th>
+                <th>Durum</th>
+                <th>Sube Hareketi</th>
+                <th>Not</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach($trips as $trip)
+                @php
+                    $pickupSummary = $trip->branchMovements
+                        ->where('movement_type', 'pickup')
+                        ->map(fn ($movement) => ($movement->branch->name ?? '-') . ' ' . $movement->headcount)
+                        ->implode(', ');
+                    $dropoffSummary = $trip->branchMovements
+                        ->where('movement_type', 'dropoff')
+                        ->map(fn ($movement) => ($movement->branch->name ?? '-') . ' ' . $movement->headcount)
+                        ->implode(', ');
+                @endphp
+                <tr>
+                    <td>{{ $trip->trip_date->format('d.m.Y') }}</td>
+                    <td><span class="badge badge-secondary">{{ $trip->shift }}</span></td>
+                    <td>{{ $trip->vehicle->name }}</td>
+                    <td>{{ $trip->route->name ?? '-' }}</td>
+                    <td class="text-center">
+                        {{ $trip->arrival_time ? substr($trip->arrival_time, 0, 5) : '-' }}
+                        / <strong>{{ $trip->arrival_count }}</strong>
+                    </td>
+                    <td class="text-center">
+                        {{ $trip->departure_time ? substr($trip->departure_time, 0, 5) : '-' }}
+                        / <strong>{{ $trip->departure_count }}</strong>
+                    </td>
+                    <td>
+                        @if($trip->arrived_with_different_vehicle)
+                            <span class="badge badge-alert">Farkli arac</span>
+                        @endif
+                        @if($trip->is_transfer)
+                            <span class="badge badge-transfer">Aktarim</span>
+                        @endif
+                        @if(! $trip->arrived_with_different_vehicle && ! $trip->is_transfer)
+                            -
+                        @endif
+                    </td>
+                    <td style="font-size:9px">
+                        @if($pickupSummary)
+                            <div><strong>Alinan:</strong> {{ $pickupSummary }}</div>
+                        @endif
+                        @if($dropoffSummary)
+                            <div><strong>Indirilen:</strong> {{ $dropoffSummary }}</div>
+                        @endif
+                        @if(! $pickupSummary && ! $dropoffSummary)
+                            -
+                        @endif
+                    </td>
+                    <td style="font-size:9px">{{ $trip->notes ? \Illuminate\Support\Str::limit($trip->notes, 50) : '-' }}</td>
+                </tr>
+            @endforeach
+        </tbody>
+        <tfoot>
+            <tr class="tfoot-row">
+                <td colspan="4" class="text-right">TOPLAM</td>
+                <td class="text-center">{{ $trips->sum('arrival_count') }}</td>
+                <td class="text-center">{{ $trips->sum('departure_count') }}</td>
+                <td colspan="3"></td>
+            </tr>
+        </tfoot>
+    </table>
 @else
-<div style="margin:10px;padding:10px;background:#fff3cd;border:1px solid #ffc107;border-radius:4px;font-size:10px">
-    <strong>Not:</strong> {{ $trips->count() }} sefer kaydı bulunmaktadır. Detay tablosu sayfa sınırı nedeniyle gösterilmemiştir.
-</div>
+    <div style="margin:10px;padding:10px;background:#fff3cd;border:1px solid #ffc107;border-radius:4px;font-size:10px">
+        <strong>Not:</strong> {{ $trips->count() }} sefer kaydi bulundu. Detay tablosu sayfa siniri nedeniyle gosterilmedi.
+    </div>
 @endif
 
 <div class="footer">
-    BalmyCRM — Servis Takip Modülü &nbsp;|&nbsp; Oluşturma: {{ now()->format('d.m.Y H:i') }}
+    BalmyCRM - Servis Takip Modulu | Olusturma: {{ now()->format('d.m.Y H:i') }}
 </div>
 
 </body>

@@ -658,6 +658,7 @@ Route::middleware('auth')->group(function () {
         Route::prefix('raporlar')->name('reports.')->group(function () {
             Route::get('/',    [ShuttleReportController::class, 'index'])->name('index');
             Route::get('/pdf', [ShuttleReportController::class, 'pdf'])->name('pdf');
+            Route::get('/excel', [ShuttleReportController::class, 'excel'])->name('excel');
         });
 
     });

@@ -182,6 +182,24 @@
                             </div>
                         </div>
 
+                        <div class="mt-3 pt-3 border-top">
+                            <div class="small text-uppercase fw-semibold text-muted mb-2" style="letter-spacing:.05em">
+                                Gorevli Guzergahlar
+                            </div>
+                            @if($v->routes->isEmpty())
+                                <span class="text-muted small">Guzergah atamasi yok</span>
+                            @else
+                                <div class="d-flex flex-wrap gap-1">
+                                    @foreach($v->routes->take(4) as $route)
+                                        <span class="badge bg-light text-dark border">{{ $route->name }}</span>
+                                    @endforeach
+                                    @if($v->routes->count() > 4)
+                                        <span class="badge bg-secondary">+{{ $v->routes->count() - 4 }}</span>
+                                    @endif
+                                </div>
+                            @endif
+                        </div>
+
                         {{-- İşlem Butonları --}}
                         @if(auth()->user()->hasPermission('shuttle_vehicles','edit') || auth()->user()->hasPermission('shuttle_vehicles','delete'))
                         <div class="d-flex gap-2 mt-3">

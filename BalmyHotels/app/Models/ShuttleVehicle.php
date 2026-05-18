@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class ShuttleVehicle extends Model
@@ -30,6 +31,16 @@ class ShuttleVehicle extends Model
     public function trips(): HasMany
     {
         return $this->hasMany(ShuttleTrip::class, 'shuttle_vehicle_id');
+    }
+
+    public function routes(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            ShuttleRoute::class,
+            'shuttle_route_vehicle',
+            'shuttle_vehicle_id',
+            'shuttle_route_id'
+        )->withTimestamps();
     }
 
     public function scopeActive($q)
