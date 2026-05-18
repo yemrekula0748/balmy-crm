@@ -39,4 +39,22 @@ return [
         'key' => env('GOOGLE_PLACES_API_KEY'),
     ],
 
+    'hoteladvisor' => [
+        'base_url' => env('HOTELADVISOR_BASE_URL', 'https://4001.hoteladvisor.net'),
+        'hotels' => [
+            'foresta' => [
+                'name' => env('HOTELADVISOR_FORESTA_NAME', 'Balmy Foresta'),
+                'hotel_id' => env('HOTELADVISOR_FORESTA_HOTEL_ID', 32904),
+                'branch_id' => env('HOTELADVISOR_FORESTA_BRANCH_ID', 2),
+                'api_key' => env('HOTELADVISOR_FORESTA_API_KEY'),
+            ],
+            'beach' => [
+                'name' => env('HOTELADVISOR_BEACH_NAME', 'Balmy Beach Resort'),
+                'hotel_id' => env('HOTELADVISOR_BEACH_HOTEL_ID', 30570),
+                'branch_id' => env('HOTELADVISOR_BEACH_BRANCH_ID', 1),
+                'api_key' => env('HOTELADVISOR_BEACH_API_KEY'),
+            ],
+        ],
+    ],
+
 ];

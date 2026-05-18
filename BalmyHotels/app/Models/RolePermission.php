@@ -112,6 +112,8 @@ class RolePermission extends Model
             'bed_types'    => 'Yatak Tipleri',
             'room_types'   => 'Oda Tipleri',
             'rooms'        => 'Odalar',
+            'guest_control' => 'Misafir Kontrol',
+            'guest_control_history' => 'Misafir Kontrol Kayitlari',
             'reservations' => 'Rezervasyonlar',
         ],
     ];

@@ -61,6 +61,7 @@ use App\Http\Controllers\Modules\MyTaskController;
 use App\Http\Controllers\Modules\AgencyController;
 use App\Http\Controllers\Modules\AgencyContractController;
 use App\Http\Controllers\Modules\FrontDeskBedTypeController;
+use App\Http\Controllers\Modules\GuestControlController;
 use App\Http\Controllers\Modules\FrontDeskRoomTypeController;
 use App\Http\Controllers\Modules\FrontDeskRoomController;
 use App\Http\Controllers\AssetPublicController;
@@ -869,6 +870,11 @@ Route::middleware('auth')->group(function () {
         Route::post('odalar',                   [FrontDeskRoomController::class, 'store'])->name('rooms.store');
         Route::put('odalar/{room}',             [FrontDeskRoomController::class, 'update'])->name('rooms.update');
         Route::delete('odalar/{room}',          [FrontDeskRoomController::class, 'destroy'])->name('rooms.destroy');
+
+        Route::get('misafir-kontrol',                   [GuestControlController::class, 'index'])->name('guest-control.index');
+        Route::post('misafir-kontrol/sorgula',          [GuestControlController::class, 'lookup'])->name('guest-control.lookup');
+        Route::post('misafir-kontrol/islem',            [GuestControlController::class, 'store'])->name('guest-control.store');
+        Route::get('misafir-kontrol/kayitlar',          [GuestControlController::class, 'history'])->name('guest-control.history');
 
         Route::get('rezervasyonlar',            [FrontDeskReservationController::class, 'index'])->name('reservations.index');
         Route::get('rezervasyonlar/yeni',       [FrontDeskReservationController::class, 'create'])->name('reservations.create');

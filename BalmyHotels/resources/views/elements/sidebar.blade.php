@@ -673,7 +673,7 @@
             </li>
             @endif
 
-            @if($user->hasPermission('reservations') || $user->hasPermission('room_types') || $user->hasPermission('rooms') || $user->hasPermission('bed_types'))
+            @if($user->hasPermission('reservations') || $user->hasPermission('room_types') || $user->hasPermission('rooms') || $user->hasPermission('bed_types') || $user->hasPermission('guest_control') || $user->hasPermission('guest_control_history'))
             <li @class(['mm-active' => request()->is('onburo*')])
             >
                 <a class="has-arrow ai-icon" href="javascript:void()" aria-expanded="false">
@@ -702,6 +702,16 @@
                     @if($user->hasPermission('rooms'))
                     <li @class(['mm-active' => request()->is('onburo/odalar*')])>
                         <a href="{{ route('frontdesk.rooms.index') }}">Odalar</a>
+                    </li>
+                    @endif
+                    @if($user->hasPermission('guest_control'))
+                    <li @class(['mm-active' => request()->is('onburo/misafir-kontrol')])>
+                        <a href="{{ route('frontdesk.guest-control.index') }}">Misafir Kontrol</a>
+                    </li>
+                    @endif
+                    @if($user->hasPermission('guest_control_history'))
+                    <li @class(['mm-active' => request()->is('onburo/misafir-kontrol/kayitlar*')])>
+                        <a href="{{ route('frontdesk.guest-control.history') }}">Misafir Kontrol Kayitlari</a>
                     </li>
                     @endif
                     @if($user->hasPermission('bed_types'))
