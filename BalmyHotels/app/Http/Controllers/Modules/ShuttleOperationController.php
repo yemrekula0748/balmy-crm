@@ -296,6 +296,10 @@ class ShuttleOperationController extends BaseModuleController
             'is_transfer' => 'nullable|boolean',
         ]);
 
+        $data['route_id'] = $data['route_id'] ?? null;
+        $data['origin_departure_time'] = $data['origin_departure_time'] ?? null;
+        $data['notes'] = $data['notes'] ?? null;
+
         if (! in_array((int) $data['branch_id'], $visibleBranchIds, true)) {
             throw ValidationException::withMessages([
                 'branch_id' => 'Bu otel icin islem yapma yetkin yok.',
