@@ -12,8 +12,11 @@ class ShuttleTrip extends Model
         'shuttle_vehicle_id',
         'route_id',
         'branch_id',
+        'destination_branch_id',
         'shift',
         'trip_date',
+        'origin_departure_time',
+        'origin_departure_count',
         'arrival_time',
         'arrival_count',
         'departure_time',
@@ -25,8 +28,9 @@ class ShuttleTrip extends Model
     ];
 
     protected $casts = [
-        'trip_date'       => 'date',
-        'arrival_count'   => 'integer',
+        'trip_date' => 'date',
+        'origin_departure_count' => 'integer',
+        'arrival_count' => 'integer',
         'departure_count' => 'integer',
         'arrived_with_different_vehicle' => 'boolean',
         'is_transfer' => 'boolean',
@@ -54,6 +58,11 @@ class ShuttleTrip extends Model
     public function branch(): BelongsTo
     {
         return $this->belongsTo(Branch::class);
+    }
+
+    public function destinationBranch(): BelongsTo
+    {
+        return $this->belongsTo(Branch::class, 'destination_branch_id');
     }
 
     public function creator(): BelongsTo
@@ -105,5 +114,37 @@ class ShuttleTrip extends Model
                     && $movement->movement_type === $movementType
             )
         )->headcount;
+    }
+
+    public function isOriginForBranch(int $branchId): bool
+    {
+        return (int) $this->branch_id === $branchId;
+    }
+
+    public function isDestinationForBranch(int $branchId): bool
+    {
+        return (int) $this->destination_branch_id === $branchId;
+    }
+
+    public function branchContextSummary(int $branchId): array
+    {
+        if ($this->isOriginForBranch($branchId)) {
+            return [
+                'incoming' => 0,
+                'outgoing' => (int) $this->origin_departure_count,
+            ];
+        }
+
+        if ($this->isDestinationForBranch($branchId)) {
+            return [
+                'incoming' => (int) $this->arrival_count,
+                'outgoing' => (int) $this->departure_count,
+            ];
+        }
+
+        return [
+            'incoming' => 0,
+            'outgoing' => 0,
+        ];
     }
 }

@@ -93,18 +93,28 @@ class ShuttleReportController extends BaseModuleController
             ->orderBy('name')
             ->get();
 
+        $reportBranchIds = $branchId ? [(int) $branchId] : array_map('intval', $branches->pluck('id')->all());
+
         $trips = ShuttleTrip::with(['vehicle', 'route', 'branch', 'branchMovements.branch'])
-            ->whereIn('branch_id', $branchIds)
+            ->where(function ($query) use ($branchIds) {
+                $query->whereIn('branch_id', $branchIds)
+                    ->orWhereIn('destination_branch_id', $branchIds);
+            })
             ->forPeriod($from->toDateString(), $to->toDateString())
-            ->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
+            ->when($branchId, function ($query) use ($branchId) {
+                $query->where(function ($subQuery) use ($branchId) {
+                    $subQuery->where('branch_id', $branchId)
+                        ->orWhere('destination_branch_id', $branchId);
+                });
+            })
             ->when($vehicleId, fn ($q) => $q->where('shuttle_vehicle_id', $vehicleId))
             ->orderBy('trip_date')
             ->orderBy('shift')
             ->get();
 
         $totalTrips = $trips->count();
-        $totalArrival = $trips->sum('arrival_count');
-        $totalDeparture = $trips->sum('departure_count');
+        $totalArrival = $this->sumMovements($trips, $reportBranchIds, 'arrival');
+        $totalDeparture = $this->sumMovements($trips, $reportBranchIds, 'departure');
         $dayCount = max(1, $from->diffInDays($to) + 1);
         $transferTrips = $trips->where('is_transfer', true)->count();
         $differentVehicleTrips = $trips->where('arrived_with_different_vehicle', true)->count();
@@ -114,9 +124,11 @@ class ShuttleReportController extends BaseModuleController
         $occupancyDep = [];
         foreach ($trips as $trip) {
             $cap = $trip->vehicle->capacity ?? 0;
+            $tripArrivalCount = $this->sumTripMovements($trip, $reportBranchIds, 'arrival');
+            $tripDepartureCount = $this->sumTripMovements($trip, $reportBranchIds, 'departure');
             if ($cap > 0) {
-                $occupancyArr[] = $trip->arrival_count / $cap * 100;
-                $occupancyDep[] = $trip->departure_count / $cap * 100;
+                $occupancyArr[] = $tripArrivalCount / $cap * 100;
+                $occupancyDep[] = $tripDepartureCount / $cap * 100;
             }
         }
 
@@ -143,8 +155,8 @@ class ShuttleReportController extends BaseModuleController
 
             $byShift[$shift] = [
                 'count' => $shiftTripCount,
-                'arrival' => $subset->sum('arrival_count'),
-                'departure' => $subset->sum('departure_count'),
+                'arrival' => $this->sumMovements($subset, $reportBranchIds, 'arrival'),
+                'departure' => $this->sumMovements($subset, $reportBranchIds, 'departure'),
                 'transfer' => $subset->where('is_transfer', true)->count(),
                 'different_vehicle' => $subset->where('arrived_with_different_vehicle', true)->count(),
                 'transfer_rate' => $shiftTripCount > 0 ? round($subset->where('is_transfer', true)->count() / $shiftTripCount * 100, 1) : 0,
@@ -156,8 +168,8 @@ class ShuttleReportController extends BaseModuleController
         foreach ($vehicles as $vehicle) {
             $subset = $trips->where('shuttle_vehicle_id', $vehicle->id);
             $tripCount = $subset->count();
-            $totalVehicleArrival = $subset->sum('arrival_count');
-            $totalVehicleDeparture = $subset->sum('departure_count');
+            $totalVehicleArrival = $this->sumMovements($subset, $reportBranchIds, 'arrival');
+            $totalVehicleDeparture = $this->sumMovements($subset, $reportBranchIds, 'departure');
             $cap = $vehicle->capacity;
 
             $byVehicle[$vehicle->id] = [
@@ -182,8 +194,8 @@ class ShuttleReportController extends BaseModuleController
             $dateString = $current->toDateString();
             $dayTrips = $trips->filter(fn ($trip) => $trip->trip_date->toDateString() === $dateString);
             $dailyLabels[] = $current->format('d.m');
-            $dailyArrivals[] = $dayTrips->sum('arrival_count');
-            $dailyDepartures[] = $dayTrips->sum('departure_count');
+            $dailyArrivals[] = $this->sumMovements($dayTrips, $reportBranchIds, 'arrival');
+            $dailyDepartures[] = $this->sumMovements($dayTrips, $reportBranchIds, 'departure');
             $current->addDay();
         }
 
@@ -524,5 +536,19 @@ class ShuttleReportController extends BaseModuleController
                 ],
             ],
         ]);
+    }
+
+    private function sumMovements($trips, array $branchIds, string $movementType): int
+    {
+        return (int) collect($trips)->sum(
+            fn ($trip) => $this->sumTripMovements($trip, $branchIds, $movementType)
+        );
+    }
+
+    private function sumTripMovements($trip, array $branchIds, string $movementType): int
+    {
+        return (int) $trip->branchMovements
+            ->filter(fn ($movement) => in_array((int) $movement->branch_id, $branchIds, true) && $movement->movement_type === $movementType)
+            ->sum('headcount');
     }
 }
