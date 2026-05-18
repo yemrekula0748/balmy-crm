@@ -198,6 +198,18 @@
         <tbody>
             @foreach($trips as $trip)
                 @php
+                    $filteredArrivalCount = (int) $trip->branchMovements
+                        ->filter(fn ($movement) => in_array((int) $movement->branch_id, $reportBranchIds, true) && $movement->movement_type === 'arrival')
+                        ->sum('headcount');
+                    $filteredDepartureCount = (int) $trip->branchMovements
+                        ->filter(fn ($movement) => in_array((int) $movement->branch_id, $reportBranchIds, true) && $movement->movement_type === 'departure')
+                        ->sum('headcount');
+
+                    if ($trip->branchMovements->isEmpty() && in_array((int) $trip->branch_id, $reportBranchIds, true)) {
+                        $filteredArrivalCount = (int) $trip->arrival_count;
+                        $filteredDepartureCount = (int) $trip->departure_count;
+                    }
+
                     $arrivalSummary = $trip->branchMovements
                         ->where('movement_type', 'arrival')
                         ->map(fn ($movement) => ($movement->branch->name ?? '-') . ' ' . $movement->headcount)
@@ -206,11 +218,11 @@
                         ->where('movement_type', 'departure')
                         ->map(fn ($movement) => ($movement->branch->name ?? '-') . ' ' . $movement->headcount)
                         ->implode(', ');
-                    if ($arrivalSummary === '' && (int) $trip->arrival_count > 0) {
-                        $arrivalSummary = ($trip->branch->name ?? '-') . ' ' . $trip->arrival_count;
+                    if ($arrivalSummary === '' && $filteredArrivalCount > 0) {
+                        $arrivalSummary = ($trip->branch->name ?? '-') . ' ' . $filteredArrivalCount;
                     }
-                    if ($departureSummary === '' && (int) $trip->departure_count > 0) {
-                        $departureSummary = ($trip->branch->name ?? '-') . ' ' . $trip->departure_count;
+                    if ($departureSummary === '' && $filteredDepartureCount > 0) {
+                        $departureSummary = ($trip->branch->name ?? '-') . ' ' . $filteredDepartureCount;
                     }
                 @endphp
                 <tr>
@@ -220,11 +232,11 @@
                     <td>{{ $trip->route->name ?? '-' }}</td>
                     <td class="text-center">
                         {{ $trip->arrival_time ? substr($trip->arrival_time, 0, 5) : '-' }}
-                        / <strong>{{ $trip->arrival_count }}</strong>
+                        / <strong>{{ $filteredArrivalCount }}</strong>
                     </td>
                     <td class="text-center">
                         {{ $trip->departure_time ? substr($trip->departure_time, 0, 5) : '-' }}
-                        / <strong>{{ $trip->departure_count }}</strong>
+                        / <strong>{{ $filteredDepartureCount }}</strong>
                     </td>
                     <td>
                         @if($trip->arrived_with_different_vehicle)
@@ -255,8 +267,8 @@
         <tfoot>
             <tr class="tfoot-row">
                 <td colspan="4" class="text-right">TOPLAM</td>
-                <td class="text-center">{{ $trips->sum('arrival_count') }}</td>
-                <td class="text-center">{{ $trips->sum('departure_count') }}</td>
+                <td class="text-center">{{ $stats['total_arrival'] }}</td>
+                <td class="text-center">{{ $stats['total_departure'] }}</td>
                 <td colspan="3"></td>
             </tr>
         </tfoot>

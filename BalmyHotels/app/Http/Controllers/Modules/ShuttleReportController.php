@@ -80,33 +80,48 @@ class ShuttleReportController extends BaseModuleController
     private function buildReportPayload(Request $request): array
     {
         $user = Auth::user();
-        $branchIds = $user->visibleBranchIds();
-        $branches = Branch::where('is_active', true)->whereIn('id', $branchIds)->get();
-
-        $branchId = $request->branch_id;
-        $vehicleId = $request->vehicle_id;
-        $period = $request->get('period', 'monthly');
-        [$from, $to] = $this->resolveDateRange($request, $period);
-
-        $vehicles = ShuttleVehicle::whereIn('branch_id', $branchIds)
-            ->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
+        $visibleBranchIds = array_map('intval', $user->visibleBranchIds());
+        $branches = Branch::where('is_active', true)
+            ->whereIn('id', $visibleBranchIds)
             ->orderBy('name')
             ->get();
 
-        $reportBranchIds = $branchId ? [(int) $branchId] : array_map('intval', $branches->pluck('id')->all());
+        $branchId = $request->filled('branch_id') && in_array((int) $request->branch_id, $visibleBranchIds, true)
+            ? (int) $request->branch_id
+            : null;
+        $period = $request->get('period', 'monthly');
+        [$from, $to] = $this->resolveDateRange($request, $period);
 
-        $trips = ShuttleTrip::with(['vehicle', 'route', 'branch', 'branchMovements.branch'])
-            ->where(function ($query) use ($branchIds) {
-                $query->whereIn('branch_id', $branchIds)
-                    ->orWhereIn('destination_branch_id', $branchIds);
+        $reportBranchIds = $branchId ? [(int) $branchId] : array_map('intval', $branches->pluck('id')->all());
+        $queryBranchIds = $branchId ? [(int) $branchId] : $visibleBranchIds;
+
+        $visibleTripsQuery = ShuttleTrip::query()
+            ->where(function ($query) use ($queryBranchIds, $reportBranchIds) {
+                $query->whereIn('branch_id', $queryBranchIds)
+                    ->orWhereHas('branchMovements', function ($movementQuery) use ($reportBranchIds) {
+                        $movementQuery->whereIn('branch_id', $reportBranchIds);
+                    });
             })
-            ->forPeriod($from->toDateString(), $to->toDateString())
-            ->when($branchId, function ($query) use ($branchId) {
-                $query->where(function ($subQuery) use ($branchId) {
-                    $subQuery->where('branch_id', $branchId)
-                        ->orWhere('destination_branch_id', $branchId);
-                });
-            })
+            ->forPeriod($from->toDateString(), $to->toDateString());
+
+        $vehicleIds = (clone $visibleTripsQuery)
+            ->distinct()
+            ->pluck('shuttle_vehicle_id')
+            ->filter()
+            ->map(fn ($id) => (int) $id)
+            ->values()
+            ->all();
+
+        $vehicles = ShuttleVehicle::whereIn('id', $vehicleIds)
+            ->orderBy('name')
+            ->get();
+
+        $vehicleId = $request->filled('vehicle_id') && in_array((int) $request->vehicle_id, $vehicleIds, true)
+            ? (int) $request->vehicle_id
+            : null;
+
+        $trips = (clone $visibleTripsQuery)
+            ->with(['vehicle', 'route', 'branch', 'branchMovements.branch'])
             ->when($vehicleId, fn ($q) => $q->where('shuttle_vehicle_id', $vehicleId))
             ->orderBy('trip_date')
             ->orderBy('shift')
@@ -199,37 +214,13 @@ class ShuttleReportController extends BaseModuleController
             $current->addDay();
         }
 
+        $summaryBranches = $branchId ? $branches->where('id', $branchId) : $branches;
         $branchMovementSummary = [];
-        foreach ($branches as $branch) {
-            $arrivalCount = 0;
-            $departureCount = 0;
-
-            foreach ($trips as $trip) {
-                if ($trip->branchMovements->isEmpty() && (int) $trip->branch_id === (int) $branch->id) {
-                    $arrivalCount += (int) $trip->arrival_count;
-                    $departureCount += (int) $trip->departure_count;
-                    continue;
-                }
-
-                foreach ($trip->branchMovements as $movement) {
-                    if ((int) $movement->branch_id !== (int) $branch->id) {
-                        continue;
-                    }
-
-                    if ($movement->movement_type === 'arrival') {
-                        $arrivalCount += $movement->headcount;
-                    }
-
-                    if ($movement->movement_type === 'departure') {
-                        $departureCount += $movement->headcount;
-                    }
-                }
-            }
-
+        foreach ($summaryBranches as $branch) {
             $branchMovementSummary[$branch->id] = [
                 'branch' => $branch,
-                'arrival' => $arrivalCount,
-                'departure' => $departureCount,
+                'arrival' => $this->sumMovements($trips, [(int) $branch->id], 'arrival'),
+                'departure' => $this->sumMovements($trips, [(int) $branch->id], 'departure'),
             ];
         }
 
@@ -256,6 +247,7 @@ class ShuttleReportController extends BaseModuleController
             'to' => $to,
             'branchFilter' => $branchFilter,
             'vehicleFilter' => $vehicleFilter,
+            'reportBranchIds' => $reportBranchIds,
         ];
     }
 
@@ -361,6 +353,7 @@ class ShuttleReportController extends BaseModuleController
     {
         $sheet = $spreadsheet->createSheet();
         $sheet->setTitle('Sefer Detaylari');
+        $reportBranchIds = $payload['reportBranchIds'];
 
         $headers = [
             'A1' => 'Tarih',
@@ -388,6 +381,9 @@ class ShuttleReportController extends BaseModuleController
 
         $row = 2;
         foreach ($payload['trips'] as $trip) {
+            $tripArrivalCount = $this->sumTripMovements($trip, $reportBranchIds, 'arrival');
+            $tripDepartureCount = $this->sumTripMovements($trip, $reportBranchIds, 'departure');
+            $capacity = $trip->vehicle->capacity ?? 0;
             $arrivalSummary = $trip->branchMovements
                 ->where('movement_type', 'arrival')
                 ->map(fn ($movement) => ($movement->branch->name ?? '-') . ': ' . $movement->headcount)
@@ -397,12 +393,12 @@ class ShuttleReportController extends BaseModuleController
                 ->map(fn ($movement) => ($movement->branch->name ?? '-') . ': ' . $movement->headcount)
                 ->implode(', ');
 
-            if ($arrivalSummary === '' && (int) $trip->arrival_count > 0) {
-                $arrivalSummary = ($trip->branch->name ?? '-') . ': ' . $trip->arrival_count;
+            if ($arrivalSummary === '' && $tripArrivalCount > 0) {
+                $arrivalSummary = ($trip->branch->name ?? '-') . ': ' . $tripArrivalCount;
             }
 
-            if ($departureSummary === '' && (int) $trip->departure_count > 0) {
-                $departureSummary = ($trip->branch->name ?? '-') . ': ' . $trip->departure_count;
+            if ($departureSummary === '' && $tripDepartureCount > 0) {
+                $departureSummary = ($trip->branch->name ?? '-') . ': ' . $tripDepartureCount;
             }
 
             $sheet->setCellValue('A' . $row, $trip->trip_date->format('d.m.Y'));
@@ -412,11 +408,11 @@ class ShuttleReportController extends BaseModuleController
             $sheet->setCellValue('E' . $row, $trip->vehicle->plate ?? '-');
             $sheet->setCellValue('F' . $row, $trip->route->name ?? '-');
             $sheet->setCellValue('G' . $row, $trip->arrival_time ? substr($trip->arrival_time, 0, 5) : '-');
-            $sheet->setCellValue('H' . $row, $trip->arrival_count);
-            $sheet->setCellValue('I' . $row, $trip->arrival_occupancy ?? 0);
+            $sheet->setCellValue('H' . $row, $tripArrivalCount);
+            $sheet->setCellValue('I' . $row, ($capacity > 0) ? round($tripArrivalCount / $capacity * 100, 1) : 0);
             $sheet->setCellValue('J' . $row, $trip->departure_time ? substr($trip->departure_time, 0, 5) : '-');
-            $sheet->setCellValue('K' . $row, $trip->departure_count);
-            $sheet->setCellValue('L' . $row, $trip->departure_occupancy ?? 0);
+            $sheet->setCellValue('K' . $row, $tripDepartureCount);
+            $sheet->setCellValue('L' . $row, ($capacity > 0) ? round($tripDepartureCount / $capacity * 100, 1) : 0);
             $sheet->setCellValue('M' . $row, $trip->arrived_with_different_vehicle ? 'Evet' : 'Hayir');
             $sheet->setCellValue('N' . $row, $trip->is_transfer ? 'Evet' : 'Hayir');
             $sheet->setCellValue('O' . $row, $arrivalSummary);
@@ -445,6 +441,7 @@ class ShuttleReportController extends BaseModuleController
     {
         $sheet = $spreadsheet->createSheet();
         $sheet->setTitle('Sube Hareketleri');
+        $reportBranchIds = $payload['reportBranchIds'];
 
         $headers = [
             'A1' => 'Tarih',
@@ -463,7 +460,39 @@ class ShuttleReportController extends BaseModuleController
 
         $row = 2;
         foreach ($payload['trips'] as $trip) {
+            if ($trip->branchMovements->isEmpty()) {
+                if (in_array((int) $trip->branch_id, $reportBranchIds, true) && (int) $trip->arrival_count > 0) {
+                    $sheet->setCellValue('A' . $row, $trip->trip_date->format('d.m.Y'));
+                    $sheet->setCellValue('B' . $row, $trip->shift);
+                    $sheet->setCellValue('C' . $row, $trip->vehicle->name ?? '-');
+                    $sheet->setCellValue('D' . $row, $trip->vehicle->plate ?? '-');
+                    $sheet->setCellValue('E' . $row, $trip->route->name ?? '-');
+                    $sheet->setCellValue('F' . $row, $trip->branch->name ?? '-');
+                    $sheet->setCellValue('G' . $row, 'Gelen');
+                    $sheet->setCellValue('H' . $row, $trip->arrival_count);
+                    $row++;
+                }
+
+                if (in_array((int) $trip->branch_id, $reportBranchIds, true) && (int) $trip->departure_count > 0) {
+                    $sheet->setCellValue('A' . $row, $trip->trip_date->format('d.m.Y'));
+                    $sheet->setCellValue('B' . $row, $trip->shift);
+                    $sheet->setCellValue('C' . $row, $trip->vehicle->name ?? '-');
+                    $sheet->setCellValue('D' . $row, $trip->vehicle->plate ?? '-');
+                    $sheet->setCellValue('E' . $row, $trip->route->name ?? '-');
+                    $sheet->setCellValue('F' . $row, $trip->branch->name ?? '-');
+                    $sheet->setCellValue('G' . $row, 'Giden');
+                    $sheet->setCellValue('H' . $row, $trip->departure_count);
+                    $row++;
+                }
+
+                continue;
+            }
+
             foreach ($trip->branchMovements as $movement) {
+                if (! in_array((int) $movement->branch_id, $reportBranchIds, true)) {
+                    continue;
+                }
+
                 $sheet->setCellValue('A' . $row, $trip->trip_date->format('d.m.Y'));
                 $sheet->setCellValue('B' . $row, $trip->shift);
                 $sheet->setCellValue('C' . $row, $trip->vehicle->name ?? '-');
@@ -547,6 +576,14 @@ class ShuttleReportController extends BaseModuleController
 
     private function sumTripMovements($trip, array $branchIds, string $movementType): int
     {
+        if ($trip->branchMovements->isEmpty()) {
+            if (! in_array((int) $trip->branch_id, $branchIds, true)) {
+                return 0;
+            }
+
+            return (int) ($movementType === 'arrival' ? $trip->arrival_count : $trip->departure_count);
+        }
+
         return (int) $trip->branchMovements
             ->filter(fn ($movement) => in_array((int) $movement->branch_id, $branchIds, true) && $movement->movement_type === $movementType)
             ->sum('headcount');
