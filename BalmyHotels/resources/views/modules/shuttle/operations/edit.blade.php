@@ -10,9 +10,14 @@
     $existingMatrix = $operation->branchMovements
         ->groupBy('branch_id')
         ->map(function ($items) {
+            $arrivalMovement = $items->firstWhere('movement_type', 'arrival');
+            $departureMovement = $items->firstWhere('movement_type', 'departure');
+
             return [
-                'arrival' => (int) optional($items->firstWhere('movement_type', 'arrival'))->headcount,
-                'departure' => (int) optional($items->firstWhere('movement_type', 'departure'))->headcount,
+                'arrival' => (int) optional($arrivalMovement)->headcount,
+                'departure' => (int) optional($departureMovement)->headcount,
+                'arrival_time' => optional($arrivalMovement)->movement_time ? substr($arrivalMovement->movement_time, 0, 5) : null,
+                'departure_time' => optional($departureMovement)->movement_time ? substr($departureMovement->movement_time, 0, 5) : null,
             ];
         })
         ->toArray();
@@ -34,7 +39,12 @@
     $movementValues = $allBranches->mapWithKeys(function ($branch) use ($existingMatrix, $oldBranchMovements, $oldInvolvedBranchIds, $defaultIncludedBranchIds, $hasOldInvolvedBranchIds) {
         $branchId = (int) $branch->id;
         $oldRow = (array) $oldBranchMovements->get($branchId, []);
-        $currentRow = $existingMatrix[$branchId] ?? ['arrival' => 0, 'departure' => 0];
+        $currentRow = $existingMatrix[$branchId] ?? [
+            'arrival' => 0,
+            'departure' => 0,
+            'arrival_time' => null,
+            'departure_time' => null,
+        ];
 
         return [
             $branchId => [
@@ -43,12 +53,18 @@
                     : in_array($branchId, $defaultIncludedBranchIds, true),
                 'arrival' => (int) data_get($oldRow, 'arrival', $currentRow['arrival']),
                 'departure' => (int) data_get($oldRow, 'departure', $currentRow['departure']),
+                'arrival_time' => data_get($oldRow, 'arrival_time', $currentRow['arrival_time']),
+                'departure_time' => data_get($oldRow, 'departure_time', $currentRow['departure_time']),
             ],
         ];
     })->all();
 
-    $contextBranch = $allBranches->firstWhere('id', (int) $contextBranchId);
-    $contextCounts = $existingMatrix[(int) $contextBranchId] ?? ['arrival' => 0, 'departure' => 0];
+    $contextMovement = $existingMatrix[(int) $contextBranchId] ?? [
+        'arrival' => 0,
+        'departure' => 0,
+        'arrival_time' => null,
+        'departure_time' => null,
+    ];
     $includedBranchCount = collect($movementValues)->filter(fn ($row) => data_get($row, 'included', false))->count();
 @endphp
 
@@ -83,10 +99,10 @@
                     <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
                         <div>
                             <h5 class="mb-1 text-white fw-semibold">
-                                <i class="fas fa-route me-2"></i>Sefer Detayi
+                                <i class="fas fa-route me-2"></i>Plaka Hareketi
                             </h5>
                             <div style="color:rgba(255,255,255,0.72);font-size:.82rem">
-                                Planlayan otel: {{ $operation->branch->name ?? '-' }} | Arac: {{ $operation->vehicle->name ?? '-' }}
+                                {{ $operation->vehicle->name ?? '-' }}@if($operation->vehicle?->plate) / {{ $operation->vehicle->plate }}@endif
                             </div>
                         </div>
                         <div class="d-flex gap-2 flex-wrap">
@@ -103,7 +119,7 @@
                 <div class="card-body p-4">
                     @if($isOwner)
                         <div class="alert border-0 mb-4" style="background:#eef3f9;color:#2a5298">
-                            Bu seferi sen planliyorsun. Diger oteller kaydi gorebilir, ama yalnizca kendi satirlarindaki indi / bindi alanlarini guncelleyebilir.
+                            Bu kayit ayni servis plakasi altinda Beach ve Foresta hareketlerini birlikte tutar. Diger taraf sayilari ve saatleri gorebilir; yalnizca kendi satirlarini guncelleyebilir.
                         </div>
 
                         <form action="{{ route('shuttle.operations.update', $operation) }}" method="POST" id="editTripForm">
@@ -112,9 +128,9 @@
                             <input type="hidden" name="context_branch_id" value="{{ $contextBranchId }}">
 
                             <div class="row g-3">
-                                <div class="col-md-6">
-                                    <label class="form-label fw-semibold small">Planlayan Otel <span class="text-danger">*</span></label>
-                                    <select name="branch_id" id="editTripBranchId" class="form-select" required>
+                                <div class="col-md-4">
+                                    <label class="form-label fw-semibold small">Kaydi Acan Otel <span class="text-danger">*</span></label>
+                                    <select name="branch_id" class="form-select" required>
                                         @foreach($branches as $branchOption)
                                             <option value="{{ $branchOption->id }}" @selected(old('branch_id', $operation->branch_id) == $branchOption->id)>
                                                 {{ $branchOption->name }}
@@ -122,22 +138,21 @@
                                         @endforeach
                                     </select>
                                 </div>
-                                <div class="col-md-6">
-                                    <label class="form-label fw-semibold small">Arac <span class="text-danger">*</span></label>
+                                <div class="col-md-4">
+                                    <label class="form-label fw-semibold small">Arac / Plaka <span class="text-danger">*</span></label>
                                     <select name="shuttle_vehicle_id" id="editTripVehicleId" class="form-select" required>
                                         @foreach($vehicles as $vehicle)
                                             <option
                                                 value="{{ $vehicle->id }}"
-                                                data-branch-id="{{ $vehicle->branch_id }}"
                                                 data-route-ids="{{ $vehicle->routes->pluck('id')->implode(',') }}"
                                                 @selected(old('shuttle_vehicle_id', $operation->shuttle_vehicle_id) == $vehicle->id)
                                             >
-                                                {{ $vehicle->name }}@if($vehicle->plate) ({{ $vehicle->plate }})@endif - Kap: {{ $vehicle->capacity }}
+                                                {{ $vehicle->name }}@if($vehicle->plate) ({{ $vehicle->plate }})@endif - {{ $vehicle->branch->name ?? 'Sube yok' }} - Kap: {{ $vehicle->capacity }}
                                             </option>
                                         @endforeach
                                     </select>
                                 </div>
-                                <div class="col-md-6">
+                                <div class="col-md-4">
                                     <label class="form-label fw-semibold small">Guzergah</label>
                                     <select name="route_id" id="editTripRouteId" class="form-select">
                                         <option value="">- Seciniz -</option>
@@ -147,7 +162,7 @@
                                             </option>
                                         @endforeach
                                     </select>
-                                    <div class="small text-muted mt-1" id="editTripRouteHelp">Secilen aracin gorevli oldugu guzergahlar listelenir.</div>
+                                    <div class="small text-muted mt-1" id="editTripRouteHelp">Yalnizca secilen aracin gorevli oldugu guzergahlar gorunur.</div>
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label fw-semibold small">Vardiya <span class="text-danger">*</span></label>
@@ -160,12 +175,6 @@
                                 <div class="col-md-6">
                                     <label class="form-label fw-semibold small">Tarih <span class="text-danger">*</span></label>
                                     <input type="date" name="trip_date" value="{{ old('trip_date', $operation->trip_date->format('Y-m-d')) }}" class="form-control" required>
-                                </div>
-                                <div class="col-md-6">
-                                    <label class="form-label fw-semibold small">Sefer Saati</label>
-                                    <input type="time" name="arrival_time"
-                                           value="{{ old('arrival_time', $operation->arrival_time ? substr($operation->arrival_time, 0, 5) : '') }}"
-                                           class="form-control" data-auto-time-picker="1">
                                 </div>
 
                                 <div class="col-12">
@@ -229,8 +238,8 @@
                                         'movementValues' => $movementValues,
                                         'editableBranchIds' => $visibleBranchIds,
                                         'selectableBranchIds' => $allBranches->pluck('id')->all(),
-                                        'title' => 'Otel Bazli Indi / Bindi Dagilimi',
-                                        'description' => 'Dahil olan tum otelleri gorebilirsin. Sadece kendi satirindaki sayilar duzenlenebilir; diger oteller veri girince burada read-only gorunur.',
+                                        'title' => 'Otel Bazli Geldi / Indi / Cikti / Bindi',
+                                        'description' => 'Ayni plaka icin her otel kendi geldi-cikti saatini ve kisi sayisini kendi satirinda tutar. Diger satirlar yalnizca gorunur.',
                                         'theme' => 'info',
                                     ])
                                 </div>
@@ -253,7 +262,7 @@
                         </form>
                     @else
                         <div class="alert border-0 mb-4" style="background:#eef6f2;color:#2e7d52">
-                            Bu seferde kendi otel satirini guncelleyebilirsin. Diger otellerin sayilari gorunur, ancak degistirilemez.
+                            Bu plakada sadece kendi otelinin hareketini isleyebilirsin. Diger otelin saat ve sayi bilgileri read-only gorunur.
                         </div>
 
                         <form action="{{ route('shuttle.operations.update', $operation) }}" method="POST">
@@ -264,35 +273,46 @@
                             <div class="row g-3">
                                 <div class="col-md-4">
                                     <div class="rounded-3 p-3 h-100" style="background:#f6f8fb;border:1px solid #e1e7f0">
-                                        <div class="small text-muted text-uppercase fw-semibold mb-1">Planlayan Otel</div>
-                                        <div class="fw-semibold text-dark">{{ $operation->branch->name ?? '-' }}</div>
-                                    </div>
-                                </div>
-                                <div class="col-md-4">
-                                    <div class="rounded-3 p-3 h-100" style="background:#f6f8fb;border:1px solid #e1e7f0">
-                                        <div class="small text-muted text-uppercase fw-semibold mb-1">Arac</div>
+                                        <div class="small text-muted text-uppercase fw-semibold mb-1">Arac / Plaka</div>
                                         <div class="fw-semibold text-dark">{{ $operation->vehicle->name ?? '-' }}</div>
                                         <div class="small text-muted mt-1">{{ $operation->vehicle->plate ?? '-' }}</div>
                                     </div>
                                 </div>
                                 <div class="col-md-4">
                                     <div class="rounded-3 p-3 h-100" style="background:#f6f8fb;border:1px solid #e1e7f0">
-                                        <div class="small text-muted text-uppercase fw-semibold mb-1">Guzergah / Saat</div>
+                                        <div class="small text-muted text-uppercase fw-semibold mb-1">Guzergah</div>
                                         <div class="fw-semibold text-dark">{{ $operation->route->name ?? 'Guzergah belirtilmedi' }}</div>
-                                        <div class="small text-muted mt-1">{{ $operation->arrival_time ? substr($operation->arrival_time, 0, 5) : '-' }}</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="rounded-3 p-3 h-100" style="background:#f6f8fb;border:1px solid #e1e7f0">
+                                        <div class="small text-muted text-uppercase fw-semibold mb-1">Kaydi Acan Otel</div>
+                                        <div class="fw-semibold text-dark">{{ $operation->branch->name ?? '-' }}</div>
                                     </div>
                                 </div>
 
                                 <div class="col-md-6">
-                                    <label class="form-label fw-semibold">Bu Otelde Indi <span class="text-danger">*</span></label>
+                                    <label class="form-label fw-semibold">Bu Otele Geldi Saati</label>
+                                    <input type="time" name="arrival_time"
+                                           value="{{ old('arrival_time', $contextMovement['arrival_time']) }}"
+                                           class="form-control" data-auto-time-picker="1">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label fw-semibold">Bu Otele Indi <span class="text-danger">*</span></label>
                                     <input type="number" name="arrival_count"
-                                           value="{{ old('arrival_count', $contextCounts['arrival']) }}"
+                                           value="{{ old('arrival_count', $contextMovement['arrival']) }}"
                                            min="0" max="500" class="form-control" required>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label fw-semibold">Bu Otelden Cikti Saati</label>
+                                    <input type="time" name="departure_time"
+                                           value="{{ old('departure_time', $contextMovement['departure_time']) }}"
+                                           class="form-control" data-auto-time-picker="1">
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label fw-semibold">Bu Otelden Bindi <span class="text-danger">*</span></label>
                                     <input type="number" name="departure_count"
-                                           value="{{ old('departure_count', $contextCounts['departure']) }}"
+                                           value="{{ old('departure_count', $contextMovement['departure']) }}"
                                            min="0" max="500" class="form-control" required>
                                 </div>
 
@@ -306,7 +326,9 @@
                                                 <thead>
                                                     <tr>
                                                         <th class="border-0 small text-muted text-uppercase">Otel</th>
+                                                        <th class="border-0 small text-muted text-uppercase text-center">Geldi</th>
                                                         <th class="border-0 small text-muted text-uppercase text-center">Indi</th>
+                                                        <th class="border-0 small text-muted text-uppercase text-center">Cikti</th>
                                                         <th class="border-0 small text-muted text-uppercase text-center">Bindi</th>
                                                         <th class="border-0 small text-muted text-uppercase">Durum</th>
                                                     </tr>
@@ -317,7 +339,9 @@
                                                         @php $isContextRow = (int) $branchId === (int) $contextBranchId; @endphp
                                                         <tr style="{{ $isContextRow ? 'background:#eef6f2' : '' }}">
                                                             <td class="fw-semibold text-dark">{{ optional($allBranches->firstWhere('id', (int) $branchId))->name ?? '-' }}</td>
+                                                            <td class="text-center">{{ data_get($row, 'arrival_time') ?: '-' }}</td>
                                                             <td class="text-center">{{ (int) data_get($row, 'arrival', 0) }}</td>
+                                                            <td class="text-center">{{ data_get($row, 'departure_time') ?: '-' }}</td>
                                                             <td class="text-center">{{ (int) data_get($row, 'departure', 0) }}</td>
                                                             <td class="small text-muted">
                                                                 {{ $isContextRow ? 'Bu satiri guncelleyebilirsin' : 'Yalnizca gorunur' }}
@@ -375,37 +399,14 @@ function bindAutoTimePickers(scope = document) {
     });
 }
 
-function wireTripForm(branchSelector, vehicleSelector, routeSelector, helpSelector) {
-    const branchSelect = document.querySelector(branchSelector);
+function wireTripForm(vehicleSelector, routeSelector, helpSelector) {
     const vehicleSelect = document.querySelector(vehicleSelector);
     const routeSelect = document.querySelector(routeSelector);
     const helpBox = document.querySelector(helpSelector);
 
-    if (!branchSelect || !vehicleSelect || !routeSelect) {
+    if (!vehicleSelect || !routeSelect) {
         return;
     }
-
-    const syncVehicles = () => {
-        const branchId = branchSelect.value;
-
-        Array.from(vehicleSelect.options).forEach((option) => {
-            if (!option.value) {
-                option.hidden = false;
-                option.disabled = false;
-                return;
-            }
-
-            const matches = !branchId || option.dataset.branchId === branchId;
-            option.hidden = !matches;
-            option.disabled = !matches;
-        });
-
-        if (vehicleSelect.selectedOptions[0] && vehicleSelect.selectedOptions[0].disabled) {
-            vehicleSelect.value = '';
-        }
-
-        syncRoutes();
-    };
 
     const syncRoutes = () => {
         const selectedVehicle = vehicleSelect.selectedOptions[0];
@@ -437,7 +438,7 @@ function wireTripForm(branchSelector, vehicleSelector, routeSelector, helpSelect
 
         if (helpBox) {
             if (!vehicleId) {
-                helpBox.textContent = 'Secilen aracin gorevli oldugu guzergahlar listelenir.';
+                helpBox.textContent = 'Yalnizca secilen aracin gorevli oldugu guzergahlar gorunur.';
             } else if (allowedRouteIds.size === 0) {
                 helpBox.textContent = 'Bu araca henuz guzergah atamasi yapilmamis.';
             } else {
@@ -446,9 +447,8 @@ function wireTripForm(branchSelector, vehicleSelector, routeSelector, helpSelect
         }
     };
 
-    branchSelect.addEventListener('change', syncVehicles);
     vehicleSelect.addEventListener('change', syncRoutes);
-    syncVehicles();
+    syncRoutes();
 }
 
 function wireBranchMovementIncludes(scope = document) {
@@ -467,7 +467,7 @@ function wireBranchMovementIncludes(scope = document) {
 
                 input.disabled = !checkbox.checked;
                 if (!checkbox.checked) {
-                    input.value = 0;
+                    input.value = '';
                 }
             });
         };
@@ -483,7 +483,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     @if($isOwner)
         wireTripForm(
-            '#editTripBranchId',
             '#editTripVehicleId',
             '#editTripRouteId',
             '#editTripRouteHelp'

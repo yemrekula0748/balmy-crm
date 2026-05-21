@@ -204,25 +204,39 @@
                     $filteredDepartureCount = (int) $trip->branchMovements
                         ->filter(fn ($movement) => in_array((int) $movement->branch_id, $reportBranchIds, true) && $movement->movement_type === 'departure')
                         ->sum('headcount');
+                    $filteredArrivalTime = $trip->branchMovements
+                        ->filter(fn ($movement) => in_array((int) $movement->branch_id, $reportBranchIds, true) && $movement->movement_type === 'arrival' && ! empty($movement->movement_time))
+                        ->pluck('movement_time')
+                        ->map(fn ($time) => substr($time, 0, 5))
+                        ->sort()
+                        ->first();
+                    $filteredDepartureTime = $trip->branchMovements
+                        ->filter(fn ($movement) => in_array((int) $movement->branch_id, $reportBranchIds, true) && $movement->movement_type === 'departure' && ! empty($movement->movement_time))
+                        ->pluck('movement_time')
+                        ->map(fn ($time) => substr($time, 0, 5))
+                        ->sort()
+                        ->last();
 
                     if ($trip->branchMovements->isEmpty() && in_array((int) $trip->branch_id, $reportBranchIds, true)) {
                         $filteredArrivalCount = (int) $trip->arrival_count;
                         $filteredDepartureCount = (int) $trip->departure_count;
+                        $filteredArrivalTime = $trip->arrival_time ? substr($trip->arrival_time, 0, 5) : null;
+                        $filteredDepartureTime = $trip->departure_time ? substr($trip->departure_time, 0, 5) : null;
                     }
 
                     $arrivalSummary = $trip->branchMovements
                         ->where('movement_type', 'arrival')
-                        ->map(fn ($movement) => ($movement->branch->name ?? '-') . ' ' . $movement->headcount)
+                        ->map(fn ($movement) => ($movement->branch->name ?? '-') . ' ' . ($movement->movement_time ? substr($movement->movement_time, 0, 5) . ' / ' : '') . $movement->headcount)
                         ->implode(', ');
                     $departureSummary = $trip->branchMovements
                         ->where('movement_type', 'departure')
-                        ->map(fn ($movement) => ($movement->branch->name ?? '-') . ' ' . $movement->headcount)
+                        ->map(fn ($movement) => ($movement->branch->name ?? '-') . ' ' . ($movement->movement_time ? substr($movement->movement_time, 0, 5) . ' / ' : '') . $movement->headcount)
                         ->implode(', ');
                     if ($arrivalSummary === '' && $filteredArrivalCount > 0) {
-                        $arrivalSummary = ($trip->branch->name ?? '-') . ' ' . $filteredArrivalCount;
+                        $arrivalSummary = ($trip->branch->name ?? '-') . ' ' . ($filteredArrivalTime ? $filteredArrivalTime . ' / ' : '') . $filteredArrivalCount;
                     }
                     if ($departureSummary === '' && $filteredDepartureCount > 0) {
-                        $departureSummary = ($trip->branch->name ?? '-') . ' ' . $filteredDepartureCount;
+                        $departureSummary = ($trip->branch->name ?? '-') . ' ' . ($filteredDepartureTime ? $filteredDepartureTime . ' / ' : '') . $filteredDepartureCount;
                     }
                 @endphp
                 <tr>
@@ -231,11 +245,11 @@
                     <td>{{ $trip->vehicle->name }}</td>
                     <td>{{ $trip->route->name ?? '-' }}</td>
                     <td class="text-center">
-                        {{ $trip->arrival_time ? substr($trip->arrival_time, 0, 5) : '-' }}
+                        {{ $filteredArrivalTime ?: '-' }}
                         / <strong>{{ $filteredArrivalCount }}</strong>
                     </td>
                     <td class="text-center">
-                        {{ $trip->departure_time ? substr($trip->departure_time, 0, 5) : '-' }}
+                        {{ $filteredDepartureTime ?: '-' }}
                         / <strong>{{ $filteredDepartureCount }}</strong>
                     </td>
                     <td>

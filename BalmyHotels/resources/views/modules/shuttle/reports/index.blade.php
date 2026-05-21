@@ -328,6 +328,97 @@
                 </div>
             </div>
         </div>
+
+        <div class="col-12">
+            <div class="card shadow-sm border-0" style="border-radius:14px">
+                <div class="card-header bg-white border-0 pt-3 px-4">
+                    <h5 class="mb-0"><i class="fas fa-list me-2" style="color:#c19b77"></i>Servis Bazli Hareket Detayi</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Tarih</th>
+                                    <th>Vardiya</th>
+                                    <th>Arac / Plaka</th>
+                                    <th>Guzergah</th>
+                                    <th class="text-center">Ilk Gelis</th>
+                                    <th class="text-center">Son Cikis</th>
+                                    <th class="text-center">Toplam Indi</th>
+                                    <th class="text-center">Toplam Bindi</th>
+                                    <th>Otel Hareketleri</th>
+                                    <th>Not</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @forelse($trips as $trip)
+                                    @php
+                                        $movementRows = $trip->branchMovements
+                                            ->groupBy('branch_id')
+                                            ->map(function ($items) {
+                                                $arrivalMovement = $items->firstWhere('movement_type', 'arrival');
+                                                $departureMovement = $items->firstWhere('movement_type', 'departure');
+
+                                                return [
+                                                    'branch_name' => optional(optional($arrivalMovement)->branch ?? optional($departureMovement)->branch)->name ?? '-',
+                                                    'arrival_time' => optional($arrivalMovement)->movement_time ? substr($arrivalMovement->movement_time, 0, 5) : null,
+                                                    'arrival_count' => (int) optional($arrivalMovement)->headcount,
+                                                    'departure_time' => optional($departureMovement)->movement_time ? substr($departureMovement->movement_time, 0, 5) : null,
+                                                    'departure_count' => (int) optional($departureMovement)->headcount,
+                                                ];
+                                            })
+                                            ->values();
+
+                                        $arrivalTimes = $movementRows->pluck('arrival_time')->filter()->sort()->values();
+                                        $departureTimes = $movementRows->pluck('departure_time')->filter()->sort()->values();
+                                        $tripArrivalTime = $arrivalTimes->first() ?: ($trip->arrival_time ? substr($trip->arrival_time, 0, 5) : null);
+                                        $tripDepartureTime = $departureTimes->last() ?: ($trip->departure_time ? substr($trip->departure_time, 0, 5) : null);
+                                    @endphp
+                                    <tr>
+                                        <td>{{ $trip->trip_date->format('d.m.Y') }}</td>
+                                        <td><span class="badge bg-secondary">{{ $trip->shift }}</span></td>
+                                        <td>
+                                            <div class="fw-semibold">{{ $trip->vehicle->name ?? '-' }}</div>
+                                            @if($trip->vehicle?->plate)
+                                                <small class="text-muted">{{ $trip->vehicle->plate }}</small>
+                                            @endif
+                                        </td>
+                                        <td>{{ $trip->route->name ?? '-' }}</td>
+                                        <td class="text-center fw-semibold">{{ $tripArrivalTime ?: '-' }}</td>
+                                        <td class="text-center fw-semibold">{{ $tripDepartureTime ?: '-' }}</td>
+                                        <td class="text-center fw-bold text-primary">{{ $trip->arrival_count }}</td>
+                                        <td class="text-center fw-bold text-success">{{ $trip->departure_count }}</td>
+                                        <td style="min-width:290px">
+                                            <div class="d-flex flex-column gap-2">
+                                                @foreach($movementRows as $movementRow)
+                                                    <div class="rounded-3 p-2" style="background:#f8fafc;border:1px solid #e5ebf3">
+                                                        <div class="fw-semibold text-dark small mb-1">{{ $movementRow['branch_name'] }}</div>
+                                                        <div class="small text-muted d-flex gap-3 flex-wrap">
+                                                            <span><strong>Geldi:</strong> {{ $movementRow['arrival_time'] ?: '-' }}</span>
+                                                            <span><strong>Indi:</strong> {{ $movementRow['arrival_count'] }}</span>
+                                                        </div>
+                                                        <div class="small text-muted d-flex gap-3 flex-wrap mt-1">
+                                                            <span><strong>Cikti:</strong> {{ $movementRow['departure_time'] ?: '-' }}</span>
+                                                            <span><strong>Bindi:</strong> {{ $movementRow['departure_count'] }}</span>
+                                                        </div>
+                                                    </div>
+                                                @endforeach
+                                            </div>
+                                        </td>
+                                        <td>{{ $trip->notes ? \Illuminate\Support\Str::limit($trip->notes, 60) : '-' }}</td>
+                                    </tr>
+                                @empty
+                                    <tr>
+                                        <td colspan="10" class="text-center text-muted py-4">Detay servis kaydi bulunamadi.</td>
+                                    </tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
 </div>

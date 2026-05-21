@@ -45,15 +45,11 @@ class ShuttleOperationController extends BaseModuleController
 
         $vehicles = ShuttleVehicle::with(['branch', 'routes'])
             ->where('is_active', true)
-            ->whereIn('branch_id', $visibleBranchIds)
-            ->orderBy('branch_id')
             ->orderBy('name')
             ->get();
 
         $routes = ShuttleRoute::with('branch')
             ->where('is_active', true)
-            ->whereIn('branch_id', $visibleBranchIds)
-            ->orderBy('branch_id')
             ->orderBy('name')
             ->get();
 
@@ -128,15 +124,11 @@ class ShuttleOperationController extends BaseModuleController
 
         $vehicles = ShuttleVehicle::with(['branch', 'routes'])
             ->where('is_active', true)
-            ->whereIn('branch_id', $visibleBranchIds)
-            ->orderBy('branch_id')
             ->orderBy('name')
             ->get();
 
         $routes = ShuttleRoute::with('branch')
             ->where('is_active', true)
-            ->whereIn('branch_id', $visibleBranchIds)
-            ->orderBy('branch_id')
             ->orderBy('name')
             ->get();
 
@@ -240,8 +232,6 @@ class ShuttleOperationController extends BaseModuleController
             'branch_id' => 'required|exists:branches,id',
             'shift' => 'required|in:' . implode(',', ShuttleTrip::SHIFTS),
             'trip_date' => 'required|date',
-            'arrival_time' => 'nullable|date_format:H:i',
-            'departure_time' => 'nullable|date_format:H:i',
             'notes' => 'nullable|string|max:500',
             'arrived_with_different_vehicle' => 'nullable|boolean',
             'is_transfer' => 'nullable|boolean',
@@ -250,11 +240,13 @@ class ShuttleOperationController extends BaseModuleController
             'branch_movements' => 'nullable|array',
             'branch_movements.*.arrival' => 'nullable|integer|min:0|max:500',
             'branch_movements.*.departure' => 'nullable|integer|min:0|max:500',
+            'branch_movements.*.arrival_time' => 'nullable|date_format:H:i',
+            'branch_movements.*.departure_time' => 'nullable|date_format:H:i',
         ]);
 
         $data['route_id'] = $data['route_id'] ?? null;
-        $data['arrival_time'] = $data['arrival_time'] ?? null;
-        $data['departure_time'] = $data['departure_time'] ?? null;
+        $data['arrival_time'] = null;
+        $data['departure_time'] = null;
         $data['notes'] = $data['notes'] ?? null;
         $data['arrived_with_different_vehicle'] = $request->boolean('arrived_with_different_vehicle');
         $data['is_transfer'] = $request->boolean('is_transfer');
@@ -266,12 +258,12 @@ class ShuttleOperationController extends BaseModuleController
         }
 
         $vehicle = ShuttleVehicle::with('routes')
-            ->whereIn('branch_id', $visibleBranchIds)
+            ->where('is_active', true)
             ->find($data['shuttle_vehicle_id']);
 
-        if (! $vehicle || (int) $vehicle->branch_id !== (int) $data['branch_id']) {
+        if (! $vehicle) {
             throw ValidationException::withMessages([
-                'shuttle_vehicle_id' => 'Secilen arac yalnizca kendi otelinin seferinde kullanilabilir.',
+                'shuttle_vehicle_id' => 'Secilen arac aktif degil ya da bulunamadi.',
             ]);
         }
 
@@ -305,7 +297,15 @@ class ShuttleOperationController extends BaseModuleController
                 continue;
             }
 
-            if (((int) $counts['arrival'] > 0 || (int) $counts['departure'] > 0) && ! in_array((int) $branchId, $selectedBranchIds, true)) {
+            if (
+                (
+                    (int) $counts['arrival'] > 0
+                    || (int) $counts['departure'] > 0
+                    || ! empty($counts['arrival_time'])
+                    || ! empty($counts['departure_time'])
+                )
+                && ! in_array((int) $branchId, $selectedBranchIds, true)
+            ) {
                 $preservedBranchIds[] = (int) $branchId;
             }
         }
@@ -317,17 +317,30 @@ class ShuttleOperationController extends BaseModuleController
 
         $movementMatrix = [];
         foreach ($finalBranchIds as $branchId) {
-            $existingCounts = $existingMatrix[$branchId] ?? ['arrival' => 0, 'departure' => 0];
+            $existingCounts = $existingMatrix[$branchId] ?? [
+                'arrival' => 0,
+                'departure' => 0,
+                'arrival_time' => null,
+                'departure_time' => null,
+            ];
             $arrival = in_array($branchId, $visibleBranchIds, true)
                 ? (int) data_get($request->input("branch_movements.$branchId", []), 'arrival', 0)
                 : (int) $existingCounts['arrival'];
             $departure = in_array($branchId, $visibleBranchIds, true)
                 ? (int) data_get($request->input("branch_movements.$branchId", []), 'departure', 0)
                 : (int) $existingCounts['departure'];
+            $arrivalTime = in_array($branchId, $visibleBranchIds, true)
+                ? $this->normaliseTime(data_get($request->input("branch_movements.$branchId", []), 'arrival_time'))
+                : ($existingCounts['arrival_time'] ?? null);
+            $departureTime = in_array($branchId, $visibleBranchIds, true)
+                ? $this->normaliseTime(data_get($request->input("branch_movements.$branchId", []), 'departure_time'))
+                : ($existingCounts['departure_time'] ?? null);
 
             $movementMatrix[$branchId] = [
                 'arrival' => $arrival,
                 'departure' => $departure,
+                'arrival_time' => $arrivalTime,
+                'departure_time' => $departureTime,
             ];
         }
 
@@ -342,12 +355,16 @@ class ShuttleOperationController extends BaseModuleController
         $data = $request->validate([
             'arrival_count' => 'required|integer|min:0|max:500',
             'departure_count' => 'required|integer|min:0|max:500',
+            'arrival_time' => 'nullable|date_format:H:i',
+            'departure_time' => 'nullable|date_format:H:i',
         ]);
 
         $movementMatrix = $this->branchMovementMatrix($operation);
         $movementMatrix[$contextBranchId] = [
             'arrival' => (int) $data['arrival_count'],
             'departure' => (int) $data['departure_count'],
+            'arrival_time' => $this->normaliseTime($data['arrival_time'] ?? null),
+            'departure_time' => $this->normaliseTime($data['departure_time'] ?? null),
         ];
 
         DB::transaction(function () use ($operation, $movementMatrix) {
@@ -365,16 +382,20 @@ class ShuttleOperationController extends BaseModuleController
             $branchId = (int) $branchId;
             $arrival = (int) ($counts['arrival'] ?? 0);
             $departure = (int) ($counts['departure'] ?? 0);
+            $arrivalTime = $this->normaliseTime($counts['arrival_time'] ?? null);
+            $departureTime = $this->normaliseTime($counts['departure_time'] ?? null);
 
             $records[] = [
                 'branch_id' => $branchId,
                 'movement_type' => 'arrival',
                 'headcount' => $arrival,
+                'movement_time' => $arrivalTime,
             ];
             $records[] = [
                 'branch_id' => $branchId,
                 'movement_type' => 'departure',
                 'headcount' => $departure,
+                'movement_time' => $departureTime,
             ];
 
             $totalArrival += $arrival;
@@ -384,6 +405,8 @@ class ShuttleOperationController extends BaseModuleController
         $trip->update([
             'arrival_count' => $totalArrival,
             'departure_count' => $totalDeparture,
+            'arrival_time' => $this->resolveBoundaryTime($movementMatrix, 'arrival_time', 'min'),
+            'departure_time' => $this->resolveBoundaryTime($movementMatrix, 'departure_time', 'max'),
         ]);
 
         $trip->branchMovements()->delete();
@@ -445,9 +468,14 @@ class ShuttleOperationController extends BaseModuleController
         return $trip->branchMovements
             ->groupBy('branch_id')
             ->map(function ($items) {
+                $arrivalMovement = $items->firstWhere('movement_type', 'arrival');
+                $departureMovement = $items->firstWhere('movement_type', 'departure');
+
                 return [
-                    'arrival' => (int) optional($items->firstWhere('movement_type', 'arrival'))->headcount,
-                    'departure' => (int) optional($items->firstWhere('movement_type', 'departure'))->headcount,
+                    'arrival' => (int) optional($arrivalMovement)->headcount,
+                    'departure' => (int) optional($departureMovement)->headcount,
+                    'arrival_time' => $this->normaliseTime(optional($arrivalMovement)->movement_time),
+                    'departure_time' => $this->normaliseTime(optional($departureMovement)->movement_time),
                 ];
             })
             ->toArray();
@@ -488,5 +516,31 @@ class ShuttleOperationController extends BaseModuleController
         }
 
         return [$incoming, $outgoing];
+    }
+
+    private function normaliseTime(?string $value): ?string
+    {
+        if (! $value) {
+            return null;
+        }
+
+        return substr(trim($value), 0, 5);
+    }
+
+    private function resolveBoundaryTime(array $movementMatrix, string $key, string $mode): ?string
+    {
+        $times = collect($movementMatrix)
+            ->pluck($key)
+            ->filter()
+            ->map(fn ($time) => $this->normaliseTime($time))
+            ->filter()
+            ->sort()
+            ->values();
+
+        if ($times->isEmpty()) {
+            return null;
+        }
+
+        return $mode === 'min' ? $times->first() : $times->last();
     }
 }

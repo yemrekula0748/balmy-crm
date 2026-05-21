@@ -3,7 +3,7 @@
     $editableBranchIds = collect($editableBranchIds ?? [])->map(fn ($id) => (int) $id)->all();
     $selectableBranchIds = collect($selectableBranchIds ?? [])->map(fn ($id) => (int) $id)->all();
     $showInclude = $showInclude ?? true;
-    $title = $title ?? 'Otel Bazli Indi / Bindi';
+    $title = $title ?? 'Otel Bazli Hareket';
     $description = $description ?? 'Tum otelleri gorebilirsin; sadece kendi otel satirini duzenleyebilirsin.';
     $theme = $theme ?? 'neutral';
     $compact = $compact ?? false;
@@ -14,7 +14,8 @@
         'success' => ['bg' => '#eef6f2', 'border' => '#cfe3d8', 'text' => '#2e7d52'],
     ][$theme] ?? ['bg' => '#faf6f1', 'border' => '#eadcc9', 'text' => '#7a5c3d'];
 
-    $inputClass = $compact ? 'form-control form-control-sm text-center' : 'form-control text-center';
+    $countClass = $compact ? 'form-control form-control-sm text-center' : 'form-control text-center';
+    $timeClass = $compact ? 'form-control form-control-sm text-center' : 'form-control text-center';
 @endphp
 
 <div class="p-3 rounded" style="background:{{ $themeStyles['bg'] }};border:1px solid {{ $themeStyles['border'] }}">
@@ -30,10 +31,12 @@
             <thead>
                 <tr>
                     @if($showInclude)
-                        <th class="border-0 ps-0 small text-muted text-uppercase text-center" style="width:90px">Dahil</th>
+                        <th class="border-0 ps-0 small text-muted text-uppercase text-center" style="width:82px">Dahil</th>
                     @endif
                     <th class="border-0 small text-muted text-uppercase">Otel</th>
+                    <th class="border-0 small text-muted text-uppercase text-center">Geldi</th>
                     <th class="border-0 small text-muted text-uppercase text-center">Indi</th>
+                    <th class="border-0 small text-muted text-uppercase text-center">Cikti</th>
                     <th class="border-0 pe-0 small text-muted text-uppercase text-center">Bindi</th>
                 </tr>
             </thead>
@@ -45,6 +48,8 @@
                         $included = (bool) data_get($branchValue, 'included', false);
                         $arrivalValue = (int) data_get($branchValue, 'arrival', 0);
                         $departureValue = (int) data_get($branchValue, 'departure', 0);
+                        $arrivalTimeValue = data_get($branchValue, 'arrival_time');
+                        $departureTimeValue = data_get($branchValue, 'departure_time');
                         $canEditRow = in_array($branchId, $editableBranchIds, true);
                         $canToggleInclude = in_array($branchId, $selectableBranchIds, true);
                         $rowLocked = ! $canEditRow;
@@ -74,8 +79,20 @@
                             @if($rowLocked)
                                 <div class="small text-muted">Gorunur, degistirilemez</div>
                             @elseif($canToggleInclude)
-                                <div class="small text-muted">Kendi satirin</div>
+                                <div class="small text-muted">Kendi otel satirin</div>
                             @endif
+                        </td>
+                        <td class="text-center">
+                            <input
+                                type="time"
+                                name="branch_movements[{{ $branchId }}][arrival_time]"
+                                value="{{ $arrivalTimeValue ? substr($arrivalTimeValue, 0, 5) : '' }}"
+                                class="{{ $timeClass }}"
+                                style="max-width:110px;margin:0 auto"
+                                data-branch-id="{{ $branchId }}"
+                                data-auto-time-picker="1"
+                                @readonly($rowLocked)
+                            >
                         </td>
                         <td class="text-center">
                             <input
@@ -84,10 +101,21 @@
                                 max="500"
                                 name="branch_movements[{{ $branchId }}][arrival]"
                                 value="{{ $arrivalValue }}"
-                                class="{{ $inputClass }}"
+                                class="{{ $countClass }}"
                                 style="max-width:96px;margin:0 auto"
-                                data-movement-kind="arrival"
                                 data-branch-id="{{ $branchId }}"
+                                @readonly($rowLocked)
+                            >
+                        </td>
+                        <td class="text-center">
+                            <input
+                                type="time"
+                                name="branch_movements[{{ $branchId }}][departure_time]"
+                                value="{{ $departureTimeValue ? substr($departureTimeValue, 0, 5) : '' }}"
+                                class="{{ $timeClass }}"
+                                style="max-width:110px;margin:0 auto"
+                                data-branch-id="{{ $branchId }}"
+                                data-auto-time-picker="1"
                                 @readonly($rowLocked)
                             >
                         </td>
@@ -98,9 +126,8 @@
                                 max="500"
                                 name="branch_movements[{{ $branchId }}][departure]"
                                 value="{{ $departureValue }}"
-                                class="{{ $inputClass }}"
+                                class="{{ $countClass }}"
                                 style="max-width:96px;margin:0 auto"
-                                data-movement-kind="departure"
                                 data-branch-id="{{ $branchId }}"
                                 @readonly($rowLocked)
                             >
@@ -115,4 +142,6 @@
     @error('branch_movements')<div class="text-danger small mt-2">{{ $message }}</div>@enderror
     @error('branch_movements.*.arrival')<div class="text-danger small mt-2">{{ $message }}</div>@enderror
     @error('branch_movements.*.departure')<div class="text-danger small mt-2">{{ $message }}</div>@enderror
+    @error('branch_movements.*.arrival_time')<div class="text-danger small mt-2">{{ $message }}</div>@enderror
+    @error('branch_movements.*.departure_time')<div class="text-danger small mt-2">{{ $message }}</div>@enderror
 </div>

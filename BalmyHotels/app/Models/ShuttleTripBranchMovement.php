@@ -17,6 +17,7 @@ class ShuttleTripBranchMovement extends Model
         'branch_id',
         'movement_type',
         'headcount',
+        'movement_time',
     ];
 
     protected $casts = [

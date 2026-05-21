@@ -7,13 +7,19 @@
     $oldBranchMovements = collect(old('branch_movements', []));
     $oldInvolvedBranchIds = collect(old('involved_branch_ids', $activeBranchId ? [$activeBranchId] : []))
         ->map(fn ($id) => (int) $id)
+        ->unique()
+        ->values()
         ->all();
     $createMovementValues = $allBranches->mapWithKeys(function ($branch) use ($oldBranchMovements, $oldInvolvedBranchIds) {
+        $branchId = (int) $branch->id;
+
         return [
-            $branch->id => [
-                'included' => in_array((int) $branch->id, $oldInvolvedBranchIds, true),
-                'arrival' => (int) data_get($oldBranchMovements->get($branch->id, []), 'arrival', 0),
-                'departure' => (int) data_get($oldBranchMovements->get($branch->id, []), 'departure', 0),
+            $branchId => [
+                'included' => in_array($branchId, $oldInvolvedBranchIds, true),
+                'arrival' => (int) data_get($oldBranchMovements->get($branchId, []), 'arrival', 0),
+                'departure' => (int) data_get($oldBranchMovements->get($branchId, []), 'departure', 0),
+                'arrival_time' => data_get($oldBranchMovements->get($branchId, []), 'arrival_time'),
+                'departure_time' => data_get($oldBranchMovements->get($branchId, []), 'departure_time'),
             ],
         ];
     })->all();
@@ -24,7 +30,7 @@
         <div class="col-sm-6 p-md-0">
             <div class="welcome-text">
                 <h4>Servis Operasyonu</h4>
-                <span>{{ $date->format('d.m.Y') }} - Otel bazli indi / bindi takibi</span>
+                <span>{{ $date->format('d.m.Y') }} - Plaka bazli geldi / indi / cikti / bindi takibi</span>
             </div>
         </div>
         <div class="col-sm-6 p-md-0 justify-content-sm-end mt-2 mt-sm-0 d-flex">
@@ -59,9 +65,9 @@
                             <i class="fas fa-shuttle-van text-white"></i>
                         </div>
                         <div>
-                            <div class="text-white fw-semibold fs-5">Cok Durakli Personel Servisi</div>
+                            <div class="text-white fw-semibold fs-5">Ortak Servis Hareketi</div>
                             <div style="color:rgba(255,255,255,0.55);font-size:.82rem">
-                                Sefer tek kayit, Foresta ve Beach kendi satirini isler
+                                Aynı plaka altında Beach ve Foresta ayri saat ve kisi kaydi tutar
                             </div>
                         </div>
                     </div>
@@ -96,7 +102,7 @@
                             <button type="button" class="btn btn-sm fw-semibold px-3"
                                     style="background:#fff;color:#1e2d3d;border:none;border-radius:7px"
                                     data-bs-toggle="modal" data-bs-target="#addTripModal">
-                                <i class="fas fa-plus me-1"></i> Sefer Ekle
+                                <i class="fas fa-plus me-1"></i> Hareket Ekle
                             </button>
                         @endif
                     </div>
@@ -111,7 +117,7 @@
                 <div class="card-body py-3">
                     <div class="small text-muted text-uppercase fw-semibold mb-1">Bu Otelde Inen</div>
                     <div class="fw-bold" style="font-size:1.8rem;color:#1e2d3d">{{ $totalIncoming }}</div>
-                    <div class="small text-muted mt-1">Secili otel icin bugun inen toplam personel</div>
+                    <div class="small text-muted mt-1">Secili otel icin gunluk toplam inen personel</div>
                 </div>
             </div>
         </div>
@@ -120,16 +126,16 @@
                 <div class="card-body py-3">
                     <div class="small text-muted text-uppercase fw-semibold mb-1">Bu Otelden Binen</div>
                     <div class="fw-bold" style="font-size:1.8rem;color:#1e2d3d">{{ $totalOutgoing }}</div>
-                    <div class="small text-muted mt-1">Secili otel icin bugun servise binen toplam personel</div>
+                    <div class="small text-muted mt-1">Secili otel icin gunluk toplam binen personel</div>
                 </div>
             </div>
         </div>
         <div class="col-md-4">
             <div class="card border-0 shadow-sm h-100" style="border-top:3px solid #7a5c3d;border-radius:10px">
                 <div class="card-body py-3">
-                    <div class="small text-muted text-uppercase fw-semibold mb-1">Gorunen Sefer</div>
+                    <div class="small text-muted text-uppercase fw-semibold mb-1">Gorunen Servis</div>
                     <div class="fw-bold" style="font-size:1.8rem;color:#1e2d3d">{{ $totalTrips }}</div>
-                    <div class="small text-muted mt-1">Planladigin ya da dahil oldugun seferler</div>
+                    <div class="small text-muted mt-1">Bu otelin dahil oldugu gunluk plaka hareketi</div>
                 </div>
             </div>
         </div>
@@ -138,7 +144,7 @@
     <div class="card border-0 shadow-sm" style="border-radius:12px;overflow:hidden">
         <div class="card-header border-0 d-flex align-items-center justify-content-between px-4 py-3"
              style="background:linear-gradient(135deg,#1e2d3d 0%,#2c3e50 100%)">
-            <span class="text-white fw-semibold">{{ $date->format('d.m.Y') }} Sefer Listesi</span>
+            <span class="text-white fw-semibold">{{ $date->format('d.m.Y') }} Hareket Listesi</span>
             @if($activeBranchId)
                 <span style="background:rgba(255,255,255,0.12);color:#fff;font-size:.75rem;padding:3px 10px;border-radius:20px">
                     {{ optional($branches->firstWhere('id', $activeBranchId))->name ?? 'Secili Otel' }}
@@ -149,7 +155,7 @@
             @if($trips->isEmpty())
                 <div class="text-center py-5 text-muted">
                     <i class="fas fa-route fa-2x mb-3 d-block"></i>
-                    Bu tarih icin sefer kaydi bulunmuyor.
+                    Bu tarih icin servis hareketi bulunmuyor.
                 </div>
             @else
                 <div class="table-responsive">
@@ -157,11 +163,11 @@
                         <thead>
                             <tr>
                                 <th class="ps-4 py-3 border-0" style="background:#1e2d3d;color:#fff">Vardiya</th>
-                                <th class="py-3 border-0" style="background:#1e2d3d;color:#fff">Sefer</th>
-                                <th class="py-3 border-0" style="background:#1e2d3d;color:#fff">Arac / Guzergah</th>
+                                <th class="py-3 border-0" style="background:#1e2d3d;color:#fff">Arac / Plaka</th>
+                                <th class="py-3 border-0" style="background:#1e2d3d;color:#fff">Guzergah</th>
                                 <th class="py-3 border-0" style="background:#1e2d3d;color:#fff">Otel Hareketleri</th>
+                                <th class="py-3 border-0" style="background:#1e2d3d;color:#fff">Toplam</th>
                                 <th class="py-3 border-0" style="background:#1e2d3d;color:#fff">Durum / Not</th>
-                                <th class="py-3 border-0" style="background:#1e2d3d;color:#fff">Ekleyen</th>
                                 <th class="pe-4 py-3 border-0 text-end" style="background:#1e2d3d;color:#fff">Islem</th>
                             </tr>
                         </thead>
@@ -172,9 +178,14 @@
                                     $movementMatrix = $trip->branchMovements
                                         ->groupBy('branch_id')
                                         ->map(function ($items) {
+                                            $arrivalMovement = $items->firstWhere('movement_type', 'arrival');
+                                            $departureMovement = $items->firstWhere('movement_type', 'departure');
+
                                             return [
-                                                'arrival' => (int) optional($items->firstWhere('movement_type', 'arrival'))->headcount,
-                                                'departure' => (int) optional($items->firstWhere('movement_type', 'departure'))->headcount,
+                                                'arrival' => (int) optional($arrivalMovement)->headcount,
+                                                'departure' => (int) optional($departureMovement)->headcount,
+                                                'arrival_time' => optional($arrivalMovement)->movement_time ? substr($arrivalMovement->movement_time, 0, 5) : null,
+                                                'departure_time' => optional($departureMovement)->movement_time ? substr($departureMovement->movement_time, 0, 5) : null,
                                             ];
                                         });
                                     $activeBranchMatrix = $activeBranchId ? $movementMatrix->get($activeBranchId) : null;
@@ -186,6 +197,8 @@
                                         'branchName' => optional($allBranches->firstWhere('id', $activeBranchId))->name ?? '',
                                         'arrivalCount' => (int) data_get($activeBranchMatrix, 'arrival', 0),
                                         'departureCount' => (int) data_get($activeBranchMatrix, 'departure', 0),
+                                        'arrivalTime' => data_get($activeBranchMatrix, 'arrival_time'),
+                                        'departureTime' => data_get($activeBranchMatrix, 'departure_time'),
                                     ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
                                 @endphp
 
@@ -207,20 +220,19 @@
                                         </span>
                                     </td>
                                     <td>
-                                        <div class="fw-semibold text-dark">Planlayan: {{ $trip->branch->name ?? '-' }}</div>
-                                        <div class="small text-muted">Tarih: {{ $trip->trip_date->format('d.m.Y') }}</div>
-                                        <div class="small text-muted">Sefer Saati: {{ $trip->arrival_time ? substr($trip->arrival_time, 0, 5) : '-' }}</div>
-                                    </td>
-                                    <td>
                                         <div class="fw-semibold text-dark">{{ $trip->vehicle->name ?? '-' }}</div>
                                         @if($trip->vehicle?->plate)
                                             <span style="background:#1e2d3d;color:#fff;font-family:'Courier New',monospace;font-size:.7rem;font-weight:700;padding:1px 7px;border-radius:4px;">
                                                 {{ $trip->vehicle->plate }}
                                             </span>
                                         @endif
-                                        <div class="small text-muted mt-1">{{ $trip->route->name ?? 'Guzergah belirtilmedi' }}</div>
+                                        <div class="small text-muted mt-1">Kaydi acan: {{ $trip->branch->name ?? '-' }}</div>
                                     </td>
-                                    <td style="min-width:280px">
+                                    <td>
+                                        <div class="fw-semibold text-dark">{{ $trip->route->name ?? 'Guzergah belirtilmedi' }}</div>
+                                        <div class="small text-muted mt-1">Tarih: {{ $trip->trip_date->format('d.m.Y') }}</div>
+                                    </td>
+                                    <td style="min-width:320px">
                                         <div class="d-flex flex-column gap-2">
                                             @foreach($movementMatrix as $branchId => $counts)
                                                 @php
@@ -231,19 +243,31 @@
                                                      style="background:{{ $isActiveRow ? '#eef6f2' : '#f6f8fb' }};border:1px solid {{ $isActiveRow ? '#cfe3d8' : '#e1e7f0' }}">
                                                     <div class="small fw-semibold text-dark mb-1">{{ $movementBranch->name ?? '-' }}</div>
                                                     <div class="small text-muted d-flex gap-3 flex-wrap">
+                                                        <span><strong>Geldi:</strong> {{ $counts['arrival_time'] ?: '-' }}</span>
                                                         <span><strong>Indi:</strong> {{ $counts['arrival'] }}</span>
+                                                    </div>
+                                                    <div class="small text-muted d-flex gap-3 flex-wrap mt-1">
+                                                        <span><strong>Cikti:</strong> {{ $counts['departure_time'] ?: '-' }}</span>
                                                         <span><strong>Bindi:</strong> {{ $counts['departure'] }}</span>
                                                     </div>
                                                 </div>
                                             @endforeach
                                         </div>
                                     </td>
-                                    <td style="max-width:240px">
+                                    <td>
+                                        <div class="small text-muted">Ilk Gelis</div>
+                                        <div class="fw-semibold text-dark">{{ $trip->arrival_time ? substr($trip->arrival_time, 0, 5) : '-' }}</div>
+                                        <div class="small text-muted mt-2">Toplam Indi / Bindi</div>
+                                        <div class="fw-semibold text-dark">{{ $trip->arrival_count }} / {{ $trip->departure_count }}</div>
+                                        <div class="small text-muted mt-2">Son Cikis</div>
+                                        <div class="fw-semibold text-dark">{{ $trip->departure_time ? substr($trip->departure_time, 0, 5) : '-' }}</div>
+                                    </td>
+                                    <td style="max-width:250px">
                                         <div class="d-flex flex-wrap gap-1 mb-1">
                                             @if($canOwnerEdit)
-                                                <span class="badge" style="background:#eef3f9;color:#2a5298;border:1px solid #d0ddf5">Bu seferi sen planliyorsun</span>
+                                                <span class="badge" style="background:#eef3f9;color:#2a5298;border:1px solid #d0ddf5">Kaydi duzenleyebilirsin</span>
                                             @elseif($canBranchProcess)
-                                                <span class="badge" style="background:#eef6f2;color:#2e7d52;border:1px solid #cfe3d8">Kendi satirini isleyebilirsin</span>
+                                                <span class="badge" style="background:#eef6f2;color:#2e7d52;border:1px solid #cfe3d8">Kendi otelini isleyebilirsin</span>
                                             @endif
                                             @if($trip->arrived_with_different_vehicle)
                                                 <span class="badge" style="background:#fff1f1;color:#b03a3a;border:1px solid #f0d0d0">Farkli arac</span>
@@ -254,11 +278,8 @@
                                         </div>
                                         <div class="small text-muted">{{ $trip->notes ? \Illuminate\Support\Str::limit($trip->notes, 70) : '-' }}</div>
                                     </td>
-                                    <td>
-                                        <div class="fw-semibold text-dark small">{{ $trip->creator->name ?? '-' }}</div>
-                                    </td>
                                     <td class="pe-4 text-end">
-                                        <div class="d-flex gap-1 justify-content-end">
+                                        <div class="d-flex gap-1 justify-content-end flex-wrap">
                                             @if($canOwnerEdit)
                                                 <a href="{{ route('shuttle.operations.edit', ['operation' => $trip, 'branch_id' => $activeBranchId]) }}"
                                                    class="btn btn-sm"
@@ -274,15 +295,15 @@
                                                     data-branch-process-payload="{{ $branchProcessPayload }}"
                                                     onclick="openBranchProcessModal(JSON.parse(this.dataset.branchProcessPayload))"
                                                 >
-                                                    <i class="fas fa-people-arrows me-1"></i> Indi / Bindi
+                                                    <i class="fas fa-people-arrows me-1"></i> Kendi Otelini Isle
                                                 </button>
                                             @endif
                                             @if($canOwnerEdit && auth()->user()->hasPermission('shuttle_operations', 'delete'))
                                                 <form action="{{ route('shuttle.operations.destroy', $trip) }}" method="POST" class="d-inline"
-                                                      onsubmit="return confirm('Bu seferi silmek istiyor musunuz?')">
+                                                      onsubmit="return confirm('Bu servis hareketini silmek istiyor musunuz?')">
                                                     @csrf
                                                     @method('DELETE')
-                                                    <button class="btn btn-sm"
+                                                    <button type="submit" class="btn btn-sm"
                                                             style="background:#fdf4f4;color:#b03030;border:1px solid #f0d0d0;font-size:.78rem">
                                                         <i class="fas fa-trash"></i>
                                                     </button>
@@ -302,11 +323,11 @@
 
 @if(auth()->user()->hasPermission('shuttle_operations', 'create'))
     <div class="modal fade" id="addTripModal" tabindex="-1">
-        <div class="modal-dialog modal-lg">
+        <div class="modal-dialog modal-xl">
             <div class="modal-content border-0 shadow" style="border-radius:12px;overflow:hidden">
                 <div class="modal-header border-0 px-4 py-3" style="background:linear-gradient(135deg,#1e2d3d,#2c3e50)">
                     <h5 class="modal-title text-white fw-semibold">
-                        <i class="fas fa-plus me-2"></i>Yeni Sefer Ekle
+                        <i class="fas fa-plus me-2"></i>Yeni Servis Hareketi
                     </h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
@@ -314,32 +335,31 @@
                     @csrf
                     <div class="modal-body px-4 py-3">
                         <div class="row g-3">
-                            <div class="col-md-6">
-                                <label class="form-label fw-semibold small">Planlayan Otel <span class="text-danger">*</span></label>
-                                <select name="branch_id" id="createTripBranchId" class="form-select" required>
+                            <div class="col-md-4">
+                                <label class="form-label fw-semibold small">Kaydi Acan Otel <span class="text-danger">*</span></label>
+                                <select name="branch_id" class="form-select" required>
                                     <option value="">- Seciniz -</option>
                                     @foreach($branches as $branch)
                                         <option value="{{ $branch->id }}" @selected(old('branch_id', $activeBranchId) == $branch->id)>{{ $branch->name }}</option>
                                     @endforeach
                                 </select>
                             </div>
-                            <div class="col-md-6">
-                                <label class="form-label fw-semibold small">Arac <span class="text-danger">*</span></label>
+                            <div class="col-md-4">
+                                <label class="form-label fw-semibold small">Arac / Plaka <span class="text-danger">*</span></label>
                                 <select name="shuttle_vehicle_id" id="createTripVehicleId" class="form-select" required>
                                     <option value="">- Seciniz -</option>
                                     @foreach($vehicles as $vehicle)
                                         <option
                                             value="{{ $vehicle->id }}"
-                                            data-branch-id="{{ $vehicle->branch_id }}"
                                             data-route-ids="{{ $vehicle->routes->pluck('id')->implode(',') }}"
                                             @selected(old('shuttle_vehicle_id') == $vehicle->id)
                                         >
-                                            {{ $vehicle->name }}@if($vehicle->plate) ({{ $vehicle->plate }})@endif - Kap: {{ $vehicle->capacity }}
+                                            {{ $vehicle->name }}@if($vehicle->plate) ({{ $vehicle->plate }})@endif - {{ $vehicle->branch->name ?? 'Sube yok' }} - Kap: {{ $vehicle->capacity }}
                                         </option>
                                     @endforeach
                                 </select>
                             </div>
-                            <div class="col-md-6">
+                            <div class="col-md-4">
                                 <label class="form-label fw-semibold small">Guzergah</label>
                                 <select name="route_id" id="createTripRouteId" class="form-select">
                                     <option value="">- Arac secildikten sonra listelenir -</option>
@@ -349,7 +369,7 @@
                                         </option>
                                     @endforeach
                                 </select>
-                                <div class="small text-muted mt-1" id="createTripRouteHelp">Secilen aracin gorevli oldugu guzergahlar listelenir.</div>
+                                <div class="small text-muted mt-1" id="createTripRouteHelp">Yalnizca secilen aracin gorevli oldugu guzergahlar listelenir.</div>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label fw-semibold small">Vardiya <span class="text-danger">*</span></label>
@@ -363,10 +383,6 @@
                             <div class="col-md-6">
                                 <label class="form-label fw-semibold small">Tarih <span class="text-danger">*</span></label>
                                 <input type="date" name="trip_date" value="{{ old('trip_date', $date->toDateString()) }}" class="form-control" required>
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label fw-semibold small">Sefer Saati</label>
-                                <input type="time" name="arrival_time" value="{{ old('arrival_time') }}" class="form-control" data-auto-time-picker="1">
                             </div>
 
                             <div class="col-12">
@@ -408,8 +424,8 @@
                                     'movementValues' => $createMovementValues,
                                     'editableBranchIds' => auth()->user()->visibleBranchIds(),
                                     'selectableBranchIds' => $allBranches->pluck('id')->all(),
-                                    'title' => 'Otel Bazli Hareket Plani',
-                                    'description' => 'Dahil edecegin otelleri sec. Sadece kendi otel sayilarini girebilirsin; diger oteller kendi satirini sonradan isler.',
+                                    'title' => 'Otel Bazli Geldi / Indi / Cikti / Bindi',
+                                    'description' => 'Beach ve Foresta icin ayni plaka altinda saat ve kisi hareketi tutulur. Kendi otelin satirini hemen girebilir, diger otel satirini dahil edip onlarin islemesine birakabilirsin.',
                                     'theme' => 'info',
                                 ])
                             </div>
@@ -423,7 +439,7 @@
                     <div class="modal-footer border-0 px-4 pb-4">
                         <button type="button" class="btn btn-light" data-bs-dismiss="modal">Iptal</button>
                         <button type="submit" class="btn fw-semibold px-4" style="background:#1e2d3d;color:#fff;border-radius:8px">
-                            <i class="fas fa-save me-1"></i> Seferi Kaydet
+                            <i class="fas fa-save me-1"></i> Kaydet
                         </button>
                     </div>
                 </form>
@@ -438,7 +454,7 @@
             <div class="modal-content border-0 shadow" style="border-radius:12px;overflow:hidden">
                 <div class="modal-header border-0 px-4 py-3" style="background:linear-gradient(135deg,#2e7d52,#3d7a5e)">
                     <h5 class="modal-title text-white fw-semibold">
-                        <i class="fas fa-people-arrows me-2"></i>Kendi Otel Satirini Isle
+                        <i class="fas fa-people-arrows me-2"></i>Kendi Otel Hareketini Isle
                     </h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
@@ -451,12 +467,20 @@
                         <div class="rounded-3 p-3 mb-3" style="background:#f6f8fb;border:1px solid #e1e7f0">
                             <div class="small text-uppercase fw-semibold text-muted mb-1">Islem Yapilan Otel</div>
                             <div class="fw-semibold text-dark" id="branchProcessBranchName">-</div>
-                            <div class="small text-muted mt-1">Yalnizca bu otelin indi / bindi sayisi kaydedilir.</div>
+                            <div class="small text-muted mt-1">Yalnizca bu otelin geldi / indi / cikti / bindi bilgisi kaydedilir.</div>
                         </div>
                         <div class="row g-3">
                             <div class="col-md-6">
+                                <label class="form-label fw-semibold small">Geldi Saati</label>
+                                <input type="time" name="arrival_time" id="branchProcessArrivalTime" class="form-control" data-auto-time-picker="1">
+                            </div>
+                            <div class="col-md-6">
                                 <label class="form-label fw-semibold small">Indi <span class="text-danger">*</span></label>
                                 <input type="number" name="arrival_count" id="branchProcessArrivalCount" class="form-control" min="0" max="500" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold small">Cikti Saati</label>
+                                <input type="time" name="departure_time" id="branchProcessDepartureTime" class="form-control" data-auto-time-picker="1">
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label fw-semibold small">Bindi <span class="text-danger">*</span></label>
@@ -505,38 +529,15 @@ function bindAutoTimePickers(scope = document) {
     });
 }
 
-function wireTripForm(branchSelector, vehicleSelector, routeSelector, flagsSelector, helpSelector) {
-    const branchSelect = document.querySelector(branchSelector);
+function wireTripForm(vehicleSelector, routeSelector, flagsSelector, helpSelector) {
     const vehicleSelect = document.querySelector(vehicleSelector);
     const routeSelect = document.querySelector(routeSelector);
     const flagsBox = document.querySelector(flagsSelector);
     const helpBox = document.querySelector(helpSelector);
 
-    if (!branchSelect || !vehicleSelect || !routeSelect) {
+    if (!vehicleSelect || !routeSelect) {
         return;
     }
-
-    const syncVehicles = () => {
-        const branchId = branchSelect.value;
-
-        Array.from(vehicleSelect.options).forEach((option) => {
-            if (!option.value) {
-                option.hidden = false;
-                option.disabled = false;
-                return;
-            }
-
-            const matches = !branchId || option.dataset.branchId === branchId;
-            option.hidden = !matches;
-            option.disabled = !matches;
-        });
-
-        if (vehicleSelect.selectedOptions[0] && vehicleSelect.selectedOptions[0].disabled) {
-            vehicleSelect.value = '';
-        }
-
-        syncRoutes();
-    };
 
     const syncRoutes = () => {
         const selectedVehicle = vehicleSelect.selectedOptions[0];
@@ -572,7 +573,7 @@ function wireTripForm(branchSelector, vehicleSelector, routeSelector, flagsSelec
 
         if (helpBox) {
             if (!vehicleId) {
-                helpBox.textContent = 'Secilen aracin gorevli oldugu guzergahlar listelenir.';
+                helpBox.textContent = 'Yalnizca secilen aracin gorevli oldugu guzergahlar listelenir.';
             } else if (allowedRouteIds.size === 0) {
                 helpBox.textContent = 'Bu araca henuz guzergah atamasi yapilmamis.';
             } else {
@@ -581,9 +582,8 @@ function wireTripForm(branchSelector, vehicleSelector, routeSelector, flagsSelec
         }
     };
 
-    branchSelect.addEventListener('change', syncVehicles);
     vehicleSelect.addEventListener('change', syncRoutes);
-    syncVehicles();
+    syncRoutes();
 }
 
 function wireBranchMovementIncludes(scope = document) {
@@ -602,7 +602,7 @@ function wireBranchMovementIncludes(scope = document) {
 
                 input.disabled = !checkbox.checked;
                 if (!checkbox.checked) {
-                    input.value = 0;
+                    input.value = '';
                 }
             });
         };
@@ -623,7 +623,9 @@ function openBranchProcessModal(payload) {
     document.getElementById('branchProcessTripId').value = payload.tripId || '';
     document.getElementById('branchProcessContextBranchId').value = payload.contextBranchId || '';
     document.getElementById('branchProcessBranchName').textContent = payload.branchName || '-';
+    document.getElementById('branchProcessArrivalTime').value = payload.arrivalTime || '';
     document.getElementById('branchProcessArrivalCount').value = payload.arrivalCount || 0;
+    document.getElementById('branchProcessDepartureTime').value = payload.departureTime || '';
     document.getElementById('branchProcessDepartureCount').value = payload.departureCount || 0;
 
     const modal = new bootstrap.Modal(modalElement);
@@ -633,7 +635,6 @@ function openBranchProcessModal(payload) {
 document.addEventListener('DOMContentLoaded', () => {
     bindAutoTimePickers(document);
     wireTripForm(
-        '#createTripBranchId',
         '#createTripVehicleId',
         '#createTripRouteId',
         '#createTripFlagsBox',
@@ -653,7 +654,9 @@ document.addEventListener('DOMContentLoaded', () => {
             tripId: @json(old('_branch_process_trip_id')),
             contextBranchId: @json((int) old('context_branch_id', $activeBranchId)),
             branchName: @json(optional($branches->firstWhere('id', $activeBranchId))->name ?? ''),
+            arrivalTime: @json(old('arrival_time')),
             arrivalCount: @json((int) old('arrival_count', 0)),
+            departureTime: @json(old('departure_time')),
             departureCount: @json((int) old('departure_count', 0)),
         });
     @endif
