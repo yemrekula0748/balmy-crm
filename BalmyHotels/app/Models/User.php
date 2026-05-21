@@ -52,13 +52,30 @@ class User extends Authenticatable
      */
     public function allRoleNames(): array
     {
-        return $this->userRoles->pluck('role_name')->toArray();
+        $roleNames = $this->relationLoaded('userRoles')
+            ? $this->userRoles->pluck('role_name')->toArray()
+            : $this->userRoles()->pluck('role_name')->toArray();
+
+        if (!empty($this->role)) {
+            $roleNames[] = $this->role;
+        }
+
+        return array_values(array_unique(array_filter($roleNames)));
     }
 
     /** Verilen rollerden en az biri kullanıcıda varsa true */
     public function hasAnyRole(array $roles): bool
     {
         return count(array_intersect($roles, $this->allRoleNames())) > 0;
+    }
+
+    /** Egitim modulu icin ogrenene atanabilecek kullanicilar */
+    public function scopeLearners($query)
+    {
+        return $query->where(function ($roleQuery) {
+            $roleQuery->where('role', 'ogrenen')
+                ->orWhereHas('userRoles', fn ($userRoleQuery) => $userRoleQuery->where('role_name', 'ogrenen'));
+        });
     }
 
     // --- Rol yardımcıları ---

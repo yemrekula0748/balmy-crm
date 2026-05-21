@@ -72,6 +72,10 @@
                         </form>
                     </div>
                 </div>
+            @elseif(auth()->user()->hasAnyRole(['ogrenen']))
+                <div class="alert alert-warning mt-3 mb-0">
+                    Bu yuz yuze egitim henuz hesabina atanmamis. Oylama yapabilmen icin egitmenin duyuru duzenleme ekraninda seni ogrenen listesine eklemesi gerekir.
+                </div>
             @endif
         </div>
         <div class="col-lg-8">

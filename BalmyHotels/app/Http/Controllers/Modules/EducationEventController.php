@@ -47,6 +47,12 @@ class EducationEventController extends BaseModuleController
     {
         $data = $this->validateEvent($request);
         $learnerIds = $this->validLearnerIds($data['user_ids']);
+        if (! $this->allSelectedUsersAreLearners($data['user_ids'], $learnerIds)) {
+            return back()->withInput()->withErrors([
+                'user_ids' => 'Secilen kisilerden bazilarinin Ogrenen rolu bulunmuyor. Lutfen ogreneni kontrol edip tekrar kaydedin.',
+            ]);
+        }
+
         $data['trainer_id'] = Auth::id();
 
         $event = EducationEvent::create(collect($data)->except('user_ids')->all());
@@ -80,6 +86,11 @@ class EducationEventController extends BaseModuleController
     {
         $data = $this->validateEvent($request);
         $learnerIds = $this->validLearnerIds($data['user_ids']);
+        if (! $this->allSelectedUsersAreLearners($data['user_ids'], $learnerIds)) {
+            return back()->withInput()->withErrors([
+                'user_ids' => 'Secilen kisilerden bazilarinin Ogrenen rolu bulunmuyor. Lutfen ogreneni kontrol edip tekrar kaydedin.',
+            ]);
+        }
 
         $event->update(collect($data)->except('user_ids')->all());
         $this->syncResponses($event, $learnerIds);
@@ -89,7 +100,8 @@ class EducationEventController extends BaseModuleController
 
     public function respond(Request $request, EducationEvent $event)
     {
-        abort_unless($this->canViewEvent($event), 403);
+        $response = $event->responses()->where('user_id', Auth::id())->first();
+        abort_unless($response, 403);
 
         $data = $request->validate([
             'status' => ['required', Rule::in([
@@ -103,7 +115,6 @@ class EducationEventController extends BaseModuleController
             return back()->withInput()->withErrors(['note' => 'Katilamayacak kisiler icin aciklama gereklidir.']);
         }
 
-        $response = $event->responses()->firstOrNew(['user_id' => Auth::id()]);
         $response->fill([
             'status' => $data['status'],
             'note' => $data['note'] ?? null,
@@ -175,6 +186,8 @@ class EducationEventController extends BaseModuleController
 
     private function validLearnerIds(array $userIds): array
     {
+        $userIds = $this->normalizeUserIds($userIds);
+
         return $this->learnerQuery()
             ->whereIn('id', $userIds)
             ->pluck('id')
@@ -182,11 +195,21 @@ class EducationEventController extends BaseModuleController
             ->all();
     }
 
+    private function allSelectedUsersAreLearners(array $userIds, array $learnerIds): bool
+    {
+        return count($this->normalizeUserIds($userIds)) === count(array_unique(array_map('intval', $learnerIds)));
+    }
+
+    private function normalizeUserIds(array $userIds): array
+    {
+        return array_values(array_unique(array_map('intval', $userIds)));
+    }
+
     private function learnerQuery()
     {
         return User::query()
             ->where('is_active', true)
-            ->whereHas('userRoles', fn ($query) => $query->where('role_name', 'ogrenen'));
+            ->learners();
     }
 
     private function canManageEvents(): bool

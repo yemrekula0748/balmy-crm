@@ -77,11 +77,18 @@ class EducationAssignmentController extends BaseModuleController
         }
 
         $weekStart = Carbon::parse($data['week_start'])->startOfWeek()->toDateString();
+        $requestedLearnerIds = array_values(array_unique(array_map('intval', $data['user_ids'])));
         $learnerIds = $this->learnerQuery()
-            ->whereIn('id', $data['user_ids'])
+            ->whereIn('id', $requestedLearnerIds)
             ->pluck('id')
             ->map(fn ($id) => (int) $id)
             ->all();
+
+        if (count($requestedLearnerIds) !== count(array_unique($learnerIds))) {
+            return back()->withInput()->withErrors([
+                'user_ids' => 'Secilen kisilerden bazilarinin Ogrenen rolu bulunmuyor. Lutfen ogreneni kontrol edip tekrar kaydedin.',
+            ]);
+        }
 
         foreach ($learnerIds as $learnerId) {
             $assignment = EducationAssignment::firstOrNew([
@@ -121,6 +128,6 @@ class EducationAssignmentController extends BaseModuleController
     {
         return User::query()
             ->where('is_active', true)
-            ->whereHas('userRoles', fn ($query) => $query->where('role_name', 'ogrenen'));
+            ->learners();
     }
 }
