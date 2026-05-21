@@ -31,9 +31,6 @@
         $attending = $event->responses->where('status', 'attending')->count();
         $declined = $event->responses->where('status', 'declined')->count();
         $pending = $event->responses->where('status', 'pending')->count();
-        $canManageEvent = auth()->user()->isSuperAdmin()
-            || auth()->user()->hasPermission('education_events', 'create')
-            || auth()->user()->hasPermission('education_events', 'edit');
     @endphp
 
     @if($myResponse)
@@ -88,7 +85,7 @@
     @endif
 
     <div class="row g-3">
-        <div class="{{ $canManageEvent ? 'col-lg-4' : 'col-12' }}">
+        <div class="{{ $canSeeParticipationData ? 'col-lg-4' : 'col-12' }}">
             <div class="card border-0 shadow-sm" style="border-radius:8px">
                 <div class="card-body">
                     <div class="small text-muted">Egitmen</div>
@@ -97,7 +94,7 @@
                     <div class="fw-semibold mb-3">{{ $event->location ?: '-' }}</div>
                     <div class="small text-muted">Aciklama</div>
                     <p class="mb-3">{{ $event->description ?: '-' }}</p>
-                    @if($canManageEvent)
+                    @if($canSeeParticipationData)
                         <div class="row text-center g-2">
                             <div class="col-4"><div class="border rounded p-2"><div class="fw-bold text-success">{{ $attending }}</div><small>Katilacak</small></div></div>
                             <div class="col-4"><div class="border rounded p-2"><div class="fw-bold text-danger">{{ $declined }}</div><small>Katilmiyor</small></div></div>
@@ -107,7 +104,7 @@
                 </div>
             </div>
         </div>
-        @if($canManageEvent)
+        @if($canSeeParticipationData)
         <div class="col-lg-8">
             <div class="card border-0 shadow-sm" style="border-radius:8px">
                 <div class="card-header bg-white border-0 d-flex justify-content-between align-items-center">

@@ -38,9 +38,11 @@
                             <th>Baslik</th>
                             <th>Tarih</th>
                             <th>Konum</th>
-                            <th class="text-center">Katilacak</th>
-                            <th class="text-center">Katilamayacak</th>
-                            <th class="text-center">Bekliyor</th>
+                            @if($canSeeParticipationData)
+                                <th class="text-center">Katilacak</th>
+                                <th class="text-center">Katilamayacak</th>
+                                <th class="text-center">Bekliyor</th>
+                            @endif
                             <th class="text-end">Islem</th>
                         </tr>
                     </thead>
@@ -58,19 +60,21 @@
                                 </td>
                                 <td>{{ $event->starts_at->format('d.m.Y H:i') }}</td>
                                 <td>{{ $event->location ?: '-' }}</td>
-                                <td class="text-center text-success fw-bold">{{ $attending }}</td>
-                                <td class="text-center text-danger fw-bold">{{ $declined }}</td>
-                                <td class="text-center text-muted fw-bold">{{ $pending }}</td>
+                                @if($canSeeParticipationData)
+                                    <td class="text-center text-success fw-bold">{{ $attending }}</td>
+                                    <td class="text-center text-danger fw-bold">{{ $declined }}</td>
+                                    <td class="text-center text-muted fw-bold">{{ $pending }}</td>
+                                @endif
                                 <td class="text-end">
                                     <a href="{{ route('education.events.show', $event) }}" class="btn btn-sm btn-outline-primary"><i class="fas fa-eye"></i></a>
-                                    @if(auth()->user()->hasPermission('education_events','edit'))
+                                    @if($canSeeParticipationData && auth()->user()->hasPermission('education_events','edit'))
                                         <a href="{{ route('education.events.edit', $event) }}" class="btn btn-sm btn-outline-warning"><i class="fas fa-edit"></i></a>
                                     @endif
                                 </td>
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="7" class="text-center text-muted py-4">Yuz yuze egitim duyurusu yok.</td>
+                                <td colspan="{{ $canSeeParticipationData ? 7 : 4 }}" class="text-center text-muted py-4">Yuz yuze egitim duyurusu yok.</td>
                             </tr>
                         @endforelse
                     </tbody>

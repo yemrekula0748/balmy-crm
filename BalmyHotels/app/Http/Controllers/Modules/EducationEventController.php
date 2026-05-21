@@ -29,8 +29,9 @@ class EducationEventController extends BaseModuleController
         }
 
         $events = $query->orderByDesc('starts_at')->paginate(15);
+        $canSeeParticipationData = $this->canSeeParticipationData();
 
-        return view('modules.education.events.index', compact('events'));
+        return view('modules.education.events.index', compact('events', 'canSeeParticipationData'));
     }
 
     public function create()
@@ -66,8 +67,9 @@ class EducationEventController extends BaseModuleController
         abort_unless($this->canViewEvent($event), 403);
         $event->load(['trainer', 'responses.learner.branch', 'responses.learner.department']);
         $myResponse = $event->responses->firstWhere('user_id', Auth::id());
+        $canSeeParticipationData = $this->canSeeParticipationData($event);
 
-        return view('modules.education.events.show', compact('event', 'myResponse'));
+        return view('modules.education.events.show', compact('event', 'myResponse', 'canSeeParticipationData'));
     }
 
     public function edit(EducationEvent $event)
@@ -217,6 +219,23 @@ class EducationEventController extends BaseModuleController
         return Auth::user()->isSuperAdmin()
             || Auth::user()->hasPermission('education_events', 'create')
             || Auth::user()->hasPermission('education_events', 'edit');
+    }
+
+    private function canSeeParticipationData(?EducationEvent $event = null): bool
+    {
+        if (! $this->canManageEvents()) {
+            return false;
+        }
+
+        if (Auth::user()->hasAnyRole(['ogrenen'])) {
+            return false;
+        }
+
+        if ($event && $event->responses->contains('user_id', Auth::id())) {
+            return false;
+        }
+
+        return true;
     }
 
     private function canViewEvent(EducationEvent $event): bool
