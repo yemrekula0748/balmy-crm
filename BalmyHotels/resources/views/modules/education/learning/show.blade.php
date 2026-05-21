@@ -68,7 +68,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const csrf = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
     let maxWatched = {{ (int) $assignment->max_watched_seconds }};
     let lastPingAt = 0;
-    let seekingBack = false;
+    let isProgrammaticSeek = false;
 
     function isWindowActive() {
         return document.visibilityState === 'visible' && document.hasFocus();
@@ -80,16 +80,18 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
-    function clampSeeking() {
-        if (seekingBack) {
+    function limitForwardSeek() {
+        if (isProgrammaticSeek) {
             return;
         }
 
-        const allowed = maxWatched + 5;
+        const allowed = maxWatched + 8;
         if (video.currentTime > allowed) {
-            seekingBack = true;
+            isProgrammaticSeek = true;
             video.currentTime = allowed;
-            seekingBack = false;
+            setTimeout(() => {
+                isProgrammaticSeek = false;
+            }, 0);
         }
     }
 
@@ -136,13 +138,16 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     video.addEventListener('timeupdate', function () {
-        clampSeeking();
+        if (!video.seeking && isWindowActive() && !video.paused && !video.ended) {
+            maxWatched = Math.max(maxWatched, Math.floor(video.currentTime));
+        }
+
         sendProgress(false);
     });
     video.addEventListener('play', pauseIfInactive);
     video.addEventListener('pause', () => sendProgress(true));
     video.addEventListener('ended', () => sendProgress(true));
-    video.addEventListener('seeking', clampSeeking);
+    video.addEventListener('seeking', limitForwardSeek);
     document.addEventListener('visibilitychange', pauseIfInactive);
     window.addEventListener('blur', pauseIfInactive);
     window.addEventListener('beforeunload', () => sendProgress(true));
