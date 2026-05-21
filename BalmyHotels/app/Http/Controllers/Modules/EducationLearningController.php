@@ -84,17 +84,27 @@ class EducationLearningController extends BaseModuleController
             'duration' => 'required|numeric|min:1|max:86400',
             'is_visible' => 'required|boolean',
             'is_playing' => 'required|boolean',
+            'is_ended' => 'nullable|boolean',
         ]);
 
         $duration = max((int) floor($data['duration']), (int) $assignment->duration_seconds, 1);
         $currentTime = (int) floor($data['current_time']);
         $currentMax = (int) $assignment->max_watched_seconds;
+        $isVisible = $request->boolean('is_visible');
+        $isPlaying = $request->boolean('is_playing');
+        $isEnded = $request->boolean('is_ended');
 
-        if ($request->boolean('is_visible') && $request->boolean('is_playing')) {
+        if ($isVisible && ($isPlaying || $isEnded)) {
             $allowedJumpSeconds = 20;
-            $newMax = $currentTime <= ($currentMax + $allowedJumpSeconds)
-                ? max($currentMax, $currentTime)
-                : $currentMax + $allowedJumpSeconds;
+            $canAcceptEnded = $isEnded
+                && $currentTime >= ($duration - 2)
+                && $currentMax >= (int) floor($duration * 0.75);
+
+            $newMax = $canAcceptEnded
+                ? $duration
+                : ($currentTime <= ($currentMax + $allowedJumpSeconds)
+                    ? max($currentMax, $currentTime)
+                    : $currentMax + $allowedJumpSeconds);
             $newMax = min($newMax, $duration);
 
             $progress = min(100, round($newMax / $duration * 100, 2));

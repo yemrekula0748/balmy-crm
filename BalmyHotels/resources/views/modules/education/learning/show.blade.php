@@ -130,6 +130,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 duration: video.duration,
                 is_visible: isWindowActive(),
                 is_playing: !video.paused && !video.ended,
+                is_ended: video.ended || video.currentTime >= (video.duration - 1),
             }),
         })
             .then((response) => response.ok ? response.json() : null)
