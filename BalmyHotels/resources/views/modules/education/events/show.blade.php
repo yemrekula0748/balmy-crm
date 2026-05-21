@@ -31,10 +31,64 @@
         $attending = $event->responses->where('status', 'attending')->count();
         $declined = $event->responses->where('status', 'declined')->count();
         $pending = $event->responses->where('status', 'pending')->count();
+        $canManageEvent = auth()->user()->isSuperAdmin()
+            || auth()->user()->hasPermission('education_events', 'create')
+            || auth()->user()->hasPermission('education_events', 'edit');
     @endphp
 
+    @if($myResponse)
+        <div class="card border-0 shadow-sm mb-3" style="border-radius:10px;border-left:4px solid #1e2d3d!important">
+            <div class="card-body">
+                @php
+                    $responseStatus = old('status', $myResponse->status);
+                @endphp
+                <div class="d-flex flex-column flex-lg-row justify-content-between gap-3">
+                    <div>
+                        <div class="small text-muted mb-1">Katilim Cevabim</div>
+                        <h5 class="mb-1">{{ $myResponse->status_label }}</h5>
+                        <small class="text-muted">Bu egitim icin katilip katilamayacagini buradan isaretleyebilirsin.</small>
+                    </div>
+                    <form method="POST" action="{{ route('education.events.respond', $event) }}" class="flex-grow-1" style="max-width:560px">
+                        @csrf
+                        <div class="mb-3">
+                            <label class="form-label">Aciklama</label>
+                            <textarea name="note" class="form-control" rows="2" maxlength="1000" placeholder="Katilamayacaksan aciklama yazmalisin.">{{ old('note', $myResponse->note) }}</textarea>
+                            <small class="text-muted">Katilamayacak kisiler icin aciklama zorunludur.</small>
+                        </div>
+                        <div class="row g-2">
+                            <div class="col-sm-6">
+                                <button
+                                    class="btn btn-lg w-100 {{ $responseStatus === 'attending' ? 'btn-success' : 'btn-outline-success' }} fw-semibold"
+                                    type="submit"
+                                    name="status"
+                                    value="attending"
+                                >
+                                    <i class="fas fa-check me-1"></i>Katilacagim
+                                </button>
+                            </div>
+                            <div class="col-sm-6">
+                                <button
+                                    class="btn btn-lg w-100 {{ $responseStatus === 'declined' ? 'btn-danger' : 'btn-outline-danger' }} fw-semibold"
+                                    type="submit"
+                                    name="status"
+                                    value="declined"
+                                >
+                                    <i class="fas fa-times me-1"></i>Katilamayacagim
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    @elseif(auth()->user()->hasAnyRole(['ogrenen']))
+        <div class="alert alert-warning mb-3">
+            Bu yuz yuze egitim henuz hesabina atanmamis. Oylama yapabilmen icin egitmenin duyuru duzenleme ekraninda seni ogrenen listesine eklemesi gerekir.
+        </div>
+    @endif
+
     <div class="row g-3">
-        <div class="col-lg-4">
+        <div class="{{ $canManageEvent ? 'col-lg-4' : 'col-12' }}">
             <div class="card border-0 shadow-sm" style="border-radius:8px">
                 <div class="card-body">
                     <div class="small text-muted">Egitmen</div>
@@ -43,57 +97,17 @@
                     <div class="fw-semibold mb-3">{{ $event->location ?: '-' }}</div>
                     <div class="small text-muted">Aciklama</div>
                     <p class="mb-3">{{ $event->description ?: '-' }}</p>
-                    <div class="row text-center g-2">
-                        <div class="col-4"><div class="border rounded p-2"><div class="fw-bold text-success">{{ $attending }}</div><small>Katilacak</small></div></div>
-                        <div class="col-4"><div class="border rounded p-2"><div class="fw-bold text-danger">{{ $declined }}</div><small>Katilmiyor</small></div></div>
-                        <div class="col-4"><div class="border rounded p-2"><div class="fw-bold text-muted">{{ $pending }}</div><small>Bekliyor</small></div></div>
-                    </div>
+                    @if($canManageEvent)
+                        <div class="row text-center g-2">
+                            <div class="col-4"><div class="border rounded p-2"><div class="fw-bold text-success">{{ $attending }}</div><small>Katilacak</small></div></div>
+                            <div class="col-4"><div class="border rounded p-2"><div class="fw-bold text-danger">{{ $declined }}</div><small>Katilmiyor</small></div></div>
+                            <div class="col-4"><div class="border rounded p-2"><div class="fw-bold text-muted">{{ $pending }}</div><small>Bekliyor</small></div></div>
+                        </div>
+                    @endif
                 </div>
             </div>
-
-            @if($myResponse)
-                <div class="card border-0 shadow-sm mt-3" style="border-radius:8px">
-                    <div class="card-header bg-white border-0"><h5 class="mb-0">Katilim Cevabim</h5></div>
-                    <div class="card-body">
-                        @php
-                            $responseStatus = old('status', $myResponse->status);
-                        @endphp
-                        <form method="POST" action="{{ route('education.events.respond', $event) }}">
-                            @csrf
-                            <div class="small text-muted mb-2">Mevcut cevap</div>
-                            <div class="mb-3">{{ $myResponse->status_label }}</div>
-                            <div class="mb-3">
-                                <label class="form-label">Aciklama</label>
-                                <textarea name="note" class="form-control" rows="3" maxlength="1000" placeholder="Katilamayacaksan aciklama yazmalisin.">{{ old('note', $myResponse->note) }}</textarea>
-                                <small class="text-muted">Katilamayacak kisiler icin aciklama zorunludur.</small>
-                            </div>
-                            <div class="d-grid gap-2">
-                                <button
-                                    class="btn {{ $responseStatus === 'attending' ? 'btn-success' : 'btn-outline-success' }} fw-semibold"
-                                    type="submit"
-                                    name="status"
-                                    value="attending"
-                                >
-                                    <i class="fas fa-check me-1"></i>Katilacagim
-                                </button>
-                                <button
-                                    class="btn {{ $responseStatus === 'declined' ? 'btn-danger' : 'btn-outline-danger' }} fw-semibold"
-                                    type="submit"
-                                    name="status"
-                                    value="declined"
-                                >
-                                    <i class="fas fa-times me-1"></i>Katilamayacagim
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            @elseif(auth()->user()->hasAnyRole(['ogrenen']))
-                <div class="alert alert-warning mt-3 mb-0">
-                    Bu yuz yuze egitim henuz hesabina atanmamis. Oylama yapabilmen icin egitmenin duyuru duzenleme ekraninda seni ogrenen listesine eklemesi gerekir.
-                </div>
-            @endif
         </div>
+        @if($canManageEvent)
         <div class="col-lg-8">
             <div class="card border-0 shadow-sm" style="border-radius:8px">
                 <div class="card-header bg-white border-0 d-flex justify-content-between align-items-center">
@@ -133,6 +147,7 @@
                 </div>
             </div>
         </div>
+        @endif
     </div>
 </div>
 @endsection
