@@ -15,7 +15,7 @@ class EducationCourseController extends BaseModuleController
         $this->requirePermission(
             'education_courses',
             ['index'],
-            ['show'],
+            ['show', 'video'],
             ['create', 'store'],
             ['edit', 'update'],
             ['destroy']
@@ -66,6 +66,20 @@ class EducationCourseController extends BaseModuleController
         $course->load(['trainer', 'assignments.learner']);
 
         return view('modules.education.courses.show', compact('course'));
+    }
+
+    public function video(EducationCourse $course)
+    {
+        abort_unless($course->video_path && Storage::disk('public')->exists($course->video_path), 404);
+
+        $absolutePath = Storage::disk('public')->path($course->video_path);
+        $mimeType = Storage::disk('public')->mimeType($course->video_path) ?: 'video/mp4';
+
+        return response()->file($absolutePath, [
+            'Content-Type' => $mimeType,
+            'Accept-Ranges' => 'bytes',
+            'Content-Disposition' => 'inline; filename="' . basename($course->video_path) . '"',
+        ]);
     }
 
     public function edit(EducationCourse $course)

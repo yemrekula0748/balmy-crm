@@ -26,7 +26,7 @@
                         preload="metadata"
                         style="width:100%;max-height:520px;border-radius:8px;background:#111"
                     >
-                        <source src="{{ asset('storage/'.$assignment->course->video_path) }}">
+                        <source src="{{ route('education.learning.video', $assignment) }}">
                     </video>
                     <div class="alert alert-light border mt-3 mb-0 small">
                         Ilerleme yalnizca bu pencere aktifken ve video oynarken kaydedilir.

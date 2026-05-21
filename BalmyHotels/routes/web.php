@@ -681,6 +681,7 @@ Route::middleware('auth')->group(function () {
     Route::prefix('egitim-ve-gelisim')->name('education.')->group(function () {
         Route::get('/', [EducationLearningController::class, 'index'])->name('index');
         Route::get('/egitimlerim', [EducationLearningController::class, 'index'])->name('learning.index');
+        Route::get('/egitimlerim/{assignment}/video', [EducationLearningController::class, 'video'])->name('learning.video');
         Route::get('/egitimlerim/{assignment}', [EducationLearningController::class, 'show'])->name('learning.show');
         Route::post('/egitimlerim/{assignment}/ilerleme', [EducationLearningController::class, 'progress'])->name('learning.progress');
 
@@ -688,6 +689,7 @@ Route::middleware('auth')->group(function () {
             Route::get('/', [EducationCourseController::class, 'index'])->name('index');
             Route::get('/yeni', [EducationCourseController::class, 'create'])->name('create');
             Route::post('/', [EducationCourseController::class, 'store'])->name('store');
+            Route::get('/{course}/video', [EducationCourseController::class, 'video'])->name('video');
             Route::get('/{course}', [EducationCourseController::class, 'show'])->name('show');
             Route::get('/{course}/duzenle', [EducationCourseController::class, 'edit'])->name('edit');
             Route::put('/{course}', [EducationCourseController::class, 'update'])->name('update');

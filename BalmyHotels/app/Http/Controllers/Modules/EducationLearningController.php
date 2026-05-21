@@ -6,6 +6,7 @@ use App\Models\EducationAssignment;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
 
 class EducationLearningController extends BaseModuleController
 {
@@ -14,7 +15,7 @@ class EducationLearningController extends BaseModuleController
         $this->requirePermission(
             'education_learning',
             ['index'],
-            ['show'],
+            ['show', 'video'],
             [],
             ['progress'],
             []
@@ -54,6 +55,24 @@ class EducationLearningController extends BaseModuleController
         $assignment->load(['course.trainer', 'assigner']);
 
         return view('modules.education.learning.show', compact('assignment'));
+    }
+
+    public function video(EducationAssignment $assignment)
+    {
+        $this->ensureOwnAssignment($assignment);
+        $assignment->load('course');
+
+        $path = $assignment->course?->video_path;
+        abort_unless($path && Storage::disk('public')->exists($path), 404);
+
+        $absolutePath = Storage::disk('public')->path($path);
+        $mimeType = Storage::disk('public')->mimeType($path) ?: 'video/mp4';
+
+        return response()->file($absolutePath, [
+            'Content-Type' => $mimeType,
+            'Accept-Ranges' => 'bytes',
+            'Content-Disposition' => 'inline; filename="' . basename($path) . '"',
+        ]);
     }
 
     public function progress(Request $request, EducationAssignment $assignment)

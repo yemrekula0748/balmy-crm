@@ -19,7 +19,7 @@
             <div class="card border-0 shadow-sm" style="border-radius:8px">
                 <div class="card-body">
                     <video controls preload="metadata" style="width:100%;max-height:430px;border-radius:8px;background:#111">
-                        <source src="{{ asset('storage/'.$course->video_path) }}">
+                        <source src="{{ route('education.courses.video', $course) }}">
                     </video>
                     <p class="mt-3 mb-0 text-muted">{{ $course->description ?: 'Aciklama girilmemis.' }}</p>
                 </div>

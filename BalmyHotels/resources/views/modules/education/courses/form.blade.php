@@ -65,7 +65,7 @@
                     @if($course->exists && $course->video_path)
                         <div class="col-12">
                             <video controls preload="metadata" style="width:100%;max-height:360px;border-radius:8px;background:#111">
-                                <source src="{{ asset('storage/'.$course->video_path) }}">
+                                <source src="{{ route('education.courses.video', $course) }}">
                             </video>
                         </div>
                     @endif
