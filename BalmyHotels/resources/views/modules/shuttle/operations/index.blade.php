@@ -190,7 +190,7 @@
                                         });
                                     $activeBranchMatrix = $activeBranchId ? $movementMatrix->get($activeBranchId) : null;
                                     $canOwnerEdit = $activeBranchId && (int) $trip->branch_id === (int) $activeBranchId && auth()->user()->hasPermission('shuttle_operations', 'edit');
-                                    $canBranchProcess = $activeBranchId && $movementMatrix->has($activeBranchId) && auth()->user()->hasPermission('shuttle_operations', 'index');
+                                    $canBranchProcess = $activeBranchId && auth()->user()->hasPermission('shuttle_operations', 'index');
                                     $branchProcessPayload = e(json_encode([
                                         'tripId' => (int) $trip->id,
                                         'contextBranchId' => (int) ($activeBranchId ?? 0),

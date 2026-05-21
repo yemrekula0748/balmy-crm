@@ -7,6 +7,7 @@ use App\Models\Branch;
 use App\Models\ShuttleRoute;
 use App\Models\ShuttleTrip;
 use App\Models\ShuttleVehicle;
+use App\Services\ShuttleTripMergeService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -15,8 +16,12 @@ use Illuminate\Validation\ValidationException;
 
 class ShuttleOperationController extends BaseModuleController
 {
+    private ShuttleTripMergeService $tripMergeService;
+
     public function __construct()
     {
+        $this->tripMergeService = app(ShuttleTripMergeService::class);
+
         $this->requirePermission(
             'shuttle_operations',
             ['index', 'departure'],
@@ -55,24 +60,10 @@ class ShuttleOperationController extends BaseModuleController
 
         $trips = ShuttleTrip::with(['vehicle', 'route', 'branch', 'creator', 'branchMovements.branch'])
             ->where('trip_date', $date->toDateString())
-            ->where(function ($query) use ($visibleBranchIds, $currentBranchId) {
-                if ($currentBranchId !== null) {
-                    $query->where('branch_id', $currentBranchId)
-                        ->orWhereHas('branchMovements', function ($movementQuery) use ($currentBranchId) {
-                            $movementQuery->where('branch_id', $currentBranchId);
-                        });
-
-                    return;
-                }
-
-                $query->whereIn('branch_id', $visibleBranchIds)
-                    ->orWhereHas('branchMovements', function ($movementQuery) use ($visibleBranchIds) {
-                        $movementQuery->whereIn('branch_id', $visibleBranchIds);
-                    });
-            })
             ->orderBy('shift')
             ->orderBy('arrival_time')
             ->get();
+        $trips = $this->tripMergeService->mergeCollection($trips);
 
         [$totalIncoming, $totalOutgoing] = $this->summariseTripsForContext($trips, $currentBranchId, $visibleBranchIds);
         $totalTrips = $trips->count();
@@ -98,7 +89,33 @@ class ShuttleOperationController extends BaseModuleController
         [$tripData, $movementMatrix] = $this->validateOwnerPayload($request, $visibleBranchIds);
         $tripData['created_by'] = $user->id;
 
-        DB::transaction(function () use ($tripData, $movementMatrix) {
+        $wasMerged = false;
+        DB::transaction(function () use ($tripData, $movementMatrix, &$wasMerged) {
+            $trip = ShuttleTrip::query()
+                ->where('trip_date', $tripData['trip_date'])
+                ->where('shift', $tripData['shift'])
+                ->where('shuttle_vehicle_id', $tripData['shuttle_vehicle_id'])
+                ->orderBy('id')
+                ->first();
+
+            if ($trip) {
+                $trip = $this->tripMergeService->consolidateTrip($trip);
+                $existingMatrix = $this->branchMovementMatrix($trip);
+                $mergedMatrix = $this->mergeMovementMatrices($existingMatrix, $movementMatrix);
+
+                $trip->update([
+                    'route_id' => $trip->route_id ?: $tripData['route_id'],
+                    'notes' => $this->mergeNotes($trip->notes, $tripData['notes'] ?? null),
+                    'arrived_with_different_vehicle' => $trip->arrived_with_different_vehicle || ($tripData['arrived_with_different_vehicle'] ?? false),
+                    'is_transfer' => $trip->is_transfer || ($tripData['is_transfer'] ?? false),
+                ]);
+
+                $this->saveMovementMatrix($trip->fresh(), $mergedMatrix);
+                $wasMerged = true;
+
+                return;
+            }
+
             $trip = ShuttleTrip::create($tripData);
             $this->saveMovementMatrix($trip, $movementMatrix);
         });
@@ -106,13 +123,16 @@ class ShuttleOperationController extends BaseModuleController
         return redirect()->route('shuttle.operations.index', [
             'branch_id' => $tripData['branch_id'],
             'date' => $tripData['trip_date'],
-        ])->with('success', 'Sefer kaydedildi. Dahil edilen oteller kendi indi / bindi bilgisini ayri ayri girebilir.');
+        ])->with('success', $wasMerged
+            ? 'Ayni plaka icin mevcut servis hareketi bulundu ve yeni bilgiler onunla birlestirildi.'
+            : 'Servis hareketi kaydedildi. Diger otel ayni kaydi gorup kendi saat ve sayi bilgisini isleyebilir.');
     }
 
     public function edit(Request $request, ShuttleTrip $operation)
     {
         $user = Auth::user();
         $visibleBranchIds = array_map('intval', $user->visibleBranchIds());
+        $operation = $this->tripMergeService->buildDisplayTrip($operation);
         abort_unless($this->canAccessTrip($operation, $visibleBranchIds), 403);
 
         $contextBranchId = $this->resolveContextBranchId(
@@ -158,6 +178,7 @@ class ShuttleOperationController extends BaseModuleController
     public function update(Request $request, ShuttleTrip $operation)
     {
         $visibleBranchIds = array_map('intval', Auth::user()->visibleBranchIds());
+        $operation = $this->tripMergeService->consolidateTrip($operation);
         abort_unless($this->canAccessTrip($operation, $visibleBranchIds), 403);
 
         $contextBranchId = $this->resolveContextBranchId(
@@ -173,7 +194,7 @@ class ShuttleOperationController extends BaseModuleController
             DB::transaction(function () use ($operation, $tripData, $movementMatrix, &$updatedTrip) {
                 $operation->update($tripData);
                 $this->saveMovementMatrix($operation->fresh(), $movementMatrix);
-                $updatedTrip = $operation->fresh();
+                $updatedTrip = $this->tripMergeService->consolidateTrip($operation->fresh());
             });
 
             return redirect()->route('shuttle.operations.index', [
@@ -193,6 +214,7 @@ class ShuttleOperationController extends BaseModuleController
     public function departure(Request $request, ShuttleTrip $operation)
     {
         $visibleBranchIds = array_map('intval', Auth::user()->visibleBranchIds());
+        $operation = $this->tripMergeService->consolidateTrip($operation);
         abort_unless($this->canAccessTrip($operation, $visibleBranchIds), 403);
 
         $contextBranchId = $this->resolveContextBranchId(
@@ -212,6 +234,7 @@ class ShuttleOperationController extends BaseModuleController
     public function destroy(ShuttleTrip $operation)
     {
         $visibleBranchIds = array_map('intval', Auth::user()->visibleBranchIds());
+        $operation = $this->tripMergeService->consolidateTrip($operation);
         abort_unless(in_array((int) $operation->branch_id, $visibleBranchIds, true) || Auth::user()->isSuperAdmin(), 403);
 
         $branchId = $operation->branch_id;
@@ -422,25 +445,13 @@ class ShuttleOperationController extends BaseModuleController
             return true;
         }
 
-        if (in_array((int) $trip->branch_id, $visibleBranchIds, true)) {
-            return true;
-        }
-
-        return $trip->branchMovements()
-            ->whereIn('branch_id', $visibleBranchIds)
-            ->exists();
+        return ! empty($visibleBranchIds);
     }
 
     private function resolveContextBranchId(ShuttleTrip $trip, array $visibleBranchIds, ?int $preferredBranchId = null): int
     {
         if ($preferredBranchId !== null && in_array($preferredBranchId, $visibleBranchIds, true)) {
-            if ((int) $trip->branch_id === $preferredBranchId) {
-                return $preferredBranchId;
-            }
-
-            if ($trip->branchMovements()->where('branch_id', $preferredBranchId)->exists()) {
-                return $preferredBranchId;
-            }
+            return $preferredBranchId;
         }
 
         if (in_array((int) $trip->branch_id, $visibleBranchIds, true)) {
@@ -448,6 +459,13 @@ class ShuttleOperationController extends BaseModuleController
         }
 
         foreach ($visibleBranchIds as $branchId) {
+            if (
+                $trip->relationLoaded('branchMovements')
+                && $trip->branchMovements->contains(fn ($movement) => (int) $movement->branch_id === (int) $branchId)
+            ) {
+                return (int) $branchId;
+            }
+
             if ($trip->branchMovements()->where('branch_id', $branchId)->exists()) {
                 return (int) $branchId;
             }
@@ -542,5 +560,40 @@ class ShuttleOperationController extends BaseModuleController
         }
 
         return $mode === 'min' ? $times->first() : $times->last();
+    }
+
+    private function mergeMovementMatrices(array $baseMatrix, array $overrideMatrix): array
+    {
+        $merged = $baseMatrix;
+
+        foreach ($overrideMatrix as $branchId => $counts) {
+            $merged[(int) $branchId] = [
+                'arrival' => (int) ($counts['arrival'] ?? 0),
+                'departure' => (int) ($counts['departure'] ?? 0),
+                'arrival_time' => $this->normaliseTime($counts['arrival_time'] ?? null),
+                'departure_time' => $this->normaliseTime($counts['departure_time'] ?? null),
+            ];
+        }
+
+        return $merged;
+    }
+
+    private function mergeNotes(?string $existing, ?string $incoming): ?string
+    {
+        $existing = $existing ? trim($existing) : null;
+        $incoming = $incoming ? trim($incoming) : null;
+
+        if (! $existing) {
+            return $incoming;
+        }
+
+        if (! $incoming || $incoming === $existing) {
+            return $existing;
+        }
+
+        return collect([$existing, $incoming])
+            ->filter()
+            ->unique()
+            ->implode(' | ');
     }
 }

@@ -6,6 +6,7 @@ use App\Http\Controllers\Modules\BaseModuleController;
 use App\Models\Branch;
 use App\Models\ShuttleTrip;
 use App\Models\ShuttleVehicle;
+use App\Services\ShuttleTripMergeService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -18,8 +19,12 @@ use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 
 class ShuttleReportController extends BaseModuleController
 {
+    private ShuttleTripMergeService $tripMergeService;
+
     public function __construct()
     {
+        $this->tripMergeService = app(ShuttleTripMergeService::class);
+
         $this->requirePermission(
             'shuttle_reports',
             ['index', 'pdf', 'excel'],
@@ -96,12 +101,6 @@ class ShuttleReportController extends BaseModuleController
         $queryBranchIds = $branchId ? [(int) $branchId] : $visibleBranchIds;
 
         $visibleTripsQuery = ShuttleTrip::query()
-            ->where(function ($query) use ($queryBranchIds, $reportBranchIds) {
-                $query->whereIn('branch_id', $queryBranchIds)
-                    ->orWhereHas('branchMovements', function ($movementQuery) use ($reportBranchIds) {
-                        $movementQuery->whereIn('branch_id', $reportBranchIds);
-                    });
-            })
             ->forPeriod($from->toDateString(), $to->toDateString());
 
         $vehicles = ShuttleVehicle::query()
@@ -122,6 +121,10 @@ class ShuttleReportController extends BaseModuleController
             ->orderBy('trip_date')
             ->orderBy('shift')
             ->get();
+        $trips = $this->tripMergeService
+            ->mergeCollection($trips)
+            ->filter(fn (ShuttleTrip $trip) => $this->tripMergeService->tripTouchesBranches($trip, $queryBranchIds))
+            ->values();
 
         $totalTrips = $trips->count();
         $totalArrival = $this->sumMovements($trips, $reportBranchIds, 'arrival');
