@@ -133,6 +133,23 @@ class EducationEventController extends BaseModuleController
             'is_active' => 'nullable|boolean',
             'user_ids' => 'required|array|min:1',
             'user_ids.*' => 'required|integer|exists:users,id',
+        ], [
+            'title.required' => 'Egitim basligi zorunludur.',
+            'title.max' => 'Egitim basligi en fazla 255 karakter olabilir.',
+            'description.max' => 'Aciklama en fazla 5000 karakter olabilir.',
+            'language.required' => 'Dil secimi zorunludur.',
+            'language.in' => 'Gecerli bir dil secimi yapmalisiniz.',
+            'location.max' => 'Konum en fazla 255 karakter olabilir.',
+            'starts_at.required' => 'Baslangic tarihi zorunludur.',
+            'starts_at.date' => 'Baslangic tarihi gecersiz.',
+            'ends_at.date' => 'Bitis tarihi gecersiz.',
+            'ends_at.after_or_equal' => 'Bitis tarihi baslangic tarihinden once olamaz.',
+            'response_deadline_at.date' => 'Cevap son tarihi gecersiz.',
+            'response_deadline_at.before_or_equal' => 'Cevap son tarihi baslangic tarihinden sonra olamaz.',
+            'user_ids.required' => 'En az bir ogrenen secmelisiniz.',
+            'user_ids.array' => 'Ogrenen secimi gecersiz.',
+            'user_ids.min' => 'En az bir ogrenen secmelisiniz.',
+            'user_ids.*.exists' => 'Secilen ogrenenlerden biri sistemde bulunamadi.',
         ]);
 
         $data['is_active'] = $request->boolean('is_active');

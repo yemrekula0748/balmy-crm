@@ -48,15 +48,15 @@
                     </div>
                     <div class="col-md-4">
                         <label class="form-label">Baslangic <span class="text-danger">*</span></label>
-                        <input type="datetime-local" name="starts_at" class="form-control" value="{{ old('starts_at', $event->starts_at?->format('Y-m-d\TH:i')) }}" required>
+                        <input type="datetime-local" name="starts_at" id="eventStartsAt" class="form-control" value="{{ old('starts_at', $event->starts_at?->format('Y-m-d\TH:i')) }}" required>
                     </div>
                     <div class="col-md-4">
                         <label class="form-label">Bitis</label>
-                        <input type="datetime-local" name="ends_at" class="form-control" value="{{ old('ends_at', $event->ends_at?->format('Y-m-d\TH:i')) }}">
+                        <input type="datetime-local" name="ends_at" id="eventEndsAt" class="form-control" value="{{ old('ends_at', $event->ends_at?->format('Y-m-d\TH:i')) }}">
                     </div>
                     <div class="col-md-4">
                         <label class="form-label">Cevap Son Tarihi</label>
-                        <input type="datetime-local" name="response_deadline_at" class="form-control" value="{{ old('response_deadline_at', $event->response_deadline_at?->format('Y-m-d\TH:i')) }}">
+                        <input type="datetime-local" name="response_deadline_at" id="eventResponseDeadlineAt" class="form-control" value="{{ old('response_deadline_at', $event->response_deadline_at?->format('Y-m-d\TH:i')) }}">
                     </div>
                     <div class="col-md-8">
                         <label class="form-label">Konum</label>
@@ -101,5 +101,34 @@ function selectEventLearners() {
         option.selected = true;
     });
 }
+
+const startsAtInput = document.getElementById('eventStartsAt');
+const endsAtInput = document.getElementById('eventEndsAt');
+const responseDeadlineInput = document.getElementById('eventResponseDeadlineAt');
+
+function syncEventDateLimits() {
+    if (!startsAtInput || !startsAtInput.value) {
+        if (endsAtInput) endsAtInput.removeAttribute('min');
+        if (responseDeadlineInput) responseDeadlineInput.removeAttribute('max');
+        return;
+    }
+
+    if (endsAtInput) {
+        endsAtInput.min = startsAtInput.value;
+        if (endsAtInput.value && endsAtInput.value < startsAtInput.value) {
+            endsAtInput.value = startsAtInput.value;
+        }
+    }
+
+    if (responseDeadlineInput) {
+        responseDeadlineInput.max = startsAtInput.value;
+        if (responseDeadlineInput.value && responseDeadlineInput.value > startsAtInput.value) {
+            responseDeadlineInput.value = '';
+        }
+    }
+}
+
+startsAtInput?.addEventListener('change', syncEventDateLimits);
+syncEventDateLimits();
 </script>
 @endpush
