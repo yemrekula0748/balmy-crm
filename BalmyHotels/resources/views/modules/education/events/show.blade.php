@@ -55,20 +55,36 @@
                 <div class="card border-0 shadow-sm mt-3" style="border-radius:8px">
                     <div class="card-header bg-white border-0"><h5 class="mb-0">Katilim Cevabim</h5></div>
                     <div class="card-body">
+                        @php
+                            $responseStatus = old('status', $myResponse->status);
+                        @endphp
                         <form method="POST" action="{{ route('education.events.respond', $event) }}">
                             @csrf
-                            <div class="mb-3">
-                                <select name="status" class="form-select" required>
-                                    <option value="attending" @selected(old('status', $myResponse->status) === 'attending')>Katilacagim</option>
-                                    <option value="declined" @selected(old('status', $myResponse->status) === 'declined')>Katilamayacagim</option>
-                                </select>
-                            </div>
+                            <div class="small text-muted mb-2">Mevcut cevap</div>
+                            <div class="mb-3">{{ $myResponse->status_label }}</div>
                             <div class="mb-3">
                                 <label class="form-label">Aciklama</label>
-                                <textarea name="note" class="form-control" rows="3" maxlength="1000">{{ old('note', $myResponse->note) }}</textarea>
+                                <textarea name="note" class="form-control" rows="3" maxlength="1000" placeholder="Katilamayacaksan aciklama yazmalisin.">{{ old('note', $myResponse->note) }}</textarea>
                                 <small class="text-muted">Katilamayacak kisiler icin aciklama zorunludur.</small>
                             </div>
-                            <button class="btn btn-primary w-100" type="submit">Cevabi Kaydet</button>
+                            <div class="d-grid gap-2">
+                                <button
+                                    class="btn {{ $responseStatus === 'attending' ? 'btn-success' : 'btn-outline-success' }} fw-semibold"
+                                    type="submit"
+                                    name="status"
+                                    value="attending"
+                                >
+                                    <i class="fas fa-check me-1"></i>Katilacagim
+                                </button>
+                                <button
+                                    class="btn {{ $responseStatus === 'declined' ? 'btn-danger' : 'btn-outline-danger' }} fw-semibold"
+                                    type="submit"
+                                    name="status"
+                                    value="declined"
+                                >
+                                    <i class="fas fa-times me-1"></i>Katilamayacagim
+                                </button>
+                            </div>
                         </form>
                     </div>
                 </div>
