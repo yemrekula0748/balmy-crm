@@ -64,6 +64,11 @@ use App\Http\Controllers\Modules\FrontDeskBedTypeController;
 use App\Http\Controllers\Modules\GuestControlController;
 use App\Http\Controllers\Modules\FrontDeskRoomTypeController;
 use App\Http\Controllers\Modules\FrontDeskRoomController;
+use App\Http\Controllers\Modules\EducationAssignmentController;
+use App\Http\Controllers\Modules\EducationCourseController;
+use App\Http\Controllers\Modules\EducationEventController;
+use App\Http\Controllers\Modules\EducationLearningController;
+use App\Http\Controllers\Modules\EducationReportController;
 use App\Http\Controllers\AssetPublicController;
 
 /*
@@ -668,6 +673,47 @@ Route::middleware('auth')->group(function () {
     | Sipariş Modülü (Garson)
     |--------------------------------------------------------------------------
     */
+    /*
+    |--------------------------------------------------------------------------
+    | Egitim ve Gelisim
+    |--------------------------------------------------------------------------
+    */
+    Route::prefix('egitim-ve-gelisim')->name('education.')->group(function () {
+        Route::get('/', [EducationLearningController::class, 'index'])->name('index');
+        Route::get('/egitimlerim', [EducationLearningController::class, 'index'])->name('learning.index');
+        Route::get('/egitimlerim/{assignment}', [EducationLearningController::class, 'show'])->name('learning.show');
+        Route::post('/egitimlerim/{assignment}/ilerleme', [EducationLearningController::class, 'progress'])->name('learning.progress');
+
+        Route::prefix('icerikler')->name('courses.')->group(function () {
+            Route::get('/', [EducationCourseController::class, 'index'])->name('index');
+            Route::get('/yeni', [EducationCourseController::class, 'create'])->name('create');
+            Route::post('/', [EducationCourseController::class, 'store'])->name('store');
+            Route::get('/{course}', [EducationCourseController::class, 'show'])->name('show');
+            Route::get('/{course}/duzenle', [EducationCourseController::class, 'edit'])->name('edit');
+            Route::put('/{course}', [EducationCourseController::class, 'update'])->name('update');
+            Route::delete('/{course}', [EducationCourseController::class, 'destroy'])->name('destroy');
+        });
+
+        Route::prefix('atamalar')->name('assignments.')->group(function () {
+            Route::get('/', [EducationAssignmentController::class, 'index'])->name('index');
+            Route::post('/', [EducationAssignmentController::class, 'store'])->name('store');
+            Route::delete('/{assignment}', [EducationAssignmentController::class, 'destroy'])->name('destroy');
+        });
+
+        Route::prefix('yuz-yuze')->name('events.')->group(function () {
+            Route::get('/', [EducationEventController::class, 'index'])->name('index');
+            Route::get('/yeni', [EducationEventController::class, 'create'])->name('create');
+            Route::post('/', [EducationEventController::class, 'store'])->name('store');
+            Route::get('/{event}', [EducationEventController::class, 'show'])->name('show');
+            Route::get('/{event}/duzenle', [EducationEventController::class, 'edit'])->name('edit');
+            Route::put('/{event}', [EducationEventController::class, 'update'])->name('update');
+            Route::post('/{event}/cevap', [EducationEventController::class, 'respond'])->name('respond');
+            Route::delete('/{event}', [EducationEventController::class, 'destroy'])->name('destroy');
+        });
+
+        Route::get('/raporlar', [EducationReportController::class, 'index'])->name('reports.index');
+    });
+
     Route::prefix('siparisler')->name('orders.')->group(function () {
 
         // Ana sayfa: restoran + masa seçimi

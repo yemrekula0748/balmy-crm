@@ -16,6 +16,8 @@ class RolePermissionSeeder extends Seeder
             ['name' => 'branch_manager', 'display_name' => 'Şube Müdürü',  'color' => 'primary', 'is_system' => true],
             ['name' => 'dept_manager',   'display_name' => 'Departman Müdürü', 'color' => 'info', 'is_system' => true],
             ['name' => 'staff',          'display_name' => 'Personel',      'color' => 'secondary', 'is_system' => false],
+            ['name' => 'egitmen',        'display_name' => 'Egitmen',       'color' => 'warning', 'is_system' => false],
+            ['name' => 'ogrenen',        'display_name' => 'Ogrenen',       'color' => 'success', 'is_system' => false],
         ];
 
         foreach ($roles as $data) {
@@ -79,6 +81,23 @@ class RolePermissionSeeder extends Seeder
             'reservations' => ['index'=>1,'show'=>1,'create'=>1,'edit'=>0,'delete'=>0],
         ];
         $this->savePerms('staff', $staffPerms);
+
+        // 5) egitmen: egitim icerigi, atama, yuz yuze egitim ve rapor yonetimi
+        $trainerPerms = [
+            'education_courses'     => ['index'=>1,'show'=>1,'create'=>1,'edit'=>1,'delete'=>1],
+            'education_assignments' => ['index'=>1,'show'=>0,'create'=>1,'edit'=>0,'delete'=>1],
+            'education_learning'    => ['index'=>1,'show'=>1,'create'=>0,'edit'=>1,'delete'=>0],
+            'education_events'      => ['index'=>1,'show'=>1,'create'=>1,'edit'=>1,'delete'=>1],
+            'education_reports'     => ['index'=>1,'show'=>0,'create'=>0,'edit'=>0,'delete'=>0],
+        ];
+        $this->savePerms('egitmen', $trainerPerms);
+
+        // 6) ogrenen: kendi egitimleri ve yuz yuze katilim cevabi
+        $learnerPerms = [
+            'education_learning' => ['index'=>1,'show'=>1,'create'=>0,'edit'=>1,'delete'=>0],
+            'education_events'   => ['index'=>1,'show'=>1,'create'=>0,'edit'=>0,'delete'=>0],
+        ];
+        $this->savePerms('ogrenen', $learnerPerms);
 
         $this->command->info('Roller ve varsayılan izinler oluşturuldu.');
     }

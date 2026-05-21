@@ -80,6 +80,13 @@ class RolePermission extends Model
             'shuttle_operations' => 'Servis Operasyonu',
             'shuttle_reports'    => 'Servis Raporları',
         ],
+        'Egitim ve Gelisim' => [
+            'education_courses'     => 'Egitim Icerikleri',
+            'education_assignments' => 'Egitim Atamalari',
+            'education_learning'    => 'Egitimlerim',
+            'education_events'      => 'Yuz Yuze Egitimler',
+            'education_reports'     => 'Egitim Raporlari',
+        ],
         'Sipariş Modülü' => [
             'restaurant_settings'  => 'Restoran & Masa Tanımları',
             'orders'               => 'Sipariş Al',

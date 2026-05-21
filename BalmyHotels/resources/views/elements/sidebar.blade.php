@@ -484,6 +484,62 @@
             </li>
             @endif
 
+            {{-- EGITIM VE GELISIM --}}
+            @if($user->hasPermission('education_courses','index') || $user->hasPermission('education_assignments','index') || $user->hasPermission('education_learning','index') || $user->hasPermission('education_events','index') || $user->hasPermission('education_reports','index'))
+            @php
+                $educationWeeklyCount = 0;
+                if ($user->hasPermission('education_learning', 'index')) {
+                    $educationWeeklyCount = \App\Models\EducationAssignment::where('user_id', $user->id)
+                        ->where('assigned_week_start', now()->startOfWeek()->toDateString())
+                        ->where('status', '!=', \App\Models\EducationAssignment::STATUS_COMPLETED)
+                        ->count();
+                }
+            @endphp
+            <li @class(['mm-active' => request()->is('egitim-ve-gelisim*')])>
+                <a class="has-arrow ai-icon" href="javascript:void()" aria-expanded="false">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
+                         fill="none" stroke="currentColor" stroke-width="2"
+                         stroke-linecap="round" stroke-linejoin="round" style="min-width:20px">
+                        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+                        <path d="M4 4.5A2.5 2.5 0 0 1 6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5z"/>
+                    </svg>
+                    <span class="nav-text">Egitim ve Gelisim</span>
+                </a>
+                <ul aria-expanded="false">
+                    @if($user->hasPermission('education_learning','index'))
+                    <li @class(['mm-active' => request()->is('egitim-ve-gelisim/egitimlerim*')])>
+                        <a href="{{ route('education.learning.index') }}">
+                            Egitimlerim
+                            @if($educationWeeklyCount > 0)
+                                <span style="display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:17px;padding:0 5px;background:#ef4444;color:#fff;border-radius:9px;font-size:.65rem;font-weight:700;margin-left:5px;line-height:1;vertical-align:middle">{{ $educationWeeklyCount }}</span>
+                            @endif
+                        </a>
+                    </li>
+                    @endif
+                    @if($user->hasPermission('education_courses','index'))
+                    <li @class(['mm-active' => request()->is('egitim-ve-gelisim/icerikler*')])>
+                        <a href="{{ route('education.courses.index') }}">Egitim Icerikleri</a>
+                    </li>
+                    @endif
+                    @if($user->hasPermission('education_assignments','index'))
+                    <li @class(['mm-active' => request()->is('egitim-ve-gelisim/atamalar*')])>
+                        <a href="{{ route('education.assignments.index') }}">Toplu Atama</a>
+                    </li>
+                    @endif
+                    @if($user->hasPermission('education_events','index'))
+                    <li @class(['mm-active' => request()->is('egitim-ve-gelisim/yuz-yuze*')])>
+                        <a href="{{ route('education.events.index') }}">Yuz Yuze Egitimler</a>
+                    </li>
+                    @endif
+                    @if($user->hasPermission('education_reports','index'))
+                    <li @class(['mm-active' => request()->is('egitim-ve-gelisim/raporlar*')])>
+                        <a href="{{ route('education.reports.index') }}">Egitim Raporlari</a>
+                    </li>
+                    @endif
+                </ul>
+            </li>
+            @endif
+
             {{-- SİPARİŞ MODÜLÜ --}}
             @if($user->hasPermission('orders','index') || $user->hasPermission('restaurant_settings','index') || $user->hasPermission('order_reports','index') || $user->hasPermission('order_analytics','index') || $user->hasPermission('order_ai_analysis','index') || $user->hasPermission('order_guest_analysis','index'))
             <li @class(['mm-active' => request()->is('siparisler*')])>
