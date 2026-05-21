@@ -191,15 +191,7 @@
                                     $activeBranchMatrix = $activeBranchId ? $movementMatrix->get($activeBranchId) : null;
                                     $canOwnerEdit = $activeBranchId && (int) $trip->branch_id === (int) $activeBranchId && auth()->user()->hasPermission('shuttle_operations', 'edit');
                                     $canBranchProcess = $activeBranchId && auth()->user()->hasPermission('shuttle_operations', 'index');
-                                    $branchProcessPayload = e(json_encode([
-                                        'tripId' => (int) $trip->id,
-                                        'contextBranchId' => (int) ($activeBranchId ?? 0),
-                                        'branchName' => optional($allBranches->firstWhere('id', $activeBranchId))->name ?? '',
-                                        'arrivalCount' => (int) data_get($activeBranchMatrix, 'arrival', 0),
-                                        'departureCount' => (int) data_get($activeBranchMatrix, 'departure', 0),
-                                        'arrivalTime' => data_get($activeBranchMatrix, 'arrival_time'),
-                                        'departureTime' => data_get($activeBranchMatrix, 'departure_time'),
-                                    ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+                                    $branchProcessBranchName = optional($allBranches->firstWhere('id', $activeBranchId))->name ?? '';
                                 @endphp
 
                                 @if($lastShift !== $trip->shift)
@@ -292,8 +284,14 @@
                                                     type="button"
                                                     class="btn btn-sm"
                                                     style="background:#eef6f2;color:#2e7d52;border:1px solid #cfe3d8;font-size:.78rem"
-                                                    data-branch-process-payload="{{ $branchProcessPayload }}"
-                                                    onclick="openBranchProcessModal(JSON.parse(this.dataset.branchProcessPayload))"
+                                                    data-trip-id="{{ (int) $trip->id }}"
+                                                    data-context-branch-id="{{ (int) ($activeBranchId ?? 0) }}"
+                                                    data-branch-name="{{ $branchProcessBranchName }}"
+                                                    data-arrival-count="{{ (int) data_get($activeBranchMatrix, 'arrival', 0) }}"
+                                                    data-departure-count="{{ (int) data_get($activeBranchMatrix, 'departure', 0) }}"
+                                                    data-arrival-time="{{ data_get($activeBranchMatrix, 'arrival_time') ?? '' }}"
+                                                    data-departure-time="{{ data_get($activeBranchMatrix, 'departure_time') ?? '' }}"
+                                                    onclick="openBranchProcessModalFromButton(this)"
                                                 >
                                                     <i class="fas fa-people-arrows me-1"></i> Kendi Otelini Isle
                                                 </button>
@@ -630,6 +628,22 @@ function openBranchProcessModal(payload) {
 
     const modal = new bootstrap.Modal(modalElement);
     modal.show();
+}
+
+function openBranchProcessModalFromButton(button) {
+    if (!button) {
+        return;
+    }
+
+    openBranchProcessModal({
+        tripId: Number(button.dataset.tripId || 0),
+        contextBranchId: Number(button.dataset.contextBranchId || 0),
+        branchName: button.dataset.branchName || '',
+        arrivalCount: Number(button.dataset.arrivalCount || 0),
+        departureCount: Number(button.dataset.departureCount || 0),
+        arrivalTime: button.dataset.arrivalTime || '',
+        departureTime: button.dataset.departureTime || '',
+    });
 }
 
 document.addEventListener('DOMContentLoaded', () => {
