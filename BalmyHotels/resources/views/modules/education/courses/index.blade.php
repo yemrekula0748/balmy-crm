@@ -52,6 +52,7 @@
                             <th>Dil</th>
                             <th>Egitmen</th>
                             <th class="text-center">Atama</th>
+                            <th class="text-center">Quiz</th>
                             <th class="text-center">Durum</th>
                             <th class="text-end">Islem</th>
                         </tr>
@@ -67,6 +68,13 @@
                                 <td>{{ $course->trainer->name ?? '-' }}</td>
                                 <td class="text-center">{{ $course->assignments_count }}</td>
                                 <td class="text-center">
+                                    @if($course->quiz_questions_count > 0)
+                                        <span class="badge bg-info">{{ $course->quiz_questions_count }} soru</span>
+                                    @else
+                                        <span class="badge bg-light text-dark">Yok</span>
+                                    @endif
+                                </td>
+                                <td class="text-center">
                                     <span class="badge {{ $course->is_active ? 'bg-success' : 'bg-light text-dark' }}">
                                         {{ $course->is_active ? 'Aktif' : 'Pasif' }}
                                     </span>
@@ -77,6 +85,7 @@
                                     @endif
                                     @if(auth()->user()->hasPermission('education_courses','edit'))
                                         <a href="{{ route('education.courses.edit', $course) }}" class="btn btn-sm btn-outline-warning"><i class="fas fa-edit"></i></a>
+                                        <a href="{{ route('education.courses.quiz.edit', $course) }}" class="btn btn-sm btn-outline-info" title="Quiz Sorulari"><i class="fas fa-question-circle"></i></a>
                                     @endif
                                     @if(auth()->user()->hasPermission('education_courses','delete'))
                                         <form method="POST" action="{{ route('education.courses.destroy', $course) }}" class="d-inline" onsubmit="return confirm('Bu egitimi silmek istiyor musunuz?')">
@@ -89,7 +98,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="6" class="text-center text-muted py-4">Egitim icerigi bulunamadi.</td>
+                                <td colspan="7" class="text-center text-muted py-4">Egitim icerigi bulunamadi.</td>
                             </tr>
                         @endforelse
                     </tbody>

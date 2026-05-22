@@ -4,6 +4,8 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class EducationAssignment extends Model
 {
@@ -55,6 +57,29 @@ class EducationAssignment extends Model
         return $this->belongsTo(User::class, 'assigned_by');
     }
 
+    public function quizAttempts(): HasMany
+    {
+        return $this->hasMany(EducationQuizAttempt::class, 'education_assignment_id');
+    }
+
+    public function latestQuizAttempt(): HasOne
+    {
+        return $this->hasOne(EducationQuizAttempt::class, 'education_assignment_id')->latestOfMany();
+    }
+
+    public function passedQuizAttempt(): HasOne
+    {
+        return $this->hasOne(EducationQuizAttempt::class, 'education_assignment_id')
+            ->where('passed', true)
+            ->latestOfMany();
+    }
+
+    public function passedQuizAttempts(): HasMany
+    {
+        return $this->hasMany(EducationQuizAttempt::class, 'education_assignment_id')
+            ->where('passed', true);
+    }
+
     public function getStatusLabelAttribute(): string
     {
         return match ($this->status) {
@@ -62,5 +87,28 @@ class EducationAssignment extends Model
             self::STATUS_IN_PROGRESS => 'Devam ediyor',
             default => 'Baslamadi',
         };
+    }
+
+    public function getQuizPassedAttribute(): bool
+    {
+        if ($this->relationLoaded('passedQuizAttempt')) {
+            return (bool) $this->passedQuizAttempt;
+        }
+
+        return $this->passedQuizAttempt()->exists();
+    }
+
+    public function getVideoCompletedAttribute(): bool
+    {
+        return $this->status === self::STATUS_COMPLETED || (float) $this->progress_percent >= 95;
+    }
+
+    public function getTrainingApprovedAttribute(): bool
+    {
+        if (! $this->course || ! $this->course->has_quiz) {
+            return $this->video_completed;
+        }
+
+        return $this->video_completed && $this->quiz_passed;
     }
 }

@@ -14,6 +14,25 @@
 
     @include('modules.education._tabs')
 
+    @if(session('success'))
+        <div class="alert alert-success alert-dismissible fade show">
+            {{ session('success') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    @endif
+    @if(session('error'))
+        <div class="alert alert-danger alert-dismissible fade show">
+            {{ session('error') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    @endif
+    @if($errors->any())
+        <div class="alert alert-danger alert-dismissible fade show">
+            {{ $errors->first() }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    @endif
+
     <div class="row g-3">
         <div class="col-lg-8">
             <div class="card border-0 shadow-sm" style="border-radius:8px">
@@ -51,6 +70,35 @@
                         <div class="fw-semibold mb-3">{{ $assignment->due_at->format('d.m.Y H:i') }}</div>
                     @endif
                     <p class="text-muted mb-0">{{ $assignment->course->description ?: 'Aciklama yok.' }}</p>
+                    @if($assignment->course->has_quiz)
+                        <hr>
+                        <div class="small text-muted">Quiz Onayi</div>
+                        @if($assignment->quiz_passed)
+                            <div class="alert alert-success py-2 mt-2 mb-0">
+                                Quiz basarili. Egitim onayin tamamlandi.
+                            </div>
+                        @elseif($assignment->video_completed)
+                            <a href="{{ route('education.learning.quiz', $assignment) }}" class="btn btn-primary w-100 mt-2">
+                                <i class="fas fa-question-circle me-1"></i>Quiz'e Gir
+                            </a>
+                        @else
+                            <a
+                                href="{{ route('education.learning.quiz', $assignment) }}"
+                                class="btn btn-outline-secondary w-100 mt-2 disabled"
+                                id="quizStartLink"
+                                aria-disabled="true"
+                                style="pointer-events:none"
+                            >
+                                Quiz video tamamlaninca acilir
+                            </a>
+                        @endif
+                        @if($assignment->latestQuizAttempt)
+                            <div class="small text-muted mt-2">
+                                Son deneme: {{ $assignment->latestQuizAttempt->correct_answers }} / {{ $assignment->latestQuizAttempt->total_questions }}
+                                - {{ $assignment->latestQuizAttempt->status_label }}
+                            </div>
+                        @endif
+                    @endif
                 </div>
             </div>
         </div>
@@ -64,6 +112,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const video = document.getElementById('educationVideo');
     const progressBar = document.getElementById('progressBar');
     const progressPercent = document.getElementById('progressPercent');
+    const quizStartLink = document.getElementById('quizStartLink');
     const progressUrl = @json(route('education.learning.progress', $assignment));
     const csrf = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
     let maxWatched = {{ (int) $assignment->max_watched_seconds }};
@@ -104,6 +153,14 @@ document.addEventListener('DOMContentLoaded', function () {
         maxWatched = Math.max(maxWatched, Number(data.max_watched_seconds || 0));
         progressBar.style.width = percent + '%';
         progressPercent.textContent = '%' + percent.toFixed(1);
+
+        if (quizStartLink && percent >= 95) {
+            quizStartLink.classList.remove('btn-outline-secondary', 'disabled');
+            quizStartLink.classList.add('btn-primary');
+            quizStartLink.removeAttribute('aria-disabled');
+            quizStartLink.style.pointerEvents = '';
+            quizStartLink.innerHTML = "<i class=\"fas fa-question-circle me-1\"></i>Quiz'e Gir";
+        }
     }
 
     function sendProgress(force = false) {

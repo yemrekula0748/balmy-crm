@@ -1,6 +1,22 @@
 @php
     $eduUser = auth()->user();
+    $educationLearningPendingCount = 0;
     $educationEventPendingCount = 0;
+    if ($eduUser && $eduUser->hasPermission('education_learning', 'index')) {
+        $educationLearningPendingCount = \App\Models\EducationAssignment::where('user_id', $eduUser->id)
+            ->where('assigned_week_start', now()->startOfWeek()->toDateString())
+            ->where(function ($assignmentQuery) {
+                $assignmentQuery
+                    ->where('status', '!=', \App\Models\EducationAssignment::STATUS_COMPLETED)
+                    ->orWhere(function ($quizQuery) {
+                        $quizQuery
+                            ->where('status', \App\Models\EducationAssignment::STATUS_COMPLETED)
+                            ->whereHas('course.quizQuestions')
+                            ->whereDoesntHave('passedQuizAttempts');
+                    });
+            })
+            ->count();
+    }
     if ($eduUser && $eduUser->hasPermission('education_events', 'index')) {
         $educationEventPendingCount = \App\Models\EducationEventResponse::where('user_id', $eduUser->id)
             ->where('status', \App\Models\EducationEventResponse::STATUS_PENDING)
@@ -16,6 +32,9 @@
             @if($eduUser->hasPermission('education_learning','index'))
                 <a href="{{ route('education.learning.index') }}" class="btn btn-sm {{ request()->is('egitim-ve-gelisim/egitimlerim*') || request()->is('egitim-ve-gelisim') ? 'btn-primary' : 'btn-outline-primary' }}">
                     <i class="fas fa-play-circle me-1"></i>Egitimlerim
+                    @if($educationLearningPendingCount > 0)
+                        <span class="badge bg-danger ms-1">{{ $educationLearningPendingCount }}</span>
+                    @endif
                 </a>
             @endif
             @if($eduUser->hasPermission('education_courses','index'))

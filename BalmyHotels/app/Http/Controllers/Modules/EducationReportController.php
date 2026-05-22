@@ -25,7 +25,13 @@ class EducationReportController extends BaseModuleController
             ? Carbon::parse($request->to)->endOfDay()
             : Carbon::now()->endOfDay();
 
-        $assignmentsQuery = EducationAssignment::with(['course.trainer', 'learner.branch'])
+        $assignmentsQuery = EducationAssignment::with([
+                'course.trainer',
+                'course.quizQuestions',
+                'learner.branch',
+                'latestQuizAttempt',
+                'passedQuizAttempt',
+            ])
             ->whereBetween('assigned_week_start', [$from->toDateString(), $to->toDateString()])
             ->when($language, fn ($query) => $query->where('language', $language));
 
@@ -43,13 +49,19 @@ class EducationReportController extends BaseModuleController
         $stats = [
             'total_assignments' => $totalAssignments,
             'completed_assignments' => $completedAssignments,
+            'quiz_passed_assignments' => $allAssignments->filter(fn (EducationAssignment $assignment) => $assignment->quiz_passed)->count(),
             'in_progress_assignments' => $allAssignments->where('status', EducationAssignment::STATUS_IN_PROGRESS)->count(),
             'not_started_assignments' => $allAssignments->where('status', EducationAssignment::STATUS_NOT_STARTED)->count(),
             'avg_progress' => $totalAssignments > 0 ? round($allAssignments->avg('progress_percent'), 1) : 0,
             'completion_rate' => $totalAssignments > 0 ? round($completedAssignments / $totalAssignments * 100, 1) : 0,
         ];
 
-        $courseStats = EducationCourse::with(['trainer', 'assignments.learner'])
+        $courseStats = EducationCourse::with([
+                'trainer',
+                'quizQuestions',
+                'assignments.learner',
+                'assignments.passedQuizAttempt',
+            ])
             ->when($language, fn ($query) => $query->where('language', $language))
             ->orderBy('title')
             ->get()
@@ -62,6 +74,7 @@ class EducationReportController extends BaseModuleController
                     'course' => $course,
                     'assigned' => $count,
                     'completed' => $assignments->where('status', EducationAssignment::STATUS_COMPLETED)->count(),
+                    'quiz_passed' => $assignments->filter(fn (EducationAssignment $assignment) => $assignment->quiz_passed)->count(),
                     'avg_progress' => $count > 0 ? round($assignments->avg('progress_percent'), 1) : 0,
                 ];
             });

@@ -45,6 +45,7 @@
         @foreach([
             ['label' => 'Toplam Atama', 'value' => $stats['total_assignments'], 'color' => '#1e2d3d'],
             ['label' => 'Tamamlanan', 'value' => $stats['completed_assignments'], 'color' => '#2e7d52'],
+            ['label' => 'Quiz Onayli', 'value' => $stats['quiz_passed_assignments'], 'color' => '#0f766e'],
             ['label' => 'Devam Eden', 'value' => $stats['in_progress_assignments'], 'color' => '#2a5298'],
             ['label' => 'Baslamayan', 'value' => $stats['not_started_assignments'], 'color' => '#8a6d3b'],
             ['label' => 'Ort. Ilerleme', 'value' => '%'.$stats['avg_progress'], 'color' => '#7a5c3d'],
@@ -73,6 +74,7 @@
                                     <th>Egitim</th>
                                     <th class="text-center">Atama</th>
                                     <th class="text-center">Tamamlanan</th>
+                                    <th class="text-center">Quiz</th>
                                     <th class="text-center">Ort.</th>
                                 </tr>
                             </thead>
@@ -85,10 +87,11 @@
                                         </td>
                                         <td class="text-center">{{ $row['assigned'] }}</td>
                                         <td class="text-center text-success fw-bold">{{ $row['completed'] }}</td>
+                                        <td class="text-center text-info fw-bold">{{ $row['quiz_passed'] }}</td>
                                         <td class="text-center">%{{ $row['avg_progress'] }}</td>
                                     </tr>
                                 @empty
-                                    <tr><td colspan="4" class="text-center text-muted py-4">Veri yok.</td></tr>
+                                    <tr><td colspan="5" class="text-center text-muted py-4">Veri yok.</td></tr>
                                 @endforelse
                             </tbody>
                         </table>
@@ -147,6 +150,7 @@
                                     <th>Hafta</th>
                                     <th class="text-center">Ilerleme</th>
                                     <th class="text-center">Durum</th>
+                                    <th class="text-center">Quiz</th>
                                     <th class="text-center">Son Izleme</th>
                                 </tr>
                             </thead>
@@ -166,10 +170,21 @@
                                             <small class="text-muted">%{{ number_format($assignment->progress_percent, 1) }}</small>
                                         </td>
                                         <td class="text-center">{{ $assignment->status_label }}</td>
+                                        <td class="text-center">
+                                            @if(! $assignment->course || ! $assignment->course->has_quiz)
+                                                <span class="badge bg-light text-dark">Yok</span>
+                                            @elseif($assignment->quiz_passed)
+                                                <span class="badge bg-success">Onayli</span>
+                                            @elseif($assignment->video_completed)
+                                                <span class="badge bg-warning text-dark">Bekliyor</span>
+                                            @else
+                                                <span class="badge bg-secondary">Video bekleniyor</span>
+                                            @endif
+                                        </td>
                                         <td class="text-center">{{ $assignment->last_watched_at ? $assignment->last_watched_at->format('d.m.Y H:i') : '-' }}</td>
                                     </tr>
                                 @empty
-                                    <tr><td colspan="6" class="text-center text-muted py-4">Detay bulunamadi.</td></tr>
+                                    <tr><td colspan="7" class="text-center text-muted py-4">Detay bulunamadi.</td></tr>
                                 @endforelse
                             </tbody>
                         </table>

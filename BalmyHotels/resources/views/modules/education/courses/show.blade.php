@@ -14,6 +14,13 @@
 
     @include('modules.education._tabs')
 
+    @if(session('success'))
+        <div class="alert alert-success alert-dismissible fade show">
+            {{ session('success') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    @endif
+
     <div class="row g-3">
         <div class="col-lg-8">
             <div class="card border-0 shadow-sm" style="border-radius:8px">
@@ -34,9 +41,82 @@
                     <div class="fw-semibold mb-3">{{ $course->language_label }}</div>
                     <div class="small text-muted">Atama Sayisi</div>
                     <div class="fw-semibold mb-3">{{ $course->assignments->count() }}</div>
+                    @php($effectiveMinCorrect = $course->quiz_min_correct ?: $course->quizQuestions->count())
+                    <div class="small text-muted">Quiz</div>
+                    <div class="fw-semibold mb-3">
+                        {{ $course->quizQuestions->count() }} soru
+                        @if($course->quizQuestions->count() > 0)
+                            <small class="text-muted d-block">Min. {{ $effectiveMinCorrect }} dogru</small>
+                        @endif
+                    </div>
                     <div class="small text-muted">Durum</div>
                     <span class="badge {{ $course->is_active ? 'bg-success' : 'bg-light text-dark' }}">{{ $course->is_active ? 'Aktif' : 'Pasif' }}</span>
+                    @if(auth()->user()->hasPermission('education_courses','edit'))
+                        <a href="{{ route('education.courses.quiz.edit', $course) }}" class="btn btn-outline-primary w-100 mt-3">
+                            <i class="fas fa-question-circle me-1"></i>Quiz Sorulari
+                        </a>
+                    @endif
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm mt-3" style="border-radius:8px">
+        <div class="card-header bg-white border-0"><h5 class="mb-0">Atama ve Quiz Durumu</h5></div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Ogrenen</th>
+                            <th class="text-center">Video</th>
+                            <th class="text-center">Quiz</th>
+                            <th class="text-center">Son Deneme</th>
+                            <th class="text-center">Onay</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse($course->assignments as $assignment)
+                            <tr>
+                                <td>
+                                    <div class="fw-semibold">{{ $assignment->learner->name ?? '-' }}</div>
+                                    <small class="text-muted">{{ $assignment->learner->branch->name ?? '' }}</small>
+                                </td>
+                                <td class="text-center">
+                                    <div class="progress" style="height:7px">
+                                        <div class="progress-bar" style="width:{{ $assignment->progress_percent }}%"></div>
+                                    </div>
+                                    <small class="text-muted">%{{ number_format($assignment->progress_percent, 1) }}</small>
+                                </td>
+                                <td class="text-center">
+                                    @if(! $course->has_quiz)
+                                        <span class="badge bg-light text-dark">Quiz yok</span>
+                                    @elseif($assignment->quiz_passed)
+                                        <span class="badge bg-success">Basarili</span>
+                                    @elseif($assignment->video_completed)
+                                        <span class="badge bg-warning text-dark">Bekliyor</span>
+                                    @else
+                                        <span class="badge bg-light text-dark">Video bekleniyor</span>
+                                    @endif
+                                </td>
+                                <td class="text-center">
+                                    @if($assignment->latestQuizAttempt)
+                                        {{ $assignment->latestQuizAttempt->correct_answers }} / {{ $assignment->latestQuizAttempt->total_questions }}
+                                    @else
+                                        -
+                                    @endif
+                                </td>
+                                <td class="text-center">
+                                    <span class="badge {{ $assignment->training_approved ? 'bg-success' : 'bg-secondary' }}">
+                                        {{ $assignment->training_approved ? 'Onayli' : 'Bekliyor' }}
+                                    </span>
+                                </td>
+                            </tr>
+                        @empty
+                            <tr><td colspan="5" class="text-center text-muted py-4">Bu egitim henuz kimseye atanmamis.</td></tr>
+                        @endforelse
+                    </tbody>
+                </table>
             </div>
         </div>
     </div>

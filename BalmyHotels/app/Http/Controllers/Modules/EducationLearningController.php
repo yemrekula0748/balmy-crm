@@ -27,7 +27,13 @@ class EducationLearningController extends BaseModuleController
         $status = $request->get('status');
         $currentWeekStart = Carbon::now()->startOfWeek()->toDateString();
 
-        $assignments = EducationAssignment::with(['course.trainer', 'assigner'])
+        $assignments = EducationAssignment::with([
+                'course.trainer',
+                'course.quizQuestions',
+                'assigner',
+                'latestQuizAttempt',
+                'passedQuizAttempt',
+            ])
             ->where('user_id', Auth::id())
             ->whereHas('course', fn ($query) => $query->where('is_active', true))
             ->when($status, fn ($query) => $query->where('status', $status))
@@ -39,7 +45,16 @@ class EducationLearningController extends BaseModuleController
 
         $weeklyNotificationCount = EducationAssignment::where('user_id', Auth::id())
             ->where('assigned_week_start', $currentWeekStart)
-            ->where('status', '!=', EducationAssignment::STATUS_COMPLETED)
+            ->where(function ($assignmentQuery) {
+                $assignmentQuery
+                    ->where('status', '!=', EducationAssignment::STATUS_COMPLETED)
+                    ->orWhere(function ($quizQuery) {
+                        $quizQuery
+                            ->where('status', EducationAssignment::STATUS_COMPLETED)
+                            ->whereHas('course.quizQuestions')
+                            ->whereDoesntHave('passedQuizAttempts');
+                    });
+            })
             ->count();
 
         return view('modules.education.learning.index', [
@@ -52,7 +67,13 @@ class EducationLearningController extends BaseModuleController
     public function show(EducationAssignment $assignment)
     {
         $this->ensureOwnAssignment($assignment);
-        $assignment->load(['course.trainer', 'assigner']);
+        $assignment->load([
+            'course.trainer',
+            'course.quizQuestions',
+            'assigner',
+            'latestQuizAttempt',
+            'passedQuizAttempt',
+        ]);
 
         return view('modules.education.learning.show', compact('assignment'));
     }

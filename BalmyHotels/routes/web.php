@@ -68,6 +68,7 @@ use App\Http\Controllers\Modules\EducationAssignmentController;
 use App\Http\Controllers\Modules\EducationCourseController;
 use App\Http\Controllers\Modules\EducationEventController;
 use App\Http\Controllers\Modules\EducationLearningController;
+use App\Http\Controllers\Modules\EducationQuizController;
 use App\Http\Controllers\Modules\EducationReportController;
 use App\Http\Controllers\AssetPublicController;
 
@@ -682,6 +683,8 @@ Route::middleware('auth')->group(function () {
         Route::get('/', [EducationLearningController::class, 'index'])->name('index');
         Route::get('/egitimlerim', [EducationLearningController::class, 'index'])->name('learning.index');
         Route::get('/egitimlerim/{assignment}/video', [EducationLearningController::class, 'video'])->name('learning.video');
+        Route::get('/egitimlerim/{assignment}/quiz', [EducationQuizController::class, 'take'])->name('learning.quiz');
+        Route::post('/egitimlerim/{assignment}/quiz', [EducationQuizController::class, 'submit'])->name('learning.quiz.submit');
         Route::get('/egitimlerim/{assignment}', [EducationLearningController::class, 'show'])->name('learning.show');
         Route::post('/egitimlerim/{assignment}/ilerleme', [EducationLearningController::class, 'progress'])->name('learning.progress');
 
@@ -690,6 +693,8 @@ Route::middleware('auth')->group(function () {
             Route::get('/yeni', [EducationCourseController::class, 'create'])->name('create');
             Route::post('/', [EducationCourseController::class, 'store'])->name('store');
             Route::get('/{course}/video', [EducationCourseController::class, 'video'])->name('video');
+            Route::get('/{course}/quiz', [EducationQuizController::class, 'edit'])->name('quiz.edit');
+            Route::put('/{course}/quiz', [EducationQuizController::class, 'update'])->name('quiz.update');
             Route::get('/{course}', [EducationCourseController::class, 'show'])->name('show');
             Route::get('/{course}/duzenle', [EducationCourseController::class, 'edit'])->name('edit');
             Route::put('/{course}', [EducationCourseController::class, 'update'])->name('update');

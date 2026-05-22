@@ -27,7 +27,7 @@ class EducationCourseController extends BaseModuleController
         $language = $request->get('language');
 
         $courses = EducationCourse::with(['trainer'])
-            ->withCount(['assignments'])
+            ->withCount(['assignments', 'quizQuestions'])
             ->when($language, fn ($query) => $query->where('language', $language))
             ->latest()
             ->paginate(12)
@@ -63,7 +63,13 @@ class EducationCourseController extends BaseModuleController
 
     public function show(EducationCourse $course)
     {
-        $course->load(['trainer', 'assignments.learner']);
+        $course->load([
+            'trainer',
+            'quizQuestions.options',
+            'assignments.learner.branch',
+            'assignments.latestQuizAttempt',
+            'assignments.passedQuizAttempt',
+        ]);
 
         return view('modules.education.courses.show', compact('course'));
     }

@@ -22,11 +22,13 @@ class EducationCourse extends Model
         'video_path',
         'video_original_name',
         'duration_seconds',
+        'quiz_min_correct',
         'is_active',
     ];
 
     protected $casts = [
         'duration_seconds' => 'integer',
+        'quiz_min_correct' => 'integer',
         'is_active' => 'boolean',
     ];
 
@@ -40,8 +42,27 @@ class EducationCourse extends Model
         return $this->hasMany(EducationAssignment::class);
     }
 
+    public function quizQuestions(): HasMany
+    {
+        return $this->hasMany(EducationQuizQuestion::class)->orderBy('sort_order');
+    }
+
+    public function quizAttempts(): HasMany
+    {
+        return $this->hasMany(EducationQuizAttempt::class);
+    }
+
     public function getLanguageLabelAttribute(): string
     {
         return self::LANGUAGES[$this->language] ?? strtoupper((string) $this->language);
+    }
+
+    public function getHasQuizAttribute(): bool
+    {
+        if ($this->relationLoaded('quizQuestions')) {
+            return $this->quizQuestions->isNotEmpty();
+        }
+
+        return $this->quizQuestions()->exists();
     }
 }

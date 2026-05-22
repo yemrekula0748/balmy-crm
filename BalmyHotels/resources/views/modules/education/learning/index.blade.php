@@ -50,9 +50,25 @@
                                 <small class="text-muted">%{{ number_format($assignment->progress_percent, 1) }}</small>
                                 <small class="fw-semibold">{{ $assignment->status_label }}</small>
                             </div>
+                            @if($assignment->course && $assignment->course->has_quiz)
+                                <div class="mb-3">
+                                    @if($assignment->quiz_passed)
+                                        <span class="badge bg-success">Quiz onaylandi</span>
+                                    @elseif($assignment->video_completed)
+                                        <span class="badge bg-warning text-dark">Quiz bekliyor</span>
+                                    @else
+                                        <span class="badge bg-light text-dark">Quiz video sonrasi</span>
+                                    @endif
+                                </div>
+                            @endif
                             <a href="{{ route('education.learning.show', $assignment) }}" class="btn btn-sm btn-primary w-100">
                                 <i class="fas fa-play me-1"></i>Izle
                             </a>
+                            @if($assignment->course && $assignment->course->has_quiz && $assignment->video_completed && ! $assignment->quiz_passed)
+                                <a href="{{ route('education.learning.quiz', $assignment) }}" class="btn btn-sm btn-outline-primary w-100 mt-2">
+                                    <i class="fas fa-question-circle me-1"></i>Quiz'e Gir
+                                </a>
+                            @endif
                         </div>
                     </div>
                 @empty
