@@ -488,12 +488,22 @@
             @if($user->hasPermission('education_courses','index') || $user->hasPermission('education_assignments','index') || $user->hasPermission('education_learning','index') || $user->hasPermission('education_events','index') || $user->hasPermission('education_reports','index'))
             @php
                 $educationWeeklyCount = 0;
+                $educationEventPendingCount = 0;
                 if ($user->hasPermission('education_learning', 'index')) {
                     $educationWeeklyCount = \App\Models\EducationAssignment::where('user_id', $user->id)
                         ->where('assigned_week_start', now()->startOfWeek()->toDateString())
                         ->where('status', '!=', \App\Models\EducationAssignment::STATUS_COMPLETED)
                         ->count();
                 }
+                if ($user->hasPermission('education_events', 'index')) {
+                    $educationEventPendingCount = \App\Models\EducationEventResponse::where('user_id', $user->id)
+                        ->where('status', \App\Models\EducationEventResponse::STATUS_PENDING)
+                        ->whereHas('event', fn ($eventQuery) => $eventQuery
+                            ->where('is_active', true)
+                            ->whereDate('starts_at', '>=', now()->toDateString()))
+                        ->count();
+                }
+                $educationTotalPendingCount = $educationWeeklyCount + $educationEventPendingCount;
             @endphp
             <li @class(['mm-active' => request()->is('egitim-ve-gelisim*')])>
                 <a class="has-arrow ai-icon" href="javascript:void()" aria-expanded="false">
@@ -503,7 +513,12 @@
                         <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
                         <path d="M4 4.5A2.5 2.5 0 0 1 6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5z"/>
                     </svg>
-                    <span class="nav-text">Egitim ve Gelisim</span>
+                    <span class="nav-text">
+                        Egitim ve Gelisim
+                        @if($educationTotalPendingCount > 0)
+                            <span style="display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:17px;padding:0 5px;background:#ef4444;color:#fff;border-radius:9px;font-size:.65rem;font-weight:700;margin-left:5px;line-height:1;vertical-align:middle">{{ $educationTotalPendingCount }}</span>
+                        @endif
+                    </span>
                 </a>
                 <ul aria-expanded="false">
                     @if($user->hasPermission('education_learning','index'))
@@ -528,7 +543,12 @@
                     @endif
                     @if($user->hasPermission('education_events','index'))
                     <li @class(['mm-active' => request()->is('egitim-ve-gelisim/yuz-yuze*')])>
-                        <a href="{{ route('education.events.index') }}">Yuz Yuze Egitimler</a>
+                        <a href="{{ route('education.events.index') }}">
+                            Yuz Yuze Egitimler
+                            @if($educationEventPendingCount > 0)
+                                <span style="display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:17px;padding:0 5px;background:#f97316;color:#fff;border-radius:9px;font-size:.65rem;font-weight:700;margin-left:5px;line-height:1;vertical-align:middle">{{ $educationEventPendingCount }}</span>
+                            @endif
+                        </a>
                     </li>
                     @endif
                     @if($user->hasPermission('education_reports','index'))

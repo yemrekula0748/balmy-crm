@@ -30,8 +30,9 @@ class EducationEventController extends BaseModuleController
 
         $events = $query->orderByDesc('starts_at')->paginate(15);
         $canSeeParticipationData = $this->canSeeParticipationData();
+        $pendingEventNotificationCount = $this->pendingEventNotificationQuery()->count();
 
-        return view('modules.education.events.index', compact('events', 'canSeeParticipationData'));
+        return view('modules.education.events.index', compact('events', 'canSeeParticipationData', 'pendingEventNotificationCount'));
     }
 
     public function create()
@@ -236,6 +237,16 @@ class EducationEventController extends BaseModuleController
         }
 
         return true;
+    }
+
+    private function pendingEventNotificationQuery()
+    {
+        return EducationEventResponse::query()
+            ->where('user_id', Auth::id())
+            ->where('status', EducationEventResponse::STATUS_PENDING)
+            ->whereHas('event', fn ($query) => $query
+                ->where('is_active', true)
+                ->whereDate('starts_at', '>=', now()->toDateString()));
     }
 
     private function canViewEvent(EducationEvent $event): bool

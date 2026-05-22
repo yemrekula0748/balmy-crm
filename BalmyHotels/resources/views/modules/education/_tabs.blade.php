@@ -1,4 +1,15 @@
-@php($eduUser = auth()->user())
+@php
+    $eduUser = auth()->user();
+    $educationEventPendingCount = 0;
+    if ($eduUser && $eduUser->hasPermission('education_events', 'index')) {
+        $educationEventPendingCount = \App\Models\EducationEventResponse::where('user_id', $eduUser->id)
+            ->where('status', \App\Models\EducationEventResponse::STATUS_PENDING)
+            ->whereHas('event', fn ($eventQuery) => $eventQuery
+                ->where('is_active', true)
+                ->whereDate('starts_at', '>=', now()->toDateString()))
+            ->count();
+    }
+@endphp
 <div class="card border-0 shadow-sm mb-3" style="border-radius:8px">
     <div class="card-body py-2">
         <div class="d-flex flex-wrap gap-2">
@@ -20,6 +31,9 @@
             @if($eduUser->hasPermission('education_events','index'))
                 <a href="{{ route('education.events.index') }}" class="btn btn-sm {{ request()->is('egitim-ve-gelisim/yuz-yuze*') ? 'btn-primary' : 'btn-outline-primary' }}">
                     <i class="fas fa-calendar-check me-1"></i>Yuz Yuze
+                    @if($educationEventPendingCount > 0)
+                        <span class="badge bg-warning text-dark ms-1">{{ $educationEventPendingCount }}</span>
+                    @endif
                 </a>
             @endif
             @if($eduUser->hasPermission('education_reports','index'))
