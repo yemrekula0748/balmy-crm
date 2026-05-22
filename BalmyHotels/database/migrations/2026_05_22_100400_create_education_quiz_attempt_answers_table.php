@@ -10,15 +10,30 @@ return new class extends Migration
     {
         Schema::create('education_quiz_attempt_answers', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('education_quiz_attempt_id')->constrained('education_quiz_attempts')->cascadeOnDelete();
-            $table->foreignId('education_quiz_question_id')->constrained('education_quiz_questions')->cascadeOnDelete();
-            $table->foreignId('education_quiz_option_id')->nullable()->constrained('education_quiz_options')->nullOnDelete();
+            $table->foreignId('education_quiz_attempt_id');
+            $table->foreignId('education_quiz_question_id');
+            $table->foreignId('education_quiz_option_id')->nullable();
             $table->boolean('is_correct')->default(false)->index();
             $table->timestamps();
 
+            $table->foreign('education_quiz_attempt_id', 'edu_qaa_attempt_fk')
+                ->references('id')
+                ->on('education_quiz_attempts')
+                ->cascadeOnDelete();
+
+            $table->foreign('education_quiz_question_id', 'edu_qaa_question_fk')
+                ->references('id')
+                ->on('education_quiz_questions')
+                ->cascadeOnDelete();
+
+            $table->foreign('education_quiz_option_id', 'edu_qaa_option_fk')
+                ->references('id')
+                ->on('education_quiz_options')
+                ->nullOnDelete();
+
             $table->unique(
                 ['education_quiz_attempt_id', 'education_quiz_question_id'],
-                'education_quiz_attempt_answer_unique'
+                'edu_qaa_attempt_question_unique'
             );
         });
     }
