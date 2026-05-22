@@ -31,6 +31,38 @@ use App\Http\Controllers\Api\AgentScreenshotController;
 use App\Http\Controllers\Api\VncController;
 use App\Http\Controllers\Api\DeletionController;
 use App\Http\Controllers\Api\AgentAutoScreenshotController;
+use App\Http\Controllers\Api\Mobile\MobileAuthController;
+use App\Http\Controllers\Api\Mobile\MobileDoorLogController;
+use App\Http\Controllers\Api\Mobile\MobileGuestLogController;
+use App\Http\Controllers\Api\Mobile\MobileOrderController;
+use App\Http\Controllers\Api\Mobile\MobileRoleController;
+use App\Http\Controllers\Api\Mobile\MobileUserController;
+
+Route::prefix('auth')->group(function () {
+    Route::post('login', [MobileAuthController::class, 'login']);
+
+    Route::middleware('auth:sanctum')->group(function () {
+        Route::get('me', [MobileAuthController::class, 'me']);
+        Route::post('logout', [MobileAuthController::class, 'logout']);
+    });
+});
+
+Route::middleware('auth:sanctum')->group(function () {
+    Route::apiResource('users', MobileUserController::class);
+    Route::get('door-logs', [MobileDoorLogController::class, 'index']);
+    Route::get('guest-logs', [MobileGuestLogController::class, 'index']);
+    Route::post('guest-logs', [MobileGuestLogController::class, 'store']);
+    Route::put('guest-logs/{id}', [MobileGuestLogController::class, 'checkOut']);
+    Route::get('roles', [MobileRoleController::class, 'index']);
+    Route::post('roles', [MobileRoleController::class, 'store']);
+    Route::delete('roles/{name}', [MobileRoleController::class, 'destroy']);
+    Route::get('role-permissions', [MobileRoleController::class, 'permissions']);
+    Route::put('role-permissions', [MobileRoleController::class, 'updatePermission']);
+    Route::get('orders', [MobileOrderController::class, 'index']);
+    Route::post('orders', [MobileOrderController::class, 'store']);
+    Route::put('orders/{id}', [MobileOrderController::class, 'updateStatus']);
+    Route::get('restaurants', [MobileOrderController::class, 'restaurants']);
+});
 
 Route::middleware(['agent.key', 'throttle:60,1'])->group(function () {
     Route::post('/agent/report',           [AgentReportController::class,         'store']);
