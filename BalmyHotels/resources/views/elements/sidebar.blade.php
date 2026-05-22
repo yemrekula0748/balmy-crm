@@ -3,32 +3,49 @@
 <style>
     .education-sidebar-link {
         position: relative;
-        padding-right: 4.25rem !important;
+        padding-right: 2.75rem !important;
     }
     .education-sidebar-badge {
-        position: absolute;
-        right: 2.15rem;
-        top: 50%;
-        transform: translateY(-50%);
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        min-width: 20px;
-        height: 20px;
-        padding: 0 6px;
+        min-width: 16px;
+        height: 16px;
+        padding: 0 5px;
+        margin-left: 6px;
         border-radius: 999px;
         background: #ef4444;
         color: #fff;
-        font-size: .68rem;
+        font-size: .58rem;
         font-weight: 800;
         line-height: 1;
-        box-shadow: 0 4px 10px rgba(239, 68, 68, .35);
-        z-index: 2;
+        box-shadow: 0 2px 6px rgba(239, 68, 68, .28);
+        vertical-align: middle;
     }
     .education-sidebar-badge-warning {
-        right: 1.25rem;
         background: #f97316;
-        box-shadow: 0 4px 10px rgba(249, 115, 22, .35);
+        box-shadow: 0 2px 6px rgba(249, 115, 22, .28);
+    }
+    .education-sidebar-main-link .nav-text {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        min-width: 0;
+        white-space: nowrap;
+    }
+    .education-sidebar-badge-main {
+        min-width: 14px;
+        height: 14px;
+        padding: 0 4px;
+        margin-left: 0;
+        font-size: .5rem;
+        box-shadow: 0 1px 4px rgba(239, 68, 68, .22);
+        transform: translateY(-1px);
+    }
+    .education-sidebar-link .nav-text {
+        display: inline-flex;
+        align-items: center;
+        min-width: 0;
     }
 </style>
 
@@ -547,17 +564,19 @@
                 $educationTotalPendingCount = $educationWeeklyCount + $educationEventPendingCount;
             @endphp
             <li @class(['mm-active' => request()->is('egitim-ve-gelisim*')])>
-                <a class="has-arrow ai-icon education-sidebar-link" href="javascript:void()" aria-expanded="false">
+                <a class="has-arrow ai-icon education-sidebar-link education-sidebar-main-link" href="javascript:void()" aria-expanded="false">
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
                          fill="none" stroke="currentColor" stroke-width="2"
                          stroke-linecap="round" stroke-linejoin="round" style="min-width:20px">
                         <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
                         <path d="M4 4.5A2.5 2.5 0 0 1 6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5z"/>
                     </svg>
-                    <span class="nav-text">Egitim ve Gelisim</span>
-                    @if($educationTotalPendingCount > 0)
-                        <span class="education-sidebar-badge">{{ $educationTotalPendingCount }}</span>
-                    @endif
+                    <span class="nav-text">
+                        Egitim ve Gelisim
+                        @if($educationTotalPendingCount > 0)
+                            <span class="education-sidebar-badge education-sidebar-badge-main">{{ $educationTotalPendingCount }}</span>
+                        @endif
+                    </span>
                 </a>
                 <ul aria-expanded="false">
                     @if($user->hasPermission('education_learning','index'))
