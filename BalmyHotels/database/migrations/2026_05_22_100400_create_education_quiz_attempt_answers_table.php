@@ -8,6 +8,8 @@ return new class extends Migration
 {
     public function up(): void
     {
+        Schema::dropIfExists('education_quiz_attempt_answers');
+
         Schema::create('education_quiz_attempt_answers', function (Blueprint $table) {
             $table->id();
             $table->foreignId('education_quiz_attempt_id');
