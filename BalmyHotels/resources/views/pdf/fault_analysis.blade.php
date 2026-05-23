@@ -91,6 +91,49 @@ body {
 /* ═══ PAGE BODY ══════════════════════════════════════════════ */
 .body-wrap { padding: 24px 36px; }
 
+.narrative-box {
+    border: 1px solid #e2e8f0;
+    border-left: 4px solid #6366f1;
+    background: #f8fafc;
+    border-radius: 8px;
+    padding: 12px 14px;
+    margin-bottom: 18px;
+    page-break-inside: avoid;
+}
+.narrative-head {
+    display: table;
+    width: 100%;
+    margin-bottom: 7px;
+}
+.narrative-title {
+    display: table-cell;
+    font-size: 9pt;
+    font-weight: bold;
+    color: #0f172a;
+    vertical-align: middle;
+}
+.narrative-score {
+    display: table-cell;
+    width: 70px;
+    text-align: right;
+    font-size: 16pt;
+    font-weight: bold;
+    vertical-align: middle;
+}
+.narrative-text {
+    font-size: 8.5pt;
+    color: #334155;
+    line-height: 1.6;
+    margin-bottom: 8px;
+}
+.narrative-actions {
+    margin: 6px 0 0 14px;
+    padding: 0;
+    font-size: 8pt;
+    color: #475569;
+    line-height: 1.5;
+}
+
 /* ═══ SECTION LABEL ══════════════════════════════════════════ */
 .section-divider {
     margin: 22px 0 14px;
@@ -315,6 +358,27 @@ body {
 </div>
 
 <div class="body-wrap">
+
+@if(!empty($narrative ?? null))
+<div class="narrative-box" style="border-left-color: {{ $narrative['risk_color'] ?? '#6366f1' }}">
+    <div class="narrative-head">
+        <div class="narrative-title">
+            Yönetici Özeti · {{ $narrative['risk_label'] ?? 'Analiz' }}
+        </div>
+        <div class="narrative-score" style="color: {{ $narrative['risk_color'] ?? '#6366f1' }}">
+            {{ $narrative['risk_score'] ?? 0 }}
+        </div>
+    </div>
+    <div class="narrative-text">{{ $narrative['summary'] ?? '' }}</div>
+    @if(!empty($narrative['action_plan']))
+    <ol class="narrative-actions">
+        @foreach(array_slice($narrative['action_plan'], 0, 4) as $step)
+        <li>{{ $step }}</li>
+        @endforeach
+    </ol>
+    @endif
+</div>
+@endif
 
 @php
 $levelMeta = [

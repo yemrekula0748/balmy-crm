@@ -58,6 +58,13 @@
 
         .attach-note { background:#eff6ff; border:1px solid #bfdbfe; border-radius:8px;
                        padding:14px 18px; margin-bottom:22px; font-size:12px; color:#1d4ed8; }
+        .brief       { background:#f8fafc; border:1px solid #e2e8f0; border-left:4px solid #6366f1;
+                       border-radius:8px; padding:15px 17px; margin-bottom:22px; }
+        .brief-top   { display:table; width:100%; margin-bottom:7px; }
+        .brief-title { display:table-cell; font-size:13px; font-weight:800; color:#0f172a; vertical-align:middle; }
+        .brief-score { display:table-cell; width:54px; text-align:right; font-size:22px; font-weight:800; vertical-align:middle; }
+        .brief-text  { font-size:12px; color:#334155; line-height:1.7; margin:0 0 8px; }
+        .brief-action { font-size:11px; color:#475569; line-height:1.6; margin:7px 0 0 17px; padding:0; }
         .footer      { background:#f8f9fb; border-top:1px solid #e2e8f0; padding:16px 36px;
                        font-size:10px; color:#94a3b8; text-align:center; }
     </style>
@@ -89,6 +96,23 @@
             📎 Raporun detaylı PDF versiyonu bu e-postaya ek olarak eklenmiştir.
             PDF üzerinde arıza bazlı bağlantılar, metrikler ve tüm analiz bulguları yer almaktadır.
         </div>
+
+        @if(!empty($narrative ?? null))
+        <div class="brief" style="border-left-color: {{ $narrative['risk_color'] ?? '#6366f1' }}">
+            <div class="brief-top">
+                <div class="brief-title">Yönetici Özeti · {{ $narrative['risk_label'] ?? 'Analiz' }}</div>
+                <div class="brief-score" style="color: {{ $narrative['risk_color'] ?? '#6366f1' }}">{{ $narrative['risk_score'] ?? 0 }}</div>
+            </div>
+            <p class="brief-text">{{ $narrative['summary'] ?? '' }}</p>
+            @if(!empty($narrative['action_plan']))
+            <ol class="brief-action">
+                @foreach(array_slice($narrative['action_plan'], 0, 3) as $step)
+                <li>{{ $step }}</li>
+                @endforeach
+            </ol>
+            @endif
+        </div>
+        @endif
 
         {{-- Summary Chips --}}
         <div class="sec-hdr">Özet</div>

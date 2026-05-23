@@ -69,6 +69,125 @@
 .sch-lbl  { font-size: .74rem; color: #64748b; margin-top: 3px; font-weight: 500; }
 .sch-sub  { font-size: .68rem; color: #94a3b8; margin-top: 1px; }
 
+/* AI executive brief */
+.ai-brief {
+    position: relative;
+    overflow: hidden;
+    background: linear-gradient(135deg, #ffffff 0%, #f8fbff 100%);
+    border: 1px solid #e2e8f0;
+    border-radius: 18px;
+    box-shadow: 0 12px 34px rgba(15,23,42,.07);
+    padding: 22px;
+    margin: -8px 0 26px;
+}
+.ai-brief::before {
+    content: '';
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 5px;
+    background: linear-gradient(180deg, var(--risk-color, #6366f1), rgba(99,102,241,.3));
+}
+.ai-brief-grid {
+    display: grid;
+    grid-template-columns: minmax(210px,.86fr) minmax(260px,1.12fr) minmax(260px,1.18fr);
+    gap: 18px;
+    position: relative;
+}
+.ai-risk-panel {
+    background: #0f172a;
+    border-radius: 15px;
+    padding: 18px;
+    color: #fff;
+    min-height: 100%;
+}
+.ai-risk-top { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-bottom: 14px; }
+.ai-risk-score {
+    width: 78px;
+    height: 78px;
+    border-radius: 24px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: #1e293b;
+    border: 1px solid rgba(255,255,255,.18);
+    box-shadow: 0 12px 28px rgba(15,23,42,.22);
+    background: color-mix(in srgb, var(--risk-color, #6366f1) 24%, #111827);
+    border: 1px solid color-mix(in srgb, var(--risk-color, #6366f1) 52%, rgba(255,255,255,.18));
+    box-shadow: 0 12px 28px color-mix(in srgb, var(--risk-color, #6366f1) 25%, transparent);
+}
+.ai-risk-score strong { font-size: 1.65rem; line-height: 1; }
+.ai-risk-score span { font-size: .64rem; text-transform: uppercase; letter-spacing: .09em; color: rgba(255,255,255,.62); margin-top: 4px; }
+.ai-risk-label { font-size: .82rem; font-weight: 800; letter-spacing: .02em; margin-bottom: 4px; }
+.ai-risk-sub { font-size: .72rem; color: rgba(255,255,255,.58); line-height: 1.55; }
+.ai-brief-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: .78rem;
+    font-weight: 850;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: #334155;
+    margin-bottom: 11px;
+}
+.ai-brief-title i { color: var(--risk-color, #6366f1); }
+.ai-brief-text { font-size: .86rem; color: #334155; line-height: 1.75; margin: 0; }
+.ai-focus-list,
+.ai-action-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; }
+.ai-focus-item {
+    display: grid;
+    grid-template-columns: 9px 1fr;
+    gap: 10px;
+    padding: 11px 12px;
+    background: #fff;
+    border: 1px solid #eef2f7;
+    border-radius: 12px;
+}
+.ai-focus-dot { width: 9px; height: 9px; border-radius: 999px; margin-top: 6px; background: #64748b; }
+.ai-focus-critical .ai-focus-dot { background: #ef4444; }
+.ai-focus-warning .ai-focus-dot { background: #f59e0b; }
+.ai-focus-info .ai-focus-dot { background: #3b82f6; }
+.ai-focus-positive .ai-focus-dot { background: #10b981; }
+.ai-focus-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+.ai-focus-name { font-size: .8rem; font-weight: 760; color: #0f172a; line-height: 1.35; }
+.ai-focus-metric { font-size: .66rem; font-weight: 800; color: #475569; background: #f1f5f9; border-radius: 6px; padding: 2px 7px; white-space: nowrap; }
+.ai-focus-why { font-size: .72rem; color: #64748b; line-height: 1.55; margin-top: 4px; }
+.ai-action-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    font-size: .78rem;
+    line-height: 1.55;
+    color: #334155;
+    background: rgba(248,250,252,.85);
+    border: 1px solid #edf2f7;
+    border-radius: 11px;
+    padding: 10px 12px;
+}
+.ai-action-index {
+    width: 22px;
+    height: 22px;
+    border-radius: 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    color: #fff;
+    background: var(--risk-color, #6366f1);
+    font-size: .68rem;
+    font-weight: 850;
+}
+.ai-confidence {
+    margin-top: 14px;
+    padding-top: 13px;
+    border-top: 1px solid rgba(255,255,255,.12);
+    font-size: .72rem;
+    color: rgba(255,255,255,.62);
+    line-height: 1.55;
+}
+.ai-confidence strong { color: #fff; }
+
 /* ═══════ SECTION DIVIDER ════════════════════════════════════════════════ */
 .ai-section { display: flex; align-items: center; gap: 12px; margin: 30px 0 18px; }
 .ai-section-line { flex: 1; height: 1px; background: #e8ecf0; }
@@ -203,6 +322,9 @@
 @media (max-width: 767px) {
     .ai-hero-inner { padding: 22px 20px; }
     .ai-hero-title { font-size: 1.3rem; }
+    .ai-brief { padding: 16px; margin-top: -4px; }
+    .ai-brief-grid { grid-template-columns: 1fr; }
+    .ai-risk-top { align-items: flex-start; }
     .ai-card-body { padding: 16px 18px; }
     .ai-summary-chip { min-width: 130px; }
 }
@@ -312,6 +434,70 @@ $levelMeta = [
             </div>
         </div>
     </div>
+
+    @if(!empty($narrative))
+    <div class="ai-brief" style="--risk-color: {{ $narrative['risk_color'] ?? '#6366f1' }}">
+        <div class="ai-brief-grid">
+            <div class="ai-risk-panel">
+                <div class="ai-risk-top">
+                    <div>
+                        <div class="ai-risk-label">{{ $narrative['risk_label'] ?? 'Analiz özeti' }}</div>
+                        <div class="ai-risk-sub">
+                            Karar destek skoru, açık iş oranı, tekrar eden bulgular ve öncelik seviyeleriyle hesaplandı.
+                        </div>
+                    </div>
+                    <div class="ai-risk-score">
+                        <strong>{{ $narrative['risk_score'] ?? 0 }}</strong>
+                        <span>risk</span>
+                    </div>
+                </div>
+                <p class="ai-risk-sub" style="margin:0">{{ $narrative['summary'] ?? '' }}</p>
+                <div class="ai-confidence">
+                    <strong>Veri güveni: {{ $narrative['confidence_label'] ?? 'Orta' }}</strong><br>
+                    {{ $narrative['confidence_text'] ?? 'Bulgular mevcut veri yoğunluğuna göre yorumlanmıştır.' }}
+                </div>
+            </div>
+
+            <div>
+                <div class="ai-brief-title">
+                    <i class="fas fa-crosshairs"></i>
+                    Önceliklendirilmiş Odak
+                </div>
+                <ul class="ai-focus-list">
+                    @foreach(($narrative['focus_items'] ?? []) as $item)
+                    <li class="ai-focus-item ai-focus-{{ $item['level'] ?? 'info' }}">
+                        <span class="ai-focus-dot"></span>
+                        <div>
+                            <div class="ai-focus-head">
+                                <span class="ai-focus-name">{{ $item['title'] ?? 'Operasyonel bulgu' }}</span>
+                                @if(!empty($item['metric']))
+                                <span class="ai-focus-metric">{{ $item['metric'] }}</span>
+                                @endif
+                            </div>
+                            <div class="ai-focus-why">{{ $item['why'] ?? '' }}</div>
+                        </div>
+                    </li>
+                    @endforeach
+                </ul>
+            </div>
+
+            <div>
+                <div class="ai-brief-title">
+                    <i class="fas fa-list-check"></i>
+                    Önerilen Aksiyon Planı
+                </div>
+                <ol class="ai-action-list">
+                    @foreach(($narrative['action_plan'] ?? []) as $step)
+                    <li class="ai-action-item">
+                        <span class="ai-action-index">{{ $loop->iteration }}</span>
+                        <span>{{ $step }}</span>
+                    </li>
+                    @endforeach
+                </ol>
+            </div>
+        </div>
+    </div>
+    @endif
 
     {{-- ── Summary Chips ────────────────────────────────────────────────── --}}
     <div class="ai-summary">

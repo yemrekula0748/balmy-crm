@@ -1258,10 +1258,12 @@ class FaultController extends BaseModuleController
         $order = ['critical' => 0, 'warning' => 1, 'info' => 2, 'positive' => 3];
         usort($insights, fn($a, $b) => ($order[$a['level']] ?? 9) <=> ($order[$b['level']] ?? 9));
 
+        $narrative = $this->buildAnalysisNarrative($allFaults, $insights, $todayFaults, $yestFaults, $now);
+
         $page_title = 'Yapay Zeka Analizi';
         return view('modules.faults.analysis', compact(
             'insights', 'allFaults', 'todayFaults', 'yestFaults',
-            'dayBeforeFaults', 'windowStart', 'now', 'page_title'
+            'dayBeforeFaults', 'windowStart', 'now', 'page_title', 'narrative'
         ));
     }
 
@@ -1290,13 +1292,18 @@ class FaultController extends BaseModuleController
 
         $todayFaults  = $allFaults->filter(fn($f) => $f->created_at->gte($todayStart));
         $yestStart    = $now->copy()->subDay()->startOfDay();
+        $yestFaults   = $allFaults->filter(fn($f) =>
+            $f->created_at->gte($yestStart) && $f->created_at->lt($todayStart)
+        );
 
         // Aynı analiz mantığını kullan
         $insights = $this->buildAnalysisInsights($allFaults, $now, $todayStart, $yestStart, $windowStart);
+        $narrative = $this->buildAnalysisNarrative($allFaults, $insights, $todayFaults, $yestFaults, $now);
 
         $grouped = collect($insights)->groupBy('level');
         $viewData = [
             'insights'      => $insights,
+            'narrative'     => $narrative,
             'windowStart'   => $windowStart->format('d.m.Y'),
             'reportDate'    => $now->format('d.m.Y H:i'),
             'totalFaults'   => $allFaults->count(),
@@ -1336,6 +1343,139 @@ class FaultController extends BaseModuleController
     /* ---------------------------------------------------------------
      | ORTAK: ANALİZ HESAPLAMA
      --------------------------------------------------------------- */
+    private function buildAnalysisNarrative($allFaults, array $insights, $todayFaults, $yestFaults, $now): array
+    {
+        $insightCollection = collect($insights);
+        $totalFaults = $allFaults->count();
+        $todayCount = $todayFaults->count();
+        $yesterdayCount = $yestFaults->count();
+        $trendDiff = $todayCount - $yesterdayCount;
+
+        $criticalCount = $insightCollection->where('level', 'critical')->count();
+        $warningCount = $insightCollection->where('level', 'warning')->count();
+        $infoCount = $insightCollection->where('level', 'info')->count();
+        $positiveCount = $insightCollection->where('level', 'positive')->count();
+
+        $activeStatuses = ['open', 'in_progress', 'winter_plan', 'waiting_material'];
+        $openFaults = $allFaults->filter(fn($fault) => in_array($fault->status, $activeStatuses, true));
+        $criticalOpen = $openFaults->where('priority', 'critical')->count();
+        $highOpen = $openFaults->filter(fn($fault) => in_array($fault->priority, ['high', 'critical'], true))->count();
+        $unresolvedRate = $totalFaults > 0 ? (int) round(($openFaults->count() / $totalFaults) * 100) : 0;
+
+        $riskScore = (int) min(100, max(0,
+            ($criticalCount * 22)
+            + ($warningCount * 11)
+            + ($infoCount * 3)
+            - ($positiveCount * 5)
+            + (int) round($unresolvedRate * .35)
+            + ($criticalOpen * 10)
+            + ($highOpen * 4)
+        ));
+
+        if ($riskScore >= 75) {
+            $riskLabel = 'Kritik takip';
+            $riskLevel = 'critical';
+            $riskColor = '#ef4444';
+        } elseif ($riskScore >= 50) {
+            $riskLabel = 'Yakın izleme';
+            $riskLevel = 'warning';
+            $riskColor = '#f59e0b';
+        } elseif ($riskScore >= 25) {
+            $riskLabel = 'Kontrollü seyir';
+            $riskLevel = 'info';
+            $riskColor = '#3b82f6';
+        } else {
+            $riskLabel = 'Stabil görünüm';
+            $riskLevel = 'positive';
+            $riskColor = '#10b981';
+        }
+
+        $trendLabel = $trendDiff > 0
+            ? 'bugün düne göre ' . $trendDiff . ' kayıt arttı'
+            : ($trendDiff < 0
+                ? 'bugün düne göre ' . abs($trendDiff) . ' kayıt azaldı'
+                : 'bugün ve dün aynı yoğunlukta');
+
+        $focusItems = $insightCollection
+            ->filter(fn($insight) => in_array($insight['level'] ?? 'info', ['critical', 'warning'], true))
+            ->take(3)
+            ->map(fn($insight) => [
+                'title' => $insight['title'] ?? 'Operasyonel bulgu',
+                'level' => $insight['level'] ?? 'info',
+                'metric' => $insight['metric']['value'] ?? null,
+                'why' => \Illuminate\Support\Str::limit(strip_tags($insight['body'] ?? ''), 155),
+            ])
+            ->values()
+            ->all();
+
+        if (empty($focusItems)) {
+            $focusItems[] = [
+                'title' => $positiveCount > 0 ? 'Genel tablo olumlu; kontrol ritmini koruyun' : 'Henüz belirgin bir risk örüntüsü yok',
+                'level' => $positiveCount > 0 ? 'positive' : 'info',
+                'metric' => $totalFaults,
+                'why' => $totalFaults > 0
+                    ? 'Son 3 günlük veride kritik tekrar veya acil müdahale sinyali düşük görünüyor.'
+                    : 'Analiz penceresinde arıza kaydı bulunmadığı için sistem yalnızca izleme önerisi üretiyor.',
+            ];
+        }
+
+        $actionPlan = [];
+        if ($criticalCount > 0 || $criticalOpen > 0) {
+            $actionPlan[] = 'İlk 30 dakika içinde kritik/açık kayıtları sorumlu departmanla eşleştirip net hedef saat belirleyin.';
+        }
+        if ($highOpen > 0) {
+            $actionPlan[] = 'Acil ve kritik öncelikli açık işlerde vardiya devri yapılmadan önce sahiplik ve bekleyen malzeme durumunu kontrol edin.';
+        }
+        if ($insightCollection->contains(fn($insight) => str_contains(mb_strtolower(($insight['title'] ?? '') . ' ' . implode(' ', $insight['tags'] ?? [])), 'tekrar'))) {
+            $actionPlan[] = 'Tekrarlayan alan/tür kombinasyonlarında geçici müdahale yerine kök neden ve kalıcı onarım kontrolü açın.';
+        }
+        if ($insightCollection->contains(fn($insight) => str_contains(mb_strtolower($insight['title'] ?? ''), 'sla') || str_contains(mb_strtolower($insight['body'] ?? ''), 'sla'))) {
+            $actionPlan[] = 'SLA aşımı görünen işlerde gecikme nedenini departman, malzeme ve lokasyon kırılımıyla notlayın.';
+        }
+        if ($trendDiff > 0) {
+            $actionPlan[] = 'Bugünkü artışın saat aralığı ve lokasyon yoğunluğunu vardiya sorumlusuyla birlikte teyit edin.';
+        }
+
+        $actionPlan[] = 'Gün sonunda açık kalan kayıtlar için "neden açık kaldı, sonraki adım ne, sorumlu kim?" bilgisini zorunlu kapatma notu gibi takip edin.';
+        $actionPlan = array_slice(array_values(array_unique($actionPlan)), 0, 5);
+
+        $confidenceLabel = $totalFaults >= 15 ? 'Yüksek' : ($totalFaults >= 5 ? 'Orta' : 'Düşük');
+        $confidenceText = $totalFaults >= 15
+            ? 'Analiz yeterli veri yoğunluğuyla çalışıyor; örüntü yorumları daha güvenilir.'
+            : ($totalFaults >= 5
+                ? 'Veri miktarı orta seviyede; bulgular yön gösterir, saha teyidi önerilir.'
+                : 'Veri hacmi düşük; bu nedenle yorumlar erken uyarı niteliğinde okunmalıdır.');
+
+        $summary = sprintf(
+            'Son 3 günlük pencerede %d arıza kaydı ve %d analiz bulgusu değerlendirildi. Genel risk seviyesi %s olarak okunuyor; %s. Açık iş oranı %d%%, kritik açık kayıt sayısı %d.',
+            $totalFaults,
+            count($insights),
+            mb_strtolower($riskLabel),
+            $trendLabel,
+            $unresolvedRate,
+            $criticalOpen
+        );
+
+        return [
+            'risk_score' => $riskScore,
+            'risk_label' => $riskLabel,
+            'risk_level' => $riskLevel,
+            'risk_color' => $riskColor,
+            'summary' => $summary,
+            'focus_items' => $focusItems,
+            'action_plan' => $actionPlan,
+            'confidence_label' => $confidenceLabel,
+            'confidence_text' => $confidenceText,
+            'trend_label' => $trendLabel,
+            'open_count' => $openFaults->count(),
+            'unresolved_rate' => $unresolvedRate,
+            'critical_count' => $criticalCount,
+            'warning_count' => $warningCount,
+            'info_count' => $infoCount,
+            'positive_count' => $positiveCount,
+        ];
+    }
+
     private function buildAnalysisInsights($allFaults, $now, $todayStart, $yestStart, $windowStart): array
     {
         $todayFaults = $allFaults->filter(fn($f) => $f->created_at->gte($todayStart));
@@ -1692,4 +1832,3 @@ class FaultController extends BaseModuleController
         return $insights;
     }
 }
-
