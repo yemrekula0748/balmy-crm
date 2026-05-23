@@ -13,6 +13,10 @@
 .metric-value { font-size:1.5rem;font-weight:850;color:#172033;line-height:1;margin-top:7px; }
 .table thead th { background:#f8fafc;color:#64748b;font-size:.72rem;text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid #e8eef5; }
 .table td { vertical-align:middle;font-size:.86rem; }
+.name-cloud { display:flex;flex-wrap:wrap;gap:6px;max-width:260px; }
+.name-pill { display:inline-flex;border:1px solid #e8eef5;background:#f8fafc;border-radius:999px;padding:4px 9px;font-size:.72rem;font-weight:700;color:#475569; }
+.name-pill.present { background:#ecfdf5;border-color:#bbf7d0;color:#047857; }
+.name-pill.missing { background:#fef2f2;border-color:#fecaca;color:#b91c1c; }
 </style>
 @endpush
 
@@ -101,15 +105,40 @@
                                 <th>Tarih</th>
                                 <th class="text-center">Gelen</th>
                                 <th class="text-center">Beklenen</th>
+                                <th>Gelen İsimler</th>
+                                <th>Gelmeyen İsimler</th>
                                 <th class="text-end">Giriş İşlemi</th>
                             </tr>
                         </thead>
                         <tbody>
                             @foreach($event->dates as $date)
+                            @php
+                                $presentParticipants = $date->attendances->pluck('participant')->filter()->values();
+                                $presentIds = $presentParticipants->pluck('id')->all();
+                                $missingParticipants = $event->participants->whereNotIn('id', $presentIds)->values();
+                            @endphp
                             <tr>
                                 <td class="fw-bold">{{ $date->event_date->format('d.m.Y') }}</td>
                                 <td class="text-center">{{ $date->attendances->count() }}</td>
                                 <td class="text-center">{{ $event->participants->count() }}</td>
+                                <td>
+                                    <div class="name-cloud">
+                                        @forelse($presentParticipants as $participant)
+                                        <span class="name-pill present">{{ $participant->name }}</span>
+                                        @empty
+                                        <span class="text-muted small">Henüz işaretlenmedi</span>
+                                        @endforelse
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="name-cloud">
+                                        @forelse($missingParticipants as $participant)
+                                        <span class="name-pill missing">{{ $participant->name }}</span>
+                                        @empty
+                                        <span class="text-muted small">Eksik yok</span>
+                                        @endforelse
+                                    </div>
+                                </td>
                                 <td class="text-end">
                                     @if(auth()->user()->hasPermission('event_tracking', 'index'))
                                     <a href="{{ route('door-logs.event-tracking.show', $date) }}" class="btn btn-sm btn-outline-primary">

@@ -104,7 +104,7 @@ class AnimationEventController extends BaseModuleController
     {
         $this->authorizeEventBranch($event);
 
-        $event->load(['branch', 'creator', 'dates.attendances', 'participants']);
+        $event->load(['branch', 'creator', 'dates.attendances.participant', 'participants']);
         $page_title = $event->name;
 
         return view('modules.animation.events.show', compact('event', 'page_title'));
