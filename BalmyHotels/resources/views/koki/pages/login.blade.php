@@ -11,11 +11,6 @@
                                 <img src="{{ asset('images/logo.svg') }}" alt="Balmy Hotels" style="height:55px;">
                             </a>
                         </div>
-                        <div class="text-center mb-4">
-                            <div style="font-size:24px;font-weight:800;color:#1f2937;letter-spacing:.02em;">BalmyCRM</div>
-                            <div style="font-size:14px;font-weight:700;color:#c19b77;margin-top:4px;">Core Resort Management</div>
-                            <div style="font-size:13px;color:#64748b;margin-top:2px;">Temel Otel Operasyon Yönetimi</div>
-                        </div>
                         <h4 class="text-center mb-4">Hesabınıza Giriş Yapın</h4>
 
 
@@ -45,6 +40,10 @@
                             </div>
                             <div class="text-center">
                                 <button type="submit" class="btn btn-primary btn-block">Giriş Yap</button>
+                            </div>
+                            <div class="text-center mt-4">
+                                <div style="font-size:14px;font-weight:700;color:#c19b77;">Core Resort Management</div>
+                                <div style="font-size:13px;color:#64748b;margin-top:2px;">Temel Otel Operasyon Yönetimi</div>
                             </div>
                         </form>
                     </div>
