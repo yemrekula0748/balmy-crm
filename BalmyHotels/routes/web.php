@@ -354,6 +354,8 @@ Route::middleware('auth')->group(function () {
         Route::get('/bildirdiklerim',            [FaultController::class, 'myReports'])->name('my-reports');
         Route::get('/departmanim',               [FaultController::class, 'myDepartment'])->name('my-department');
         Route::get('/istatistikler',              [FaultController::class, 'stats'])->name('stats');
+        Route::get('/oda-raporu',                [FaultController::class, 'roomReport'])->name('room-report');
+        Route::get('/ariza-raporu',              [FaultController::class, 'typeReport'])->name('type-report');
         Route::get('/analiz',                    [FaultController::class, 'analysis'])->name('analysis');
         Route::post('/analiz/gonder',            [FaultController::class, 'sendAnalysisReport'])->name('analysis.send');
 

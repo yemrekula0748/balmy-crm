@@ -157,7 +157,7 @@
             @endif
 
             {{-- TEKNİK ARIZA --}}
-            @if($user->hasPermission('faults', 'index') || $user->hasPermission('faults', 'create'))
+            @if($user->hasPermission('faults', 'index') || $user->hasPermission('faults', 'create') || $user->hasPermission('fault_stats', 'index') || $user->hasPermission('fault_room_reports', 'index') || $user->hasPermission('fault_type_reports', 'index'))
             <li @class(['mm-active' => request()->is('arizalar*')])>
                 <a class="has-arrow ai-icon" href="javascript:void()" aria-expanded="false">
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
@@ -199,6 +199,14 @@
                     @endif
                     @if($user->hasPermission('fault_stats', 'index'))
                     <li><a href="{{ route('faults.stats') }}">İstatistikler &amp; Skor</a></li>
+                    @endif
+                    @if($user->hasPermission('fault_room_reports', 'index'))
+                    <li><a href="{{ route('faults.room-report') }}">Oda Bazlı Rapor</a></li>
+                    @endif
+                    @if($user->hasPermission('fault_type_reports', 'index'))
+                    <li><a href="{{ route('faults.type-report') }}">Arıza Bazlı Rapor</a></li>
+                    @endif
+                    @if($user->hasPermission('fault_stats', 'index'))
                     <li>
                         <a href="{{ route('faults.analysis') }}" class="d-flex align-items-center gap-1">
                             Analiz

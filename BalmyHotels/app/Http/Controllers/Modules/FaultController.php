@@ -15,6 +15,7 @@ use App\Models\FaultType;
 use App\Models\FaultUpdate;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
@@ -26,12 +27,15 @@ class FaultController extends BaseModuleController
         $this->requirePermission(
             'faults',
             ['index', 'incoming', 'myReports', 'myDepartment', 'ajaxDepartments', 'ajaxLocations', 'ajaxAreas', 'ajaxFaultTypes'],
-            ['show'],
+            [],
             ['create', 'store'],
             ['edit', 'update', 'updateStatus', 'addComment', 'assign'],
             ['destroy']
         );
+        $this->middleware('fault.detail')->only(['show']);
         $this->middleware('perm:fault_stats,index')->only(['stats', 'analysis', 'sendAnalysisReport']);
+        $this->middleware('perm:fault_room_reports,index')->only(['roomReport']);
+        $this->middleware('perm:fault_type_reports,index')->only(['typeReport']);
     }
 
 
@@ -751,6 +755,254 @@ class FaultController extends BaseModuleController
     }
 
     /* ---------------------------------------------------------------
+     | ODA BAZLI RAPOR
+     --------------------------------------------------------------- */
+    public function roomReport(Request $request)
+    {
+        $request->validate([
+            'branch_id'         => 'nullable|integer',
+            'fault_location_id' => 'nullable|integer',
+            'fault_area_id'     => 'nullable|integer',
+            'fault_type_id'     => 'nullable|integer',
+            'status'            => 'nullable|in:open,in_progress,winter_plan,waiting_material,resolved,closed',
+            'date_from'         => 'nullable|date',
+            'date_to'           => 'nullable|date|after_or_equal:date_from',
+        ]);
+
+        $user = auth()->user();
+        $branchIds = $user->visibleBranchIds();
+
+        $branches = Branch::whereIn('id', $branchIds)->orderBy('name')->get();
+        $locations = FaultLocation::with('branch')
+            ->whereIn('branch_id', $branchIds)
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->get();
+        $areas = FaultArea::with('location.branch')
+            ->where('is_active', true)
+            ->whereHas('location', fn($q) => $q->whereIn('branch_id', $branchIds)->where('is_active', true))
+            ->get()
+            ->sortBy(fn($area) => ($area->location?->branch?->name ?? '') . ' ' . ($area->location?->name ?? '') . ' ' . $area->name)
+            ->values();
+        $faultTypes = FaultType::where('is_active', true)
+            ->where(fn($q) => $q->whereNull('branch_id')->orWhereIn('branch_id', $branchIds))
+            ->orderBy('name')
+            ->get();
+
+        $selectedArea = null;
+        if ($request->filled('branch_id')) {
+            abort_if(!in_array((int) $request->branch_id, $branchIds, true), 403);
+        }
+        if ($request->filled('fault_location_id')) {
+            abort_if(!FaultLocation::whereKey($request->fault_location_id)->whereIn('branch_id', $branchIds)->exists(), 403);
+        }
+        if ($request->filled('fault_area_id')) {
+            $selectedArea = FaultArea::with('location.branch')
+                ->whereKey($request->fault_area_id)
+                ->whereHas('location', fn($q) => $q->whereIn('branch_id', $branchIds))
+                ->firstOrFail();
+        }
+
+        $hasSearch = $request->filled('branch_id')
+            || $request->filled('fault_location_id')
+            || $request->filled('fault_area_id')
+            || $request->filled('fault_type_id')
+            || $request->filled('status')
+            || $request->filled('date_from')
+            || $request->filled('date_to');
+
+        $baseQuery = Fault::with(['branch', 'department', 'faultType', 'faultLocation', 'faultArea', 'reporter'])
+            ->whereIn('branch_id', $branchIds);
+
+        if ($request->filled('branch_id')) {
+            $baseQuery->where('branch_id', $request->branch_id);
+        }
+        if ($request->filled('fault_location_id')) {
+            $baseQuery->where('fault_location_id', $request->fault_location_id);
+        }
+        if ($request->filled('fault_area_id')) {
+            $baseQuery->where('fault_area_id', $request->fault_area_id);
+        }
+        if ($request->filled('fault_type_id')) {
+            $baseQuery->where('fault_type_id', $request->fault_type_id);
+        }
+        if ($request->filled('status')) {
+            $baseQuery->where('status', $request->status);
+        }
+        if ($request->filled('date_from')) {
+            $baseQuery->whereDate('created_at', '>=', $request->date_from);
+        }
+        if ($request->filled('date_to')) {
+            $baseQuery->whereDate('created_at', '<=', $request->date_to);
+        }
+
+        $reportFaults = $hasSearch ? (clone $baseQuery)->latest()->get() : collect();
+        $faults = $hasSearch
+            ? (clone $baseQuery)->latest()->paginate(30)->withQueryString()
+            : $this->emptyFaultPaginator($request);
+
+        $typeStats = $reportFaults
+            ->groupBy(fn($fault) => $fault->fault_type_id ?: 'unknown')
+            ->map(function ($group) {
+                $first = $group->first();
+                $resolved = $group->whereIn('status', ['resolved', 'closed'])->count();
+                $open = $group->whereNotIn('status', ['resolved', 'closed'])->count();
+                $avgHours = $group->whereNotNull('resolved_at')->avg(fn($fault) => $fault->created_at->diffInMinutes($fault->resolved_at) / 60);
+
+                return [
+                    'type' => $first?->faultType,
+                    'name' => $first?->faultType?->name ?? 'Tür seçilmemiş',
+                    'total' => $group->count(),
+                    'open' => $open,
+                    'resolved' => $resolved,
+                    'last_fault' => $group->sortByDesc('created_at')->first(),
+                    'avg_hours' => $avgHours,
+                ];
+            })
+            ->sortByDesc('total')
+            ->values();
+
+        $summary = [
+            'total' => $reportFaults->count(),
+            'open' => $reportFaults->whereNotIn('status', ['resolved', 'closed'])->count(),
+            'resolved' => $reportFaults->whereIn('status', ['resolved', 'closed'])->count(),
+            'type_count' => $typeStats->count(),
+        ];
+
+        $page_title = 'Oda Bazlı Arıza Raporu';
+
+        return view('modules.faults.reports.room', compact(
+            'branches', 'locations', 'areas', 'faultTypes', 'selectedArea',
+            'faults', 'reportFaults', 'typeStats', 'summary', 'page_title'
+        ));
+    }
+
+    /* ---------------------------------------------------------------
+     | ARIZA TÜRÜ BAZLI RAPOR
+     --------------------------------------------------------------- */
+    public function typeReport(Request $request)
+    {
+        $request->validate([
+            'branch_id'         => 'nullable|integer',
+            'fault_location_id' => 'nullable|integer',
+            'fault_type_id'     => 'nullable|integer',
+            'status'            => 'nullable|in:open,in_progress,winter_plan,waiting_material,resolved,closed',
+            'date_from'         => 'nullable|date',
+            'date_to'           => 'nullable|date|after_or_equal:date_from',
+        ]);
+
+        $user = auth()->user();
+        $branchIds = $user->visibleBranchIds();
+
+        $branches = Branch::whereIn('id', $branchIds)->orderBy('name')->get();
+        $locations = FaultLocation::with('branch')
+            ->whereIn('branch_id', $branchIds)
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->get();
+        $faultTypes = FaultType::where('is_active', true)
+            ->where(fn($q) => $q->whereNull('branch_id')->orWhereIn('branch_id', $branchIds))
+            ->orderBy('name')
+            ->get();
+
+        if ($request->filled('branch_id')) {
+            abort_if(!in_array((int) $request->branch_id, $branchIds, true), 403);
+        }
+        if ($request->filled('fault_location_id')) {
+            abort_if(!FaultLocation::whereKey($request->fault_location_id)->whereIn('branch_id', $branchIds)->exists(), 403);
+        }
+
+        $filterQuery = Fault::with(['branch', 'department', 'faultType', 'faultLocation', 'faultArea', 'reporter'])
+            ->whereIn('branch_id', $branchIds);
+
+        if ($request->filled('branch_id')) {
+            $filterQuery->where('branch_id', $request->branch_id);
+        }
+        if ($request->filled('fault_location_id')) {
+            $filterQuery->where('fault_location_id', $request->fault_location_id);
+        }
+        if ($request->filled('status')) {
+            $filterQuery->where('status', $request->status);
+        }
+        if ($request->filled('date_from')) {
+            $filterQuery->whereDate('created_at', '>=', $request->date_from);
+        }
+        if ($request->filled('date_to')) {
+            $filterQuery->whereDate('created_at', '<=', $request->date_to);
+        }
+
+        $topTypes = (clone $filterQuery)
+            ->whereNotNull('fault_type_id')
+            ->latest()
+            ->get()
+            ->groupBy('fault_type_id')
+            ->map(function ($group) {
+                $first = $group->first();
+                return [
+                    'type' => $first?->faultType,
+                    'name' => $first?->faultType?->name ?? 'Tür seçilmemiş',
+                    'total' => $group->count(),
+                    'room_count' => $group->whereNotNull('fault_area_id')->pluck('fault_area_id')->unique()->count(),
+                    'last_fault' => $group->sortByDesc('created_at')->first(),
+                ];
+            })
+            ->sortByDesc('total')
+            ->take(12)
+            ->values();
+
+        $selectedType = null;
+        $reportFaults = collect();
+        $faults = $this->emptyFaultPaginator($request);
+        $roomStats = collect();
+        $summary = ['total' => 0, 'room_count' => 0, 'open' => 0, 'resolved' => 0, 'top_room' => null];
+
+        if ($request->filled('fault_type_id')) {
+            $selectedType = FaultType::where('is_active', true)
+                ->where(fn($q) => $q->whereNull('branch_id')->orWhereIn('branch_id', $branchIds))
+                ->findOrFail($request->fault_type_id);
+
+            $typeQuery = (clone $filterQuery)->where('fault_type_id', $selectedType->id);
+            $reportFaults = (clone $typeQuery)->latest()->get();
+            $faults = (clone $typeQuery)->latest()->paginate(30)->withQueryString();
+
+            $roomStats = $reportFaults
+                ->groupBy(fn($fault) => $fault->fault_area_id ?: 'no_area')
+                ->map(function ($group) {
+                    $first = $group->first();
+                    return [
+                        'area' => $first?->faultArea,
+                        'location' => $first?->faultLocation,
+                        'branch' => $first?->branch,
+                        'room_name' => $first?->faultArea?->name ?? 'Alan seçilmemiş',
+                        'location_name' => $first?->faultLocation?->name ?? '-',
+                        'branch_name' => $first?->branch?->name ?? '-',
+                        'total' => $group->count(),
+                        'open' => $group->whereNotIn('status', ['resolved', 'closed'])->count(),
+                        'resolved' => $group->whereIn('status', ['resolved', 'closed'])->count(),
+                        'last_fault' => $group->sortByDesc('created_at')->first(),
+                    ];
+                })
+                ->sortByDesc('total')
+                ->values();
+
+            $summary = [
+                'total' => $reportFaults->count(),
+                'room_count' => $roomStats->count(),
+                'open' => $reportFaults->whereNotIn('status', ['resolved', 'closed'])->count(),
+                'resolved' => $reportFaults->whereIn('status', ['resolved', 'closed'])->count(),
+                'top_room' => $roomStats->first(),
+            ];
+        }
+
+        $page_title = 'Arıza Bazlı Rapor';
+
+        return view('modules.faults.reports.type', compact(
+            'branches', 'locations', 'faultTypes', 'selectedType',
+            'topTypes', 'roomStats', 'faults', 'reportFaults', 'summary', 'page_title'
+        ));
+    }
+
+    /* ---------------------------------------------------------------
      | ANALİZ — Son 3 Gün Yapay Zeka Analiz Raporu
      --------------------------------------------------------------- */
     public function analysis()
@@ -1343,6 +1595,17 @@ class FaultController extends BaseModuleController
     /* ---------------------------------------------------------------
      | ORTAK: ANALİZ HESAPLAMA
      --------------------------------------------------------------- */
+    private function emptyFaultPaginator(Request $request, int $perPage = 30): LengthAwarePaginator
+    {
+        return new LengthAwarePaginator(
+            collect(),
+            0,
+            $perPage,
+            LengthAwarePaginator::resolveCurrentPage(),
+            ['path' => $request->url(), 'query' => $request->query()]
+        );
+    }
+
     private function buildAnalysisNarrative($allFaults, array $insights, $todayFaults, $yestFaults, $now): array
     {
         $insightCollection = collect($insights);

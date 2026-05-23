@@ -45,6 +45,8 @@ class RolePermissionSeeder extends Seeder
             'faults'         => ['index'=>1,'show'=>1,'create'=>1,'edit'=>1,'delete'=>0],
             'fault_types'    => ['index'=>1,'show'=>0,'create'=>0,'edit'=>0,'delete'=>0],
             'fault_locations'=> ['index'=>1,'show'=>0,'create'=>0,'edit'=>0,'delete'=>0],
+            'fault_room_reports' => ['index'=>1,'show'=>1,'create'=>0,'edit'=>0,'delete'=>0],
+            'fault_type_reports' => ['index'=>1,'show'=>1,'create'=>0,'edit'=>0,'delete'=>0],
             'guest_logs'     => ['index'=>1,'show'=>1,'create'=>1,'edit'=>1,'delete'=>0],
             'door_logs'      => ['index'=>1,'show'=>0,'create'=>1,'edit'=>0,'delete'=>0],
             'assets'         => ['index'=>1,'show'=>1,'create'=>0,'edit'=>0,'delete'=>0],

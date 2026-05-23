@@ -47,6 +47,8 @@ class RolePermission extends Model
             'fault_types'    => 'Arıza Tipleri',
             'fault_locations'=> 'Arıza Konumları',
             'fault_stats'    => 'Arıza İstatistikleri',
+            'fault_room_reports' => 'Oda Bazlı Arıza Raporu',
+            'fault_type_reports' => 'Arıza Bazlı Rapor',
         ],
         'Demirbaş' => [
             'assets'         => 'Demirbaş Envanter',
