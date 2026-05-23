@@ -5,16 +5,18 @@
 @push('styles')
 <style>
 .fault-report-hero {
-    background: linear-gradient(135deg, #111827 0%, #1e3a5f 55%, #0f766e 100%);
-    color: #fff;
+    background: #fff;
+    color: #1e293b;
+    border: 1px solid #e8eef5;
+    border-left: 5px solid #1e3a5f;
     border-radius: 18px;
     padding: 26px 30px;
     margin-bottom: 22px;
-    box-shadow: 0 14px 36px rgba(15,23,42,.14);
+    box-shadow: 0 6px 22px rgba(15,23,42,.06);
 }
-.fault-report-hero small { color: rgba(255,255,255,.65); font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+.fault-report-hero small { color: #64748b; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
 .fault-report-hero h3 { margin: 7px 0 8px; font-weight: 850; letter-spacing: -.02em; }
-.fault-report-hero p { margin: 0; color: rgba(255,255,255,.74); max-width: 760px; line-height: 1.65; }
+.fault-report-hero p { margin: 0; color: #64748b; max-width: 760px; line-height: 1.65; }
 .filter-card, .report-card {
     background: #fff;
     border: 1px solid #e8eef5;
