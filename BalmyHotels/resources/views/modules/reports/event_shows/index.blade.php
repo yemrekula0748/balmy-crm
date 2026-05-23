@@ -19,8 +19,10 @@
 .name-pill.present { background:#ecfdf5;border-color:#bbf7d0;color:#047857; }
 .name-pill.missing { background:#fef2f2;border-color:#fecaca;color:#b91c1c; }
 .empty-state { text-align:center;padding:45px 18px;color:#64748b; }
+.report-action-row { display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap;padding-top:4px; }
+.report-action-row .btn { min-width:132px;display:inline-flex;align-items:center;justify-content:center; }
 @media (max-width: 991px) { .metric-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } }
-@media (max-width: 575px) { .metric-grid { grid-template-columns:1fr; } }
+@media (max-width: 575px) { .metric-grid { grid-template-columns:1fr; } .report-action-row .btn { width:100%; } }
 </style>
 @endpush
 
@@ -74,9 +76,18 @@
                 <label class="form-label fw-semibold small">Bitiş</label>
                 <input type="date" name="date_to" value="{{ $dateTo }}" class="form-control">
             </div>
-            <div class="col-lg-2 col-md-12 d-flex gap-2">
-                <a href="{{ route('reports.event-shows') }}" class="btn btn-outline-secondary w-50">Temizle</a>
-                <button class="btn btn-primary w-50">Raporla</button>
+            <div class="col-12">
+                <div class="report-action-row">
+                    <a href="{{ route('reports.event-shows') }}" class="btn btn-outline-secondary">
+                        Temizle
+                    </a>
+                    <button class="btn btn-primary" type="submit">
+                        Raporla
+                    </button>
+                    <a href="{{ route('reports.event-shows.pdf', request()->query()) }}" class="btn btn-outline-dark">
+                        <i class="fas fa-file-pdf me-1"></i> PDF Çıktı
+                    </a>
+                </div>
             </div>
         </div>
     </form>

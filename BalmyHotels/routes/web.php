@@ -643,6 +643,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/google', [\App\Http\Controllers\Modules\GoogleReportController::class, 'index'])->name('google');
         Route::post('/google/snapshot', [\App\Http\Controllers\Modules\GoogleReportController::class, 'snapshot'])->name('google.snapshot');
         Route::get('/etkinlik-show', [EventShowReportController::class, 'index'])->name('event-shows');
+        Route::get('/etkinlik-show/pdf', [EventShowReportController::class, 'pdf'])->name('event-shows.pdf');
     });
 
     /*

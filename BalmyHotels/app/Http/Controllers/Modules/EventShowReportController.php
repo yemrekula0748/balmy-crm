@@ -5,16 +5,40 @@ namespace App\Http\Controllers\Modules;
 use App\Models\AnimationEvent;
 use App\Models\AnimationEventDate;
 use App\Models\Branch;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 
 class EventShowReportController extends BaseModuleController
 {
     public function __construct()
     {
-        $this->requirePermission('event_show_reports', ['index'], [], [], [], []);
+        $this->requirePermission('event_show_reports', ['index', 'pdf'], [], [], [], []);
     }
 
     public function index(Request $request)
+    {
+        return view('modules.reports.event_shows.index', $this->buildReportPayload($request));
+    }
+
+    public function pdf(Request $request)
+    {
+        $payload = $this->buildReportPayload($request);
+        $payload['generatedAt'] = now();
+
+        $pdf = Pdf::loadView('modules.reports.event_shows.pdf', $payload)
+            ->setPaper('a4', 'landscape')
+            ->setOptions([
+                'defaultFont' => 'DejaVu Sans',
+                'isHtml5ParserEnabled' => true,
+                'isRemoteEnabled' => false,
+            ]);
+
+        $fileName = 'etkinlik-show-raporu-' . $payload['dateFrom'] . '-' . $payload['dateTo'] . '.pdf';
+
+        return $pdf->download($fileName);
+    }
+
+    private function buildReportPayload(Request $request): array
     {
         $request->validate([
             'branch_id' => 'nullable|integer',
@@ -31,10 +55,17 @@ class EventShowReportController extends BaseModuleController
             abort_if(!in_array((int) $request->branch_id, $branchIds, true), 403);
         }
 
+        if ($request->filled('animation_event_id')) {
+            abort_if(
+                !AnimationEvent::whereKey($request->animation_event_id)->whereIn('branch_id', $branchIds)->exists(),
+                403
+            );
+        }
+
         $branches = Branch::whereIn('id', $branchIds)->orderBy('name')->get();
         $events = AnimationEvent::whereIn('branch_id', $branchIds)->orderBy('name')->get();
 
-        $query = AnimationEventDate::with(['event.branch', 'event.participants', 'attendances.participant'])
+        $eventDates = AnimationEventDate::with(['event.branch', 'event.participants', 'attendances.participant'])
             ->whereBetween('event_date', [$dateFrom, $dateTo])
             ->whereHas('event', function ($q) use ($branchIds, $request) {
                 $q->whereIn('branch_id', $branchIds);
@@ -47,9 +78,8 @@ class EventShowReportController extends BaseModuleController
                     $q->whereKey($request->animation_event_id);
                 }
             })
-            ->orderBy('event_date');
-
-        $eventDates = $query->get();
+            ->orderBy('event_date')
+            ->get();
 
         $rows = $eventDates->map(function (AnimationEventDate $eventDate) {
             $participants = $eventDate->event->participants;
@@ -79,16 +109,14 @@ class EventShowReportController extends BaseModuleController
             ? round(($summary['present_count'] / $summary['expected_count']) * 100)
             : 0;
 
-        $page_title = 'Etkinlik/Show Raporları';
-
-        return view('modules.reports.event_shows.index', compact(
-            'branches',
-            'events',
-            'rows',
-            'summary',
-            'dateFrom',
-            'dateTo',
-            'page_title'
-        ));
+        return [
+            'branches' => $branches,
+            'events' => $events,
+            'rows' => $rows,
+            'summary' => $summary,
+            'dateFrom' => $dateFrom,
+            'dateTo' => $dateTo,
+            'page_title' => 'Etkinlik/Show Raporları',
+        ];
     }
 }
