@@ -70,6 +70,9 @@ use App\Http\Controllers\Modules\EducationEventController;
 use App\Http\Controllers\Modules\EducationLearningController;
 use App\Http\Controllers\Modules\EducationQuizController;
 use App\Http\Controllers\Modules\EducationReportController;
+use App\Http\Controllers\Modules\AnimationEventController;
+use App\Http\Controllers\Modules\EventTrackingController;
+use App\Http\Controllers\Modules\EventShowReportController;
 use App\Http\Controllers\AssetPublicController;
 
 /*
@@ -308,6 +311,9 @@ Route::middleware('auth')->group(function () {
         Route::post('/manuel',        [DoorLogController::class, 'store'])->name('store');
         Route::post('/hizli',         [DoorLogController::class, 'quick'])->name('quick');
         Route::delete('/{doorLog}',   [DoorLogController::class, 'destroy'])->name('destroy');
+        Route::get('/etkinlik-takip',        [EventTrackingController::class, 'index'])->name('event-tracking.index');
+        Route::get('/etkinlik-takip/{eventDate}', [EventTrackingController::class, 'show'])->name('event-tracking.show');
+        Route::post('/etkinlik-takip/{eventDate}', [EventTrackingController::class, 'store'])->name('event-tracking.store');
         Route::get('/ik-rapor',              [HrReportController::class, 'index'])->name('hr-report');
         Route::get('/ik-rapor/pdf',          [HrReportController::class, 'pdf'])->name('hr-report-pdf');
         Route::get('/ik-rapor/personeller',  [HrReportController::class, 'staffByBranch'])->name('hr-report-staff');
@@ -321,6 +327,19 @@ Route::middleware('auth')->group(function () {
     Route::prefix('kapi-rapor')->name('door-reports.')->group(function () {
         Route::get('/',         [DoorLogReportController::class, 'index'])->name('index');
         Route::get('/pdf',      [DoorLogReportController::class, 'pdf'])->name('pdf');
+    });
+
+    /*
+    |--------------------------------------------------------------------------
+    | Animasyon Modülü
+    |--------------------------------------------------------------------------
+    */
+    Route::prefix('animasyon')->name('animation.')->group(function () {
+        Route::get('/etkinlikler',             [AnimationEventController::class, 'index'])->name('events.index');
+        Route::get('/etkinlikler/yeni',        [AnimationEventController::class, 'create'])->name('events.create');
+        Route::post('/etkinlikler',            [AnimationEventController::class, 'store'])->name('events.store');
+        Route::get('/etkinlikler/{event}',     [AnimationEventController::class, 'show'])->name('events.show');
+        Route::delete('/etkinlikler/{event}',  [AnimationEventController::class, 'destroy'])->name('events.destroy');
     });
 
     /*
@@ -623,6 +642,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/tripadvisor/snapshot', [\App\Http\Controllers\Modules\TripAdvisorReportController::class, 'snapshot'])->name('tripadvisor.snapshot');
         Route::get('/google', [\App\Http\Controllers\Modules\GoogleReportController::class, 'index'])->name('google');
         Route::post('/google/snapshot', [\App\Http\Controllers\Modules\GoogleReportController::class, 'snapshot'])->name('google.snapshot');
+        Route::get('/etkinlik-show', [EventShowReportController::class, 'index'])->name('event-shows');
     });
 
     /*

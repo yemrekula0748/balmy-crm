@@ -38,9 +38,13 @@ class RolePermission extends Model
         ],
         'Güvenlik & Misafir' => [
             'door_logs'        => 'Kapı Geçiş Logları',
+            'event_tracking'   => 'Etkinlik Takip',
             'door_log_reports' => 'Kapı Geçiş Raporları',
             'hr_reports'       => 'İ.K Raporları (Tüm Şubeler)',
             'guest_logs'       => 'Misafir Logları',
+        ],
+        'Animasyon' => [
+            'animation_events' => 'Etkinlik Oluşturma',
         ],
         'Teknik Arıza' => [
             'faults'         => 'Arızalar',
@@ -72,9 +76,10 @@ class RolePermission extends Model
         'Sürdürülebilirlik' => [
             'carbon_footprint' => 'Karbon Ayak İzi Raporları',
         ],
-        'Raporlar' => [
+        'Genel Raporlar' => [
             'tripadvisor_report' => 'TripAdvisor Puanları',
             'google_report'      => 'Google Puanları',
+            'event_show_reports' => 'Etkinlik/Show Raporları',
         ],
         'Servis Takip' => [
             'shuttle_routes'     => 'Güzergah Tanımları',
