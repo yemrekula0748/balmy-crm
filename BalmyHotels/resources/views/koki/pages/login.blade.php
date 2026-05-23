@@ -20,7 +20,7 @@
                             <div class="form-group">
                                 <label class="mb-1"><strong>E-posta</strong></label>
                                 <input type="email" name="email" class="form-control"
-                                    value="{{ old('email') }}" placeholder="admin@balmy.com" required autofocus>
+                                    value="{{ old('email') }}" required autofocus>
                             </div>
                             <div class="form-group position-relative">
                                 <label class="mb-1"><strong>Şifre</strong></label>
