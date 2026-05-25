@@ -46,7 +46,7 @@
                                    class="form-control form-control-sm" placeholder="Güzergah adı...">
                         </div>
                         <div class="col-auto">
-                            <button type="submit" class="btn btn-primary btn-sm">
+                            <button type="submit" class="btn btn-sm" style="background:#c19b77;border-color:#c19b77;color:#fff;">
                                 <i class="fas fa-search me-1"></i> Filtrele
                             </button>
                             <a href="{{ route('shuttle.routes.index') }}" class="btn btn-outline-secondary btn-sm ms-1">

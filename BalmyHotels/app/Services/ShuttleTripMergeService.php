@@ -38,22 +38,22 @@ class ShuttleTripMergeService
             return $primary->loadMissing(['vehicle', 'route', 'branch', 'creator', 'branchMovements.branch']);
         }
 
-        $branchMatrix = $this->buildBranchMatrix($group);
+        $periodMatrix = $this->buildPeriodMatrix($group);
         $route = $group->first(fn (ShuttleTrip $candidate) => ! empty($candidate->route_id))?->route;
 
         $primary->update([
             'route_id' => $route?->id,
-            'arrival_time' => $this->resolveBoundaryTime($branchMatrix, 'arrival_time', 'min'),
-            'arrival_count' => $this->sumBranchMatrix($branchMatrix, 'arrival'),
-            'departure_time' => $this->resolveBoundaryTime($branchMatrix, 'departure_time', 'max'),
-            'departure_count' => $this->sumBranchMatrix($branchMatrix, 'departure'),
+            'arrival_time' => $this->resolveBoundaryTime($periodMatrix, 'arrival_time', 'min'),
+            'arrival_count' => $this->sumPeriodMatrix($periodMatrix, 'arrival'),
+            'departure_time' => $this->resolveBoundaryTime($periodMatrix, 'departure_time', 'max'),
+            'departure_count' => $this->sumPeriodMatrix($periodMatrix, 'departure'),
             'arrived_with_different_vehicle' => $group->contains(fn (ShuttleTrip $candidate) => (bool) $candidate->arrived_with_different_vehicle),
             'is_transfer' => $group->contains(fn (ShuttleTrip $candidate) => (bool) $candidate->is_transfer),
             'notes' => $this->mergeNoteList($group->pluck('notes')->all()),
         ]);
 
         $primary->branchMovements()->delete();
-        $records = $this->serialiseBranchMatrix($branchMatrix);
+        $records = $this->serialisePeriodMatrix($periodMatrix);
         if ($records !== []) {
             $primary->branchMovements()->createMany($records);
         }
@@ -105,7 +105,7 @@ class ShuttleTripMergeService
         $primary = $group->sortBy('id')->first();
         $primary->loadMissing(['vehicle', 'route', 'branch', 'creator', 'branchMovements.branch']);
 
-        $branchMatrix = $this->buildBranchMatrix($group);
+        $periodMatrix = $this->buildPeriodMatrix($group);
         $route = $group->first(fn (ShuttleTrip $candidate) => ! empty($candidate->route_id))?->route;
 
         $primary->route_id = $route?->id;
@@ -113,10 +113,10 @@ class ShuttleTripMergeService
             $primary->setRelation('route', $route);
         }
 
-        $primary->arrival_count = $this->sumBranchMatrix($branchMatrix, 'arrival');
-        $primary->departure_count = $this->sumBranchMatrix($branchMatrix, 'departure');
-        $primary->arrival_time = $this->resolveBoundaryTime($branchMatrix, 'arrival_time', 'min');
-        $primary->departure_time = $this->resolveBoundaryTime($branchMatrix, 'departure_time', 'max');
+        $primary->arrival_count = $this->sumPeriodMatrix($periodMatrix, 'arrival');
+        $primary->departure_count = $this->sumPeriodMatrix($periodMatrix, 'departure');
+        $primary->arrival_time = $this->resolveBoundaryTime($periodMatrix, 'arrival_time', 'min');
+        $primary->departure_time = $this->resolveBoundaryTime($periodMatrix, 'departure_time', 'max');
         $primary->arrived_with_different_vehicle = $group->contains(
             fn (ShuttleTrip $candidate) => (bool) $candidate->arrived_with_different_vehicle
         );
@@ -124,12 +124,12 @@ class ShuttleTripMergeService
             fn (ShuttleTrip $candidate) => (bool) $candidate->is_transfer
         );
         $primary->notes = $this->mergeNoteList($group->pluck('notes')->all());
-        $primary->setRelation('branchMovements', $this->hydrateBranchMovements($primary, $branchMatrix));
+        $primary->setRelation('branchMovements', $this->hydratePeriodMovements($primary, $periodMatrix));
 
         return $primary;
     }
 
-    private function buildBranchMatrix(Collection $group): array
+    private function buildPeriodMatrix(Collection $group): array
     {
         $matrix = [];
 
@@ -137,18 +137,20 @@ class ShuttleTripMergeService
             $trip->loadMissing(['branch', 'branchMovements.branch']);
 
             if ($trip->branchMovements->isEmpty()) {
+                $period = ShuttleTripBranchMovement::DEFAULT_PERIOD;
                 $branchId = (int) $trip->branch_id;
-                $this->primeBranchRow($matrix, $branchId, $trip->branch);
-                $this->applyMovementToMatrix($matrix[$branchId], 'arrival', (int) $trip->arrival_count, $trip->arrival_time);
-                $this->applyMovementToMatrix($matrix[$branchId], 'departure', (int) $trip->departure_count, $trip->departure_time);
+                $this->primeBranchRow($matrix, $period, $branchId, $trip->branch);
+                $this->applyMovementToRow($matrix[$period][$branchId], 'arrival', (int) $trip->arrival_count, $trip->arrival_time);
+                $this->applyMovementToRow($matrix[$period][$branchId], 'departure', (int) $trip->departure_count, $trip->departure_time);
                 continue;
             }
 
             foreach ($trip->branchMovements as $movement) {
+                $period = $this->normalisePeriod($movement->movement_period ?? null);
                 $branchId = (int) $movement->branch_id;
-                $this->primeBranchRow($matrix, $branchId, $movement->branch);
-                $this->applyMovementToMatrix(
-                    $matrix[$branchId],
+                $this->primeBranchRow($matrix, $period, $branchId, $movement->branch);
+                $this->applyMovementToRow(
+                    $matrix[$period][$branchId],
                     $movement->movement_type,
                     (int) $movement->headcount,
                     $movement->movement_time
@@ -156,64 +158,75 @@ class ShuttleTripMergeService
             }
         }
 
-        ksort($matrix);
-
-        return $matrix;
+        return $this->orderPeriodMatrix($matrix);
     }
 
-    private function hydrateBranchMovements(ShuttleTrip $trip, array $branchMatrix): EloquentCollection
+    private function hydratePeriodMovements(ShuttleTrip $trip, array $periodMatrix): EloquentCollection
     {
         $movements = new EloquentCollection();
 
-        foreach ($branchMatrix as $branchId => $row) {
-            foreach (['arrival', 'departure'] as $movementType) {
-                $movement = new ShuttleTripBranchMovement();
-                $movement->forceFill([
-                    'shuttle_trip_id' => $trip->id,
-                    'branch_id' => (int) $branchId,
-                    'movement_type' => $movementType,
-                    'headcount' => (int) ($row[$movementType] ?? 0),
-                    'movement_time' => $row[$movementType . '_time'] ?? null,
-                ]);
-                $movement->exists = true;
+        foreach ($this->orderPeriodMatrix($periodMatrix) as $period => $branchRows) {
+            foreach ($branchRows as $branchId => $row) {
+                foreach (['arrival', 'departure'] as $movementType) {
+                    $movement = new ShuttleTripBranchMovement();
+                    $movement->forceFill([
+                        'shuttle_trip_id' => $trip->id,
+                        'branch_id' => (int) $branchId,
+                        'movement_period' => $period,
+                        'movement_type' => $movementType,
+                        'headcount' => (int) ($row[$movementType] ?? 0),
+                        'movement_time' => $row[$movementType . '_time'] ?? null,
+                    ]);
+                    $movement->exists = true;
 
-                if (! empty($row['branch'])) {
-                    $movement->setRelation('branch', $row['branch']);
+                    if (! empty($row['branch'])) {
+                        $movement->setRelation('branch', $row['branch']);
+                    }
+
+                    $movements->push($movement);
                 }
-
-                $movements->push($movement);
             }
         }
 
         return $movements;
     }
 
-    private function serialiseBranchMatrix(array $branchMatrix): array
+    private function serialisePeriodMatrix(array $periodMatrix): array
     {
         $records = [];
 
-        foreach ($branchMatrix as $branchId => $row) {
-            $records[] = [
-                'branch_id' => (int) $branchId,
-                'movement_type' => 'arrival',
-                'headcount' => (int) ($row['arrival'] ?? 0),
-                'movement_time' => $row['arrival_time'] ?? null,
-            ];
-            $records[] = [
-                'branch_id' => (int) $branchId,
-                'movement_type' => 'departure',
-                'headcount' => (int) ($row['departure'] ?? 0),
-                'movement_time' => $row['departure_time'] ?? null,
-            ];
+        foreach ($this->orderPeriodMatrix($periodMatrix) as $period => $branchRows) {
+            foreach ($branchRows as $branchId => $row) {
+                $records[] = [
+                    'branch_id' => (int) $branchId,
+                    'movement_period' => $period,
+                    'movement_type' => 'arrival',
+                    'headcount' => (int) ($row['arrival'] ?? 0),
+                    'movement_time' => $row['arrival_time'] ?? null,
+                ];
+                $records[] = [
+                    'branch_id' => (int) $branchId,
+                    'movement_period' => $period,
+                    'movement_type' => 'departure',
+                    'headcount' => (int) ($row['departure'] ?? 0),
+                    'movement_time' => $row['departure_time'] ?? null,
+                ];
+            }
         }
 
         return $records;
     }
 
-    private function primeBranchRow(array &$matrix, int $branchId, ?Branch $branch): void
+    private function primeBranchRow(array &$matrix, string $period, int $branchId, ?Branch $branch): void
     {
-        if (! array_key_exists($branchId, $matrix)) {
-            $matrix[$branchId] = [
+        $period = $this->normalisePeriod($period);
+
+        if (! array_key_exists($period, $matrix)) {
+            $matrix[$period] = [];
+        }
+
+        if (! array_key_exists($branchId, $matrix[$period])) {
+            $matrix[$period][$branchId] = [
                 'branch' => $branch,
                 'arrival' => 0,
                 'departure' => 0,
@@ -224,12 +237,12 @@ class ShuttleTripMergeService
             return;
         }
 
-        if (empty($matrix[$branchId]['branch']) && $branch) {
-            $matrix[$branchId]['branch'] = $branch;
+        if (empty($matrix[$period][$branchId]['branch']) && $branch) {
+            $matrix[$period][$branchId]['branch'] = $branch;
         }
     }
 
-    private function applyMovementToMatrix(array &$row, string $movementType, int $count, ?string $time): void
+    private function applyMovementToRow(array &$row, string $movementType, int $count, ?string $time): void
     {
         $time = $this->normaliseTime($time);
 
@@ -244,15 +257,17 @@ class ShuttleTripMergeService
         $row['departure_time'] = $this->pickTime($row['departure_time'], $time, 'max');
     }
 
-    private function sumBranchMatrix(array $branchMatrix, string $column): int
+    private function sumPeriodMatrix(array $periodMatrix, string $column): int
     {
-        return (int) collect($branchMatrix)->sum(fn (array $row) => (int) ($row[$column] ?? 0));
+        return (int) collect($periodMatrix)->sum(
+            fn (array $branchRows) => collect($branchRows)->sum(fn (array $row) => (int) ($row[$column] ?? 0))
+        );
     }
 
-    private function resolveBoundaryTime(array $branchMatrix, string $column, string $mode): ?string
+    private function resolveBoundaryTime(array $periodMatrix, string $column, string $mode): ?string
     {
-        $times = collect($branchMatrix)
-            ->pluck($column)
+        $times = collect($periodMatrix)
+            ->flatMap(fn (array $branchRows) => collect($branchRows)->pluck($column))
             ->filter()
             ->map(fn (?string $time) => $this->normaliseTime($time))
             ->filter()
@@ -296,6 +311,13 @@ class ShuttleTripMergeService
         return $notes->isEmpty() ? null : $notes->implode(' | ');
     }
 
+    private function normalisePeriod(?string $value): string
+    {
+        return array_key_exists((string) $value, ShuttleTripBranchMovement::PERIODS)
+            ? (string) $value
+            : ShuttleTripBranchMovement::DEFAULT_PERIOD;
+    }
+
     private function normaliseTime(?string $value): ?string
     {
         if (! $value) {
@@ -303,6 +325,31 @@ class ShuttleTripMergeService
         }
 
         return substr(trim($value), 0, 5);
+    }
+
+    private function orderPeriodMatrix(array $periodMatrix): array
+    {
+        $ordered = [];
+
+        foreach (array_keys(ShuttleTripBranchMovement::PERIODS) as $period) {
+            if (! array_key_exists($period, $periodMatrix)) {
+                continue;
+            }
+
+            ksort($periodMatrix[$period]);
+            $ordered[$period] = $periodMatrix[$period];
+        }
+
+        foreach ($periodMatrix as $period => $branchRows) {
+            if (array_key_exists($period, $ordered)) {
+                continue;
+            }
+
+            ksort($branchRows);
+            $ordered[$this->normalisePeriod($period)] = $branchRows;
+        }
+
+        return $ordered;
     }
 
     private function groupKey(ShuttleTrip $trip): string

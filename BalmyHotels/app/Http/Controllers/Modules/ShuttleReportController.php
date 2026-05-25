@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Modules;
 use App\Http\Controllers\Modules\BaseModuleController;
 use App\Models\Branch;
 use App\Models\ShuttleTrip;
+use App\Models\ShuttleTripBranchMovement;
 use App\Models\ShuttleVehicle;
 use App\Services\ShuttleTripMergeService;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -386,12 +387,16 @@ class ShuttleReportController extends BaseModuleController
             $tripArrivalTime = $this->resolveTripMovementTime($trip, $reportBranchIds, 'arrival', 'min');
             $tripDepartureTime = $this->resolveTripMovementTime($trip, $reportBranchIds, 'departure', 'max');
             $arrivalSummary = $trip->branchMovements
+                ->filter(fn ($movement) => in_array((int) $movement->branch_id, $reportBranchIds, true)
+                    && ((int) $movement->headcount > 0 || ! empty($movement->movement_time)))
                 ->where('movement_type', 'arrival')
-                ->map(fn ($movement) => ($movement->branch->name ?? '-') . ': ' . ($movement->movement_time ? substr($movement->movement_time, 0, 5) . ' / ' : '') . $movement->headcount)
+                ->map(fn ($movement) => '[' . $movement->period_label . '] ' . ($movement->branch->name ?? '-') . ': ' . ($movement->movement_time ? substr($movement->movement_time, 0, 5) . ' / ' : '') . $movement->headcount)
                 ->implode(', ');
             $departureSummary = $trip->branchMovements
+                ->filter(fn ($movement) => in_array((int) $movement->branch_id, $reportBranchIds, true)
+                    && ((int) $movement->headcount > 0 || ! empty($movement->movement_time)))
                 ->where('movement_type', 'departure')
-                ->map(fn ($movement) => ($movement->branch->name ?? '-') . ': ' . ($movement->movement_time ? substr($movement->movement_time, 0, 5) . ' / ' : '') . $movement->headcount)
+                ->map(fn ($movement) => '[' . $movement->period_label . '] ' . ($movement->branch->name ?? '-') . ': ' . ($movement->movement_time ? substr($movement->movement_time, 0, 5) . ' / ' : '') . $movement->headcount)
                 ->implode(', ');
 
             if ($arrivalSummary === '' && $tripArrivalCount > 0) {
@@ -451,9 +456,10 @@ class ShuttleReportController extends BaseModuleController
             'D1' => 'Plaka',
             'E1' => 'Guzergah',
             'F1' => 'Sube',
-            'G1' => 'Hareket Tipi',
-            'H1' => 'Saat',
-            'I1' => 'Kisi Sayisi',
+            'G1' => 'Donem',
+            'H1' => 'Hareket Tipi',
+            'I1' => 'Saat',
+            'J1' => 'Kisi Sayisi',
         ];
 
         foreach ($headers as $cell => $value) {
@@ -470,9 +476,10 @@ class ShuttleReportController extends BaseModuleController
                     $sheet->setCellValue('D' . $row, $trip->vehicle->plate ?? '-');
                     $sheet->setCellValue('E' . $row, $trip->route->name ?? '-');
                     $sheet->setCellValue('F' . $row, $trip->branch->name ?? '-');
-                    $sheet->setCellValue('G' . $row, 'Gelen');
-                    $sheet->setCellValue('H' . $row, $trip->arrival_time ? substr($trip->arrival_time, 0, 5) : '-');
-                    $sheet->setCellValue('I' . $row, $trip->arrival_count);
+                    $sheet->setCellValue('G' . $row, ShuttleTripBranchMovement::PERIODS[ShuttleTripBranchMovement::DEFAULT_PERIOD]);
+                    $sheet->setCellValue('H' . $row, 'Gelen');
+                    $sheet->setCellValue('I' . $row, $trip->arrival_time ? substr($trip->arrival_time, 0, 5) : '-');
+                    $sheet->setCellValue('J' . $row, $trip->arrival_count);
                     $row++;
                 }
 
@@ -483,9 +490,10 @@ class ShuttleReportController extends BaseModuleController
                     $sheet->setCellValue('D' . $row, $trip->vehicle->plate ?? '-');
                     $sheet->setCellValue('E' . $row, $trip->route->name ?? '-');
                     $sheet->setCellValue('F' . $row, $trip->branch->name ?? '-');
-                    $sheet->setCellValue('G' . $row, 'Giden');
-                    $sheet->setCellValue('H' . $row, $trip->departure_time ? substr($trip->departure_time, 0, 5) : '-');
-                    $sheet->setCellValue('I' . $row, $trip->departure_count);
+                    $sheet->setCellValue('G' . $row, ShuttleTripBranchMovement::PERIODS[ShuttleTripBranchMovement::DEFAULT_PERIOD]);
+                    $sheet->setCellValue('H' . $row, 'Giden');
+                    $sheet->setCellValue('I' . $row, $trip->departure_time ? substr($trip->departure_time, 0, 5) : '-');
+                    $sheet->setCellValue('J' . $row, $trip->departure_count);
                     $row++;
                 }
 
@@ -497,25 +505,30 @@ class ShuttleReportController extends BaseModuleController
                     continue;
                 }
 
+                if ((int) $movement->headcount <= 0 && empty($movement->movement_time)) {
+                    continue;
+                }
+
                 $sheet->setCellValue('A' . $row, $trip->trip_date->format('d.m.Y'));
                 $sheet->setCellValue('B' . $row, $trip->shift);
                 $sheet->setCellValue('C' . $row, $trip->vehicle->name ?? '-');
                 $sheet->setCellValue('D' . $row, $trip->vehicle->plate ?? '-');
                 $sheet->setCellValue('E' . $row, $trip->route->name ?? '-');
                 $sheet->setCellValue('F' . $row, $movement->branch->name ?? '-');
-                $sheet->setCellValue('G' . $row, $movement->type_label);
-                $sheet->setCellValue('H' . $row, $movement->movement_time ? substr($movement->movement_time, 0, 5) : '-');
-                $sheet->setCellValue('I' . $row, $movement->headcount);
+                $sheet->setCellValue('G' . $row, $movement->period_label);
+                $sheet->setCellValue('H' . $row, $movement->type_label);
+                $sheet->setCellValue('I' . $row, $movement->movement_time ? substr($movement->movement_time, 0, 5) : '-');
+                $sheet->setCellValue('J' . $row, $movement->headcount);
                 $row++;
             }
         }
 
-        $this->styleHeader($sheet, 'A1:I1');
+        $this->styleHeader($sheet, 'A1:J1');
         if ($row > 2) {
-            $this->styleBorders($sheet, 'A1:I' . ($row - 1));
+            $this->styleBorders($sheet, 'A1:J' . ($row - 1));
         }
 
-        foreach (['A' => 12, 'B' => 16, 'C' => 20, 'D' => 14, 'E' => 22, 'F' => 18, 'G' => 16, 'H' => 10, 'I' => 10] as $column => $width) {
+        foreach (['A' => 12, 'B' => 16, 'C' => 20, 'D' => 14, 'E' => 22, 'F' => 18, 'G' => 18, 'H' => 16, 'I' => 10, 'J' => 10] as $column => $width) {
             $sheet->getColumnDimension($column)->setWidth($width);
         }
 
@@ -533,7 +546,7 @@ class ShuttleReportController extends BaseModuleController
             ],
             'fill' => [
                 'fillType' => Fill::FILL_SOLID,
-                'startColor' => ['argb' => 'FF1E2D3D'],
+                'startColor' => ['argb' => 'FFC19B77'],
             ],
             'alignment' => [
                 'horizontal' => Alignment::HORIZONTAL_CENTER,

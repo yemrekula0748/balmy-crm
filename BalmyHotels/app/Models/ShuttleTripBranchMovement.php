@@ -7,6 +7,13 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class ShuttleTripBranchMovement extends Model
 {
+    public const DEFAULT_PERIOD = 'day';
+
+    public const PERIODS = [
+        'day' => 'Gunduz Hareketi',
+        'evening' => 'Aksam Hareketi',
+    ];
+
     public const TYPES = [
         'arrival' => 'Gelen',
         'departure' => 'Giden',
@@ -15,6 +22,7 @@ class ShuttleTripBranchMovement extends Model
     protected $fillable = [
         'shuttle_trip_id',
         'branch_id',
+        'movement_period',
         'movement_type',
         'headcount',
         'movement_time',
@@ -37,5 +45,12 @@ class ShuttleTripBranchMovement extends Model
     public function getTypeLabelAttribute(): string
     {
         return self::TYPES[$this->movement_type] ?? $this->movement_type;
+    }
+
+    public function getPeriodLabelAttribute(): string
+    {
+        $period = $this->movement_period ?: self::DEFAULT_PERIOD;
+
+        return self::PERIODS[$period] ?? $period;
     }
 }

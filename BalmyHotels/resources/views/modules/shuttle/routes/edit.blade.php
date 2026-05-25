@@ -27,7 +27,7 @@
                         @csrf @method('PUT')
                         @include('modules.shuttle.routes._form')
                         <div class="d-flex gap-2 mt-4">
-                            <button type="submit" class="btn btn-primary">
+                            <button type="submit" class="btn" style="background:#c19b77;border-color:#c19b77;color:#fff;">
                                 <i class="fas fa-save me-1"></i> Güncelle
                             </button>
                             <a href="{{ route('shuttle.routes.index') }}" class="btn btn-outline-secondary">İptal</a>

@@ -7,10 +7,11 @@
     $description = $description ?? 'Tum otelleri gorebilirsin; sadece kendi otel satirini duzenleyebilirsin.';
     $theme = $theme ?? 'neutral';
     $compact = $compact ?? false;
+    $periods = \App\Models\ShuttleTripBranchMovement::PERIODS;
 
     $themeStyles = [
         'neutral' => ['bg' => '#faf6f1', 'border' => '#eadcc9', 'text' => '#7a5c3d'],
-        'info' => ['bg' => '#f0f4ff', 'border' => '#d0ddf5', 'text' => '#2a5298'],
+        'info' => ['bg' => '#fbf6ef', 'border' => '#eadcc9', 'text' => '#8f6d4f'],
         'success' => ['bg' => '#eef6f2', 'border' => '#cfe3d8', 'text' => '#2e7d52'],
     ][$theme] ?? ['bg' => '#faf6f1', 'border' => '#eadcc9', 'text' => '#7a5c3d'];
 
@@ -26,122 +27,145 @@
         {{ $description }}
     </div>
 
-    <div class="table-responsive">
-        <table class="table table-sm align-middle mb-0">
-            <thead>
-                <tr>
-                    @if($showInclude)
-                        <th class="border-0 ps-0 small text-muted text-uppercase text-center" style="width:82px">Dahil</th>
-                    @endif
-                    <th class="border-0 small text-muted text-uppercase">Otel</th>
-                    <th class="border-0 small text-muted text-uppercase text-center">Geldi</th>
-                    <th class="border-0 small text-muted text-uppercase text-center">Indi</th>
-                    <th class="border-0 small text-muted text-uppercase text-center">Cikti</th>
-                    <th class="border-0 pe-0 small text-muted text-uppercase text-center">Bindi</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach($branches as $movementBranch)
-                    @php
-                        $branchId = (int) $movementBranch->id;
-                        $branchValue = $movementValues->get($branchId, []);
-                        $included = (bool) data_get($branchValue, 'included', false);
-                        $arrivalValue = (int) data_get($branchValue, 'arrival', 0);
-                        $departureValue = (int) data_get($branchValue, 'departure', 0);
-                        $arrivalTimeValue = data_get($branchValue, 'arrival_time');
-                        $departureTimeValue = data_get($branchValue, 'departure_time');
-                        $canEditRow = in_array($branchId, $editableBranchIds, true);
-                        $canToggleInclude = in_array($branchId, $selectableBranchIds, true);
-                        $rowLocked = ! $canEditRow;
-                    @endphp
-                    <tr data-branch-row="{{ $branchId }}">
-                        @if($showInclude)
-                            <td class="ps-0 text-center">
-                                <div class="form-check d-inline-flex justify-content-center">
-                                    <input
-                                        class="form-check-input"
-                                        type="checkbox"
-                                        value="{{ $branchId }}"
-                                        name="involved_branch_ids[]"
-                                        id="branchIncluded{{ $branchId }}"
-                                        @checked($included)
-                                        @disabled(! $canToggleInclude)
-                                        data-branch-include="{{ $branchId }}"
-                                    >
-                                    @if($included && ! $canToggleInclude)
-                                        <input type="hidden" name="involved_branch_ids[]" value="{{ $branchId }}">
+    <div class="d-flex flex-column gap-3">
+        @foreach($periods as $periodKey => $periodLabel)
+            @php
+                $periodMovementValues = collect($movementValues->get($periodKey, []));
+                $showIncludeColumn = $showInclude && $loop->first;
+            @endphp
+            <div class="rounded-3 bg-white p-3" style="border:1px solid {{ $themeStyles['border'] }}">
+                <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2">
+                    <div class="fw-semibold small" style="color:{{ $themeStyles['text'] }}">
+                        {{ $periodLabel }}
+                    </div>
+                    <span class="badge" style="background:{{ $themeStyles['bg'] }};color:{{ $themeStyles['text'] }};border:1px solid {{ $themeStyles['border'] }}">
+                        Ayni sefer altinda ayri kayit
+                    </span>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table table-sm align-middle mb-0">
+                        <thead>
+                            <tr>
+                                @if($showIncludeColumn)
+                                    <th class="border-0 ps-0 small text-muted text-uppercase text-center" style="width:82px">Dahil</th>
+                                @endif
+                                <th class="border-0 small text-muted text-uppercase">Otel</th>
+                                <th class="border-0 small text-muted text-uppercase text-center">Geldi</th>
+                                <th class="border-0 small text-muted text-uppercase text-center">Indi</th>
+                                <th class="border-0 small text-muted text-uppercase text-center">Cikti</th>
+                                <th class="border-0 pe-0 small text-muted text-uppercase text-center">Bindi</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach($branches as $movementBranch)
+                                @php
+                                    $branchId = (int) $movementBranch->id;
+                                    $branchValue = $periodMovementValues->get($branchId, []);
+                                    $included = (bool) data_get($branchValue, 'included', false);
+                                    $arrivalValue = (int) data_get($branchValue, 'arrival', 0);
+                                    $departureValue = (int) data_get($branchValue, 'departure', 0);
+                                    $arrivalTimeValue = data_get($branchValue, 'arrival_time');
+                                    $departureTimeValue = data_get($branchValue, 'departure_time');
+                                    $canEditRow = in_array($branchId, $editableBranchIds, true);
+                                    $canToggleInclude = in_array($branchId, $selectableBranchIds, true);
+                                    $rowLocked = ! $canEditRow;
+                                @endphp
+                                <tr data-branch-row="{{ $branchId }}" data-period-row="{{ $periodKey }}">
+                                    @if($showIncludeColumn)
+                                        <td class="ps-0 text-center">
+                                            <div class="form-check d-inline-flex justify-content-center">
+                                                <input
+                                                    class="form-check-input"
+                                                    type="checkbox"
+                                                    value="{{ $branchId }}"
+                                                    name="involved_branch_ids[]"
+                                                    id="branchIncluded{{ $branchId }}"
+                                                    @checked($included)
+                                                    @disabled(! $canToggleInclude)
+                                                    data-branch-include="{{ $branchId }}"
+                                                >
+                                                @if($included && ! $canToggleInclude)
+                                                    <input type="hidden" name="involved_branch_ids[]" value="{{ $branchId }}">
+                                                @endif
+                                            </div>
+                                        </td>
                                     @endif
-                                </div>
-                            </td>
-                        @endif
-                        <td>
-                            <div class="fw-semibold text-dark">{{ $movementBranch->name }}</div>
-                            @if($rowLocked)
-                                <div class="small text-muted">Gorunur, degistirilemez</div>
-                            @elseif($canToggleInclude)
-                                <div class="small text-muted">Kendi otel satirin</div>
-                            @endif
-                        </td>
-                        <td class="text-center">
-                            <input
-                                type="time"
-                                name="branch_movements[{{ $branchId }}][arrival_time]"
-                                value="{{ $arrivalTimeValue ? substr($arrivalTimeValue, 0, 5) : '' }}"
-                                class="{{ $timeClass }}"
-                                style="max-width:110px;margin:0 auto"
-                                data-branch-id="{{ $branchId }}"
-                                data-auto-time-picker="1"
-                                @readonly($rowLocked)
-                            >
-                        </td>
-                        <td class="text-center">
-                            <input
-                                type="number"
-                                min="0"
-                                max="500"
-                                name="branch_movements[{{ $branchId }}][arrival]"
-                                value="{{ $arrivalValue }}"
-                                class="{{ $countClass }}"
-                                style="max-width:96px;margin:0 auto"
-                                data-branch-id="{{ $branchId }}"
-                                @readonly($rowLocked)
-                            >
-                        </td>
-                        <td class="text-center">
-                            <input
-                                type="time"
-                                name="branch_movements[{{ $branchId }}][departure_time]"
-                                value="{{ $departureTimeValue ? substr($departureTimeValue, 0, 5) : '' }}"
-                                class="{{ $timeClass }}"
-                                style="max-width:110px;margin:0 auto"
-                                data-branch-id="{{ $branchId }}"
-                                data-auto-time-picker="1"
-                                @readonly($rowLocked)
-                            >
-                        </td>
-                        <td class="pe-0 text-center">
-                            <input
-                                type="number"
-                                min="0"
-                                max="500"
-                                name="branch_movements[{{ $branchId }}][departure]"
-                                value="{{ $departureValue }}"
-                                class="{{ $countClass }}"
-                                style="max-width:96px;margin:0 auto"
-                                data-branch-id="{{ $branchId }}"
-                                @readonly($rowLocked)
-                            >
-                        </td>
-                    </tr>
-                @endforeach
-            </tbody>
-        </table>
+                                    <td>
+                                        <div class="fw-semibold text-dark">{{ $movementBranch->name }}</div>
+                                        @if($rowLocked)
+                                            <div class="small text-muted">Gorunur, degistirilemez</div>
+                                        @elseif($canToggleInclude && $showIncludeColumn)
+                                            <div class="small text-muted">Kendi otel satirin</div>
+                                        @endif
+                                    </td>
+                                    <td class="text-center">
+                                        <input
+                                            type="time"
+                                            name="branch_movements[{{ $periodKey }}][{{ $branchId }}][arrival_time]"
+                                            value="{{ $arrivalTimeValue ? substr($arrivalTimeValue, 0, 5) : '' }}"
+                                            class="{{ $timeClass }}"
+                                            style="max-width:110px;margin:0 auto"
+                                            data-branch-id="{{ $branchId }}"
+                                            data-period-id="{{ $periodKey }}"
+                                            data-auto-time-picker="1"
+                                            @readonly($rowLocked)
+                                        >
+                                    </td>
+                                    <td class="text-center">
+                                        <input
+                                            type="number"
+                                            min="0"
+                                            max="500"
+                                            name="branch_movements[{{ $periodKey }}][{{ $branchId }}][arrival]"
+                                            value="{{ $arrivalValue }}"
+                                            class="{{ $countClass }}"
+                                            style="max-width:96px;margin:0 auto"
+                                            data-branch-id="{{ $branchId }}"
+                                            data-period-id="{{ $periodKey }}"
+                                            @readonly($rowLocked)
+                                        >
+                                    </td>
+                                    <td class="text-center">
+                                        <input
+                                            type="time"
+                                            name="branch_movements[{{ $periodKey }}][{{ $branchId }}][departure_time]"
+                                            value="{{ $departureTimeValue ? substr($departureTimeValue, 0, 5) : '' }}"
+                                            class="{{ $timeClass }}"
+                                            style="max-width:110px;margin:0 auto"
+                                            data-branch-id="{{ $branchId }}"
+                                            data-period-id="{{ $periodKey }}"
+                                            data-auto-time-picker="1"
+                                            @readonly($rowLocked)
+                                        >
+                                    </td>
+                                    <td class="pe-0 text-center">
+                                        <input
+                                            type="number"
+                                            min="0"
+                                            max="500"
+                                            name="branch_movements[{{ $periodKey }}][{{ $branchId }}][departure]"
+                                            value="{{ $departureValue }}"
+                                            class="{{ $countClass }}"
+                                            style="max-width:96px;margin:0 auto"
+                                            data-branch-id="{{ $branchId }}"
+                                            data-period-id="{{ $periodKey }}"
+                                            @readonly($rowLocked)
+                                        >
+                                    </td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        @endforeach
     </div>
 
     @error('involved_branch_ids')<div class="text-danger small mt-2">{{ $message }}</div>@enderror
     @error('branch_movements')<div class="text-danger small mt-2">{{ $message }}</div>@enderror
-    @error('branch_movements.*.arrival')<div class="text-danger small mt-2">{{ $message }}</div>@enderror
-    @error('branch_movements.*.departure')<div class="text-danger small mt-2">{{ $message }}</div>@enderror
-    @error('branch_movements.*.arrival_time')<div class="text-danger small mt-2">{{ $message }}</div>@enderror
-    @error('branch_movements.*.departure_time')<div class="text-danger small mt-2">{{ $message }}</div>@enderror
+    @error('branch_movements.*.*.arrival')<div class="text-danger small mt-2">{{ $message }}</div>@enderror
+    @error('branch_movements.*.*.departure')<div class="text-danger small mt-2">{{ $message }}</div>@enderror
+    @error('branch_movements.*.*.arrival_time')<div class="text-danger small mt-2">{{ $message }}</div>@enderror
+    @error('branch_movements.*.*.departure_time')<div class="text-danger small mt-2">{{ $message }}</div>@enderror
 </div>

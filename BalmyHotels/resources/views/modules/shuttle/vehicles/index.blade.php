@@ -31,7 +31,7 @@
     {{-- Header Bant --}}
     <div class="row mb-4">
         <div class="col-12">
-            <div class="card border-0" style="background:linear-gradient(135deg,#1e2d3d 0%,#2c3e50 100%);border-radius:12px">
+            <div class="card border-0" style="background:linear-gradient(135deg,#c19b77 0%,#a97d57 100%);border-radius:12px">
                 <div class="card-body px-4 py-3 d-flex align-items-center justify-content-between flex-wrap gap-3">
                     <div class="d-flex align-items-center gap-3">
                         <div style="width:48px;height:48px;background:rgba(255,255,255,0.08);border-radius:10px;display:flex;align-items:center;justify-content:center">
@@ -80,7 +80,7 @@
                         @if(auth()->user()->hasPermission('shuttle_vehicles', 'create'))
                         <a href="{{ route('shuttle.vehicles.create') }}"
                            class="btn btn-sm fw-semibold px-3"
-                           style="background:#fff;color:#1e2d3d;border:none;border-radius:7px">
+                           style="background:#fff;color:#8f6d4f;border:none;border-radius:7px">
                             <i class="fas fa-plus me-1"></i> Yeni Araç
                         </a>
                         @endif
@@ -104,7 +104,7 @@
                 </svg>
                 <p class="mb-0">Kayıtlı araç bulunamadı.</p>
                 @if(auth()->user()->hasPermission('shuttle_vehicles', 'create'))
-                <a href="{{ route('shuttle.vehicles.create') }}" class="btn btn-primary mt-3">
+                <a href="{{ route('shuttle.vehicles.create') }}" class="btn mt-3" style="background:#c19b77;border-color:#c19b77;color:#fff;">
                     <i class="fas fa-plus me-1"></i> İlk Aracı Ekle
                 </a>
                 @endif
@@ -115,7 +115,7 @@
             @foreach($vehicles as $v)
             @php
                 $typeStyle = match($v->type) {
-                    'minibus' => ['accent' => '#3d6b9e', 'light' => '#eef3f9'],
+                    'minibus' => ['accent' => '#c19b77', 'light' => '#fbf6ef'],
                     'midibus' => ['accent' => '#3d7a5e', 'light' => '#eef6f2'],
                     'otobus'  => ['accent' => '#7a5c3d', 'light' => '#f6f0ea'],
                     default   => ['accent' => '#5a5a6e', 'light' => '#f0f0f4'],
@@ -149,7 +149,7 @@
                         {{-- Plaka --}}
                         @if($v->plate)
                         <div class="mb-3">
-                            <span style="display:inline-block;background:#1e2d3d;color:#fff;
+                            <span style="display:inline-block;background:#8f6d4f;color:#fff;
                                          font-family:'Courier New',monospace;font-size:.82rem;font-weight:700;
                                          padding:4px 12px;border-radius:6px;letter-spacing:2px">
                                 {{ $v->plate }}
@@ -178,7 +178,7 @@
                                     <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
                                     <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
                                 </svg>
-                                <strong style="color:#1e2d3d">{{ $v->capacity }}</strong>&nbsp;kişi
+                                <strong style="color:#8f6d4f">{{ $v->capacity }}</strong>&nbsp;kişi
                             </div>
                         </div>
 
@@ -206,7 +206,7 @@
                             @if(auth()->user()->hasPermission('shuttle_vehicles','edit'))
                             <a href="{{ route('shuttle.vehicles.edit', $v) }}"
                                class="btn btn-sm flex-fill"
-                               style="background:#f4f6fb;color:#1e2d3d;border:1px solid #dde3ef;font-size:.8rem;font-weight:500">
+                               style="background:#fbf6ef;color:#8f6d4f;border:1px solid #eadcc9;font-size:.8rem;font-weight:500">
                                 <i class="fas fa-edit me-1"></i> Düzenle
                             </a>
                             @endif

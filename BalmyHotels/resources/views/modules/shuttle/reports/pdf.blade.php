@@ -6,8 +6,8 @@
     <title>Servis Raporu</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'dejavu sans', sans-serif; font-size: 10px; color: #2c3e50; background: #fff; }
-        .header { background: #1e2d3d; color: #fff; padding: 14px 20px; margin-bottom: 16px; }
+        body { font-family: 'dejavu sans', sans-serif; font-size: 10px; color: #2f241c; background: #fff; }
+        .header { background: #c19b77; color: #fff; padding: 14px 20px; margin-bottom: 16px; }
         .header h1 { font-size: 18px; letter-spacing: 1px; margin-bottom: 2px; }
         .header p { font-size: 10px; opacity: 0.8; }
         .cards { width: calc(100% - 20px); margin: 0 10px 10px; border-collapse: separate; border-spacing: 8px 0; }
@@ -16,19 +16,19 @@
         .cards .label { font-size: 9px; opacity: 0.8; margin-top: 2px; }
         h2 {
             font-size: 12px;
-            color: #1e2d3d;
-            border-bottom: 2px solid #1e2d3d;
+            color: #8f6d4f;
+            border-bottom: 2px solid #c19b77;
             padding-bottom: 4px;
             margin: 14px 10px 6px;
         }
         table { width: calc(100% - 20px); margin: 0 10px 10px; border-collapse: collapse; }
-        thead th { background: #1e2d3d; color: #fff; padding: 6px 8px; text-align: left; font-size: 9px; }
+        thead th { background: #c19b77; color: #fff; padding: 6px 8px; text-align: left; font-size: 9px; }
         tbody tr:nth-child(even) { background: #f8f9fa; }
         tbody td, tfoot td { padding: 5px 8px; border-bottom: 1px solid #e9ecef; vertical-align: top; }
         .text-center { text-align: center; }
         .text-right { text-align: right; }
         .badge { display: inline-block; padding: 2px 6px; border-radius: 3px; font-size: 9px; }
-        .badge-secondary { background: #6c757d; color: #fff; }
+        .badge-secondary { background: #7a5c3d; color: #fff; }
         .badge-alert { background: #fff1f1; color: #b03a3a; }
         .badge-transfer { background: #fff7e7; color: #9b6a11; }
         .tfoot-row td { background: #e9ecef; font-weight: bold; }
@@ -64,15 +64,15 @@
 
 <table class="cards">
     <tr>
-        <td style="background:#2a5298">
+        <td style="background:#c19b77">
             <div class="value">{{ number_format($stats['total_arrival']) }}</div>
             <div class="label">Toplam Gelen</div>
         </td>
-        <td style="background:#28a745">
+        <td style="background:#8f6d4f">
             <div class="value">{{ number_format($stats['total_departure']) }}</div>
             <div class="label">Toplam Donen</div>
         </td>
-        <td style="background:#495057">
+        <td style="background:#7a5c3d">
             <div class="value">{{ number_format($stats['total_trips']) }}</div>
             <div class="label">Toplam Sefer</div>
         </td>
@@ -225,12 +225,16 @@
                     }
 
                     $arrivalSummary = $trip->branchMovements
+                        ->filter(fn ($movement) => in_array((int) $movement->branch_id, $reportBranchIds, true)
+                            && ((int) $movement->headcount > 0 || ! empty($movement->movement_time)))
                         ->where('movement_type', 'arrival')
-                        ->map(fn ($movement) => ($movement->branch->name ?? '-') . ' ' . ($movement->movement_time ? substr($movement->movement_time, 0, 5) . ' / ' : '') . $movement->headcount)
+                        ->map(fn ($movement) => '[' . $movement->period_label . '] ' . ($movement->branch->name ?? '-') . ' ' . ($movement->movement_time ? substr($movement->movement_time, 0, 5) . ' / ' : '') . $movement->headcount)
                         ->implode(', ');
                     $departureSummary = $trip->branchMovements
+                        ->filter(fn ($movement) => in_array((int) $movement->branch_id, $reportBranchIds, true)
+                            && ((int) $movement->headcount > 0 || ! empty($movement->movement_time)))
                         ->where('movement_type', 'departure')
-                        ->map(fn ($movement) => ($movement->branch->name ?? '-') . ' ' . ($movement->movement_time ? substr($movement->movement_time, 0, 5) . ' / ' : '') . $movement->headcount)
+                        ->map(fn ($movement) => '[' . $movement->period_label . '] ' . ($movement->branch->name ?? '-') . ' ' . ($movement->movement_time ? substr($movement->movement_time, 0, 5) . ' / ' : '') . $movement->headcount)
                         ->implode(', ');
                     if ($arrivalSummary === '' && $filteredArrivalCount > 0) {
                         $arrivalSummary = ($trip->branch->name ?? '-') . ' ' . ($filteredArrivalTime ? $filteredArrivalTime . ' / ' : '') . $filteredArrivalCount;

@@ -61,7 +61,7 @@
                             </div>
                         </div>
                         <div class="col-auto">
-                            <button type="submit" class="btn btn-primary btn-sm">
+                            <button type="submit" class="btn btn-sm" style="background:#c19b77;border-color:#c19b77;color:#fff;">
                                 <i class="fas fa-filter me-1"></i> Filtrele
                             </button>
                         </div>
@@ -94,11 +94,11 @@
 
     @php
         $cards = [
-            ['label' => 'Toplam Gelen', 'value' => number_format($stats['total_arrival']), 'sub' => 'Donem boyunca gelen personel', 'color' => '#1e3c72,#2a5298'],
-            ['label' => 'Toplam Donen', 'value' => number_format($stats['total_departure']), 'sub' => 'Donem boyunca donen personel', 'color' => '#134e5e,#71b280'],
-            ['label' => 'Toplam Sefer', 'value' => number_format($stats['total_trips']), 'sub' => 'Kayitli servis seferi', 'color' => '#4a4a4a,#6c757d'],
+            ['label' => 'Toplam Gelen', 'value' => number_format($stats['total_arrival']), 'sub' => 'Donem boyunca gelen personel', 'color' => '#c19b77,#a97d57'],
+            ['label' => 'Toplam Donen', 'value' => number_format($stats['total_departure']), 'sub' => 'Donem boyunca donen personel', 'color' => '#8f6d4f,#c19b77'],
+            ['label' => 'Toplam Sefer', 'value' => number_format($stats['total_trips']), 'sub' => 'Kayitli servis seferi', 'color' => '#7a5c3d,#a97d57'],
             ['label' => 'Aktarimli Sefer', 'value' => $stats['total_transfer_trips'], 'sub' => '%' . $stats['transfer_rate'] . ' oran', 'color' => '#8e5a2b,#d1913c'],
-            ['label' => 'Farkli Aracla Gelen', 'value' => $stats['total_different_vehicle_trips'], 'sub' => '%' . $stats['different_vehicle_rate'] . ' oran', 'color' => '#7b4397,#dc2430'],
+            ['label' => 'Farkli Aracla Gelen', 'value' => $stats['total_different_vehicle_trips'], 'sub' => '%' . $stats['different_vehicle_rate'] . ' oran', 'color' => '#b03a3a,#d98b73'],
             ['label' => 'Ort. Gelis Doluluk', 'value' => $stats['avg_occupancy_arr'] . '%', 'sub' => 'Donus ort.: ' . $stats['avg_occupancy_dep'] . '%', 'color' => '#aa6f39,#c19b77'],
         ];
     @endphp
@@ -144,7 +144,7 @@
                             <tr>
                                 <th>Vardiya</th>
                                 <th class="text-center">Sefer</th>
-                                <th class="text-center text-primary">Gelis</th>
+                                <th class="text-center" style="color:#c19b77">Gelis</th>
                                 <th class="text-center text-success">Donus</th>
                                 <th class="text-center text-warning">Aktarim</th>
                             </tr>
@@ -155,7 +155,7 @@
                                     <tr>
                                         <td><span class="badge bg-secondary">{{ $shiftName }}</span></td>
                                         <td class="text-center">{{ $data['count'] }}</td>
-                                        <td class="text-center fw-bold text-primary">{{ $data['arrival'] }}</td>
+                                        <td class="text-center fw-bold" style="color:#c19b77">{{ $data['arrival'] }}</td>
                                         <td class="text-center fw-bold text-success">{{ $data['departure'] }}</td>
                                         <td class="text-center">
                                             <div class="fw-bold text-warning">{{ $data['transfer'] }}</div>
@@ -169,7 +169,7 @@
                             <tr>
                                 <td class="fw-bold">TOPLAM</td>
                                 <td class="text-center fw-bold">{{ $stats['total_trips'] }}</td>
-                                <td class="text-center fw-bold text-primary">{{ $stats['total_arrival'] }}</td>
+                                <td class="text-center fw-bold" style="color:#c19b77">{{ $stats['total_arrival'] }}</td>
                                 <td class="text-center fw-bold text-success">{{ $stats['total_departure'] }}</td>
                                 <td class="text-center fw-bold text-warning">{{ $stats['total_transfer_trips'] }}</td>
                             </tr>
@@ -191,7 +191,7 @@
                                 <tr>
                                     <th>Arac</th>
                                     <th class="text-center">Sefer</th>
-                                    <th class="text-center text-primary">Gelis</th>
+                                    <th class="text-center" style="color:#c19b77">Gelis</th>
                                     <th class="text-center text-success">Donus</th>
                                     <th class="text-center">Aktarim</th>
                                     <th class="text-center">Farkli Arac</th>
@@ -208,7 +208,7 @@
                                                 @endif
                                             </td>
                                             <td class="text-center">{{ $data['trips'] }}</td>
-                                            <td class="text-center fw-bold text-primary">
+                                            <td class="text-center fw-bold" style="color:#c19b77">
                                                 {{ $data['arrival'] }}
                                                 <small class="d-block text-muted">%{{ $data['occupancy_arr'] }}</small>
                                             </td>
@@ -257,7 +257,7 @@
                             @foreach($branchMovementSummary as $summary)
                                 <tr>
                                     <td class="fw-semibold">{{ $summary['branch']->name }}</td>
-                                    <td class="text-center fw-bold text-primary">{{ $summary['arrival'] }}</td>
+                                    <td class="text-center fw-bold" style="color:#c19b77">{{ $summary['arrival'] }}</td>
                                     <td class="text-center fw-bold text-success">{{ $summary['departure'] }}</td>
                                 </tr>
                             @endforeach
@@ -355,23 +355,39 @@
                                 @forelse($trips as $trip)
                                     @php
                                         $movementRows = $trip->branchMovements
-                                            ->groupBy('branch_id')
-                                            ->map(function ($items) {
-                                                $arrivalMovement = $items->firstWhere('movement_type', 'arrival');
-                                                $departureMovement = $items->firstWhere('movement_type', 'departure');
-
+                                            ->filter(fn ($movement) => in_array((int) $movement->branch_id, $reportBranchIds, true))
+                                            ->groupBy(fn ($movement) => $movement->movement_period ?? \App\Models\ShuttleTripBranchMovement::DEFAULT_PERIOD)
+                                            ->map(function ($periodItems, $periodKey) {
                                                 return [
-                                                    'branch_name' => optional(optional($arrivalMovement)->branch ?? optional($departureMovement)->branch)->name ?? '-',
-                                                    'arrival_time' => optional($arrivalMovement)->movement_time ? substr($arrivalMovement->movement_time, 0, 5) : null,
-                                                    'arrival_count' => (int) optional($arrivalMovement)->headcount,
-                                                    'departure_time' => optional($departureMovement)->movement_time ? substr($departureMovement->movement_time, 0, 5) : null,
-                                                    'departure_count' => (int) optional($departureMovement)->headcount,
+                                                    'period_label' => \App\Models\ShuttleTripBranchMovement::PERIODS[$periodKey] ?? $periodKey,
+                                                    'branches' => $periodItems
+                                                        ->groupBy('branch_id')
+                                                        ->map(function ($items) {
+                                                            $arrivalMovement = $items->firstWhere('movement_type', 'arrival');
+                                                            $departureMovement = $items->firstWhere('movement_type', 'departure');
+
+                                                            return [
+                                                                'branch_name' => optional(optional($arrivalMovement)->branch ?? optional($departureMovement)->branch)->name ?? '-',
+                                                                'arrival_time' => optional($arrivalMovement)->movement_time ? substr($arrivalMovement->movement_time, 0, 5) : null,
+                                                                'arrival_count' => (int) optional($arrivalMovement)->headcount,
+                                                                'departure_time' => optional($departureMovement)->movement_time ? substr($departureMovement->movement_time, 0, 5) : null,
+                                                                'departure_count' => (int) optional($departureMovement)->headcount,
+                                                            ];
+                                                        })
+                                                        ->filter(fn ($row) => $row['arrival_count'] > 0
+                                                            || $row['departure_count'] > 0
+                                                            || ! empty($row['arrival_time'])
+                                                            || ! empty($row['departure_time']))
+                                                        ->values(),
                                                 ];
                                             })
+                                            ->filter(fn ($periodRow) => $periodRow['branches']->isNotEmpty())
                                             ->values();
 
-                                        $arrivalTimes = $movementRows->pluck('arrival_time')->filter()->sort()->values();
-                                        $departureTimes = $movementRows->pluck('departure_time')->filter()->sort()->values();
+                                        $arrivalTimes = $movementRows->flatMap(fn ($periodRow) => $periodRow['branches']->pluck('arrival_time'))->filter()->sort()->values();
+                                        $departureTimes = $movementRows->flatMap(fn ($periodRow) => $periodRow['branches']->pluck('departure_time'))->filter()->sort()->values();
+                                        $tripArrivalCount = (int) $movementRows->sum(fn ($periodRow) => $periodRow['branches']->sum('arrival_count'));
+                                        $tripDepartureCount = (int) $movementRows->sum(fn ($periodRow) => $periodRow['branches']->sum('departure_count'));
                                         $tripArrivalTime = $arrivalTimes->first() ?: ($trip->arrival_time ? substr($trip->arrival_time, 0, 5) : null);
                                         $tripDepartureTime = $departureTimes->last() ?: ($trip->departure_time ? substr($trip->departure_time, 0, 5) : null);
                                     @endphp
@@ -387,24 +403,35 @@
                                         <td>{{ $trip->route->name ?? '-' }}</td>
                                         <td class="text-center fw-semibold">{{ $tripArrivalTime ?: '-' }}</td>
                                         <td class="text-center fw-semibold">{{ $tripDepartureTime ?: '-' }}</td>
-                                        <td class="text-center fw-bold text-primary">{{ $trip->arrival_count }}</td>
-                                        <td class="text-center fw-bold text-success">{{ $trip->departure_count }}</td>
+                                        <td class="text-center fw-bold" style="color:#c19b77">{{ $tripArrivalCount }}</td>
+                                        <td class="text-center fw-bold text-success">{{ $tripDepartureCount }}</td>
                                         <td style="min-width:290px">
-                                            <div class="d-flex flex-column gap-2">
-                                                @foreach($movementRows as $movementRow)
-                                                    <div class="rounded-3 p-2" style="background:#f8fafc;border:1px solid #e5ebf3">
-                                                        <div class="fw-semibold text-dark small mb-1">{{ $movementRow['branch_name'] }}</div>
-                                                        <div class="small text-muted d-flex gap-3 flex-wrap">
-                                                            <span><strong>Geldi:</strong> {{ $movementRow['arrival_time'] ?: '-' }}</span>
-                                                            <span><strong>Indi:</strong> {{ $movementRow['arrival_count'] }}</span>
+                                            @if($movementRows->isEmpty())
+                                                <span class="text-muted">-</span>
+                                            @else
+                                                <div class="d-flex flex-column gap-2">
+                                                    @foreach($movementRows as $periodRow)
+                                                        <div class="rounded-3 p-2" style="background:#fbf6ef;border:1px solid #eadcc9">
+                                                            <div class="fw-semibold small mb-2" style="color:#8f6d4f">{{ $periodRow['period_label'] }}</div>
+                                                            <div class="d-flex flex-column gap-2">
+                                                                @foreach($periodRow['branches'] as $movementRow)
+                                                                    <div class="rounded-3 p-2" style="background:#fff;border:1px solid #eadcc9">
+                                                                        <div class="fw-semibold text-dark small mb-1">{{ $movementRow['branch_name'] }}</div>
+                                                                        <div class="small text-muted d-flex gap-3 flex-wrap">
+                                                                            <span><strong>Geldi:</strong> {{ $movementRow['arrival_time'] ?: '-' }}</span>
+                                                                            <span><strong>Indi:</strong> {{ $movementRow['arrival_count'] }}</span>
+                                                                        </div>
+                                                                        <div class="small text-muted d-flex gap-3 flex-wrap mt-1">
+                                                                            <span><strong>Cikti:</strong> {{ $movementRow['departure_time'] ?: '-' }}</span>
+                                                                            <span><strong>Bindi:</strong> {{ $movementRow['departure_count'] }}</span>
+                                                                        </div>
+                                                                    </div>
+                                                                @endforeach
+                                                            </div>
                                                         </div>
-                                                        <div class="small text-muted d-flex gap-3 flex-wrap mt-1">
-                                                            <span><strong>Cikti:</strong> {{ $movementRow['departure_time'] ?: '-' }}</span>
-                                                            <span><strong>Bindi:</strong> {{ $movementRow['departure_count'] }}</span>
-                                                        </div>
-                                                    </div>
-                                                @endforeach
-                                            </div>
+                                                    @endforeach
+                                                </div>
+                                            @endif
                                         </td>
                                         <td>{{ $trip->notes ? \Illuminate\Support\Str::limit($trip->notes, 60) : '-' }}</td>
                                     </tr>
@@ -440,8 +467,8 @@ new Chart(ctx, {
             {
                 label: 'Gelen Personel',
                 data: @json($chartData['arrival']),
-                borderColor: '#2a5298',
-                backgroundColor: 'rgba(42,82,152,0.15)',
+                borderColor: '#c19b77',
+                backgroundColor: 'rgba(193,155,119,0.15)',
                 tension: 0.3,
                 fill: true,
                 pointRadius: 4,
@@ -449,8 +476,8 @@ new Chart(ctx, {
             {
                 label: 'Donen Personel',
                 data: @json($chartData['departure']),
-                borderColor: '#71b280',
-                backgroundColor: 'rgba(113,178,128,0.15)',
+                borderColor: '#8f6d4f',
+                backgroundColor: 'rgba(143,109,79,0.15)',
                 tension: 0.3,
                 fill: true,
                 pointRadius: 4,
