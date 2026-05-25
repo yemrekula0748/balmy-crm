@@ -21,6 +21,12 @@ return new class extends Migration
             }
         });
 
+        if (! $this->indexExists('shuttle_trip_branch_trip_idx')) {
+            Schema::table('shuttle_trip_branch_movements', function (Blueprint $table) {
+                $table->index('shuttle_trip_id', 'shuttle_trip_branch_trip_idx');
+            });
+        }
+
         if ($this->indexExists('shuttle_trip_branch_movement_unique')) {
             Schema::table('shuttle_trip_branch_movements', function (Blueprint $table) {
                 $table->dropUnique('shuttle_trip_branch_movement_unique');
