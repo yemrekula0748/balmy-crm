@@ -26,7 +26,7 @@ class ShuttleRouteController extends BaseModuleController
             abort_unless($user && ($user->isSuperAdmin() || $user->isHumanResources()), 403);
 
             return $next($request);
-        })->only(['create', 'store', 'edit', 'update', 'destroy']);
+        });
     }
 
     public function index(Request $request)
