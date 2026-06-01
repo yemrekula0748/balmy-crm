@@ -207,7 +207,10 @@
                                             ]),
                                         ])->all()
                                         : [];
-                                    $canOwnerEdit = $activeBranchId && (int) $trip->branch_id === (int) $activeBranchId && auth()->user()->hasPermission('shuttle_operations', 'edit');
+                                    $isSuperAdmin = auth()->user()->isSuperAdmin();
+                                    $editContextBranchId = $activeBranchId ?: (int) $trip->branch_id;
+                                    $canOwnerEdit = auth()->user()->hasPermission('shuttle_operations', 'edit')
+                                        && ($isSuperAdmin || ($activeBranchId && (int) $trip->branch_id === (int) $activeBranchId));
                                     $canBranchProcess = $activeBranchId && auth()->user()->hasPermission('shuttle_operations', 'index');
                                     $branchProcessBranchName = optional($allBranches->firstWhere('id', $activeBranchId))->name ?? '';
                                 @endphp
@@ -300,7 +303,7 @@
                                     <td class="pe-4 text-end">
                                         <div class="d-flex gap-1 justify-content-end flex-wrap">
                                             @if($canOwnerEdit)
-                                                <a href="{{ route('shuttle.operations.edit', ['operation' => $trip, 'branch_id' => $activeBranchId]) }}"
+                                                <a href="{{ route('shuttle.operations.edit', ['operation' => $trip, 'branch_id' => $editContextBranchId]) }}"
                                                    class="btn btn-sm"
                                                    style="background:#fbf6ef;color:#8f6d4f;border:1px solid #eadcc9;font-size:.78rem">
                                                     <i class="fas fa-edit"></i> Duzenle
