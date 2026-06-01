@@ -86,7 +86,7 @@ class ShuttleReportController extends BaseModuleController
     private function buildReportPayload(Request $request): array
     {
         $user = Auth::user();
-        $visibleBranchIds = array_map('intval', $user->visibleBranchIds());
+        $visibleBranchIds = array_map('intval', $user->visibleShuttleBranchIds());
         $branches = Branch::where('is_active', true)
             ->whereIn('id', $visibleBranchIds)
             ->orderBy('name')

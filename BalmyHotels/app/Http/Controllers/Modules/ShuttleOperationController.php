@@ -36,7 +36,7 @@ class ShuttleOperationController extends BaseModuleController
     public function index(Request $request)
     {
         $user = Auth::user();
-        $visibleBranchIds = array_map('intval', $user->visibleBranchIds());
+        $visibleBranchIds = array_map('intval', $user->visibleShuttleBranchIds());
         $branches = Branch::where('is_active', true)
             ->whereIn('id', $visibleBranchIds)
             ->orderBy('name')
@@ -86,7 +86,7 @@ class ShuttleOperationController extends BaseModuleController
     public function store(Request $request)
     {
         $user = Auth::user();
-        $visibleBranchIds = array_map('intval', $user->visibleBranchIds());
+        $visibleBranchIds = array_map('intval', $user->visibleShuttleBranchIds());
         [$tripData, $movementMatrix] = $this->validateOwnerPayload($request, $visibleBranchIds);
         $tripData['created_by'] = $user->id;
 
@@ -132,7 +132,7 @@ class ShuttleOperationController extends BaseModuleController
     public function edit(Request $request, ShuttleTrip $operation)
     {
         $user = Auth::user();
-        $visibleBranchIds = array_map('intval', $user->visibleBranchIds());
+        $visibleBranchIds = array_map('intval', $user->visibleShuttleBranchIds());
         $operation = $this->tripMergeService->buildDisplayTrip($operation);
         abort_unless($this->canAccessTrip($operation, $visibleBranchIds), 403);
 
@@ -178,7 +178,7 @@ class ShuttleOperationController extends BaseModuleController
 
     public function update(Request $request, ShuttleTrip $operation)
     {
-        $visibleBranchIds = array_map('intval', Auth::user()->visibleBranchIds());
+        $visibleBranchIds = array_map('intval', Auth::user()->visibleShuttleBranchIds());
         $operation = $this->tripMergeService->consolidateTrip($operation);
         abort_unless($this->canAccessTrip($operation, $visibleBranchIds), 403);
 
@@ -214,7 +214,7 @@ class ShuttleOperationController extends BaseModuleController
 
     public function departure(Request $request, ShuttleTrip $operation)
     {
-        $visibleBranchIds = array_map('intval', Auth::user()->visibleBranchIds());
+        $visibleBranchIds = array_map('intval', Auth::user()->visibleShuttleBranchIds());
         $operation = $this->tripMergeService->consolidateTrip($operation);
         abort_unless($this->canAccessTrip($operation, $visibleBranchIds), 403);
 
@@ -234,7 +234,7 @@ class ShuttleOperationController extends BaseModuleController
 
     public function destroy(ShuttleTrip $operation)
     {
-        $visibleBranchIds = array_map('intval', Auth::user()->visibleBranchIds());
+        $visibleBranchIds = array_map('intval', Auth::user()->visibleShuttleBranchIds());
         $operation = $this->tripMergeService->consolidateTrip($operation);
         abort_unless(in_array((int) $operation->branch_id, $visibleBranchIds, true) || Auth::user()->isSuperAdmin(), 403);
 

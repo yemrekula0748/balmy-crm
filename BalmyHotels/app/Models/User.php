@@ -14,6 +14,13 @@ class User extends Authenticatable
 {
     use HasApiTokens, HasFactory, Notifiable;
 
+    public const HUMAN_RESOURCES_ROLE_NAMES = [
+        'insan_kaynaklari',
+        'ik',
+        'hr',
+        'human_resources',
+    ];
+
     protected $fillable = [
         'name', 'email', 'password',
         'branch_id', 'department_id', 'role',
@@ -82,6 +89,12 @@ class User extends Authenticatable
     public function isSuperAdmin(): bool    { return $this->hasAnyRole(['super_admin']); }
     public function isBranchManager(): bool { return $this->hasAnyRole(['branch_manager']); }
     public function isDeptManager(): bool   { return $this->hasAnyRole(['dept_manager']); }
+    public function isHumanResources(): bool
+    {
+        $roleNames = array_map(fn ($roleName) => $this->normaliseRoleName($roleName), $this->allRoleNames());
+
+        return count(array_intersect(self::HUMAN_RESOURCES_ROLE_NAMES, $roleNames)) > 0;
+    }
 
     /**
      * Kullanıcının belirli modül + eylem için yetkisi var mı?
@@ -98,6 +111,11 @@ class User extends Authenticatable
 
         if (!isset($cache[$cacheKey])) {
             $roleNames = $this->allRoleNames();
+            $roleNames = array_values(array_unique(array_filter(array_merge(
+                $roleNames,
+                array_map(fn ($roleName) => $this->normaliseRoleName($roleName), $roleNames)
+            ))));
+
             $cache[$cacheKey] = !empty($roleNames) && RolePermission::whereIn('role_name', $roleNames)
                 ->where('module', $module)
                 ->where("can_{$action}", true)
@@ -120,5 +138,31 @@ class User extends Authenticatable
             return Branch::pluck('id')->toArray();
         }
         return $this->branch_id ? [$this->branch_id] : [];
+    }
+
+    /** Servis takipte IK iki oteli birlikte raporlayabilir ve tanimlayabilir. */
+    public function visibleShuttleBranchIds(): array
+    {
+        if ($this->isSuperAdmin() || $this->isHumanResources()) {
+            return Branch::where('is_active', true)->pluck('id')->toArray();
+        }
+
+        return $this->visibleBranchIds();
+    }
+
+    private function normaliseRoleName(?string $roleName): string
+    {
+        $roleName = mb_strtolower(trim((string) $roleName), 'UTF-8');
+        $roleName = strtr($roleName, [
+            'ç' => 'c',
+            'ğ' => 'g',
+            'ı' => 'i',
+            'i̇' => 'i',
+            'ö' => 'o',
+            'ş' => 's',
+            'ü' => 'u',
+        ]);
+
+        return trim(preg_replace('/[^a-z0-9]+/', '_', $roleName), '_');
     }
 }

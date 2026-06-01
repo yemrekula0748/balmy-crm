@@ -16,6 +16,7 @@ class RolePermissionSeeder extends Seeder
             ['name' => 'branch_manager', 'display_name' => 'Şube Müdürü',  'color' => 'primary', 'is_system' => true],
             ['name' => 'dept_manager',   'display_name' => 'Departman Müdürü', 'color' => 'info', 'is_system' => true],
             ['name' => 'staff',          'display_name' => 'Personel',      'color' => 'secondary', 'is_system' => false],
+            ['name' => 'insan_kaynaklari', 'display_name' => 'Insan Kaynaklari', 'color' => 'success', 'is_system' => false],
             ['name' => 'egitmen',        'display_name' => 'Egitmen',       'color' => 'warning', 'is_system' => false],
             ['name' => 'ogrenen',        'display_name' => 'Ogrenen',       'color' => 'success', 'is_system' => false],
         ];
@@ -87,7 +88,16 @@ class RolePermissionSeeder extends Seeder
         ];
         $this->savePerms('staff', $staffPerms);
 
-        // 5) egitmen: egitim icerigi, atama, yuz yuze egitim ve rapor yonetimi
+        // 5) insan_kaynaklari: servis tanimlari ve iki otel servis raporlari
+        $humanResourcesPerms = [
+            'shuttle_reports' => ['index'=>1,'show'=>0,'create'=>0,'edit'=>0,'delete'=>0],
+            'shuttle_routes' => ['index'=>1,'show'=>0,'create'=>1,'edit'=>0,'delete'=>0],
+            'shuttle_vehicles' => ['index'=>1,'show'=>0,'create'=>1,'edit'=>0,'delete'=>0],
+            'shuttle_operations' => ['index'=>1,'show'=>0,'create'=>1,'edit'=>0,'delete'=>0],
+        ];
+        $this->savePerms('insan_kaynaklari', $humanResourcesPerms);
+
+        // 6) egitmen: egitim icerigi, atama, yuz yuze egitim ve rapor yonetimi
         $trainerPerms = [
             'education_courses'     => ['index'=>1,'show'=>1,'create'=>1,'edit'=>1,'delete'=>1],
             'education_assignments' => ['index'=>1,'show'=>0,'create'=>1,'edit'=>0,'delete'=>1],
@@ -97,7 +107,7 @@ class RolePermissionSeeder extends Seeder
         ];
         $this->savePerms('egitmen', $trainerPerms);
 
-        // 6) ogrenen: kendi egitimleri ve yuz yuze katilim cevabi
+        // 7) ogrenen: kendi egitimleri ve yuz yuze katilim cevabi
         $learnerPerms = [
             'education_learning' => ['index'=>1,'show'=>1,'create'=>0,'edit'=>1,'delete'=>0],
             'education_events'   => ['index'=>1,'show'=>1,'create'=>0,'edit'=>0,'delete'=>0],

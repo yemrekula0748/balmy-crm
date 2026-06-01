@@ -25,11 +25,17 @@ class ShuttleRouteController extends BaseModuleController
     public function index(Request $request)
     {
         $user     = Auth::user();
-        $branches = Branch::where('is_active', true)->get();
-        $branchId = $request->branch_id;
+        $visibleBranchIds = array_map('intval', $user->visibleShuttleBranchIds());
+        $branches = Branch::where('is_active', true)
+            ->whereIn('id', $visibleBranchIds)
+            ->orderBy('name')
+            ->get();
+        $branchId = $request->filled('branch_id') && in_array((int) $request->branch_id, $visibleBranchIds, true)
+            ? (int) $request->branch_id
+            : null;
 
         $routes = ShuttleRoute::with('branch')
-            ->whereIn('branch_id', $user->visibleBranchIds())
+            ->whereIn('branch_id', $visibleBranchIds)
             ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
             ->when($request->search, fn($q) => $q->where('name', 'like', "%{$request->search}%"))
             ->orderBy('branch_id')
@@ -44,7 +50,7 @@ class ShuttleRouteController extends BaseModuleController
     {
         $user     = Auth::user();
         $branches = Branch::where('is_active', true)
-            ->whereIn('id', $user->visibleBranchIds())
+            ->whereIn('id', $user->visibleShuttleBranchIds())
             ->get();
         return view('modules.shuttle.routes.create', compact('branches'));
     }
@@ -59,6 +65,8 @@ class ShuttleRouteController extends BaseModuleController
         ]);
 
         $data['is_active'] = $request->boolean('is_active', true);
+        abort_unless(in_array((int) $data['branch_id'], array_map('intval', Auth::user()->visibleShuttleBranchIds()), true), 403);
+
         ShuttleRoute::create($data);
 
         return redirect()->route('shuttle.routes.index')
@@ -68,8 +76,10 @@ class ShuttleRouteController extends BaseModuleController
     public function edit(ShuttleRoute $route)
     {
         $user     = Auth::user();
+        abort_unless(in_array((int) $route->branch_id, array_map('intval', $user->visibleShuttleBranchIds()), true), 403);
+
         $branches = Branch::where('is_active', true)
-            ->whereIn('id', $user->visibleBranchIds())
+            ->whereIn('id', $user->visibleShuttleBranchIds())
             ->get();
         return view('modules.shuttle.routes.edit', compact('route', 'branches'));
     }
@@ -84,6 +94,9 @@ class ShuttleRouteController extends BaseModuleController
         ]);
 
         $data['is_active'] = $request->boolean('is_active', true);
+        abort_unless(in_array((int) $route->branch_id, array_map('intval', Auth::user()->visibleShuttleBranchIds()), true), 403);
+        abort_unless(in_array((int) $data['branch_id'], array_map('intval', Auth::user()->visibleShuttleBranchIds()), true), 403);
+
         $route->update($data);
 
         return redirect()->route('shuttle.routes.index')
@@ -92,6 +105,8 @@ class ShuttleRouteController extends BaseModuleController
 
     public function destroy(ShuttleRoute $route)
     {
+        abort_unless(in_array((int) $route->branch_id, array_map('intval', Auth::user()->visibleShuttleBranchIds()), true), 403);
+
         $route->delete();
         return redirect()->route('shuttle.routes.index')
             ->with('success', 'Güzergah silindi.');

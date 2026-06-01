@@ -3,7 +3,7 @@
 
 @section('content')
 @php
-    $visibleBranchIds = collect(auth()->user()->visibleBranchIds())
+    $visibleBranchIds = collect(auth()->user()->visibleShuttleBranchIds())
         ->map(fn ($id) => (int) $id)
         ->all();
 

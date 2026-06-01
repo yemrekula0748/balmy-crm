@@ -446,7 +446,7 @@
                                     @include('modules.shuttle.operations._branch_movements', [
                                         'branches' => $branches,
                                         'movementValues' => $createMovementValues,
-                                        'editableBranchIds' => auth()->user()->visibleBranchIds(),
+                                        'editableBranchIds' => auth()->user()->visibleShuttleBranchIds(),
                                         'selectableBranchIds' => [],
                                         'showInclude' => false,
                                         'title' => 'Kendi Otel Hareketin',
