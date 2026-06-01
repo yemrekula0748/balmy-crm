@@ -34,6 +34,13 @@ class ShuttleReportController extends BaseModuleController
             [],
             []
         );
+
+        $this->middleware(function ($request, $next) {
+            $user = $request->user();
+            abort_unless($user && ($user->isSuperAdmin() || $user->isHumanResources()), 403);
+
+            return $next($request);
+        });
     }
 
     public function index(Request $request)

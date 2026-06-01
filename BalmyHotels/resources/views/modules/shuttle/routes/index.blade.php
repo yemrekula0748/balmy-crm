@@ -54,7 +54,7 @@
                             </a>
                         </div>
                         <div class="col-auto ms-auto">
-                            @if(auth()->user()->hasPermission('shuttle_routes', 'create'))
+                            @if((auth()->user()->isSuperAdmin() || auth()->user()->isHumanResources()) && auth()->user()->hasPermission('shuttle_routes', 'create'))
                             <a href="{{ route('shuttle.routes.create') }}" class="btn btn-success btn-sm">
                                 <i class="fas fa-plus me-1"></i> Yeni Güzergah
                             </a>
@@ -113,13 +113,13 @@
                                         </td>
                                         <td class="small text-muted">{{ $route->created_at->format('d.m.Y') }}</td>
                                         <td class="text-end">
-                                            @if(auth()->user()->hasPermission('shuttle_routes', 'edit'))
+                                            @if((auth()->user()->isSuperAdmin() || auth()->user()->isHumanResources()) && auth()->user()->hasPermission('shuttle_routes', 'edit'))
                                             <a href="{{ route('shuttle.routes.edit', $route) }}"
                                                class="btn btn-sm btn-outline-primary">
                                                 <i class="fas fa-edit"></i>
                                             </a>
                                             @endif
-                                            @if(auth()->user()->hasPermission('shuttle_routes', 'delete'))
+                                            @if((auth()->user()->isSuperAdmin() || auth()->user()->isHumanResources()) && auth()->user()->hasPermission('shuttle_routes', 'delete'))
                                             <form action="{{ route('shuttle.routes.destroy', $route) }}" method="POST"
                                                   class="d-inline"
                                                   onsubmit="return confirm('Bu güzergahı silmek istiyor musunuz?')">

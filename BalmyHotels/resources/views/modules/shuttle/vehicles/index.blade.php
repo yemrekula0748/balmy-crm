@@ -77,7 +77,7 @@
                             </a>
                             @endif
                         </form>
-                        @if(auth()->user()->hasPermission('shuttle_vehicles', 'create'))
+                        @if((auth()->user()->isSuperAdmin() || auth()->user()->isHumanResources()) && auth()->user()->hasPermission('shuttle_vehicles', 'create'))
                         <a href="{{ route('shuttle.vehicles.create') }}"
                            class="btn btn-sm fw-semibold px-3"
                            style="background:#fff;color:#8f6d4f;border:none;border-radius:7px">
@@ -103,7 +103,7 @@
                     <circle cx="18.5" cy="18.5" r="2.5"/>
                 </svg>
                 <p class="mb-0">Kayıtlı araç bulunamadı.</p>
-                @if(auth()->user()->hasPermission('shuttle_vehicles', 'create'))
+                @if((auth()->user()->isSuperAdmin() || auth()->user()->isHumanResources()) && auth()->user()->hasPermission('shuttle_vehicles', 'create'))
                 <a href="{{ route('shuttle.vehicles.create') }}" class="btn mt-3" style="background:#c19b77;border-color:#c19b77;color:#fff;">
                     <i class="fas fa-plus me-1"></i> İlk Aracı Ekle
                 </a>
@@ -201,16 +201,16 @@
                         </div>
 
                         {{-- İşlem Butonları --}}
-                        @if(auth()->user()->hasPermission('shuttle_vehicles','edit') || auth()->user()->hasPermission('shuttle_vehicles','delete'))
+                        @if((auth()->user()->isSuperAdmin() || auth()->user()->isHumanResources()) && (auth()->user()->hasPermission('shuttle_vehicles','edit') || auth()->user()->hasPermission('shuttle_vehicles','delete')))
                         <div class="d-flex gap-2 mt-3">
-                            @if(auth()->user()->hasPermission('shuttle_vehicles','edit'))
+                            @if((auth()->user()->isSuperAdmin() || auth()->user()->isHumanResources()) && auth()->user()->hasPermission('shuttle_vehicles','edit'))
                             <a href="{{ route('shuttle.vehicles.edit', $v) }}"
                                class="btn btn-sm flex-fill"
                                style="background:#fbf6ef;color:#8f6d4f;border:1px solid #eadcc9;font-size:.8rem;font-weight:500">
                                 <i class="fas fa-edit me-1"></i> Düzenle
                             </a>
                             @endif
-                            @if(auth()->user()->hasPermission('shuttle_vehicles','delete'))
+                            @if((auth()->user()->isSuperAdmin() || auth()->user()->isHumanResources()) && auth()->user()->hasPermission('shuttle_vehicles','delete'))
                             <form action="{{ route('shuttle.vehicles.destroy', $v) }}" method="POST" class="d-inline"
                                   onsubmit="return confirm('{{ $v->name }} aracını silmek istiyor musunuz?')">
                                 @csrf @method('DELETE')

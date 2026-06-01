@@ -542,7 +542,7 @@
             @endif
 
             {{-- SERVİS TAKİP --}}
-            @if($user->hasPermission('shuttle_routes','index') || $user->hasPermission('shuttle_vehicles','index') || $user->hasPermission('shuttle_operations','index') || $user->hasPermission('shuttle_reports','index'))
+            @if($user->hasPermission('shuttle_routes','index') || $user->hasPermission('shuttle_vehicles','index') || $user->hasPermission('shuttle_operations','index') || (($user->isSuperAdmin() || $user->isHumanResources()) && $user->hasPermission('shuttle_reports','index')))
             <li @class(['mm-active' => request()->is('servis-takip*')])>
                 <a class="has-arrow ai-icon" href="javascript:void()" aria-expanded="false">
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
@@ -559,7 +559,7 @@
                         <a href="{{ route('shuttle.operations.index') }}">Günlük Operasyon</a>
                     </li>
                     @endif
-                    @if($user->hasPermission('shuttle_reports','index'))
+                    @if(($user->isSuperAdmin() || $user->isHumanResources()) && $user->hasPermission('shuttle_reports','index'))
                     <li @class(['mm-active' => request()->is('servis-takip/raporlar*')])>
                         <a href="{{ route('shuttle.reports.index') }}">Servis Raporları</a>
                     </li>

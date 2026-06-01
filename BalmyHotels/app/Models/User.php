@@ -9,6 +9,7 @@ use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 use App\Models\RolePermission;
 use App\Models\UserRole;
+use Illuminate\Support\Str;
 
 class User extends Authenticatable
 {
@@ -152,16 +153,7 @@ class User extends Authenticatable
 
     private function normaliseRoleName(?string $roleName): string
     {
-        $roleName = mb_strtolower(trim((string) $roleName), 'UTF-8');
-        $roleName = strtr($roleName, [
-            'ç' => 'c',
-            'ğ' => 'g',
-            'ı' => 'i',
-            'i̇' => 'i',
-            'ö' => 'o',
-            'ş' => 's',
-            'ü' => 'u',
-        ]);
+        $roleName = strtolower(Str::ascii(trim((string) $roleName)));
 
         return trim(preg_replace('/[^a-z0-9]+/', '_', $roleName), '_');
     }
