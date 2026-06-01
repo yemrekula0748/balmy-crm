@@ -12,6 +12,7 @@ use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
 use PhpOffice\PhpSpreadsheet\Style\Border;
@@ -339,10 +340,35 @@ class ShuttleReportController extends BaseModuleController
             $movementRow++;
         }
 
-        $this->styleTitle($sheet, 'A1:N1');
+        $sheet->setCellValue('P6', 'Arac');
+        $sheet->setCellValue('Q6', 'Plaka');
+        $sheet->setCellValue('R6', 'Sefer');
+        $sheet->setCellValue('S6', 'Gelen');
+        $sheet->setCellValue('T6', 'Giden');
+        $sheet->setCellValue('U6', 'Aktarim');
+        $sheet->setCellValue('V6', 'Farkli Arac');
+
+        $vehicleRow = 7;
+        foreach ($payload['byVehicle'] as $data) {
+            if ((int) $data['trips'] === 0) {
+                continue;
+            }
+
+            $sheet->setCellValue('P' . $vehicleRow, $data['vehicle']->name);
+            $sheet->setCellValue('Q' . $vehicleRow, $data['vehicle']->plate ?: '-');
+            $sheet->setCellValue('R' . $vehicleRow, $data['trips']);
+            $sheet->setCellValue('S' . $vehicleRow, $data['arrival'] . ' (%' . $data['occupancy_arr'] . ')');
+            $sheet->setCellValue('T' . $vehicleRow, $data['departure'] . ' (%' . $data['occupancy_dep'] . ')');
+            $sheet->setCellValue('U' . $vehicleRow, $data['transfer']);
+            $sheet->setCellValue('V' . $vehicleRow, $data['different_vehicle']);
+            $vehicleRow++;
+        }
+
+        $this->styleTitle($sheet, 'A1:V1');
         $this->styleHeader($sheet, 'A6:C6');
         $this->styleHeader($sheet, 'E6:J6');
         $this->styleHeader($sheet, 'L6:N6');
+        $this->styleHeader($sheet, 'P6:V6');
         $this->styleBorders($sheet, 'A6:C14');
         if ($row > 7) {
             $this->styleBorders($sheet, 'E6:J' . ($row - 1));
@@ -350,8 +376,11 @@ class ShuttleReportController extends BaseModuleController
         if ($movementRow > 7) {
             $this->styleBorders($sheet, 'L6:N' . ($movementRow - 1));
         }
+        if ($vehicleRow > 7) {
+            $this->styleBorders($sheet, 'P6:V' . ($vehicleRow - 1));
+        }
 
-        foreach (['A' => 22, 'B' => 16, 'C' => 12, 'E' => 18, 'F' => 10, 'G' => 10, 'H' => 10, 'I' => 10, 'J' => 14, 'L' => 18, 'M' => 10, 'N' => 10] as $column => $width) {
+        foreach (['A' => 22, 'B' => 16, 'C' => 12, 'E' => 18, 'F' => 10, 'G' => 10, 'H' => 10, 'I' => 10, 'J' => 14, 'L' => 18, 'M' => 10, 'N' => 10, 'P' => 20, 'Q' => 14, 'R' => 10, 'S' => 14, 'T' => 14, 'U' => 10, 'V' => 12] as $column => $width) {
             $sheet->getColumnDimension($column)->setWidth($width);
         }
     }
@@ -359,95 +388,159 @@ class ShuttleReportController extends BaseModuleController
     private function buildTripDetailSheet(Spreadsheet $spreadsheet, array $payload): void
     {
         $sheet = $spreadsheet->createSheet();
-        $sheet->setTitle('Sefer Detaylari');
-        $reportBranchIds = $payload['reportBranchIds'];
+        $sheet->setTitle('Sefer Bazli Detay');
+
+        $reportBranchIds = array_map('intval', $payload['reportBranchIds']);
+        $reportBranches = $payload['branches']
+            ->filter(fn ($branch) => in_array((int) $branch->id, $reportBranchIds, true))
+            ->values();
 
         $headers = [
-            'A1' => 'Tarih',
-            'B1' => 'Sube',
-            'C1' => 'Vardiya',
-            'D1' => 'Arac',
-            'E1' => 'Plaka',
-            'F1' => 'Guzergah',
-            'G1' => 'Gelis Saati',
-            'H1' => 'Gelen Kisi',
-            'I1' => 'Gelis Doluluk %',
-            'J1' => 'Donus Saati',
-            'K1' => 'Donen Kisi',
-            'L1' => 'Donus Doluluk %',
-            'M1' => 'Farkli Arac',
-            'N1' => 'Aktarim',
-            'O1' => 'Gelen Dagilimi',
-            'P1' => 'Giden Dagilimi',
-            'Q1' => 'Not',
+            'Tarih',
+            'Gun',
+            'Vardiya',
+            'Sefer ID',
+            'Kaydi Acan Otel',
+            'Arac',
+            'Plaka',
+            'Kapasite',
+            'Guzergah',
+            'Ilk Gelis',
+            'Toplam Indi',
+            'Gelis Doluluk %',
+            'Son Cikis',
+            'Toplam Bindi',
+            'Donus Doluluk %',
+            'Farkli Arac',
+            'Aktarim',
+            'Durum',
         ];
 
-        foreach ($headers as $cell => $value) {
-            $sheet->setCellValue($cell, $value);
+        foreach ($reportBranches as $branch) {
+            $headers[] = $branch->name . ' Geldi Saatleri';
+            $headers[] = $branch->name . ' Indi';
+            $headers[] = $branch->name . ' Cikti Saatleri';
+            $headers[] = $branch->name . ' Bindi';
+            $headers[] = $branch->name . ' Hareket Detayi';
         }
 
-        $row = 2;
+        $headers = array_merge($headers, [
+            'Gunduz Gelen Detay',
+            'Gunduz Giden Detay',
+            'Aksam Gelen Detay',
+            'Aksam Giden Detay',
+            'Genel Gelen Detay',
+            'Genel Giden Detay',
+            'Not',
+        ]);
+
+        $lastColumn = count($headers);
+        $lastColumnLetter = Coordinate::stringFromColumnIndex($lastColumn);
+
+        $sheet->setCellValue('A1', 'Servis Sefer Bazli Detayli Excel Raporu');
+        $sheet->setCellValue('A2', 'Donem');
+        $sheet->setCellValue('B2', $payload['from']->format('d.m.Y') . ' - ' . $payload['to']->format('d.m.Y'));
+        $sheet->setCellValue('D2', 'Sube Filtresi');
+        $sheet->setCellValue('E2', $payload['branchFilter']?->name ?? 'Tum Subeler');
+        $sheet->setCellValue('G2', 'Arac Filtresi');
+        $sheet->setCellValue('H2', $payload['vehicleFilter']?->name ?? 'Tum Araclar');
+        $sheet->setCellValue('J2', 'Olusturma');
+        $sheet->setCellValue('K2', now()->format('d.m.Y H:i'));
+        $sheet->setCellValue('A3', 'Not');
+        $sheet->setCellValue('B3', 'Her satir tek bir seferi temsil eder. Otel kolonlari ay sonu toplam ve filtreleme icin sayisal tutuldu; detay kolonlarinda gunduz/aksam saat ve kisi bilgileri yer alir.');
+
+        $headerRow = 5;
+        foreach ($headers as $index => $header) {
+            $this->setCell($sheet, $index + 1, $headerRow, $header);
+        }
+
+        $row = $headerRow + 1;
         foreach ($payload['trips'] as $trip) {
             $tripArrivalCount = $this->sumTripMovements($trip, $reportBranchIds, 'arrival');
             $tripDepartureCount = $this->sumTripMovements($trip, $reportBranchIds, 'departure');
             $capacity = $trip->vehicle->capacity ?? 0;
             $tripArrivalTime = $this->resolveTripMovementTime($trip, $reportBranchIds, 'arrival', 'min');
             $tripDepartureTime = $this->resolveTripMovementTime($trip, $reportBranchIds, 'departure', 'max');
-            $arrivalSummary = $trip->branchMovements
-                ->filter(fn ($movement) => in_array((int) $movement->branch_id, $reportBranchIds, true)
-                    && ((int) $movement->headcount > 0 || ! empty($movement->movement_time)))
-                ->where('movement_type', 'arrival')
-                ->map(fn ($movement) => '[' . $movement->period_label . '] ' . ($movement->branch->name ?? '-') . ': ' . ($movement->movement_time ? substr($movement->movement_time, 0, 5) . ' / ' : '') . $movement->headcount)
-                ->implode(', ');
-            $departureSummary = $trip->branchMovements
-                ->filter(fn ($movement) => in_array((int) $movement->branch_id, $reportBranchIds, true)
-                    && ((int) $movement->headcount > 0 || ! empty($movement->movement_time)))
-                ->where('movement_type', 'departure')
-                ->map(fn ($movement) => '[' . $movement->period_label . '] ' . ($movement->branch->name ?? '-') . ': ' . ($movement->movement_time ? substr($movement->movement_time, 0, 5) . ' / ' : '') . $movement->headcount)
-                ->implode(', ');
+            $movementMatrix = $this->buildTripMovementMatrix($trip, $reportBranchIds);
+            $status = collect([
+                $trip->arrived_with_different_vehicle ? 'Farkli Arac' : null,
+                $trip->is_transfer ? 'Aktarim' : null,
+            ])->filter()->implode(' + ') ?: 'Normal';
 
-            if ($arrivalSummary === '' && $tripArrivalCount > 0) {
-                $arrivalSummary = ($trip->branch->name ?? '-') . ': ' . ($tripArrivalTime ? $tripArrivalTime . ' / ' : '') . $tripArrivalCount;
+            $column = 1;
+            $this->setCell($sheet, $column++, $row, $trip->trip_date->format('d.m.Y'));
+            $this->setCell($sheet, $column++, $row, $this->turkishDayName($trip->trip_date));
+            $this->setCell($sheet, $column++, $row, $trip->shift);
+            $this->setCell($sheet, $column++, $row, $trip->id);
+            $this->setCell($sheet, $column++, $row, $trip->branch->name ?? '-');
+            $this->setCell($sheet, $column++, $row, $trip->vehicle->name ?? '-');
+            $this->setCell($sheet, $column++, $row, $trip->vehicle->plate ?? '-');
+            $this->setCell($sheet, $column++, $row, $capacity);
+            $this->setCell($sheet, $column++, $row, $trip->route->name ?? '-');
+            $this->setCell($sheet, $column++, $row, $tripArrivalTime ?: '-');
+            $this->setCell($sheet, $column++, $row, $tripArrivalCount);
+            $this->setCell($sheet, $column++, $row, ($capacity > 0) ? round($tripArrivalCount / $capacity * 100, 1) : 0);
+            $this->setCell($sheet, $column++, $row, $tripDepartureTime ?: '-');
+            $this->setCell($sheet, $column++, $row, $tripDepartureCount);
+            $this->setCell($sheet, $column++, $row, ($capacity > 0) ? round($tripDepartureCount / $capacity * 100, 1) : 0);
+            $this->setCell($sheet, $column++, $row, $trip->arrived_with_different_vehicle ? 'Evet' : 'Hayir');
+            $this->setCell($sheet, $column++, $row, $trip->is_transfer ? 'Evet' : 'Hayir');
+            $this->setCell($sheet, $column++, $row, $status);
+
+            foreach ($reportBranches as $branch) {
+                $branchId = (int) $branch->id;
+                $this->setCell($sheet, $column++, $row, $this->branchMovementTimes($movementMatrix, $branchId, 'arrival'));
+                $this->setCell($sheet, $column++, $row, $this->sumBranchMovement($movementMatrix, $branchId, 'arrival'));
+                $this->setCell($sheet, $column++, $row, $this->branchMovementTimes($movementMatrix, $branchId, 'departure'));
+                $this->setCell($sheet, $column++, $row, $this->sumBranchMovement($movementMatrix, $branchId, 'departure'));
+                $this->setCell($sheet, $column++, $row, $this->branchMovementDetail($movementMatrix, $branchId));
             }
 
-            if ($departureSummary === '' && $tripDepartureCount > 0) {
-                $departureSummary = ($trip->branch->name ?? '-') . ': ' . ($tripDepartureTime ? $tripDepartureTime . ' / ' : '') . $tripDepartureCount;
-            }
-
-            $sheet->setCellValue('A' . $row, $trip->trip_date->format('d.m.Y'));
-            $sheet->setCellValue('B' . $row, $trip->branch->name ?? '-');
-            $sheet->setCellValue('C' . $row, $trip->shift);
-            $sheet->setCellValue('D' . $row, $trip->vehicle->name ?? '-');
-            $sheet->setCellValue('E' . $row, $trip->vehicle->plate ?? '-');
-            $sheet->setCellValue('F' . $row, $trip->route->name ?? '-');
-            $sheet->setCellValue('G' . $row, $tripArrivalTime ?: '-');
-            $sheet->setCellValue('H' . $row, $tripArrivalCount);
-            $sheet->setCellValue('I' . $row, ($capacity > 0) ? round($tripArrivalCount / $capacity * 100, 1) : 0);
-            $sheet->setCellValue('J' . $row, $tripDepartureTime ?: '-');
-            $sheet->setCellValue('K' . $row, $tripDepartureCount);
-            $sheet->setCellValue('L' . $row, ($capacity > 0) ? round($tripDepartureCount / $capacity * 100, 1) : 0);
-            $sheet->setCellValue('M' . $row, $trip->arrived_with_different_vehicle ? 'Evet' : 'Hayir');
-            $sheet->setCellValue('N' . $row, $trip->is_transfer ? 'Evet' : 'Hayir');
-            $sheet->setCellValue('O' . $row, $arrivalSummary);
-            $sheet->setCellValue('P' . $row, $departureSummary);
-            $sheet->setCellValue('Q' . $row, $trip->notes ?? '');
+            $this->setCell($sheet, $column++, $row, $this->periodMovementSummary($movementMatrix, 'day', 'arrival'));
+            $this->setCell($sheet, $column++, $row, $this->periodMovementSummary($movementMatrix, 'day', 'departure'));
+            $this->setCell($sheet, $column++, $row, $this->periodMovementSummary($movementMatrix, 'evening', 'arrival'));
+            $this->setCell($sheet, $column++, $row, $this->periodMovementSummary($movementMatrix, 'evening', 'departure'));
+            $this->setCell($sheet, $column++, $row, $this->allMovementSummary($movementMatrix, 'arrival'));
+            $this->setCell($sheet, $column++, $row, $this->allMovementSummary($movementMatrix, 'departure'));
+            $this->setCell($sheet, $column++, $row, $trip->notes ?? '');
             $row++;
         }
 
-        $this->styleHeader($sheet, 'A1:Q1');
-        if ($row > 2) {
-            $this->styleBorders($sheet, 'A1:Q' . ($row - 1));
+        $lastDataRow = max($headerRow, $row - 1);
+        $this->styleTitle($sheet, "A1:{$lastColumnLetter}1");
+        $this->styleHeader($sheet, "A{$headerRow}:{$lastColumnLetter}{$headerRow}");
+        $this->styleBorders($sheet, "A{$headerRow}:{$lastColumnLetter}{$lastDataRow}");
+
+        $sheet->getStyle("A2:{$lastColumnLetter}3")
+            ->getAlignment()
+            ->setVertical(Alignment::VERTICAL_CENTER)
+            ->setWrapText(true);
+        $sheet->getStyle("A{$headerRow}:{$lastColumnLetter}{$lastDataRow}")
+            ->getAlignment()
+            ->setVertical(Alignment::VERTICAL_TOP)
+            ->setWrapText(true);
+        if ($lastDataRow >= $headerRow + 1) {
+            $sheet->getStyle("K6:O{$lastDataRow}")
+                ->getAlignment()
+                ->setHorizontal(Alignment::HORIZONTAL_CENTER);
         }
 
-        foreach ([
-            'A' => 12, 'B' => 18, 'C' => 16, 'D' => 20, 'E' => 14, 'F' => 22, 'G' => 10,
-            'H' => 10, 'I' => 12, 'J' => 10, 'K' => 10, 'L' => 12, 'M' => 12, 'N' => 10,
-            'O' => 28, 'P' => 28, 'Q' => 36,
-        ] as $column => $width) {
-            $sheet->getColumnDimension($column)->setWidth($width);
+        if ($row > $headerRow + 1) {
+            $sheet->setAutoFilter("A{$headerRow}:{$lastColumnLetter}{$lastDataRow}");
         }
 
-        $sheet->freezePane('A2');
+        $widths = [
+            1 => 12, 2 => 12, 3 => 16, 4 => 10, 5 => 18, 6 => 18, 7 => 13, 8 => 10, 9 => 24,
+            10 => 10, 11 => 11, 12 => 14, 13 => 10, 14 => 12, 15 => 14, 16 => 12, 17 => 10, 18 => 16,
+        ];
+
+        for ($column = 1; $column <= $lastColumn; $column++) {
+            $sheet->getColumnDimension(Coordinate::stringFromColumnIndex($column))->setWidth($widths[$column] ?? 24);
+        }
+
+        $sheet->getRowDimension(1)->setRowHeight(24);
+        $sheet->getRowDimension(3)->setRowHeight(36);
+        $sheet->freezePane('A6');
     }
 
     private function buildBranchMovementSheet(Spreadsheet $spreadsheet, array $payload): void
@@ -540,6 +633,216 @@ class ShuttleReportController extends BaseModuleController
         }
 
         $sheet->freezePane('A2');
+    }
+
+    private function setCell($sheet, int $column, int $row, $value): void
+    {
+        $sheet->setCellValue(Coordinate::stringFromColumnIndex($column) . $row, $value);
+    }
+
+    private function buildTripMovementMatrix($trip, array $branchIds): array
+    {
+        $matrix = [];
+
+        if ($trip->branchMovements->isEmpty()) {
+            $branchId = (int) $trip->branch_id;
+
+            if (! in_array($branchId, $branchIds, true)) {
+                return $matrix;
+            }
+
+            $period = ShuttleTripBranchMovement::DEFAULT_PERIOD;
+            $matrix[$period][$branchId] = $this->emptyTripMovementRow($trip->branch->name ?? '-');
+            $matrix[$period][$branchId]['arrival'] = (int) $trip->arrival_count;
+            $matrix[$period][$branchId]['departure'] = (int) $trip->departure_count;
+
+            if (! empty($trip->arrival_time)) {
+                $matrix[$period][$branchId]['arrival_times'][] = $this->normaliseReportTime($trip->arrival_time);
+            }
+
+            if (! empty($trip->departure_time)) {
+                $matrix[$period][$branchId]['departure_times'][] = $this->normaliseReportTime($trip->departure_time);
+            }
+
+            return $matrix;
+        }
+
+        foreach ($trip->branchMovements as $movement) {
+            $branchId = (int) $movement->branch_id;
+
+            if (! in_array($branchId, $branchIds, true)) {
+                continue;
+            }
+
+            if ((int) $movement->headcount <= 0 && empty($movement->movement_time)) {
+                continue;
+            }
+
+            $period = array_key_exists((string) $movement->movement_period, ShuttleTripBranchMovement::PERIODS)
+                ? (string) $movement->movement_period
+                : ShuttleTripBranchMovement::DEFAULT_PERIOD;
+            $matrix[$period][$branchId] ??= $this->emptyTripMovementRow($movement->branch->name ?? '-');
+
+            if ($movement->movement_type === 'arrival') {
+                $matrix[$period][$branchId]['arrival'] += (int) $movement->headcount;
+
+                if (! empty($movement->movement_time)) {
+                    $matrix[$period][$branchId]['arrival_times'][] = $this->normaliseReportTime($movement->movement_time);
+                }
+            }
+
+            if ($movement->movement_type === 'departure') {
+                $matrix[$period][$branchId]['departure'] += (int) $movement->headcount;
+
+                if (! empty($movement->movement_time)) {
+                    $matrix[$period][$branchId]['departure_times'][] = $this->normaliseReportTime($movement->movement_time);
+                }
+            }
+        }
+
+        return $matrix;
+    }
+
+    private function emptyTripMovementRow(string $branchName): array
+    {
+        return [
+            'branch_name' => $branchName,
+            'arrival' => 0,
+            'departure' => 0,
+            'arrival_times' => [],
+            'departure_times' => [],
+        ];
+    }
+
+    private function normaliseReportTime(?string $time): ?string
+    {
+        return $time ? substr($time, 0, 5) : null;
+    }
+
+    private function formatReportTimes(array $times): string
+    {
+        $times = collect($times)
+            ->filter()
+            ->unique()
+            ->sort()
+            ->values();
+
+        return $times->isEmpty() ? '-' : $times->implode(', ');
+    }
+
+    private function branchMovementTimes(array $matrix, int $branchId, string $movementType): string
+    {
+        $timeKey = $movementType === 'arrival' ? 'arrival_times' : 'departure_times';
+        $times = [];
+
+        foreach ($matrix as $periodRows) {
+            if (! isset($periodRows[$branchId])) {
+                continue;
+            }
+
+            $times = array_merge($times, $periodRows[$branchId][$timeKey] ?? []);
+        }
+
+        return $this->formatReportTimes($times);
+    }
+
+    private function sumBranchMovement(array $matrix, int $branchId, string $movementType): int
+    {
+        $total = 0;
+
+        foreach ($matrix as $periodRows) {
+            if (! isset($periodRows[$branchId])) {
+                continue;
+            }
+
+            $total += (int) ($periodRows[$branchId][$movementType] ?? 0);
+        }
+
+        return $total;
+    }
+
+    private function branchMovementDetail(array $matrix, int $branchId): string
+    {
+        $details = [];
+
+        foreach (ShuttleTripBranchMovement::PERIODS as $period => $periodLabel) {
+            if (! isset($matrix[$period][$branchId])) {
+                continue;
+            }
+
+            $row = $matrix[$period][$branchId];
+            $arrivalTime = $this->formatReportTimes($row['arrival_times'] ?? []);
+            $departureTime = $this->formatReportTimes($row['departure_times'] ?? []);
+            $arrival = (int) ($row['arrival'] ?? 0);
+            $departure = (int) ($row['departure'] ?? 0);
+
+            if ($arrival <= 0 && $departure <= 0 && $arrivalTime === '-' && $departureTime === '-') {
+                continue;
+            }
+
+            $details[] = $periodLabel . ': Gelen ' . $arrivalTime . ' / ' . $arrival . ', Giden ' . $departureTime . ' / ' . $departure;
+        }
+
+        return empty($details) ? '-' : implode(' | ', $details);
+    }
+
+    private function periodMovementSummary(array $matrix, string $period, string $movementType): string
+    {
+        if (! isset($matrix[$period])) {
+            return '-';
+        }
+
+        $countKey = $movementType === 'arrival' ? 'arrival' : 'departure';
+        $timeKey = $movementType === 'arrival' ? 'arrival_times' : 'departure_times';
+        $details = [];
+
+        foreach ($matrix[$period] as $movementRow) {
+            $count = (int) ($movementRow[$countKey] ?? 0);
+            $time = $this->formatReportTimes($movementRow[$timeKey] ?? []);
+
+            if ($count <= 0 && $time === '-') {
+                continue;
+            }
+
+            $details[] = ($movementRow['branch_name'] ?? '-') . ': ' . $time . ' / ' . $count;
+        }
+
+        return empty($details) ? '-' : implode(' | ', $details);
+    }
+
+    private function allMovementSummary(array $matrix, string $movementType): string
+    {
+        $details = [];
+
+        foreach (ShuttleTripBranchMovement::PERIODS as $period => $periodLabel) {
+            if (! isset($matrix[$period])) {
+                continue;
+            }
+
+            $summary = $this->periodMovementSummary($matrix, $period, $movementType);
+            if ($summary === '-') {
+                continue;
+            }
+
+            $details[] = $periodLabel . ': ' . $summary;
+        }
+
+        return empty($details) ? '-' : implode(' | ', $details);
+    }
+
+    private function turkishDayName($date): string
+    {
+        $days = [
+            'Monday' => 'Pazartesi',
+            'Tuesday' => 'Sali',
+            'Wednesday' => 'Carsamba',
+            'Thursday' => 'Persembe',
+            'Friday' => 'Cuma',
+            'Saturday' => 'Cumartesi',
+            'Sunday' => 'Pazar',
+        ];
+
+        return $days[$date->format('l')] ?? $date->format('l');
     }
 
     private function styleTitle($sheet, string $range): void
