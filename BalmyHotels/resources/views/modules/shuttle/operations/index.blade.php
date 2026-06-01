@@ -5,15 +5,16 @@
 @php
     $activeBranchId = $currentBranchId ?? ($branches->first()->id ?? null);
     $oldBranchMovements = collect(old('branch_movements', []));
-    $oldInvolvedBranchIds = collect(old('involved_branch_ids', $activeBranchId ? [$activeBranchId] : []))
+    $createBranchId = old('branch_id', $activeBranchId);
+    $oldInvolvedBranchIds = collect(old('involved_branch_ids', $createBranchId ? [$createBranchId] : []))
         ->map(fn ($id) => (int) $id)
         ->unique()
         ->values()
         ->all();
     $movementPeriods = \App\Models\ShuttleTripBranchMovement::PERIODS;
-    $createMovementValues = collect($movementPeriods)->mapWithKeys(function ($periodLabel, $periodKey) use ($allBranches, $oldBranchMovements, $oldInvolvedBranchIds) {
+    $createMovementValues = collect($movementPeriods)->mapWithKeys(function ($periodLabel, $periodKey) use ($branches, $oldBranchMovements, $oldInvolvedBranchIds) {
         return [
-            $periodKey => $allBranches->mapWithKeys(function ($branch) use ($periodKey, $oldBranchMovements, $oldInvolvedBranchIds) {
+            $periodKey => $branches->mapWithKeys(function ($branch) use ($periodKey, $oldBranchMovements, $oldInvolvedBranchIds) {
                 $branchId = (int) $branch->id;
                 $oldRow = (array) data_get($oldBranchMovements->all(), "$periodKey.$branchId", []);
 
@@ -358,12 +359,13 @@
                         <div class="row g-3">
                             <div class="col-md-4">
                                 <label class="form-label fw-semibold small">Kaydi Acan Otel <span class="text-danger">*</span></label>
-                                <select name="branch_id" class="form-select" required>
+                                <select name="branch_id" id="createTripBranchId" class="form-select" required>
                                     <option value="">- Seciniz -</option>
                                     @foreach($branches as $branch)
                                         <option value="{{ $branch->id }}" @selected(old('branch_id', $activeBranchId) == $branch->id)>{{ $branch->name }}</option>
                                     @endforeach
                                 </select>
+                                <input type="hidden" name="involved_branch_ids[]" id="createInvolvedBranchId" value="{{ old('branch_id', $activeBranchId) }}">
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label fw-semibold small">Arac / Plaka <span class="text-danger">*</span></label>
@@ -440,15 +442,18 @@
                             </div>
 
                             <div class="col-12">
-                                @include('modules.shuttle.operations._branch_movements', [
-                                    'branches' => $allBranches,
-                                    'movementValues' => $createMovementValues,
-                                    'editableBranchIds' => auth()->user()->visibleBranchIds(),
-                                    'selectableBranchIds' => $allBranches->pluck('id')->all(),
-                                    'title' => 'Otel Bazli Geldi / Indi / Cikti / Bindi',
-                                    'description' => 'Beach ve Foresta icin ayni plaka altinda gunduz ve aksam hareketleri ayri tutulur. Kendi otelin satirini hemen girebilir, diger otel satirini dahil edip onlarin islemesine birakabilirsin.',
-                                    'theme' => 'info',
-                                ])
+                                <div id="createBranchMovementScope">
+                                    @include('modules.shuttle.operations._branch_movements', [
+                                        'branches' => $branches,
+                                        'movementValues' => $createMovementValues,
+                                        'editableBranchIds' => auth()->user()->visibleBranchIds(),
+                                        'selectableBranchIds' => [],
+                                        'showInclude' => false,
+                                        'title' => 'Kendi Otel Hareketin',
+                                        'description' => 'Yeni hareket eklerken sadece secili otelin gunduz ve aksam geldi / indi / cikti / bindi satirlari gorunur. Diger otel kendi ekranindan isler.',
+                                        'theme' => 'info',
+                                    ])
+                                </div>
                             </div>
 
                             <div class="col-12">
@@ -643,6 +648,37 @@ function wireBranchMovementIncludes(scope = document) {
     });
 }
 
+function wireCreateBranchMovementScope() {
+    const branchSelect = document.getElementById('createTripBranchId');
+    const hiddenBranchInput = document.getElementById('createInvolvedBranchId');
+    const scope = document.getElementById('createBranchMovementScope');
+
+    if (!branchSelect || !hiddenBranchInput || !scope) {
+        return;
+    }
+
+    const syncRows = () => {
+        const selectedBranchId = branchSelect.value || '';
+        hiddenBranchInput.value = selectedBranchId;
+
+        scope.querySelectorAll('[data-branch-row]').forEach((row) => {
+            const isSelectedBranch = row.dataset.branchRow === selectedBranchId;
+            row.classList.toggle('d-none', !isSelectedBranch);
+
+            row.querySelectorAll('input[data-branch-id]').forEach((input) => {
+                input.disabled = !isSelectedBranch;
+
+                if (!isSelectedBranch) {
+                    input.value = '';
+                }
+            });
+        });
+    };
+
+    branchSelect.addEventListener('change', syncRows);
+    syncRows();
+}
+
 function openBranchProcessModal(payload) {
     const modalElement = document.getElementById('branchProcessModal');
     if (!modalElement) {
@@ -705,6 +741,7 @@ document.addEventListener('DOMContentLoaded', () => {
         '#createTripRouteHelp'
     );
     wireBranchMovementIncludes(document);
+    wireCreateBranchMovementScope();
 
     @if($errors->any() && auth()->user()->hasPermission('shuttle_operations', 'create') && !old('_branch_process_trip_id'))
         const addTripModal = document.getElementById('addTripModal');

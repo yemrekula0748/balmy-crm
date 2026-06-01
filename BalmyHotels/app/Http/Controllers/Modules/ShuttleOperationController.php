@@ -310,6 +310,7 @@ class ShuttleOperationController extends BaseModuleController
 
         $selectedBranchIds = collect($data['involved_branch_ids'])
             ->map(fn ($id) => (int) $id)
+            ->push((int) $data['branch_id'])
             ->unique()
             ->values()
             ->all();
