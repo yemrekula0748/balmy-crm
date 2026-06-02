@@ -97,6 +97,7 @@
                                 </button>
                                 <input type="date" name="date" value="{{ $date->toDateString() }}"
                                        class="form-control form-control-sm text-center"
+                                       data-auto-date-picker="1"
                                        style="width:135px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);color:#fff"
                                        onchange="this.form.submit()">
                                 <button type="button" onclick="changeDate(1)" class="btn btn-sm"
@@ -541,10 +542,34 @@
 <script>
 function changeDate(delta) {
     const input = document.querySelector('input[name="date"]');
-    const date = new Date(input.value + 'T00:00:00');
-    date.setDate(date.getDate() + delta);
-    input.value = date.toISOString().split('T')[0];
-    document.getElementById('filterForm').submit();
+    const form = document.getElementById('filterForm');
+
+    if (!input || !form) {
+        return;
+    }
+
+    const date = parseDateInput(input.value);
+    date.setDate(date.getDate() + Number(delta || 0));
+    input.value = formatDateInput(date);
+    form.submit();
+}
+
+function parseDateInput(value) {
+    const parts = String(value || '').split('-').map((part) => Number(part));
+
+    if (parts.length !== 3 || parts.some((part) => !Number.isFinite(part))) {
+        return new Date();
+    }
+
+    return new Date(parts[0], parts[1] - 1, parts[2]);
+}
+
+function formatDateInput(date) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+
+    return `${year}-${month}-${day}`;
 }
 
 function tryShowPicker(input) {
@@ -561,6 +586,13 @@ function tryShowPicker(input) {
 
 function bindAutoTimePickers(scope = document) {
     scope.querySelectorAll('input[data-auto-time-picker="1"]').forEach((input) => {
+        input.addEventListener('focus', () => tryShowPicker(input));
+        input.addEventListener('click', () => tryShowPicker(input));
+    });
+}
+
+function bindAutoDatePickers(scope = document) {
+    scope.querySelectorAll('input[data-auto-date-picker="1"]').forEach((input) => {
         input.addEventListener('focus', () => tryShowPicker(input));
         input.addEventListener('click', () => tryShowPicker(input));
     });
@@ -737,6 +769,7 @@ function openBranchProcessModalFromButton(button) {
 
 document.addEventListener('DOMContentLoaded', () => {
     bindAutoTimePickers(document);
+    bindAutoDatePickers(document);
     wireTripForm(
         '#createTripVehicleId',
         '#createTripRouteId',
