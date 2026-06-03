@@ -52,7 +52,8 @@
     $selectedRouteIds = collect(old('route_ids', isset($vehicle) ? $vehicle->routes->pluck('id')->all() : []))
         ->map(fn ($id) => (int) $id)
         ->all();
-    $groupedRoutes = collect($routes ?? [])->groupBy(fn ($route) => $route->branch?->name ?? 'Diger');
+    $availableRoutes = collect($routes ?? [])->sortBy('name')->values();
+    $routeColumnSize = max(1, (int) ceil($availableRoutes->count() / 2));
 @endphp
 
 <div class="mb-3">
@@ -60,20 +61,19 @@
     <div class="card border-0 shadow-sm" style="background:#faf7f2;border-radius:12px">
         <div class="card-body">
             <div class="small text-muted mb-3">
-                Operasyon ekraninda bu araca yalnizca burada secilen guzergahlar gosterilir.
+                Guzergahlar otel ayrimi olmadan ortaktir. Operasyon ekraninda bu araca yalnizca burada secilen guzergahlar gosterilir.
             </div>
 
-            @if($groupedRoutes->isEmpty())
+            @if($availableRoutes->isEmpty())
                 <div class="alert alert-warning mb-0 py-2 px-3">
                     Once guzergah tanimi eklemelisin.
                 </div>
             @else
                 <div class="row g-3">
-                    @foreach($groupedRoutes as $branchName => $branchRoutes)
+                    @foreach($availableRoutes->chunk($routeColumnSize) as $routeColumn)
                         <div class="col-md-6">
                             <div class="border rounded-3 h-100 p-3 bg-white">
-                                <div class="fw-semibold mb-2" style="color:#7a5c3d">{{ $branchName }}</div>
-                                @foreach($branchRoutes as $route)
+                                @foreach($routeColumn as $route)
                                     <div class="form-check mb-2">
                                         <input
                                             class="form-check-input"

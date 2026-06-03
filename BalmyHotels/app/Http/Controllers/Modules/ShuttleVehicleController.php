@@ -67,10 +67,7 @@ class ShuttleVehicleController extends BaseModuleController
         $branches = Branch::where('is_active', true)
             ->whereIn('id', $user->visibleShuttleBranchIds())
             ->get();
-        $routes = ShuttleRoute::with('branch')
-            ->active()
-            ->whereIn('branch_id', $user->visibleShuttleBranchIds())
-            ->orderBy('branch_id')
+        $routes = ShuttleRoute::active()
             ->orderBy('name')
             ->get();
         $types = ShuttleVehicle::TYPES;
@@ -104,7 +101,7 @@ class ShuttleVehicleController extends BaseModuleController
             ->map(fn ($id) => (int) $id)
             ->filter()
             ->values();
-        $allowedRouteIds = ShuttleRoute::whereIn('branch_id', $visibleBranchIds)
+        $allowedRouteIds = ShuttleRoute::query()
             ->pluck('id')
             ->map(fn ($id) => (int) $id)
             ->all();
@@ -126,10 +123,7 @@ class ShuttleVehicleController extends BaseModuleController
         $branches = Branch::where('is_active', true)
             ->whereIn('id', $user->visibleShuttleBranchIds())
             ->get();
-        $routes = ShuttleRoute::with('branch')
-            ->active()
-            ->whereIn('branch_id', $user->visibleShuttleBranchIds())
-            ->orderBy('branch_id')
+        $routes = ShuttleRoute::active()
             ->orderBy('name')
             ->get();
         $types = ShuttleVehicle::TYPES;
@@ -166,7 +160,7 @@ class ShuttleVehicleController extends BaseModuleController
             ->map(fn ($id) => (int) $id)
             ->filter()
             ->values();
-        $allowedRouteIds = ShuttleRoute::whereIn('branch_id', $visibleBranchIds)
+        $allowedRouteIds = ShuttleRoute::query()
             ->pluck('id')
             ->map(fn ($id) => (int) $id)
             ->all();

@@ -54,8 +54,7 @@ class ShuttleOperationController extends BaseModuleController
             ->orderBy('name')
             ->get();
 
-        $routes = ShuttleRoute::with('branch')
-            ->where('is_active', true)
+        $routes = ShuttleRoute::where('is_active', true)
             ->orderBy('name')
             ->get();
 
@@ -148,8 +147,7 @@ class ShuttleOperationController extends BaseModuleController
             ->orderBy('name')
             ->get();
 
-        $routes = ShuttleRoute::with('branch')
-            ->where('is_active', true)
+        $routes = ShuttleRoute::where('is_active', true)
             ->orderBy('name')
             ->get();
 

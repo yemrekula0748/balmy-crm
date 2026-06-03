@@ -392,11 +392,11 @@
                                     <option value="">- Arac secildikten sonra listelenir -</option>
                                     @foreach($routes as $route)
                                         <option value="{{ $route->id }}" @selected(old('route_id') == $route->id)>
-                                            {{ $route->name }} - {{ $route->branch->name ?? 'Sube yok' }}
+                                            {{ $route->name }}
                                         </option>
                                     @endforeach
                                 </select>
-                                <div class="small text-muted mt-1" id="createTripRouteHelp">Yalnizca secilen aracin gorevli oldugu guzergahlar listelenir.</div>
+                                <div class="small text-muted mt-1" id="createTripRouteHelp">Ortak guzergahlardan, yalnizca secilen aracin gorevli olduklari listelenir.</div>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label fw-semibold small">Vardiya <span class="text-danger">*</span></label>
@@ -642,11 +642,11 @@ function wireTripForm(vehicleSelector, routeSelector, flagsSelector, helpSelecto
 
         if (helpBox) {
             if (!vehicleId) {
-                helpBox.textContent = 'Yalnizca secilen aracin gorevli oldugu guzergahlar listelenir.';
+                helpBox.textContent = 'Ortak guzergahlardan, yalnizca secilen aracin gorevli olduklari listelenir.';
             } else if (allowedRouteIds.size === 0) {
                 helpBox.textContent = 'Bu araca henuz guzergah atamasi yapilmamis.';
             } else {
-                helpBox.textContent = 'Yalnizca secilen aracin gorevli oldugu guzergahlar gorunuyor.';
+                helpBox.textContent = 'Secilen aracin ortak guzergah gorevleri gorunuyor.';
             }
         }
     };

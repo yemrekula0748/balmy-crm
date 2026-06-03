@@ -17,7 +17,9 @@ class ShuttleRoute extends Model
 
     public function branch(): BelongsTo
     {
-        return $this->belongsTo(Branch::class);
+        return $this->belongsTo(Branch::class)->withDefault([
+            'name' => 'Ortak',
+        ]);
     }
 
     public function trips(): HasMany

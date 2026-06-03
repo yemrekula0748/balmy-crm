@@ -1,30 +1,22 @@
 {{-- Shared form fields for create/edit --}}
-<div class="mb-3">
-    <label class="form-label">Şube <span class="text-danger">*</span></label>
-    <select name="branch_id" class="form-select @error('branch_id') is-invalid @enderror" required>
-        <option value="">— Seçiniz —</option>
-        @foreach($branches as $b)
-            <option value="{{ $b->id }}" @selected(old('branch_id', $route->branch_id ?? '') == $b->id)>
-                {{ $b->name }}
-            </option>
-        @endforeach
-    </select>
-    @error('branch_id')<div class="invalid-feedback">{{ $message }}</div>@enderror
+<div class="alert border-0 mb-3" style="background:#fbf6ef;color:#7a5c3d;border-radius:10px">
+    <i class="fas fa-info-circle me-1"></i>
+    Bu guzergah tum oteller icin ortak kullanilir; otel secimi yapilmaz.
 </div>
 
 <div class="mb-3">
-    <label class="form-label">Güzergah Adı <span class="text-danger">*</span></label>
+    <label class="form-label">Guzergah Adi <span class="text-danger">*</span></label>
     <input type="text" name="name" value="{{ old('name', $route->name ?? '') }}"
            class="form-control @error('name') is-invalid @enderror"
-           placeholder="örn: Kemer Merkez — Otel" required maxlength="100">
+           placeholder="Orn: Kemer Merkez - Otel" required maxlength="100">
     @error('name')<div class="invalid-feedback">{{ $message }}</div>@enderror
 </div>
 
 <div class="mb-3">
-    <label class="form-label">Açıklama</label>
+    <label class="form-label">Aciklama</label>
     <input type="text" name="description" value="{{ old('description', $route->description ?? '') }}"
            class="form-control @error('description') is-invalid @enderror"
-           placeholder="İsteğe bağlı açıklama" maxlength="255">
+           placeholder="Istege bagli aciklama" maxlength="255">
     @error('description')<div class="invalid-feedback">{{ $message }}</div>@enderror
 </div>
 

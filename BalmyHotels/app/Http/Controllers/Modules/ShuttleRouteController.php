@@ -3,10 +3,8 @@
 namespace App\Http\Controllers\Modules;
 
 use App\Http\Controllers\Modules\BaseModuleController;
-use App\Models\Branch;
 use App\Models\ShuttleRoute;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 
 class ShuttleRouteController extends BaseModuleController
 {
@@ -31,91 +29,64 @@ class ShuttleRouteController extends BaseModuleController
 
     public function index(Request $request)
     {
-        $user     = Auth::user();
-        $visibleBranchIds = array_map('intval', $user->visibleShuttleBranchIds());
-        $branches = Branch::where('is_active', true)
-            ->whereIn('id', $visibleBranchIds)
-            ->orderBy('name')
-            ->get();
-        $branchId = $request->filled('branch_id') && in_array((int) $request->branch_id, $visibleBranchIds, true)
-            ? (int) $request->branch_id
-            : null;
-
-        $routes = ShuttleRoute::with('branch')
-            ->whereIn('branch_id', $visibleBranchIds)
-            ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
-            ->when($request->search, fn($q) => $q->where('name', 'like', "%{$request->search}%"))
-            ->orderBy('branch_id')
+        $routes = ShuttleRoute::query()
+            ->when($request->search, fn ($q) => $q->where('name', 'like', "%{$request->search}%"))
             ->orderBy('name')
             ->paginate(20)
             ->withQueryString();
 
-        return view('modules.shuttle.routes.index', compact('routes', 'branches', 'branchId'));
+        return view('modules.shuttle.routes.index', compact('routes'));
     }
 
     public function create()
     {
-        $user     = Auth::user();
-        $branches = Branch::where('is_active', true)
-            ->whereIn('id', $user->visibleShuttleBranchIds())
-            ->get();
-        return view('modules.shuttle.routes.create', compact('branches'));
+        return view('modules.shuttle.routes.create');
     }
 
     public function store(Request $request)
     {
         $data = $request->validate([
-            'branch_id'   => 'required|exists:branches,id',
-            'name'        => 'required|string|max:100',
+            'name' => 'required|string|max:100',
             'description' => 'nullable|string|max:255',
-            'is_active'   => 'boolean',
+            'is_active' => 'boolean',
         ]);
 
+        $data['branch_id'] = null;
         $data['is_active'] = $request->boolean('is_active', true);
-        abort_unless(in_array((int) $data['branch_id'], array_map('intval', Auth::user()->visibleShuttleBranchIds()), true), 403);
 
         ShuttleRoute::create($data);
 
         return redirect()->route('shuttle.routes.index')
-            ->with('success', 'Güzergah başarıyla eklendi.');
+            ->with('success', 'Guzergah basariyla eklendi.');
     }
 
     public function edit(ShuttleRoute $route)
     {
-        $user     = Auth::user();
-        abort_unless(in_array((int) $route->branch_id, array_map('intval', $user->visibleShuttleBranchIds()), true), 403);
-
-        $branches = Branch::where('is_active', true)
-            ->whereIn('id', $user->visibleShuttleBranchIds())
-            ->get();
-        return view('modules.shuttle.routes.edit', compact('route', 'branches'));
+        return view('modules.shuttle.routes.edit', compact('route'));
     }
 
     public function update(Request $request, ShuttleRoute $route)
     {
         $data = $request->validate([
-            'branch_id'   => 'required|exists:branches,id',
-            'name'        => 'required|string|max:100',
+            'name' => 'required|string|max:100',
             'description' => 'nullable|string|max:255',
-            'is_active'   => 'boolean',
+            'is_active' => 'boolean',
         ]);
 
+        $data['branch_id'] = null;
         $data['is_active'] = $request->boolean('is_active', true);
-        abort_unless(in_array((int) $route->branch_id, array_map('intval', Auth::user()->visibleShuttleBranchIds()), true), 403);
-        abort_unless(in_array((int) $data['branch_id'], array_map('intval', Auth::user()->visibleShuttleBranchIds()), true), 403);
 
         $route->update($data);
 
         return redirect()->route('shuttle.routes.index')
-            ->with('success', 'Güzergah başarıyla güncellendi.');
+            ->with('success', 'Guzergah basariyla guncellendi.');
     }
 
     public function destroy(ShuttleRoute $route)
     {
-        abort_unless(in_array((int) $route->branch_id, array_map('intval', Auth::user()->visibleShuttleBranchIds()), true), 403);
-
         $route->delete();
+
         return redirect()->route('shuttle.routes.index')
-            ->with('success', 'Güzergah silindi.');
+            ->with('success', 'Guzergah silindi.');
     }
 }
