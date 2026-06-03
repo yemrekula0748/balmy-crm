@@ -3,11 +3,9 @@
 namespace App\Http\Controllers\Modules;
 
 use App\Http\Controllers\Modules\BaseModuleController;
-use App\Models\Branch;
 use App\Models\ShuttleRoute;
 use App\Models\ShuttleVehicle;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 
 class ShuttleVehicleController extends BaseModuleController
 {
@@ -32,19 +30,7 @@ class ShuttleVehicleController extends BaseModuleController
 
     public function index(Request $request)
     {
-        $user = Auth::user();
-        $visibleBranchIds = array_map('intval', $user->visibleShuttleBranchIds());
-        $branches = Branch::where('is_active', true)
-            ->whereIn('id', $visibleBranchIds)
-            ->orderBy('name')
-            ->get();
-        $branchId = $request->filled('branch_id') && in_array((int) $request->branch_id, $visibleBranchIds, true)
-            ? (int) $request->branch_id
-            : null;
-
-        $vehicles = ShuttleVehicle::with(['branch', 'routes'])
-            ->whereIn('branch_id', $visibleBranchIds)
-            ->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
+        $vehicles = ShuttleVehicle::with('routes')
             ->when($request->search, function ($q) use ($request) {
                 $search = $request->search;
 
@@ -53,33 +39,26 @@ class ShuttleVehicleController extends BaseModuleController
                         ->orWhere('plate', 'like', "%{$search}%");
                 });
             })
-            ->orderBy('branch_id')
             ->orderBy('name')
             ->paginate(20)
             ->withQueryString();
 
-        return view('modules.shuttle.vehicles.index', compact('vehicles', 'branches', 'branchId'));
+        return view('modules.shuttle.vehicles.index', compact('vehicles'));
     }
 
     public function create()
     {
-        $user = Auth::user();
-        $branches = Branch::where('is_active', true)
-            ->whereIn('id', $user->visibleShuttleBranchIds())
-            ->get();
         $routes = ShuttleRoute::active()
             ->orderBy('name')
             ->get();
         $types = ShuttleVehicle::TYPES;
 
-        return view('modules.shuttle.vehicles.create', compact('branches', 'types', 'routes'));
+        return view('modules.shuttle.vehicles.create', compact('types', 'routes'));
     }
 
     public function store(Request $request)
     {
-        $visibleBranchIds = Auth::user()->visibleShuttleBranchIds();
         $data = $request->validate([
-            'branch_id' => 'required|exists:branches,id',
             'name' => 'required|string|max:100',
             'plate' => 'nullable|string|max:20',
             'type' => 'required|in:minibus,midibus,otobus,diger',
@@ -89,10 +68,8 @@ class ShuttleVehicleController extends BaseModuleController
             'route_ids.*' => 'integer|exists:shuttle_routes,id',
         ]);
 
+        $data['branch_id'] = null;
         $data['is_active'] = $request->boolean('is_active', true);
-        if (! in_array((int) $data['branch_id'], array_map('intval', $visibleBranchIds), true)) {
-            abort(403);
-        }
         if (! empty($data['plate'])) {
             $data['plate'] = strtoupper(trim($data['plate']));
         }
@@ -118,11 +95,6 @@ class ShuttleVehicleController extends BaseModuleController
 
     public function edit(ShuttleVehicle $vehicle)
     {
-        $user = Auth::user();
-        abort_unless(in_array((int) $vehicle->branch_id, array_map('intval', $user->visibleShuttleBranchIds()), true), 403);
-        $branches = Branch::where('is_active', true)
-            ->whereIn('id', $user->visibleShuttleBranchIds())
-            ->get();
         $routes = ShuttleRoute::active()
             ->orderBy('name')
             ->get();
@@ -130,15 +102,12 @@ class ShuttleVehicleController extends BaseModuleController
 
         $vehicle->load('routes');
 
-        return view('modules.shuttle.vehicles.edit', compact('vehicle', 'branches', 'types', 'routes'));
+        return view('modules.shuttle.vehicles.edit', compact('vehicle', 'types', 'routes'));
     }
 
     public function update(Request $request, ShuttleVehicle $vehicle)
     {
-        $visibleBranchIds = Auth::user()->visibleShuttleBranchIds();
-        abort_unless(in_array((int) $vehicle->branch_id, array_map('intval', $visibleBranchIds), true), 403);
         $data = $request->validate([
-            'branch_id' => 'required|exists:branches,id',
             'name' => 'required|string|max:100',
             'plate' => 'nullable|string|max:20',
             'type' => 'required|in:minibus,midibus,otobus,diger',
@@ -148,10 +117,8 @@ class ShuttleVehicleController extends BaseModuleController
             'route_ids.*' => 'integer|exists:shuttle_routes,id',
         ]);
 
+        $data['branch_id'] = null;
         $data['is_active'] = $request->boolean('is_active', true);
-        if (! in_array((int) $data['branch_id'], array_map('intval', $visibleBranchIds), true)) {
-            abort(403);
-        }
         if (! empty($data['plate'])) {
             $data['plate'] = strtoupper(trim($data['plate']));
         }
@@ -177,7 +144,6 @@ class ShuttleVehicleController extends BaseModuleController
 
     public function destroy(ShuttleVehicle $vehicle)
     {
-        abort_unless(in_array((int) $vehicle->branch_id, array_map('intval', Auth::user()->visibleShuttleBranchIds()), true), 403);
         $vehicle->delete();
 
         return redirect()->route('shuttle.vehicles.index')

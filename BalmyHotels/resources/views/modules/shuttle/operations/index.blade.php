@@ -381,7 +381,7 @@
                                             data-route-ids="{{ $vehicle->routes->pluck('id')->implode(',') }}"
                                             @selected(old('shuttle_vehicle_id') == $vehicle->id)
                                         >
-                                            {{ $vehicle->name }}@if($vehicle->plate) ({{ $vehicle->plate }})@endif - {{ $vehicle->branch->name ?? 'Sube yok' }} - Kap: {{ $vehicle->capacity }}
+                                            {{ $vehicle->name }}@if($vehicle->plate) ({{ $vehicle->plate }})@endif - Kap: {{ $vehicle->capacity }}
                                         </option>
                                     @endforeach
                                 </select>

@@ -49,7 +49,7 @@ class ShuttleOperationController extends BaseModuleController
         $currentBranchId = $request->branch_id ?? ($branches->count() === 1 ? $branches->first()->id : null);
         $currentBranchId = $currentBranchId ? (int) $currentBranchId : null;
 
-        $vehicles = ShuttleVehicle::with(['branch', 'routes'])
+        $vehicles = ShuttleVehicle::with('routes')
             ->where('is_active', true)
             ->orderBy('name')
             ->get();
@@ -142,7 +142,7 @@ class ShuttleOperationController extends BaseModuleController
         );
         $isOwner = $this->isOwnerContext($operation, $contextBranchId);
 
-        $vehicles = ShuttleVehicle::with(['branch', 'routes'])
+        $vehicles = ShuttleVehicle::with('routes')
             ->where('is_active', true)
             ->orderBy('name')
             ->get();

@@ -1,15 +1,7 @@
 {{-- Shared form fields for vehicle create/edit --}}
-<div class="mb-3">
-    <label class="form-label">Sube <span class="text-danger">*</span></label>
-    <select name="branch_id" class="form-select @error('branch_id') is-invalid @enderror" required>
-        <option value="">- Seciniz -</option>
-        @foreach($branches as $b)
-            <option value="{{ $b->id }}" @selected(old('branch_id', $vehicle->branch_id ?? '') == $b->id)>
-                {{ $b->name }}
-            </option>
-        @endforeach
-    </select>
-    @error('branch_id')<div class="invalid-feedback">{{ $message }}</div>@enderror
+<div class="alert border-0 mb-3" style="background:#fbf6ef;color:#7a5c3d;border-radius:10px">
+    <i class="fas fa-info-circle me-1"></i>
+    Servis araci Beach / Foresta ayrimi olmadan ortak kullanilir.
 </div>
 
 <div class="mb-3">

@@ -45,20 +45,12 @@
                         </div>
                         <div>
                             <div class="text-white fw-semibold fs-5">Araç Envanteri</div>
-                            <div style="color:rgba(255,255,255,0.5);font-size:.82rem">Toplam {{ $vehicles->total() }} araç kayıtlı</div>
+                            <div style="color:rgba(255,255,255,0.5);font-size:.82rem">Toplam {{ $vehicles->total() }} ortak servis araci kayitli</div>
                         </div>
                     </div>
                     <div class="d-flex align-items-center gap-2 flex-wrap">
                         <form method="GET" action="{{ route('shuttle.vehicles.index') }}"
                               class="d-flex align-items-center gap-2 flex-wrap">
-                            <select name="branch_id" class="form-select form-select-sm"
-                                    style="min-width:180px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);color:#fff"
-                                    onchange="this.form.submit()">
-                                <option value="" style="color:#333;background:#fff">— Tüm Şubeler —</option>
-                                @foreach($branches as $b)
-                                    <option value="{{ $b->id }}" @selected($branchId == $b->id) style="color:#333;background:#fff">{{ $b->name }}</option>
-                                @endforeach
-                            </select>
                             <div class="input-group input-group-sm" style="max-width:220px">
                                 <input type="text" name="search" value="{{ request('search') }}"
                                        class="form-control"
@@ -69,7 +61,7 @@
                                     <i class="fas fa-search"></i>
                                 </button>
                             </div>
-                            @if(request('search') || request('branch_id'))
+                            @if(request('search'))
                             <a href="{{ route('shuttle.vehicles.index') }}"
                                class="btn btn-sm"
                                style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);color:#fff">
@@ -142,9 +134,6 @@
                                              padding:3px 9px;border-radius:20px;white-space:nowrap">Pasif</span>
                             @endif
                         </div>
-
-                        {{-- Şube --}}
-                        <div class="text-muted mb-3" style="font-size:.8rem">{{ $v->branch->name }}</div>
 
                         {{-- Plaka --}}
                         @if($v->plate)
