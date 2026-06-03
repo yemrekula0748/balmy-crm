@@ -7,12 +7,16 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
+        html { width: 100%; overflow-x: hidden; }
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            width: 100%;
             min-height: 100vh;
+            min-height: 100dvh;
             background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
             display: flex; align-items: center; justify-content: center;
-            padding: 20px;
+            padding: max(16px, env(safe-area-inset-top)) max(14px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom)) max(14px, env(safe-area-inset-left));
+            overflow-x: hidden;
         }
         .splash-card {
             background: rgba(255,255,255,0.97);
@@ -20,6 +24,7 @@
             padding: 48px 40px;
             max-width: 480px;
             width: 100%;
+            min-width: 0;
             text-align: center;
             box-shadow: 0 32px 80px rgba(0,0,0,0.4);
         }
@@ -32,7 +37,7 @@
             box-shadow: 0 8px 24px rgba(67,97,238,0.35);
         }
         .hotel-icon i { color: #fff; font-size: 36px; }
-        h1 { font-size: 1.6rem; font-weight: 700; color: #1a1a2e; margin-bottom: 8px; }
+        h1 { font-size: 1.6rem; font-weight: 700; color: #1a1a2e; margin-bottom: 8px; overflow-wrap: anywhere; }
         .subtitle { color: #6b7280; font-size: 0.95rem; margin-bottom: 36px; line-height: 1.5; }
         .lang-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 24px; }
         .lang-btn {
@@ -40,12 +45,62 @@
             border: 2px solid #e5e7eb; border-radius: 14px; background: #fff;
             cursor: pointer; text-decoration: none; color: #1a1a2e;
             transition: all 0.2s; font-size: 1rem; font-weight: 500;
+            width: 100%;
+            min-width: 0;
         }
         .lang-btn:hover { border-color: #4361ee; background: #f0f3ff; color: #4361ee; transform: translateY(-2px); box-shadow: 0 4px 16px rgba(67,97,238,0.15); }
-        .lang-btn .flag { font-size: 1.8rem; }
-        .lang-btn .name { text-align: left; }
+        .lang-btn .flag { font-size: 1.8rem; flex: 0 0 auto; line-height: 1; }
+        .lang-btn .name { text-align: left; min-width: 0; overflow-wrap: anywhere; }
         .lang-btn .name .sub { font-size: 0.75rem; color: #9ca3af; font-weight: 400; }
         .footer-note { font-size: 0.8rem; color: #9ca3af; }
+
+        @media (max-width: 520px) {
+            body {
+                align-items: flex-start;
+                padding-top: max(18px, env(safe-area-inset-top));
+            }
+            .splash-card {
+                border-radius: 20px;
+                padding: 28px 18px;
+                box-shadow: 0 18px 48px rgba(0,0,0,0.32);
+            }
+            .hotel-icon {
+                width: 64px;
+                height: 64px;
+                border-radius: 16px;
+                margin-bottom: 18px;
+            }
+            .hotel-icon i { font-size: 28px; }
+            h1 {
+                font-size: 1.28rem;
+                line-height: 1.25;
+            }
+            .subtitle {
+                font-size: .9rem;
+                margin-bottom: 24px;
+            }
+            .lang-grid {
+                grid-template-columns: 1fr !important;
+                gap: 10px;
+            }
+            .lang-btn {
+                padding: 13px 14px;
+                gap: 10px;
+                border-radius: 12px;
+                font-size: .96rem;
+            }
+            .lang-btn:hover {
+                transform: none;
+            }
+            .lang-btn .flag {
+                font-size: 1.55rem;
+            }
+        }
+
+        @media (max-width: 360px) {
+            .splash-card { padding: 24px 14px; }
+            .lang-btn { padding: 12px; }
+        }
     </style>
 </head>
 <body>
