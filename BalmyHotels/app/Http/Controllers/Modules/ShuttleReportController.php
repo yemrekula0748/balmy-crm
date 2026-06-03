@@ -125,7 +125,7 @@ class ShuttleReportController extends BaseModuleController
             : null;
 
         $trips = (clone $visibleTripsQuery)
-            ->with(['vehicle', 'route', 'branch', 'branchMovements.branch'])
+            ->with(['vehicle.routes', 'route', 'branch', 'branchMovements.branch'])
             ->when($vehicleId, fn ($q) => $q->where('shuttle_vehicle_id', $vehicleId))
             ->orderBy('trip_date')
             ->orderBy('shift')
@@ -141,7 +141,8 @@ class ShuttleReportController extends BaseModuleController
         $dayCount = max(1, $from->diffInDays($to) + 1);
         $transferTrips = $trips->where('is_transfer', true)->count();
         $differentVehicleTrips = $trips->where('arrived_with_different_vehicle', true)->count();
-        $exceptionTrips = $trips->filter(fn ($trip) => $trip->is_transfer || $trip->arrived_with_different_vehicle)->count();
+        $lodgingRouteTrips = $trips->where('is_lodging_route', true)->count();
+        $exceptionTrips = $trips->filter(fn ($trip) => $this->tripHasException($trip))->count();
 
         $occupancyArr = [];
         $occupancyDep = [];
@@ -165,8 +166,10 @@ class ShuttleReportController extends BaseModuleController
             'avg_occupancy_dep' => count($occupancyDep) ? round(array_sum($occupancyDep) / count($occupancyDep), 1) : 0,
             'total_transfer_trips' => $transferTrips,
             'total_different_vehicle_trips' => $differentVehicleTrips,
+            'total_lodging_route_trips' => $lodgingRouteTrips,
             'transfer_rate' => $totalTrips > 0 ? round($transferTrips / $totalTrips * 100, 1) : 0,
             'different_vehicle_rate' => $totalTrips > 0 ? round($differentVehicleTrips / $totalTrips * 100, 1) : 0,
+            'lodging_route_rate' => $totalTrips > 0 ? round($lodgingRouteTrips / $totalTrips * 100, 1) : 0,
             'exception_trips' => $exceptionTrips,
             'exception_rate' => $totalTrips > 0 ? round($exceptionTrips / $totalTrips * 100, 1) : 0,
         ];
@@ -182,8 +185,10 @@ class ShuttleReportController extends BaseModuleController
                 'departure' => $this->sumMovements($subset, $reportBranchIds, 'departure'),
                 'transfer' => $subset->where('is_transfer', true)->count(),
                 'different_vehicle' => $subset->where('arrived_with_different_vehicle', true)->count(),
+                'lodging_route' => $subset->where('is_lodging_route', true)->count(),
                 'transfer_rate' => $shiftTripCount > 0 ? round($subset->where('is_transfer', true)->count() / $shiftTripCount * 100, 1) : 0,
                 'different_vehicle_rate' => $shiftTripCount > 0 ? round($subset->where('arrived_with_different_vehicle', true)->count() / $shiftTripCount * 100, 1) : 0,
+                'lodging_route_rate' => $shiftTripCount > 0 ? round($subset->where('is_lodging_route', true)->count() / $shiftTripCount * 100, 1) : 0,
             ];
         }
 
@@ -202,10 +207,12 @@ class ShuttleReportController extends BaseModuleController
                 'departure' => $totalVehicleDeparture,
                 'transfer' => $subset->where('is_transfer', true)->count(),
                 'different_vehicle' => $subset->where('arrived_with_different_vehicle', true)->count(),
+                'lodging_route' => $subset->where('is_lodging_route', true)->count(),
                 'occupancy_arr' => ($cap > 0 && $tripCount > 0) ? round($totalVehicleArrival / ($cap * $tripCount) * 100, 1) : 0,
                 'occupancy_dep' => ($cap > 0 && $tripCount > 0) ? round($totalVehicleDeparture / ($cap * $tripCount) * 100, 1) : 0,
                 'transfer_rate' => $tripCount > 0 ? round($subset->where('is_transfer', true)->count() / $tripCount * 100, 1) : 0,
                 'different_vehicle_rate' => $tripCount > 0 ? round($subset->where('arrived_with_different_vehicle', true)->count() / $tripCount * 100, 1) : 0,
+                'lodging_route_rate' => $tripCount > 0 ? round($subset->where('is_lodging_route', true)->count() / $tripCount * 100, 1) : 0,
             ];
         }
 
@@ -302,9 +309,12 @@ class ShuttleReportController extends BaseModuleController
         $sheet->setCellValue('A13', 'Farkli Aracla Gelen');
         $sheet->setCellValue('B13', $stats['total_different_vehicle_trips']);
         $sheet->setCellValue('C13', $stats['different_vehicle_rate'] . '%');
-        $sheet->setCellValue('A14', 'Toplam Istisna');
-        $sheet->setCellValue('B14', $stats['exception_trips']);
-        $sheet->setCellValue('C14', $stats['exception_rate'] . '%');
+        $sheet->setCellValue('A14', 'Lojman Guzergahi');
+        $sheet->setCellValue('B14', $stats['total_lodging_route_trips']);
+        $sheet->setCellValue('C14', $stats['lodging_route_rate'] . '%');
+        $sheet->setCellValue('A15', 'Toplam Istisna');
+        $sheet->setCellValue('B15', $stats['exception_trips']);
+        $sheet->setCellValue('C15', $stats['exception_rate'] . '%');
 
         $sheet->setCellValue('E6', 'Vardiya');
         $sheet->setCellValue('F6', 'Sefer');
@@ -312,6 +322,7 @@ class ShuttleReportController extends BaseModuleController
         $sheet->setCellValue('H6', 'Donus');
         $sheet->setCellValue('I6', 'Aktarim');
         $sheet->setCellValue('J6', 'Farkli Arac');
+        $sheet->setCellValue('K6', 'Lojman');
 
         $row = 7;
         foreach ($payload['byShift'] as $shiftName => $shiftData) {
@@ -325,6 +336,7 @@ class ShuttleReportController extends BaseModuleController
             $sheet->setCellValue('H' . $row, $shiftData['departure']);
             $sheet->setCellValue('I' . $row, $shiftData['transfer']);
             $sheet->setCellValue('J' . $row, $shiftData['different_vehicle']);
+            $sheet->setCellValue('K' . $row, $shiftData['lodging_route']);
             $row++;
         }
 
@@ -347,6 +359,7 @@ class ShuttleReportController extends BaseModuleController
         $sheet->setCellValue('T6', 'Giden');
         $sheet->setCellValue('U6', 'Aktarim');
         $sheet->setCellValue('V6', 'Farkli Arac');
+        $sheet->setCellValue('W6', 'Lojman');
 
         $vehicleRow = 7;
         foreach ($payload['byVehicle'] as $data) {
@@ -361,26 +374,27 @@ class ShuttleReportController extends BaseModuleController
             $sheet->setCellValue('T' . $vehicleRow, $data['departure'] . ' (%' . $data['occupancy_dep'] . ')');
             $sheet->setCellValue('U' . $vehicleRow, $data['transfer']);
             $sheet->setCellValue('V' . $vehicleRow, $data['different_vehicle']);
+            $sheet->setCellValue('W' . $vehicleRow, $data['lodging_route']);
             $vehicleRow++;
         }
 
-        $this->styleTitle($sheet, 'A1:V1');
+        $this->styleTitle($sheet, 'A1:W1');
         $this->styleHeader($sheet, 'A6:C6');
-        $this->styleHeader($sheet, 'E6:J6');
+        $this->styleHeader($sheet, 'E6:K6');
         $this->styleHeader($sheet, 'L6:N6');
-        $this->styleHeader($sheet, 'P6:V6');
-        $this->styleBorders($sheet, 'A6:C14');
+        $this->styleHeader($sheet, 'P6:W6');
+        $this->styleBorders($sheet, 'A6:C15');
         if ($row > 7) {
-            $this->styleBorders($sheet, 'E6:J' . ($row - 1));
+            $this->styleBorders($sheet, 'E6:K' . ($row - 1));
         }
         if ($movementRow > 7) {
             $this->styleBorders($sheet, 'L6:N' . ($movementRow - 1));
         }
         if ($vehicleRow > 7) {
-            $this->styleBorders($sheet, 'P6:V' . ($vehicleRow - 1));
+            $this->styleBorders($sheet, 'P6:W' . ($vehicleRow - 1));
         }
 
-        foreach (['A' => 22, 'B' => 16, 'C' => 12, 'E' => 18, 'F' => 10, 'G' => 10, 'H' => 10, 'I' => 10, 'J' => 14, 'L' => 18, 'M' => 10, 'N' => 10, 'P' => 20, 'Q' => 14, 'R' => 10, 'S' => 14, 'T' => 14, 'U' => 10, 'V' => 12] as $column => $width) {
+        foreach (['A' => 22, 'B' => 16, 'C' => 12, 'E' => 18, 'F' => 10, 'G' => 10, 'H' => 10, 'I' => 10, 'J' => 14, 'K' => 10, 'L' => 18, 'M' => 10, 'N' => 10, 'P' => 20, 'Q' => 14, 'R' => 10, 'S' => 14, 'T' => 14, 'U' => 10, 'V' => 12, 'W' => 10] as $column => $width) {
             $sheet->getColumnDimension($column)->setWidth($width);
         }
     }
@@ -413,6 +427,7 @@ class ShuttleReportController extends BaseModuleController
             'Donus Doluluk %',
             'Farkli Arac',
             'Aktarim',
+            'Lojman Guzergahi',
             'Durum',
         ];
 
@@ -462,10 +477,7 @@ class ShuttleReportController extends BaseModuleController
             $tripArrivalTime = $this->resolveTripMovementTime($trip, $reportBranchIds, 'arrival', 'min');
             $tripDepartureTime = $this->resolveTripMovementTime($trip, $reportBranchIds, 'departure', 'max');
             $movementMatrix = $this->buildTripMovementMatrix($trip, $reportBranchIds);
-            $status = collect([
-                $trip->arrived_with_different_vehicle ? 'Farkli Arac' : null,
-                $trip->is_transfer ? 'Aktarim' : null,
-            ])->filter()->implode(' + ') ?: 'Normal';
+            $status = $this->tripStatusLabel($trip);
 
             $column = 1;
             $this->setCell($sheet, $column++, $row, $trip->trip_date->format('d.m.Y'));
@@ -476,7 +488,7 @@ class ShuttleReportController extends BaseModuleController
             $this->setCell($sheet, $column++, $row, $trip->vehicle->name ?? '-');
             $this->setCell($sheet, $column++, $row, $trip->vehicle->plate ?? '-');
             $this->setCell($sheet, $column++, $row, $capacity);
-            $this->setCell($sheet, $column++, $row, $trip->route->name ?? '-');
+            $this->setCell($sheet, $column++, $row, $this->tripRouteLabel($trip));
             $this->setCell($sheet, $column++, $row, $tripArrivalTime ?: '-');
             $this->setCell($sheet, $column++, $row, $tripArrivalCount);
             $this->setCell($sheet, $column++, $row, ($capacity > 0) ? round($tripArrivalCount / $capacity * 100, 1) : 0);
@@ -485,6 +497,7 @@ class ShuttleReportController extends BaseModuleController
             $this->setCell($sheet, $column++, $row, ($capacity > 0) ? round($tripDepartureCount / $capacity * 100, 1) : 0);
             $this->setCell($sheet, $column++, $row, $trip->arrived_with_different_vehicle ? 'Evet' : 'Hayir');
             $this->setCell($sheet, $column++, $row, $trip->is_transfer ? 'Evet' : 'Hayir');
+            $this->setCell($sheet, $column++, $row, $trip->is_lodging_route ? 'Evet' : 'Hayir');
             $this->setCell($sheet, $column++, $row, $status);
 
             foreach ($reportBranches as $branch) {
@@ -531,7 +544,7 @@ class ShuttleReportController extends BaseModuleController
 
         $widths = [
             1 => 12, 2 => 12, 3 => 16, 4 => 10, 5 => 18, 6 => 18, 7 => 13, 8 => 10, 9 => 24,
-            10 => 10, 11 => 11, 12 => 14, 13 => 10, 14 => 12, 15 => 14, 16 => 12, 17 => 10, 18 => 16,
+            10 => 10, 11 => 11, 12 => 14, 13 => 10, 14 => 12, 15 => 14, 16 => 12, 17 => 10, 18 => 16, 19 => 18,
         ];
 
         for ($column = 1; $column <= $lastColumn; $column++) {
@@ -560,6 +573,7 @@ class ShuttleReportController extends BaseModuleController
             'H1' => 'Hareket Tipi',
             'I1' => 'Saat',
             'J1' => 'Kisi Sayisi',
+            'K1' => 'Durum',
         ];
 
         foreach ($headers as $cell => $value) {
@@ -574,12 +588,13 @@ class ShuttleReportController extends BaseModuleController
                     $sheet->setCellValue('B' . $row, $trip->shift);
                     $sheet->setCellValue('C' . $row, $trip->vehicle->name ?? '-');
                     $sheet->setCellValue('D' . $row, $trip->vehicle->plate ?? '-');
-                    $sheet->setCellValue('E' . $row, $trip->route->name ?? '-');
+                    $sheet->setCellValue('E' . $row, $this->tripRouteLabel($trip));
                     $sheet->setCellValue('F' . $row, $trip->branch->name ?? '-');
                     $sheet->setCellValue('G' . $row, ShuttleTripBranchMovement::PERIODS[ShuttleTripBranchMovement::DEFAULT_PERIOD]);
                     $sheet->setCellValue('H' . $row, 'Gelen');
                     $sheet->setCellValue('I' . $row, $trip->arrival_time ? substr($trip->arrival_time, 0, 5) : '-');
                     $sheet->setCellValue('J' . $row, $trip->arrival_count);
+                    $sheet->setCellValue('K' . $row, $this->tripStatusLabel($trip));
                     $row++;
                 }
 
@@ -588,12 +603,13 @@ class ShuttleReportController extends BaseModuleController
                     $sheet->setCellValue('B' . $row, $trip->shift);
                     $sheet->setCellValue('C' . $row, $trip->vehicle->name ?? '-');
                     $sheet->setCellValue('D' . $row, $trip->vehicle->plate ?? '-');
-                    $sheet->setCellValue('E' . $row, $trip->route->name ?? '-');
+                    $sheet->setCellValue('E' . $row, $this->tripRouteLabel($trip));
                     $sheet->setCellValue('F' . $row, $trip->branch->name ?? '-');
                     $sheet->setCellValue('G' . $row, ShuttleTripBranchMovement::PERIODS[ShuttleTripBranchMovement::DEFAULT_PERIOD]);
                     $sheet->setCellValue('H' . $row, 'Giden');
                     $sheet->setCellValue('I' . $row, $trip->departure_time ? substr($trip->departure_time, 0, 5) : '-');
                     $sheet->setCellValue('J' . $row, $trip->departure_count);
+                    $sheet->setCellValue('K' . $row, $this->tripStatusLabel($trip));
                     $row++;
                 }
 
@@ -613,26 +629,59 @@ class ShuttleReportController extends BaseModuleController
                 $sheet->setCellValue('B' . $row, $trip->shift);
                 $sheet->setCellValue('C' . $row, $trip->vehicle->name ?? '-');
                 $sheet->setCellValue('D' . $row, $trip->vehicle->plate ?? '-');
-                $sheet->setCellValue('E' . $row, $trip->route->name ?? '-');
+                $sheet->setCellValue('E' . $row, $this->tripRouteLabel($trip));
                 $sheet->setCellValue('F' . $row, $movement->branch->name ?? '-');
                 $sheet->setCellValue('G' . $row, $movement->period_label);
                 $sheet->setCellValue('H' . $row, $movement->type_label);
                 $sheet->setCellValue('I' . $row, $movement->movement_time ? substr($movement->movement_time, 0, 5) : '-');
                 $sheet->setCellValue('J' . $row, $movement->headcount);
+                $sheet->setCellValue('K' . $row, $this->tripStatusLabel($trip));
                 $row++;
             }
         }
 
-        $this->styleHeader($sheet, 'A1:J1');
+        $this->styleHeader($sheet, 'A1:K1');
         if ($row > 2) {
-            $this->styleBorders($sheet, 'A1:J' . ($row - 1));
+            $this->styleBorders($sheet, 'A1:K' . ($row - 1));
         }
 
-        foreach (['A' => 12, 'B' => 16, 'C' => 20, 'D' => 14, 'E' => 22, 'F' => 18, 'G' => 18, 'H' => 16, 'I' => 10, 'J' => 10] as $column => $width) {
+        foreach (['A' => 12, 'B' => 16, 'C' => 20, 'D' => 14, 'E' => 22, 'F' => 18, 'G' => 18, 'H' => 16, 'I' => 10, 'J' => 10, 'K' => 24] as $column => $width) {
             $sheet->getColumnDimension($column)->setWidth($width);
         }
 
         $sheet->freezePane('A2');
+    }
+
+    private function tripHasException($trip): bool
+    {
+        return (bool) (
+            $trip->arrived_with_different_vehicle
+            || $trip->is_transfer
+            || $trip->is_lodging_route
+        );
+    }
+
+    private function tripStatusLabel($trip): string
+    {
+        return collect([
+            $trip->arrived_with_different_vehicle ? 'Farkli Arac' : null,
+            $trip->is_transfer ? 'Aktarim' : null,
+            $trip->is_lodging_route ? 'Lojman Guzergahi' : null,
+        ])->filter()->implode(' + ') ?: 'Normal';
+    }
+
+    private function tripRouteLabel($trip): string
+    {
+        if (! empty($trip->route?->name)) {
+            return $trip->route->name;
+        }
+
+        $routeNames = collect($trip->vehicle?->routes ?? [])
+            ->pluck('name')
+            ->filter()
+            ->implode(', ');
+
+        return $routeNames ?: '-';
     }
 
     private function setCell($sheet, int $column, int $row, $value): void

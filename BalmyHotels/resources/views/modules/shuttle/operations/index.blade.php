@@ -172,7 +172,7 @@
                             <tr>
                                 <th class="ps-4 py-3 border-0" style="background:#c19b77;color:#fff">Vardiya</th>
                                 <th class="py-3 border-0" style="background:#c19b77;color:#fff">Arac / Plaka</th>
-                                <th class="py-3 border-0" style="background:#c19b77;color:#fff">Guzergah</th>
+                                <th class="py-3 border-0" style="background:#c19b77;color:#fff">Gorevli Guzergah</th>
                                 <th class="py-3 border-0" style="background:#c19b77;color:#fff">Otel Hareketleri</th>
                                 <th class="py-3 border-0" style="background:#c19b77;color:#fff">Toplam</th>
                                 <th class="py-3 border-0" style="background:#c19b77;color:#fff">Durum / Not</th>
@@ -243,7 +243,9 @@
                                         <div class="small text-muted mt-1">Kaydi acan: {{ $trip->branch->name ?? '-' }}</div>
                                     </td>
                                     <td>
-                                        <div class="fw-semibold text-dark">{{ $trip->route->name ?? 'Guzergah belirtilmedi' }}</div>
+                                        <div class="fw-semibold text-dark">
+                                            {{ $trip->route->name ?? (collect($trip->vehicle?->routes ?? [])->pluck('name')->implode(', ') ?: 'Guzergah atanmadi') }}
+                                        </div>
                                         <div class="small text-muted mt-1">Tarih: {{ $trip->trip_date->format('d.m.Y') }}</div>
                                     </td>
                                     <td style="min-width:320px">
@@ -297,6 +299,9 @@
                                             @endif
                                             @if($trip->is_transfer)
                                                 <span class="badge" style="background:#fff7e7;color:#9b6a11;border:1px solid #f1ddb2">Aktarim</span>
+                                            @endif
+                                            @if($trip->is_lodging_route)
+                                                <span class="badge" style="background:#eef6f2;color:#2e7d52;border:1px solid #cfe3d8">Lojman guzergahi</span>
                                             @endif
                                         </div>
                                         <div class="small text-muted">{{ $trip->notes ? \Illuminate\Support\Str::limit($trip->notes, 70) : '-' }}</div>
@@ -376,27 +381,11 @@
                                 <select name="shuttle_vehicle_id" id="createTripVehicleId" class="form-select" required>
                                     <option value="">- Seciniz -</option>
                                     @foreach($vehicles as $vehicle)
-                                        <option
-                                            value="{{ $vehicle->id }}"
-                                            data-route-ids="{{ $vehicle->routes->pluck('id')->implode(',') }}"
-                                            @selected(old('shuttle_vehicle_id') == $vehicle->id)
-                                        >
+                                        <option value="{{ $vehicle->id }}" @selected(old('shuttle_vehicle_id') == $vehicle->id)>
                                             {{ $vehicle->name }}@if($vehicle->plate) ({{ $vehicle->plate }})@endif - Kap: {{ $vehicle->capacity }}
                                         </option>
                                     @endforeach
                                 </select>
-                            </div>
-                            <div class="col-md-4">
-                                <label class="form-label fw-semibold small">Guzergah</label>
-                                <select name="route_id" id="createTripRouteId" class="form-select">
-                                    <option value="">- Arac secildikten sonra listelenir -</option>
-                                    @foreach($routes as $route)
-                                        <option value="{{ $route->id }}" @selected(old('route_id') == $route->id)>
-                                            {{ $route->name }}
-                                        </option>
-                                    @endforeach
-                                </select>
-                                <div class="small text-muted mt-1" id="createTripRouteHelp">Ortak guzergahlardan, yalnizca secilen aracin gorevli olduklari listelenir.</div>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label fw-semibold small">Vardiya <span class="text-danger">*</span></label>
@@ -419,7 +408,7 @@
                                         <i class="fas fa-exclamation-triangle me-1"></i>Operasyon Istisnalari
                                     </div>
                                     <div class="row g-3">
-                                        <div class="col-md-6">
+                                        <div class="col-md-4">
                                             <input type="hidden" name="arrived_with_different_vehicle" value="0">
                                             <div class="form-check">
                                                 <input class="form-check-input" type="checkbox" value="1"
@@ -430,7 +419,7 @@
                                                 </label>
                                             </div>
                                         </div>
-                                        <div class="col-md-6">
+                                        <div class="col-md-4">
                                             <input type="hidden" name="is_transfer" value="0">
                                             <div class="form-check">
                                                 <input class="form-check-input" type="checkbox" value="1"
@@ -438,6 +427,17 @@
                                                        @checked(old('is_transfer'))>
                                                 <label class="form-check-label fw-semibold" for="createIsTransfer">
                                                     Aktarim yapildi
+                                                </label>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <input type="hidden" name="is_lodging_route" value="0">
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" value="1"
+                                                       name="is_lodging_route" id="createIsLodgingRoute"
+                                                       @checked(old('is_lodging_route'))>
+                                                <label class="form-check-label fw-semibold" for="createIsLodgingRoute">
+                                                    Lojman guzergahi yapildi
                                                 </label>
                                             </div>
                                         </div>
@@ -598,61 +598,25 @@ function bindAutoDatePickers(scope = document) {
     });
 }
 
-function wireTripForm(vehicleSelector, routeSelector, flagsSelector, helpSelector) {
+function wireTripForm(vehicleSelector, flagsSelector) {
     const vehicleSelect = document.querySelector(vehicleSelector);
-    const routeSelect = document.querySelector(routeSelector);
     const flagsBox = document.querySelector(flagsSelector);
-    const helpBox = document.querySelector(helpSelector);
 
-    if (!vehicleSelect || !routeSelect) {
+    if (!vehicleSelect) {
         return;
     }
 
-    const syncRoutes = () => {
+    const syncVehicleState = () => {
         const selectedVehicle = vehicleSelect.selectedOptions[0];
         const vehicleId = selectedVehicle?.value || '';
-        const allowedRouteIds = new Set(
-            ((selectedVehicle?.dataset.routeIds || '')
-                .split(',')
-                .map((value) => value.trim())
-                .filter(Boolean))
-        );
 
         if (flagsBox) {
             flagsBox.classList.toggle('d-none', !vehicleId);
         }
-
-        Array.from(routeSelect.options).forEach((option) => {
-            if (!option.value) {
-                option.hidden = false;
-                option.disabled = false;
-                return;
-            }
-
-            const allowed = vehicleId && allowedRouteIds.has(option.value);
-            option.hidden = !allowed;
-            option.disabled = !allowed;
-        });
-
-        if (routeSelect.selectedOptions[0] && routeSelect.selectedOptions[0].disabled) {
-            routeSelect.value = '';
-        }
-
-        routeSelect.disabled = !vehicleId || allowedRouteIds.size === 0;
-
-        if (helpBox) {
-            if (!vehicleId) {
-                helpBox.textContent = 'Ortak guzergahlardan, yalnizca secilen aracin gorevli olduklari listelenir.';
-            } else if (allowedRouteIds.size === 0) {
-                helpBox.textContent = 'Bu araca henuz guzergah atamasi yapilmamis.';
-            } else {
-                helpBox.textContent = 'Secilen aracin ortak guzergah gorevleri gorunuyor.';
-            }
-        }
     };
 
-    vehicleSelect.addEventListener('change', syncRoutes);
-    syncRoutes();
+    vehicleSelect.addEventListener('change', syncVehicleState);
+    syncVehicleState();
 }
 
 function wireBranchMovementIncludes(scope = document) {
@@ -772,9 +736,7 @@ document.addEventListener('DOMContentLoaded', () => {
     bindAutoDatePickers(document);
     wireTripForm(
         '#createTripVehicleId',
-        '#createTripRouteId',
-        '#createTripFlagsBox',
-        '#createTripRouteHelp'
+        '#createTripFlagsBox'
     );
     wireBranchMovementIncludes(document);
     wireCreateBranchMovementScope();

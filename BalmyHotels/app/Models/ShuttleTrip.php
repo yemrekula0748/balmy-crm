@@ -23,6 +23,7 @@ class ShuttleTrip extends Model
         'departure_count',
         'arrived_with_different_vehicle',
         'is_transfer',
+        'is_lodging_route',
         'notes',
         'created_by',
     ];
@@ -34,6 +35,7 @@ class ShuttleTrip extends Model
         'departure_count' => 'integer',
         'arrived_with_different_vehicle' => 'boolean',
         'is_transfer' => 'boolean',
+        'is_lodging_route' => 'boolean',
     ];
 
     public const SHIFTS = [

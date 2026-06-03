@@ -31,6 +31,7 @@
         .badge-secondary { background: #7a5c3d; color: #fff; }
         .badge-alert { background: #fff1f1; color: #b03a3a; }
         .badge-transfer { background: #fff7e7; color: #9b6a11; }
+        .badge-lodging { background: #eef6f2; color: #2e7d52; }
         .tfoot-row td { background: #e9ecef; font-weight: bold; }
         .footer {
             position: fixed;
@@ -84,6 +85,10 @@
             <div class="value">{{ $stats['total_different_vehicle_trips'] }}</div>
             <div class="label">Farkli Arac (%{{ $stats['different_vehicle_rate'] }})</div>
         </td>
+        <td style="background:#3d7a5e">
+            <div class="value">{{ $stats['total_lodging_route_trips'] }}</div>
+            <div class="label">Lojman (%{{ $stats['lodging_route_rate'] }})</div>
+        </td>
         <td style="background:#7a5c3d">
             <div class="value">{{ $stats['avg_occupancy_arr'] }}%</div>
             <div class="label">Ort. Gelis Doluluk</div>
@@ -101,6 +106,7 @@
             <th class="text-center">Donen</th>
             <th class="text-center">Aktarim</th>
             <th class="text-center">Farkli Arac</th>
+            <th class="text-center">Lojman</th>
         </tr>
     </thead>
     <tbody>
@@ -113,6 +119,7 @@
                     <td class="text-center"><strong>{{ $data['departure'] }}</strong></td>
                     <td class="text-center">{{ $data['transfer'] }} (%{{ $data['transfer_rate'] }})</td>
                     <td class="text-center">{{ $data['different_vehicle'] }} (%{{ $data['different_vehicle_rate'] }})</td>
+                    <td class="text-center">{{ $data['lodging_route'] }} (%{{ $data['lodging_route_rate'] }})</td>
                 </tr>
             @endif
         @endforeach
@@ -125,6 +132,7 @@
             <td class="text-center">{{ $stats['total_departure'] }}</td>
             <td class="text-center">{{ $stats['total_transfer_trips'] }}</td>
             <td class="text-center">{{ $stats['total_different_vehicle_trips'] }}</td>
+            <td class="text-center">{{ $stats['total_lodging_route_trips'] }}</td>
         </tr>
     </tfoot>
 </table>
@@ -140,6 +148,7 @@
             <th class="text-center">Donen</th>
             <th class="text-center">Aktarim</th>
             <th class="text-center">Farkli Arac</th>
+            <th class="text-center">Lojman</th>
         </tr>
     </thead>
     <tbody>
@@ -153,6 +162,7 @@
                     <td class="text-center">{{ $data['departure'] }} (%{{ $data['occupancy_dep'] }})</td>
                     <td class="text-center">{{ $data['transfer'] }}</td>
                     <td class="text-center">{{ $data['different_vehicle'] }}</td>
+                    <td class="text-center">{{ $data['lodging_route'] }}</td>
                 </tr>
             @endif
         @endforeach
@@ -247,7 +257,7 @@
                     <td>{{ $trip->trip_date->format('d.m.Y') }}</td>
                     <td><span class="badge badge-secondary">{{ $trip->shift }}</span></td>
                     <td>{{ $trip->vehicle->name }}</td>
-                    <td>{{ $trip->route->name ?? '-' }}</td>
+                    <td>{{ $trip->route->name ?? (collect($trip->vehicle?->routes ?? [])->pluck('name')->implode(', ') ?: '-') }}</td>
                     <td class="text-center">
                         {{ $filteredArrivalTime ?: '-' }}
                         / <strong>{{ $filteredArrivalCount }}</strong>
@@ -263,7 +273,10 @@
                         @if($trip->is_transfer)
                             <span class="badge badge-transfer">Aktarim</span>
                         @endif
-                        @if(! $trip->arrived_with_different_vehicle && ! $trip->is_transfer)
+                        @if($trip->is_lodging_route)
+                            <span class="badge badge-lodging">Lojman</span>
+                        @endif
+                        @if(! $trip->arrived_with_different_vehicle && ! $trip->is_transfer && ! $trip->is_lodging_route)
                             -
                         @endif
                     </td>

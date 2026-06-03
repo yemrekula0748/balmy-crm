@@ -99,6 +99,7 @@
             ['label' => 'Toplam Sefer', 'value' => number_format($stats['total_trips']), 'sub' => 'Kayitli servis seferi', 'color' => '#7a5c3d,#a97d57'],
             ['label' => 'Aktarimli Sefer', 'value' => $stats['total_transfer_trips'], 'sub' => '%' . $stats['transfer_rate'] . ' oran', 'color' => '#8e5a2b,#d1913c'],
             ['label' => 'Farkli Aracla Gelen', 'value' => $stats['total_different_vehicle_trips'], 'sub' => '%' . $stats['different_vehicle_rate'] . ' oran', 'color' => '#b03a3a,#d98b73'],
+            ['label' => 'Lojman Guzergahi', 'value' => $stats['total_lodging_route_trips'], 'sub' => '%' . $stats['lodging_route_rate'] . ' oran', 'color' => '#3d7a5e,#7fb08c'],
             ['label' => 'Ort. Gelis Doluluk', 'value' => $stats['avg_occupancy_arr'] . '%', 'sub' => 'Donus ort.: ' . $stats['avg_occupancy_dep'] . '%', 'color' => '#aa6f39,#c19b77'],
         ];
     @endphp
@@ -147,6 +148,7 @@
                                 <th class="text-center" style="color:#c19b77">Gelis</th>
                                 <th class="text-center text-success">Donus</th>
                                 <th class="text-center text-warning">Aktarim</th>
+                                <th class="text-center" style="color:#2e7d52">Lojman</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -161,6 +163,10 @@
                                             <div class="fw-bold text-warning">{{ $data['transfer'] }}</div>
                                             <small class="text-muted">%{{ $data['transfer_rate'] }}</small>
                                         </td>
+                                        <td class="text-center">
+                                            <div class="fw-bold" style="color:#2e7d52">{{ $data['lodging_route'] }}</div>
+                                            <small class="text-muted">%{{ $data['lodging_route_rate'] }}</small>
+                                        </td>
                                     </tr>
                                 @endif
                             @endforeach
@@ -172,6 +178,7 @@
                                 <td class="text-center fw-bold" style="color:#c19b77">{{ $stats['total_arrival'] }}</td>
                                 <td class="text-center fw-bold text-success">{{ $stats['total_departure'] }}</td>
                                 <td class="text-center fw-bold text-warning">{{ $stats['total_transfer_trips'] }}</td>
+                                <td class="text-center fw-bold" style="color:#2e7d52">{{ $stats['total_lodging_route_trips'] }}</td>
                             </tr>
                         </tfoot>
                     </table>
@@ -195,6 +202,7 @@
                                     <th class="text-center text-success">Donus</th>
                                     <th class="text-center">Aktarim</th>
                                     <th class="text-center">Farkli Arac</th>
+                                    <th class="text-center">Lojman</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -224,12 +232,16 @@
                                                 <div class="fw-bold text-danger">{{ $data['different_vehicle'] }}</div>
                                                 <small class="text-muted">%{{ $data['different_vehicle_rate'] }}</small>
                                             </td>
+                                            <td class="text-center">
+                                                <div class="fw-bold" style="color:#2e7d52">{{ $data['lodging_route'] }}</div>
+                                                <small class="text-muted">%{{ $data['lodging_route_rate'] }}</small>
+                                            </td>
                                         </tr>
                                     @endif
                                 @endforeach
                                 @if(empty(array_filter($byVehicle, fn($data) => $data['trips'] > 0)))
                                     <tr>
-                                        <td colspan="6" class="text-center text-muted py-3">Veri bulunamadi.</td>
+                                        <td colspan="7" class="text-center text-muted py-3">Veri bulunamadi.</td>
                                     </tr>
                                 @endif
                             </tbody>
@@ -274,21 +286,28 @@
                 </div>
                 <div class="card-body">
                     <div class="row g-3">
-                        <div class="col-md-4">
+                        <div class="col-md-3">
                             <div class="rounded-3 p-3 h-100" style="background:#fff7e7;border:1px solid #f1ddb2">
                                 <div class="small text-uppercase fw-semibold text-muted mb-1">Aktarim Yapilan</div>
                                 <div class="fs-3 fw-bold" style="color:#9b6a11">{{ $stats['total_transfer_trips'] }}</div>
                                 <div class="small text-muted mt-2">Toplam seferin %{{ $stats['transfer_rate'] }} kadari</div>
                             </div>
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-3">
                             <div class="rounded-3 p-3 h-100" style="background:#fff1f1;border:1px solid #f0d0d0">
                                 <div class="small text-uppercase fw-semibold text-muted mb-1">Farkli Aracla Gelen</div>
                                 <div class="fs-3 fw-bold" style="color:#b03a3a">{{ $stats['total_different_vehicle_trips'] }}</div>
                                 <div class="small text-muted mt-2">Toplam seferin %{{ $stats['different_vehicle_rate'] }} kadari</div>
                             </div>
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-3">
+                            <div class="rounded-3 p-3 h-100" style="background:#eef6f2;border:1px solid #cfe3d8">
+                                <div class="small text-uppercase fw-semibold text-muted mb-1">Lojman Guzergahi</div>
+                                <div class="fs-3 fw-bold" style="color:#2e7d52">{{ $stats['total_lodging_route_trips'] }}</div>
+                                <div class="small text-muted mt-2">Toplam seferin %{{ $stats['lodging_route_rate'] }} kadari</div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
                             <div class="rounded-3 p-3 h-100" style="background:#f9f4ed;border:1px solid #eadcc9">
                                 <div class="small text-uppercase fw-semibold text-muted mb-1">Toplam Istisna</div>
                                 <div class="fs-3 fw-bold" style="color:#7a5c3d">{{ $stats['exception_trips'] }}</div>
@@ -316,6 +335,11 @@
                                     <td>Farkli aracla gelen sefer</td>
                                     <td class="text-center fw-bold">{{ $stats['total_different_vehicle_trips'] }}</td>
                                     <td class="text-center">%{{ $stats['different_vehicle_rate'] }}</td>
+                                </tr>
+                                <tr>
+                                    <td>Lojman guzergahi yapilan sefer</td>
+                                    <td class="text-center fw-bold">{{ $stats['total_lodging_route_trips'] }}</td>
+                                    <td class="text-center">%{{ $stats['lodging_route_rate'] }}</td>
                                 </tr>
                                 <tr>
                                     <td>Herhangi bir istisna olan sefer</td>
@@ -348,6 +372,7 @@
                                     <th class="text-center">Toplam Indi</th>
                                     <th class="text-center">Toplam Bindi</th>
                                     <th>Otel Hareketleri</th>
+                                    <th>Durum</th>
                                     <th>Not</th>
                                 </tr>
                             </thead>
@@ -400,7 +425,7 @@
                                                 <small class="text-muted">{{ $trip->vehicle->plate }}</small>
                                             @endif
                                         </td>
-                                        <td>{{ $trip->route->name ?? '-' }}</td>
+                                        <td>{{ $trip->route->name ?? (collect($trip->vehicle?->routes ?? [])->pluck('name')->implode(', ') ?: '-') }}</td>
                                         <td class="text-center fw-semibold">{{ $tripArrivalTime ?: '-' }}</td>
                                         <td class="text-center fw-semibold">{{ $tripDepartureTime ?: '-' }}</td>
                                         <td class="text-center fw-bold" style="color:#c19b77">{{ $tripArrivalCount }}</td>
@@ -433,11 +458,27 @@
                                                 </div>
                                             @endif
                                         </td>
+                                        <td>
+                                            <div class="d-flex flex-wrap gap-1">
+                                                @if($trip->arrived_with_different_vehicle)
+                                                    <span class="badge" style="background:#fff1f1;color:#b03a3a;border:1px solid #f0d0d0">Farkli arac</span>
+                                                @endif
+                                                @if($trip->is_transfer)
+                                                    <span class="badge" style="background:#fff7e7;color:#9b6a11;border:1px solid #f1ddb2">Aktarim</span>
+                                                @endif
+                                                @if($trip->is_lodging_route)
+                                                    <span class="badge" style="background:#eef6f2;color:#2e7d52;border:1px solid #cfe3d8">Lojman guzergahi</span>
+                                                @endif
+                                                @if(! $trip->arrived_with_different_vehicle && ! $trip->is_transfer && ! $trip->is_lodging_route)
+                                                    <span class="text-muted">Normal</span>
+                                                @endif
+                                            </div>
+                                        </td>
                                         <td>{{ $trip->notes ? \Illuminate\Support\Str::limit($trip->notes, 60) : '-' }}</td>
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="10" class="text-center text-muted py-4">Detay servis kaydi bulunamadi.</td>
+                                        <td colspan="11" class="text-center text-muted py-4">Detay servis kaydi bulunamadi.</td>
                                     </tr>
                                 @endforelse
                             </tbody>

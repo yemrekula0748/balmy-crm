@@ -215,7 +215,7 @@
                                             <i class="fas fa-exclamation-triangle me-1"></i>Operasyon Istisnalari
                                         </div>
                                         <div class="row g-3">
-                                            <div class="col-md-6">
+                                            <div class="col-md-4">
                                                 <input type="hidden" name="arrived_with_different_vehicle" value="0">
                                                 <div class="form-check">
                                                     <input class="form-check-input" type="checkbox" value="1"
@@ -226,7 +226,7 @@
                                                     </label>
                                                 </div>
                                             </div>
-                                            <div class="col-md-6">
+                                            <div class="col-md-4">
                                                 <input type="hidden" name="is_transfer" value="0">
                                                 <div class="form-check">
                                                     <input class="form-check-input" type="checkbox" value="1"
@@ -234,6 +234,17 @@
                                                            @checked(old('is_transfer', $operation->is_transfer))>
                                                     <label class="form-check-label fw-semibold" for="editIsTransfer">
                                                         Aktarim yapildi
+                                                    </label>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <input type="hidden" name="is_lodging_route" value="0">
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="checkbox" value="1"
+                                                           name="is_lodging_route" id="editIsLodgingRoute"
+                                                           @checked(old('is_lodging_route', $operation->is_lodging_route))>
+                                                    <label class="form-check-label fw-semibold" for="editIsLodgingRoute">
+                                                        Lojman guzergahi yapildi
                                                     </label>
                                                 </div>
                                             </div>

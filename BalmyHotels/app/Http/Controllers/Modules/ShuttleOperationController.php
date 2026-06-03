@@ -54,11 +54,7 @@ class ShuttleOperationController extends BaseModuleController
             ->orderBy('name')
             ->get();
 
-        $routes = ShuttleRoute::where('is_active', true)
-            ->orderBy('name')
-            ->get();
-
-        $trips = ShuttleTrip::with(['vehicle', 'route', 'branch', 'creator', 'branchMovements.branch'])
+        $trips = ShuttleTrip::with(['vehicle.routes', 'route', 'branch', 'creator', 'branchMovements.branch'])
             ->where('trip_date', $date->toDateString())
             ->orderBy('shift')
             ->orderBy('arrival_time')
@@ -71,7 +67,6 @@ class ShuttleOperationController extends BaseModuleController
         return view('modules.shuttle.operations.index', compact(
             'trips',
             'vehicles',
-            'routes',
             'branches',
             'allBranches',
             'currentBranchId',
@@ -108,6 +103,7 @@ class ShuttleOperationController extends BaseModuleController
                     'notes' => $this->mergeNotes($trip->notes, $tripData['notes'] ?? null),
                     'arrived_with_different_vehicle' => $trip->arrived_with_different_vehicle || ($tripData['arrived_with_different_vehicle'] ?? false),
                     'is_transfer' => $trip->is_transfer || ($tripData['is_transfer'] ?? false),
+                    'is_lodging_route' => $trip->is_lodging_route || ($tripData['is_lodging_route'] ?? false),
                 ]);
 
                 $this->saveMovementMatrix($trip->fresh(), $mergedMatrix);
@@ -257,6 +253,7 @@ class ShuttleOperationController extends BaseModuleController
             'notes' => 'nullable|string|max:500',
             'arrived_with_different_vehicle' => 'nullable|boolean',
             'is_transfer' => 'nullable|boolean',
+            'is_lodging_route' => 'nullable|boolean',
             'involved_branch_ids' => 'required|array|min:1',
             'involved_branch_ids.*' => 'required|integer|exists:branches,id',
             'branch_movements' => 'nullable|array',
@@ -273,6 +270,7 @@ class ShuttleOperationController extends BaseModuleController
         $data['notes'] = $data['notes'] ?? null;
         $data['arrived_with_different_vehicle'] = $request->boolean('arrived_with_different_vehicle');
         $data['is_transfer'] = $request->boolean('is_transfer');
+        $data['is_lodging_route'] = $request->boolean('is_lodging_route');
 
         if (! in_array((int) $data['branch_id'], $visibleBranchIds, true)) {
             throw ValidationException::withMessages([

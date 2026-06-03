@@ -49,6 +49,7 @@ class ShuttleTripMergeService
             'departure_count' => $this->sumPeriodMatrix($periodMatrix, 'departure'),
             'arrived_with_different_vehicle' => $group->contains(fn (ShuttleTrip $candidate) => (bool) $candidate->arrived_with_different_vehicle),
             'is_transfer' => $group->contains(fn (ShuttleTrip $candidate) => (bool) $candidate->is_transfer),
+            'is_lodging_route' => $group->contains(fn (ShuttleTrip $candidate) => (bool) $candidate->is_lodging_route),
             'notes' => $this->mergeNoteList($group->pluck('notes')->all()),
         ]);
 
@@ -122,6 +123,9 @@ class ShuttleTripMergeService
         );
         $primary->is_transfer = $group->contains(
             fn (ShuttleTrip $candidate) => (bool) $candidate->is_transfer
+        );
+        $primary->is_lodging_route = $group->contains(
+            fn (ShuttleTrip $candidate) => (bool) $candidate->is_lodging_route
         );
         $primary->notes = $this->mergeNoteList($group->pluck('notes')->all());
         $primary->setRelation('branchMovements', $this->hydratePeriodMovements($primary, $periodMatrix));
