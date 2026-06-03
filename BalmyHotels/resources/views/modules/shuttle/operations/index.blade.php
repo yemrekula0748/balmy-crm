@@ -218,10 +218,14 @@
 
                                 @if($lastShift !== $trip->shift)
                                     <tr>
-                                        <td colspan="7" class="py-1 ps-4" style="background:#fbf6ef;border-top:2px solid #eadcc9">
-                                            <small class="fw-bold text-uppercase" style="color:#8f6d4f;letter-spacing:.5px;font-size:.7rem">
-                                                <i class="fas fa-clock me-1 opacity-60"></i>{{ $trip->shift }}
-                                            </small>
+                                        <td colspan="7" class="py-2 ps-4" style="background:#fbf6ef;border-top:2px solid #eadcc9">
+                                            <div class="d-inline-flex align-items-center gap-2 fw-bold text-uppercase"
+                                                 style="color:#7a5c3d;letter-spacing:.7px;font-size:.92rem">
+                                                <span style="width:28px;height:28px;border-radius:50%;background:#eadcc9;color:#8f6d4f;display:inline-flex;align-items:center;justify-content:center">
+                                                    <i class="fas fa-clock" style="font-size:.78rem"></i>
+                                                </span>
+                                                {{ $trip->shift }}
+                                            </div>
                                         </td>
                                     </tr>
                                     @php $lastShift = $trip->shift; @endphp
@@ -229,14 +233,14 @@
 
                                 <tr>
                                     <td class="ps-4">
-                                        <span style="background:#fbf6ef;color:#8f6d4f;font-size:.72rem;font-weight:600;padding:3px 9px;border-radius:20px;">
+                                        <span style="display:inline-flex;align-items:center;min-width:86px;justify-content:center;background:#fbf6ef;color:#7a5c3d;font-size:.9rem;font-weight:800;padding:7px 12px;border-radius:999px;border:1px solid #eadcc9;letter-spacing:.2px;box-shadow:0 2px 6px rgba(122,92,61,.08)">
                                             {{ $trip->shift }}
                                         </span>
                                     </td>
                                     <td>
-                                        <div class="fw-semibold text-dark">{{ $trip->vehicle->name ?? '-' }}</div>
+                                        <div class="fw-bold text-dark" style="font-size:.98rem;line-height:1.2">{{ $trip->vehicle->name ?? '-' }}</div>
                                         @if($trip->vehicle?->plate)
-                                            <span style="background:#8f6d4f;color:#fff;font-family:'Courier New',monospace;font-size:.7rem;font-weight:700;padding:1px 7px;border-radius:4px;">
+                                            <span style="display:inline-flex;align-items:center;margin-top:5px;background:#8f6d4f;color:#fff;font-family:'Courier New',monospace;font-size:1.02rem;font-weight:800;padding:5px 12px;border-radius:7px;letter-spacing:1.2px;box-shadow:0 2px 8px rgba(143,109,79,.22)">
                                                 {{ $trip->vehicle->plate }}
                                             </span>
                                         @endif
