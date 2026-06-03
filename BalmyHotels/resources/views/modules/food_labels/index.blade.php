@@ -156,6 +156,9 @@
                             @if($label->is_halal)
                             <span style="padding:2px 7px;border-radius:20px;font-size:11px;background:#faf5ff;color:#6b21a8;border:1px solid #e9d5ff">☪</span>
                             @endif
+                            @if($label->is_local_food)
+                            <span style="padding:2px 7px;border-radius:20px;font-size:11px;background:#f3f4f6;color:#4b5563;border:1px solid #d1d5db">Yöresel</span>
+                            @endif
                             @if(!$label->is_active)
                             <span style="padding:2px 7px;border-radius:20px;font-size:11px;background:#f9fafb;color:#9ca3af;border:1px solid #e5e7eb">Pasif</span>
                             @endif

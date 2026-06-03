@@ -10,7 +10,7 @@ class FoodLabel extends Model
     protected $fillable = [
         'branch_id', 'created_by', 'qr_token', 'name', 'description', 'ingredients',
         'calories', 'allergens', 'category',
-        'is_vegan', 'is_vegetarian', 'is_halal', 'is_active', 'sort_order',
+        'is_vegan', 'is_vegetarian', 'is_halal', 'is_local_food', 'is_active', 'sort_order',
     ];
 
     protected static function boot(): void
@@ -31,6 +31,7 @@ class FoodLabel extends Model
         'is_vegan'     => 'boolean',
         'is_vegetarian'=> 'boolean',
         'is_halal'     => 'boolean',
+        'is_local_food'=> 'boolean',
         'is_active'    => 'boolean',
     ];
 

@@ -95,6 +95,7 @@ class FoodLabelController extends BaseModuleController
             'is_vegan'      => $request->boolean('is_vegan'),
             'is_vegetarian' => $request->boolean('is_vegetarian'),
             'is_halal'      => $request->boolean('is_halal'),
+            'is_local_food' => $request->boolean('is_local_food'),
             'is_active'     => $request->boolean('is_active', true),
             'sort_order'    => (int)$request->sort_order,
         ]);
@@ -136,6 +137,7 @@ class FoodLabelController extends BaseModuleController
             'is_vegan'      => $request->boolean('is_vegan'),
             'is_vegetarian' => $request->boolean('is_vegetarian'),
             'is_halal'      => $request->boolean('is_halal'),
+            'is_local_food' => $request->boolean('is_local_food'),
             'is_active'     => $request->boolean('is_active', true),
             'sort_order'    => (int)$request->sort_order,
         ]);
@@ -237,6 +239,7 @@ class FoodLabelController extends BaseModuleController
             'R' => 'İçindekiler (RU)',
             'S' => 'Şube',
             'T' => 'Aktif',
+            'U' => 'Yöresel',
         ];
 
         foreach ($headers as $col => $title) {
@@ -244,7 +247,7 @@ class FoodLabelController extends BaseModuleController
         }
 
         // Header stili
-        $headerRange = 'A1:T1';
+        $headerRange = 'A1:U1';
         $sheet->getStyle($headerRange)->applyFromArray([
             'font' => ['bold' => true, 'color' => ['argb' => 'FFFFFFFF']],
             'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['argb' => 'FF2d6a4f']],
@@ -292,10 +295,11 @@ class FoodLabelController extends BaseModuleController
             $sheet->setCellValue('R' . $row, implode(', ', $rawIng['ru'] ?? []));
             $sheet->setCellValue('S' . $row, $label->branch?->name ?? 'Genel');
             $sheet->setCellValue('T' . $row, $label->is_active ? 'Aktif' : 'Pasif');
+            $sheet->setCellValue('U' . $row, $label->is_local_food ? 'Evet' : 'Hayır');
 
             // Zebra satır
             if ($row % 2 === 0) {
-                $sheet->getStyle('A' . $row . ':T' . $row)->getFill()
+                $sheet->getStyle('A' . $row . ':U' . $row)->getFill()
                     ->setFillType(Fill::FILL_SOLID)
                     ->getStartColor()->setARGB('FFF0F4F0');
             }
@@ -304,14 +308,14 @@ class FoodLabelController extends BaseModuleController
         }
 
         // Sütun genişlikleri
-        $colWidths = ['A'=>6,'B'=>22,'C'=>22,'D'=>22,'E'=>22,'F'=>14,'G'=>12,'H'=>8,'I'=>10,'J'=>7,'K'=>30,'L'=>30,'M'=>30,'N'=>30,'O'=>35,'P'=>35,'Q'=>35,'R'=>35,'S'=>16,'T'=>8];
+        $colWidths = ['A'=>6,'B'=>22,'C'=>22,'D'=>22,'E'=>22,'F'=>14,'G'=>12,'H'=>8,'I'=>10,'J'=>7,'K'=>30,'L'=>30,'M'=>30,'N'=>30,'O'=>35,'P'=>35,'Q'=>35,'R'=>35,'S'=>16,'T'=>8,'U'=>10];
         foreach ($colWidths as $col => $w) {
             $sheet->getColumnDimension($col)->setWidth($w);
         }
 
         // Tüm veri border
         if ($row > 2) {
-            $sheet->getStyle('A2:T' . ($row - 1))->applyFromArray([
+            $sheet->getStyle('A2:U' . ($row - 1))->applyFromArray([
                 'borders' => ['allBorders' => ['borderStyle' => Border::BORDER_THIN, 'color' => ['argb' => 'FFD8E4DC']]],
             ]);
         }
@@ -366,6 +370,7 @@ class FoodLabelController extends BaseModuleController
                 'is_vegan'      => (bool)($item['is_vegan'] ?? false),
                 'is_vegetarian' => (bool)($item['is_vegetarian'] ?? false),
                 'is_halal'      => (bool)($item['is_halal'] ?? false),
+                'is_local_food' => (bool)($item['is_local_food'] ?? false),
                 'is_active'     => (bool)($item['is_active'] ?? true),
                 'sort_order'    => (int)($item['sort_order'] ?? 0),
             ]);

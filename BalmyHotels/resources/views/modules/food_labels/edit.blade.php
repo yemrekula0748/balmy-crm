@@ -146,6 +146,14 @@
                                                @checked(old('is_halal', $foodLabel->is_halal))>
                                         <label class="form-check-label" for="isHalal">☪ Helal</label>
                                     </div>
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" name="is_local_food" id="isLocalFood" value="1"
+                                               @checked(old('is_local_food', $foodLabel->is_local_food))>
+                                        <label class="form-check-label" for="isLocalFood">Yöresel Yemek</label>
+                                    </div>
+                                </div>
+                                <div class="form-text mt-2">
+                                    Yöresel işaretlenirse yazdırma ekranında QR kodun altında Traditional Turkish Food logosu gösterilir.
                                 </div>
                             </div>
                         </div>

@@ -272,6 +272,16 @@
             display: block;
         }
 
+        .traditional-food-logo {
+            width: 19mm;
+            height: 19mm;
+            margin-top: 1.5mm;
+            display: block;
+            object-fit: contain;
+            opacity: 0.92;
+            filter: grayscale(1);
+        }
+
         /* =====================================================
            BUTONLAR (sadece ekran)
            ===================================================== */
@@ -449,6 +459,11 @@
             <div class="label-right">
                 <div class="qr-container" id="qr-{{ $label->id }}"
                      data-url="{{ route('food-labels.public', $label->qr_token) }}"></div>
+                @if($label->is_local_food)
+                    <img src="{{ asset('images/traditional-turkish-food.svg') }}"
+                         class="traditional-food-logo"
+                         alt="Traditional Turkish Food">
+                @endif
                 @if($label->is_vegan || $label->is_vegetarian || $label->is_halal || $label->calories)
                 <div style="margin-top:2mm;display:flex;flex-direction:column;align-items:center;gap:1mm;width:100%">
                     @if($label->is_vegan)<span class="diet-pill" style="justify-content:center">🌱 Vegan</span>@endif
