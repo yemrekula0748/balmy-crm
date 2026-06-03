@@ -460,7 +460,7 @@
                 <div class="qr-container" id="qr-{{ $label->id }}"
                      data-url="{{ route('food-labels.public', $label->qr_token) }}"></div>
                 @if($label->is_local_food)
-                    <img src="{{ asset('images/traditional-turkish-food.svg') }}"
+                    <img src="{{ asset('images/yoresel.png') }}"
                          class="traditional-food-logo"
                          alt="Traditional Turkish Food">
                 @endif
