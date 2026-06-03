@@ -3,7 +3,7 @@
 
 @section('content')
 @php
-    $activeBranchId = $currentBranchId ?? ($branches->first()->id ?? null);
+    $activeBranchId = $currentBranchId ?? ($branches->count() === 1 ? ($branches->first()->id ?? null) : null);
     $oldBranchMovements = collect(old('branch_movements', []));
     $createBranchId = old('branch_id', $activeBranchId);
     $oldInvolvedBranchIds = collect(old('involved_branch_ids', $createBranchId ? [$createBranchId] : []))
@@ -180,7 +180,7 @@
                             </tr>
                         </thead>
                         <tbody>
-                            @php $lastShift = null; @endphp
+                            @php $lastMovementGroup = null; @endphp
                             @foreach($trips as $trip)
                                 @php
                                     $periodMatrix = $trip->branchMovements
@@ -214,24 +214,52 @@
                                         && ($isSuperAdmin || ($activeBranchId && (int) $trip->branch_id === (int) $activeBranchId));
                                     $canBranchProcess = $activeBranchId && auth()->user()->hasPermission('shuttle_operations', 'index');
                                     $branchProcessBranchName = optional($allBranches->firstWhere('id', $activeBranchId))->name ?? '';
+                                    $movementRowHasDataForView = function (array $row): bool {
+                                        return (int) ($row['arrival'] ?? 0) > 0
+                                            || (int) ($row['departure'] ?? 0) > 0
+                                            || ! empty($row['arrival_time'])
+                                            || ! empty($row['departure_time']);
+                                    };
+                                    $activeBranchMovementComplete = $activeBranchId
+                                        && collect($movementPeriods)->every(function ($periodLabel, $periodKey) use ($activeBranchPeriodMatrix, $movementRowHasDataForView) {
+                                            return $movementRowHasDataForView((array) ($activeBranchPeriodMatrix[$periodKey] ?? []));
+                                        });
+                                    $movementGroupStatus = $activeBranchId
+                                        ? ($activeBranchMovementComplete ? 'Tamamlanan Hareketler' : 'Bekleyen Hareketler')
+                                        : 'Servis Hareketleri';
+                                    $movementGroupKey = ($activeBranchMovementComplete ? 'done' : 'pending') . '|' . $trip->shift;
+                                    $rowBackground = $activeBranchId ? ($activeBranchMovementComplete ? '#f1fbf5' : '#fff6f3') : '#fff';
+                                    $rowHoverBackground = $activeBranchId ? ($activeBranchMovementComplete ? '#e8f7ee' : '#ffeeea') : '#fff';
+                                    $rowBorder = $activeBranchId ? ($activeBranchMovementComplete ? '#2e7d52' : '#d36b55') : '#eadcc9';
+                                    $statusBadgeStyle = $activeBranchMovementComplete
+                                        ? 'background:#eef8f1;color:#2e7d52;border:1px solid #cfe3d8'
+                                        : 'background:#fff1ed;color:#b44d3c;border:1px solid #f0c8bd';
+                                    $statusBadgeText = $activeBranchMovementComplete ? 'Bu otel tamamlandi' : 'Bu otelde eksik hareket var';
                                 @endphp
 
-                                @if($lastShift !== $trip->shift)
+                                @if($lastMovementGroup !== $movementGroupKey)
                                     <tr>
                                         <td colspan="7" class="py-2 ps-4" style="background:#fbf6ef;border-top:2px solid #eadcc9">
-                                            <div class="d-inline-flex align-items-center gap-2 fw-bold text-uppercase"
-                                                 style="color:#7a5c3d;letter-spacing:.7px;font-size:.92rem">
-                                                <span style="width:28px;height:28px;border-radius:50%;background:#eadcc9;color:#8f6d4f;display:inline-flex;align-items:center;justify-content:center">
-                                                    <i class="fas fa-clock" style="font-size:.78rem"></i>
-                                                </span>
-                                                {{ $trip->shift }}
+                                            <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                                                <div class="d-inline-flex align-items-center gap-2 fw-bold text-uppercase"
+                                                     style="color:#7a5c3d;letter-spacing:.7px;font-size:.92rem">
+                                                    <span style="width:28px;height:28px;border-radius:50%;background:#eadcc9;color:#8f6d4f;display:inline-flex;align-items:center;justify-content:center">
+                                                        <i class="fas fa-clock" style="font-size:.78rem"></i>
+                                                    </span>
+                                                    {{ $trip->shift }}
+                                                </div>
+                                                @if($activeBranchId)
+                                                    <span class="badge" style="{{ $statusBadgeStyle }};font-size:.72rem;border-radius:999px;padding:5px 10px">
+                                                        {{ $movementGroupStatus }}
+                                                    </span>
+                                                @endif
                                             </div>
                                         </td>
                                     </tr>
-                                    @php $lastShift = $trip->shift; @endphp
+                                    @php $lastMovementGroup = $movementGroupKey; @endphp
                                 @endif
 
-                                <tr>
+                                <tr style="--bs-table-bg:{{ $rowBackground }};--bs-table-hover-bg:{{ $rowHoverBackground }};background:{{ $rowBackground }};border-left:4px solid {{ $rowBorder }}">
                                     <td class="ps-4">
                                         <span style="display:inline-flex;align-items:center;min-width:86px;justify-content:center;background:#fbf6ef;color:#7a5c3d;font-size:.9rem;font-weight:800;padding:7px 12px;border-radius:999px;border:1px solid #eadcc9;letter-spacing:.2px;box-shadow:0 2px 6px rgba(122,92,61,.08)">
                                             {{ $trip->shift }}
@@ -293,6 +321,9 @@
                                     </td>
                                     <td style="max-width:250px">
                                         <div class="d-flex flex-wrap gap-1 mb-1">
+                                            @if($activeBranchId)
+                                                <span class="badge" style="{{ $statusBadgeStyle }}">{{ $statusBadgeText }}</span>
+                                            @endif
                                             @if($canOwnerEdit)
                                                 <span class="badge" style="background:#fbf6ef;color:#8f6d4f;border:1px solid #eadcc9">Kaydi duzenleyebilirsin</span>
                                             @elseif($canBranchProcess)

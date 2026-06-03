@@ -60,6 +60,7 @@ class ShuttleOperationController extends BaseModuleController
             ->orderBy('arrival_time')
             ->get();
         $trips = $this->tripMergeService->mergeCollection($trips);
+        $trips = $this->sortTripsForOperation($trips, $currentBranchId);
 
         [$totalIncoming, $totalOutgoing] = $this->summariseTripsForContext($trips, $currentBranchId, $visibleBranchIds);
         $totalTrips = $trips->count();
@@ -541,6 +542,55 @@ class ShuttleOperationController extends BaseModuleController
         }
 
         return [$incoming, $outgoing];
+    }
+
+    private function sortTripsForOperation($trips, ?int $currentBranchId)
+    {
+        if ($currentBranchId === null) {
+            return $trips->values();
+        }
+
+        $shiftOrder = array_flip(ShuttleTrip::SHIFTS);
+
+        return $trips->sort(function (ShuttleTrip $first, ShuttleTrip $second) use ($currentBranchId, $shiftOrder) {
+            $firstComplete = $this->tripBranchMovementsComplete($first, $currentBranchId);
+            $secondComplete = $this->tripBranchMovementsComplete($second, $currentBranchId);
+
+            if ($firstComplete !== $secondComplete) {
+                return (int) $firstComplete <=> (int) $secondComplete;
+            }
+
+            $firstShiftOrder = $shiftOrder[$first->shift] ?? 999;
+            $secondShiftOrder = $shiftOrder[$second->shift] ?? 999;
+
+            if ($firstShiftOrder !== $secondShiftOrder) {
+                return $firstShiftOrder <=> $secondShiftOrder;
+            }
+
+            $firstTime = $first->arrival_time ?: $first->departure_time ?: '99:99';
+            $secondTime = $second->arrival_time ?: $second->departure_time ?: '99:99';
+
+            if ($firstTime !== $secondTime) {
+                return strcmp($firstTime, $secondTime);
+            }
+
+            return (int) $first->id <=> (int) $second->id;
+        })->values();
+    }
+
+    private function tripBranchMovementsComplete(ShuttleTrip $trip, int $branchId): bool
+    {
+        $movementMatrix = $this->branchMovementMatrix($trip);
+
+        foreach ($this->movementPeriods() as $period) {
+            $movementRow = (array) data_get($movementMatrix, "{$period}.{$branchId}", $this->emptyMovementRow());
+
+            if (! $this->movementRowHasData($movementRow)) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     private function normaliseTime(?string $value): ?string
