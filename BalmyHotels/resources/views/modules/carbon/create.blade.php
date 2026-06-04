@@ -186,16 +186,6 @@
                         <input type="number" name="average_stay_days" class="form-control" value="{{ old('average_stay_days',0) }}" min="0" step="0.01">
                         <div class="form-text">HCMI misafir yoğunluğu ve operasyon yorumu için.</div>
                     </div>
-                    <div class="col-md-4">
-                        <label class="form-label fw-semibold">Yenilenebilir Enerji Oranı (%)</label>
-                        <input type="number" name="renewable_energy_pct" class="form-control" value="{{ old('renewable_energy_pct',0) }}" min="0" max="100" step="0.1">
-                        <div class="form-text"><strong>Neden?</strong> ISO 14001 ve EU Taxonomy yeşil sınıflandırması gerektirir.<br>Hesap: Yenilenebilir kWh ÷ Toplam kWh × 100</div>
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label fw-semibold">Atık Geri Dönüşüm Oranı (%)</label>
-                        <input type="number" name="waste_recycling_rate" class="form-control" value="{{ old('waste_recycling_rate',0) }}" min="0" max="100" step="0.1">
-                        <div class="form-text"><strong>Neden?</strong> SDG 12 (Sorumlu Tüketim) ve GRI 306 raporlaması için.<br>Hesap: Geri Dönüşüm kg ÷ Toplam Atık kg × 100</div>
-                    </div>
                 </div>
             </div>
         </div>
@@ -207,24 +197,22 @@
             <div class="card-header py-3">
                 <h6 class="mb-0 fw-bold">
                     <span class="badge bg-danger me-2">3</span>
-                    Emisyon Verileri — GHG Protocol Scope 1 / 2 / 3
+                    Veri Girişleri ve Otomatik Hesaplama
                 </h6>
             </div>
             <div class="card-body">
 
                 <div class="alert alert-info mb-4 py-2 px-3" style="font-size:.85rem">
                     <strong>📋 Bilgi:</strong>
-                    <strong>Scope 1</strong> = Tesiste doğrudan yakılan yakıtlar (doğal gaz, <strong>LNG</strong>, fuel oil, LPG), soğutucu gaz kaçakları.
-                    <strong>Scope 2</strong> = Satın alınan elektrik/ısı/soğutma — <em>Location-Based</em> (şebeke EF) veya <em>Market-Based</em> (I-REC / YEK-G / GoO sertifikalı ya da tesis içi GES, EF=0).
-                    <strong>Scope 3</strong> = Değer zinciri: su, atık, gıda tüketimi (et/tavuk/balık/süt/bitkisel), çamaşırhane, ulaşım, tedarik.
-                    <br><span class="text-muted">Kullanmadığınız kalemler için <strong>0</strong> giriniz.</span>
+                    Bu bölümde yalnızca belirttiğiniz veri setindeki alanlar girilir. Karbon ve KPI sonuçları bu satırlardaki miktar, birim ve emisyon faktörüyle hesaplanır.
+                    <br><span class="text-muted">Kullanmadığınız veya henüz doğrulanmamış kalemler için <strong>0</strong> bırakabilirsiniz; açıklama alanına fatura/sayaç/kantar/varsayım notu yazılabilir.</span>
                 </div>
 
                 {{-- SCOPE 1 --}}
                 <div class="scope-section scope-1">
                     <div class="scope-header">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9z"/></svg>
-                        Scope 1 — Doğrudan Emisyonlar (yakıt, soğutucu gazlar)
+                        Enerji — Yakıt / Scope 1 Hesapları
                     </div>
                     <div class="p-3">
                         <div id="scope1-entries">
@@ -238,6 +226,9 @@
                                 <div class="row g-2 align-items-center">
                                     <div class="col-md-4">
                                         <label class="form-label small fw-semibold mb-1">{{ $catDef['label'] }}</label>
+                                        <div class="text-muted mb-1" style="font-size:.68rem">
+                                            {{ $catDef['category_group'] ?? '-' }} / {{ $catDef['sub_category'] ?? '-' }} · {{ $catDef['standard'] ?? '-' }}
+                                        </div>
                                         <span class="ef-tag d-block">EF: {{ $catDef['ef'] }} kgCO₂e/{{ $catDef['unit'] }} — {{ $catDef['ef_source'] }}</span>
                                         @if(!empty($catDef['help']))<div class="text-muted mt-1" style="font-size:.7rem;line-height:1.4">{{ $catDef['help'] }}</div>@endif
                                     </div>
@@ -267,8 +258,8 @@
                 <div class="scope-section scope-2">
                     <div class="scope-header">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z"/><circle cx="12" cy="10" r="3"/></svg>
-                        Scope 2 — Dolaylı Enerji Emisyonları (elektrik, merkezi ısıtma/soğutma)
-                        <span style="font-size:.72rem;font-weight:400;margin-left:auto;opacity:.8">ISO 14064-1 §8.3: Şebeke (Location-Based) veya Sertifikalı Yenilenebilir / GES (Market-Based, EF=0) seçilebilir</span>
+                        Enerji — Elektrik / Scope 2 Hesapları
+                        <span style="font-size:.72rem;font-weight:400;margin-left:auto;opacity:.8">Şebeke elektrik ETKB faktörüyle; yenilenebilir enerji oran/KPI takibi için kullanılır.</span>
                     </div>
                     <div class="p-3">
                         <div id="scope2-entries">
@@ -282,6 +273,9 @@
                                 <div class="row g-2 align-items-center">
                                     <div class="col-md-4">
                                         <label class="form-label small fw-semibold mb-1">{{ $catDef['label'] }}</label>
+                                        <div class="text-muted mb-1" style="font-size:.68rem">
+                                            {{ $catDef['category_group'] ?? '-' }} / {{ $catDef['sub_category'] ?? '-' }} · {{ $catDef['standard'] ?? '-' }}
+                                        </div>
                                         <span class="ef-tag d-block">EF: {{ $catDef['ef'] }} kgCO₂e/{{ $catDef['unit'] }} — {{ $catDef['ef_source'] }}</span>
                                         @if(!empty($catDef['help']))<div class="text-muted mt-1" style="font-size:.7rem;line-height:1.4">{{ $catDef['help'] }}</div>@endif
                                     </div>
@@ -311,7 +305,7 @@
                 <div class="scope-section scope-3">
                     <div class="scope-header">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
-                        Scope 3 — Diğer Dolaylı Emisyonlar (su, atık, gıda, ulaşım, tedarik zinciri)
+                        Su, Atık, Satın Alma ve Diğer Scope 3 Hesapları
                     </div>
                     <div class="p-3">
                         <div id="scope3-entries">
@@ -325,6 +319,9 @@
                                 <div class="row g-2 align-items-center">
                                     <div class="col-md-4">
                                         <label class="form-label small fw-semibold mb-1">{{ $catDef['label'] }}</label>
+                                        <div class="text-muted mb-1" style="font-size:.68rem">
+                                            {{ $catDef['category_group'] ?? '-' }} / {{ $catDef['sub_category'] ?? '-' }} · {{ $catDef['standard'] ?? '-' }}
+                                        </div>
                                         <span class="ef-tag d-block">EF: {{ $catDef['ef'] }} kgCO₂e/{{ $catDef['unit'] }} — {{ $catDef['ef_source'] }}</span>
                                         @if(!empty($catDef['help']))<div class="text-muted mt-1" style="font-size:.7rem;line-height:1.4">{{ $catDef['help'] }}</div>@endif
                                     </div>
@@ -421,7 +418,7 @@
                     <div class="col-md-6">
                         <label class="form-label fw-semibold">Metodoloji Notları & Varsayımlar</label>
                         <textarea name="methodology_notes" class="form-control" rows="4"
-                                  placeholder="Örnek notlar:&#10;- Doğalgaz sayıcı okuması alınamadı, fatura verisi kullanıldı&#10;- Sobanın günde ortalama 8 saat çalıştığı varsayıldı&#10;- Servis aracı km kaydı tutulmadığından tahmini güzergâh mesafesi kullanıldı">{{ old('methodology_notes') }}</textarea>
+                                  placeholder="Örnek notlar:&#10;- Elektrik tüketimi fatura toplamından alındı&#10;- Atık miktarları lisanslı firma kantar fişleriyle doğrulanacak&#10;- Satın alma kalemlerinde tedarikçi raporu yoksa varsayılan faktör kullanıldı">{{ old('methodology_notes') }}</textarea>
                         <div class="form-text">Veri eksikliği, tahmin yöntemi veya birşey kesin bilinmiyorsa burada açıklayın. Denetim sırasında bu notlar röportaj sorularını yanıtlar.</div>
                     </div>
                     <div class="col-md-6">

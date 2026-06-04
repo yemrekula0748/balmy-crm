@@ -160,14 +160,6 @@
                         <label class="form-label fw-semibold">Ort. Konaklama</label>
                         <input type="number" name="average_stay_days" class="form-control" value="{{ old('average_stay_days', $carbon->average_stay_days) }}" min="0" step="0.01">
                     </div>
-                    <div class="col-md-4">
-                        <label class="form-label fw-semibold">Yenilenebilir Enerji (%)</label>
-                        <input type="number" name="renewable_energy_pct" class="form-control" value="{{ old('renewable_energy_pct', $carbon->renewable_energy_pct) }}" min="0" max="100" step="0.1">
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label fw-semibold">Geri Dönüşüm Oranı (%)</label>
-                        <input type="number" name="waste_recycling_rate" class="form-control" value="{{ old('waste_recycling_rate', $carbon->waste_recycling_rate) }}" min="0" max="100" step="0.1">
-                    </div>
                 </div>
             </div>
         </div>
@@ -175,13 +167,13 @@
         {{-- BÖLÜM 3 --}}
         <div class="card shadow-sm mb-4">
             <div class="card-header py-3">
-                <h6 class="mb-0 fw-bold"><span class="badge bg-danger me-2">3</span> Emisyon Verileri</h6>
+                <h6 class="mb-0 fw-bold"><span class="badge bg-danger me-2">3</span> Veri Girişleri ve Otomatik Hesaplama</h6>
             </div>
             <div class="card-body">
 
                 {{-- SCOPE 1 --}}
                 <div class="scope-section scope-1">
-                    <div class="scope-header">⚡ Scope 1 — Doğrudan Emisyonlar</div>
+                    <div class="scope-header">⚡ Enerji — Yakıt / Scope 1 Hesapları</div>
                     <div class="p-3">
                         @foreach($categories['scope1'] as $catKey => $catDef)
                         @php $existing = $existingEntries->get($catKey); @endphp
@@ -194,6 +186,9 @@
                             <div class="row g-2 align-items-center">
                                 <div class="col-md-4">
                                     <label class="form-label small fw-semibold mb-1">{{ $catDef['label'] }}</label>
+                                    <div class="text-muted mb-1" style="font-size:.68rem">
+                                        {{ $catDef['category_group'] ?? '-' }} / {{ $catDef['sub_category'] ?? '-' }} · {{ $catDef['standard'] ?? '-' }}
+                                    </div>
                                     <span class="ef-tag d-block">EF: {{ $catDef['ef'] }} kgCO₂e/{{ $catDef['unit'] }}</span>
                                     @if(!empty($catDef['help']))<div class="text-muted mt-1" style="font-size:.7rem;line-height:1.4">{{ $catDef['help'] }}</div>@endif
                                 </div>
@@ -222,8 +217,8 @@
                 {{-- SCOPE 2 --}}
                 <div class="scope-section scope-2">
                     <div class="scope-header">
-                        🔌 Scope 2 — Dolaylı Enerji Emisyonları
-                        <span style="font-size:.72rem;font-weight:400;margin-left:auto;opacity:.8">ISO 14064-1 §8.3 Market-Based: I-REC / YEK-G / GoO sertifikalı veya tesis içi GES için EF=0 kullanın</span>
+                        🔌 Enerji — Elektrik / Scope 2 Hesapları
+                        <span style="font-size:.72rem;font-weight:400;margin-left:auto;opacity:.8">Şebeke elektrik ETKB faktörüyle; yenilenebilir enerji oran/KPI takibi için kullanılır.</span>
                     </div>
                     <div class="p-3">
                         @foreach($categories['scope2'] as $catKey => $catDef)
@@ -237,6 +232,9 @@
                             <div class="row g-2 align-items-center">
                                 <div class="col-md-4">
                                     <label class="form-label small fw-semibold mb-1">{{ $catDef['label'] }}</label>
+                                    <div class="text-muted mb-1" style="font-size:.68rem">
+                                        {{ $catDef['category_group'] ?? '-' }} / {{ $catDef['sub_category'] ?? '-' }} · {{ $catDef['standard'] ?? '-' }}
+                                    </div>
                                     <span class="ef-tag d-block">EF: {{ $catDef['ef'] }} kgCO₂e/{{ $catDef['unit'] }}</span>
                                     @if(!empty($catDef['help']))<div class="text-muted mt-1" style="font-size:.7rem;line-height:1.4">{{ $catDef['help'] }}</div>@endif
                                 </div>
@@ -263,7 +261,7 @@
 
                 {{-- SCOPE 3 --}}
                 <div class="scope-section scope-3">
-                    <div class="scope-header">🌍 Scope 3 — Diğer Dolaylı Emisyonlar</div>
+                    <div class="scope-header">🌍 Su, Atık, Satın Alma ve Diğer Scope 3 Hesapları</div>
                     <div class="p-3">
                         @foreach($categories['scope3'] as $catKey => $catDef)
                         @php $existing = $existingEntries->get($catKey); @endphp
@@ -276,6 +274,9 @@
                             <div class="row g-2 align-items-center">
                                 <div class="col-md-4">
                                     <label class="form-label small fw-semibold mb-1">{{ $catDef['label'] }}</label>
+                                    <div class="text-muted mb-1" style="font-size:.68rem">
+                                        {{ $catDef['category_group'] ?? '-' }} / {{ $catDef['sub_category'] ?? '-' }} · {{ $catDef['standard'] ?? '-' }}
+                                    </div>
                                     <span class="ef-tag d-block">EF: {{ $catDef['ef'] }} kgCO₂e/{{ $catDef['unit'] }}</span>
                                     @if(!empty($catDef['help']))<div class="text-muted mt-1" style="font-size:.7rem;line-height:1.4">{{ $catDef['help'] }}</div>@endif
                                 </div>
@@ -343,7 +344,7 @@
                     <div class="col-md-6">
                         <label class="form-label fw-semibold">Metodoloji Notları & Varsayımlar</label>
                         <textarea name="methodology_notes" class="form-control" rows="4"
-                                  placeholder="Örnek notlar:&#10;- Doğalgaz sayıcı okuması alınamadı, fatura verisi kullanıldı&#10;- Servis aracı km kaydı tutulmadığından tahmini güzergâh mesafesi kullanıldı">{{ old('methodology_notes', $carbon->methodology_notes) }}</textarea>
+                                  placeholder="Örnek notlar:&#10;- Elektrik tüketimi fatura toplamından alındı&#10;- Atık miktarları lisanslı firma kantar fişleriyle doğrulanacak&#10;- Satın alma kalemlerinde tedarikçi raporu yoksa varsayılan faktör kullanıldı">{{ old('methodology_notes', $carbon->methodology_notes) }}</textarea>
                         <div class="form-text">Veri eksikliği, tahmin yöntemi veya birşey kesin bilinmiyorsa burada açıklayın. Denetim sırasında bu notlar röportaj sorularını yanıtlar.</div>
                     </div>
                     <div class="col-md-6">

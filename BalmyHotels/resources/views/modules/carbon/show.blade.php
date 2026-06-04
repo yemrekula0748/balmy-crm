@@ -403,6 +403,18 @@
                                 <td class="text-muted small ps-3">kgCO₂e / Personel</td>
                                 <td class="fw-bold text-end pe-3">{{ number_format($carbon->co2_per_staff, 2) }}</td>
                             </tr>
+                            <tr>
+                                <td class="text-muted small ps-3">kWh / Occupied Room</td>
+                                <td class="fw-bold text-end pe-3">{{ number_format($carbon->energy_kwh_per_occupied_room, 3) }}</td>
+                            </tr>
+                            <tr>
+                                <td class="text-muted small ps-3">Litre / Guest Night</td>
+                                <td class="fw-bold text-end pe-3">{{ number_format($carbon->water_litre_per_guest_night, 2) }}</td>
+                            </tr>
+                            <tr>
+                                <td class="text-muted small ps-3">Kg Atık / Guest</td>
+                                <td class="fw-bold text-end pe-3">{{ number_format($carbon->waste_kg_per_guest, 3) }}</td>
+                            </tr>
                             <tr class="table-light">
                                 <td class="text-muted small ps-3">Su (m³/oda-gece)</td>
                                 <td class="fw-bold text-end pe-3">{{ number_format($carbon->water_intensity, 3) }}</td>
@@ -410,10 +422,6 @@
                             <tr>
                                 <td class="text-muted small ps-3">Yenilenebilir Enerji</td>
                                 <td class="fw-bold text-end pe-3 text-success">%{{ number_format($carbon->renewable_energy_pct, 1) }}</td>
-                            </tr>
-                            <tr>
-                                <td class="text-muted small ps-3">Atık Geri Dönüşüm</td>
-                                <td class="fw-bold text-end pe-3">%{{ number_format($carbon->waste_recycling_rate, 1) }}</td>
                             </tr>
                         </tbody>
                     </table>
@@ -433,25 +441,25 @@
     @php
         // En yüksek emisyon yaratan 5 kalem
         $dynRecommendations = [
-            'energy_gas'              => ['icon'=>'fas fa-fire',            'color'=>'#e74c3c', 'oneri'=>'Doğal gaz tüketimi en büyük Scope 1 kaynağınız. Gaz sayaç okumalarını aylık takip edin, HVAC bakım sıklığını artırın ve bölgesel ısı geri kazanım sistemleri değerlendirin.'],
-            'energy_lng'              => ['icon'=>'fas fa-fire-alt',         'color'=>'#e74c3c', 'oneri'=>'LNG tüketimini azaltmak için operasyonel saatleri optimize edin. Mümkünse ısı pompası veya biyokütle ile kısmen ikame edilebilir.'],
-            'energy_fuel_oil'         => ['icon'=>'fas fa-oil-can',          'color'=>'#c0392b', 'oneri'=>'Fuel oil yüksek emisyon faktörlü bir yakıttır. Doğal gaz veya LNG\'ye geçiş %25–40 azaltım sağlayabilir. Acil öneri: kazanlarda yakma optimizasyonu ve yıllık baca analizi.'],
-            'energy_lpg'              => ['icon'=>'fas fa-fire',             'color'=>'#e67e22', 'oneri'=>'LPG tüketimi düşük ama takip edilmeli. Menu/mutfak ekipmanlarında enerji verimli cihazlara geçiş değerlendirilebilir.'],
-            'energy_coal'             => ['icon'=>'fas fa-industry',         'color'=>'#8e44ad', 'oneri'=>'Kömür kullanımı en yüksek emisyon faktörlü yakıttır. AB Taksonomi ve CSRD uyumu için kömür transitize planı hazırlanması kritik önem taşır.'],
-            'energy_electricity'      => ['icon'=>'fas fa-bolt',             'color'=>'#f39c12', 'oneri'=>'Elektrik tüketimi en büyük Scope 2 kaynağınız. LED aydınlatmaya geçiş, enerji yönetim sistemi (BMS/EMS) kurulumu ve boş odalar için akıllı termostata öncelik verin.'],
-            'energy_electricity_re'   => ['icon'=>'fas fa-leaf',             'color'=>'#27ae60', 'oneri'=>'Düşük EF\'li yenilenebilir elektrik kullanıyorsunuz, iyi! I-REC veya YEK-G sertifikasıyla Market-Based sıfır EF bildirilebilir.'],
-            'refrigerant_r410a'       => ['icon'=>'fas fa-snowflake',        'color'=>'#3498db', 'oneri'=>'R-410A yüksek GWP\'li soğutucu gazdır (GWP=2088). Bakım kayıtları ile kaçak tespiti yapın. Yenileme döneminde R-32 veya R-454B\'ye (düşük GWP) geçiş planlayın.'],
-            'refrigerant_r32'         => ['icon'=>'fas fa-snowflake',        'color'=>'#3498db', 'oneri'=>'R-32 görece düşük GWP\'lidir (GWP=675). Kaçak kontrol sıklığını yılda 2 kez yapın, kayıpları kayıt altına alın.'],
-            'refrigerant_r134a'       => ['icon'=>'fas fa-snowflake',        'color'=>'#2980b9', 'oneri'=>'R-134a (GWP=1430) yüksek etkilidir. Kaçak tespiti için electronic leak detector kullanın, bakım sırasında gaz geri kazanımı zorunlu tutun.'],
-            'food_beef'               => ['icon'=>'fas fa-drumstick-bite',   'color'=>'#c0392b', 'oneri'=>'Sığır eti en yüksek emisyon faktörlü gıdadır (27 kgCO₂e/kg). Menüde bitki bazlı ve balık alternatifleri artırın. %20 sığır eti azaltımı Scope 3 gıda emisyonlarını önemli ölçüde düşürür.'],
-            'food_dairy'              => ['icon'=>'fas fa-cheese',           'color'=>'#e67e22', 'oneri'=>'Süt ürünleri de yüksek emisyon taşır. Yerel/organik tedarikçilere geçiş ve porsiyon optimizasyonu değerlendirin.'],
-            'waste_general'           => ['icon'=>'fas fa-trash',            'color'=>'#8e44ad', 'oneri'=>'Genel atık miktarı yüksek. Katı atık azaltma planı oluşturun: organik atık kompostlama, gıda artığı yönetimi ve tedarikçilerle ambalaj azaltımı anlaşmaları yapın.'],
-            'water_municipal'         => ['icon'=>'fas fa-tint',             'color'=>'#3498db', 'oneri'=>'Su tüketiminiz yüksek. Akıllı sulama sistemleri, düşük debili musluklar ve duş başlıkları kurulumu ile %20–30 tasarruf sağlanabilir. Yağmur suyu toplama sistemleri değerlendirilebilir.'],
-            'transport_staff'         => ['icon'=>'fas fa-bus',              'color'=>'#2c3e50', 'oneri'=>'Personel ulaşımı için servis güzergahlarını optimize edin. Elektrikli veya hibrit araç filosu oluşturun, toplu taşıma teşvik programı başlatın.'],
-            'business_travel_air'     => ['icon'=>'fas fa-plane',            'color'=>'#8e44ad', 'oneri'=>'İş amaçlı uçuş emisyonları yüksek. Video konferans alternatiflerini teşvik edin, kısa mesafe uçuşları tren ile ikame edin, gerekli uçuşlarda karbon dengeleme (offsetting) programına katılın.'],
-            'district_heating'        => ['icon'=>'fas fa-thermometer-half', 'color'=>'#e74c3c', 'oneri'=>'Bölgesel ısıtma emisyonları bölgenin enerji karmasına bağlıdır. EF\'yi belediyeden/TETAŞ\'tan güncel olarak talep edin; yenilenebilir kaynaklı bölgesel ısıtma sistemine geçiş planı isteyin.'],
-            'laundry_external'        => ['icon'=>'fas fa-tshirt',           'color'=>'#7f8c8d', 'oneri'=>'Dış çamaşırhane emisyonları Scope 3\'ün önemli bir parçası olabilir. Yeşil sertifikalı çamaşırhane tedarikçileri değerlendirin ya da yenilenebilir enerji kullanan tesis içi laundry yatırımı yapın.'],
-            'procurement_linen'       => ['icon'=>'fas fa-bed',              'color'=>'#7f8c8d', 'oneri'=>'Çarşaf/tekstil tedarikinde organik pamuk veya geri dönüştürülmüş elyaf kullanan tedarikçilere geçiş Scope 3\'ü azaltır. Uzun ömürlü ve onarılabilir ürün politikası benimseyin.'],
+            'energy_lpg' => ['icon'=>'fas fa-fire', 'color'=>'#e67e22', 'oneri'=>'LPG tüketimini aylık fatura/sayaçla takip edin. Mutfak ve ısıtma ekipmanlarında bakım, kaçak kontrolü ve verimli cihaz geçişi azaltım sağlar.'],
+            'energy_diesel' => ['icon'=>'fas fa-gas-pump', 'color'=>'#c0392b', 'oneri'=>'Motorin tüketimi yüksekse araç kullanım planı ve rota optimizasyonu yapılmalı; mümkünse düşük emisyonlu araç dönüşümü hedeflenmelidir.'],
+            'generator_diesel' => ['icon'=>'fas fa-bolt', 'color'=>'#c0392b', 'oneri'=>'Jeneratör yakıtını ayrı izleyin. Test çalışma süreleri, bakım ve yük optimizasyonu doğrudan Scope 1 azaltımı sağlar.'],
+            'energy_coal' => ['icon'=>'fas fa-industry', 'color'=>'#8e44ad', 'oneri'=>'Kömür tüketimi yüksek emisyonlu bir kaynaktır. CSRD/ESRS açısından kademeli azaltım ve alternatif enerji planı hazırlanmalıdır.'],
+            'energy_electricity' => ['icon'=>'fas fa-plug', 'color'=>'#f39c12', 'oneri'=>'Elektrik tüketimi için ISO 50001 mantığında sayaç takibi, LED dönüşümü, BMS/EMS kullanımı ve boş alanlarda otomasyon önceliklidir.'],
+            'energy_renewable' => ['icon'=>'fas fa-leaf', 'color'=>'#27ae60', 'oneri'=>'Yenilenebilir enerji oranını artırmak Scope 2 yoğunluğunu düşürür. GES, YEK-G veya I-REC belgeleri açıklama alanında saklanmalıdır.'],
+            'water_total' => ['icon'=>'fas fa-tint', 'color'=>'#3498db', 'oneri'=>'Toplam su tüketimi yüksekse kaçak kontrolü, düşük debili ekipmanlar, akıllı sulama ve departman bazlı su KPI takibi önerilir.'],
+            'water_municipal' => ['icon'=>'fas fa-tint', 'color'=>'#3498db', 'oneri'=>'Şebeke suyu tüketimini misafir-gece ve oda-gece bazında izleyin. Fatura toplamı ile sayaç okumasını karşılaştırın.'],
+            'waste_general' => ['icon'=>'fas fa-trash', 'color'=>'#8e44ad', 'oneri'=>'Evsel atık yüksekse ayrıştırma, gıda atığı azaltımı ve tedarikçi ambalaj azaltım planı başlatılmalıdır.'],
+            'waste_organic' => ['icon'=>'fas fa-apple-alt', 'color'=>'#27ae60', 'oneri'=>'Organik atık için günlük tartım, porsiyon optimizasyonu ve kompost/geri kazanım alternatifi değerlendirilebilir.'],
+            'waste_hazardous' => ['icon'=>'fas fa-exclamation-triangle', 'color'=>'#c0392b', 'oneri'=>'Kimyasal atık ISO 14001 yasal uygunluk açısından kritik kalemdir. Lisanslı firma teslim belgeleri rapor kanıtı olarak saklanmalıdır.'],
+            'food_meat_total' => ['icon'=>'fas fa-drumstick-bite', 'color'=>'#c0392b', 'oneri'=>'Et ürünleri Scope 3 satın alma emisyonlarını artırır. Menü planlama, porsiyon kontrolü ve daha düşük etkili alternatifler değerlendirilebilir.'],
+            'food_produce' => ['icon'=>'fas fa-carrot', 'color'=>'#27ae60', 'oneri'=>'Sebze-meyve tedarikinde yerel ve mevsimsel alım, taşıma kaynaklı dolaylı etkiyi azaltır.'],
+            'beverage_procurement' => ['icon'=>'fas fa-glass-water', 'color'=>'#3498db', 'oneri'=>'İçecek alımlarında ambalaj, depozito ve tedarikçi ürün faktörleri takip edilirse Scope 3 doğruluğu artar.'],
+            'procurement_cleaning_litre' => ['icon'=>'fas fa-flask', 'color'=>'#8e44ad', 'oneri'=>'Kimyasal kullanımında MSDS, dozaj kontrolü ve konsantre ürün geçişi hem ISO 14001 hem Scope 3 açısından faydalıdır.'],
+            'procurement_linen' => ['icon'=>'fas fa-bed', 'color'=>'#7f8c8d', 'oneri'=>'Linen alımında uzun ömürlü, onarılabilir ve sürdürülebilir tekstil tedarik politikası Scope 3 etkisini azaltır.'],
+            'carbon_refrigerant_manual' => ['icon'=>'fas fa-snowflake', 'color'=>'#3498db', 'oneri'=>'Soğutucu gaz emisyonu varsa bakım formları ve gaz dolum/kaçak kayıtlarıyla doğrulanmalıdır. Düşük GWP gaz geçiş planı oluşturulabilir.'],
+            'carbon_staff_commute_manual' => ['icon'=>'fas fa-bus', 'color'=>'#2c3e50', 'oneri'=>'Personel ulaşımı için servis doluluk oranı, rota optimizasyonu ve alternatif ulaşım teşvikleri takip edilmelidir.'],
+            'carbon_guest_travel_manual' => ['icon'=>'fas fa-route', 'color'=>'#2c3e50', 'oneri'=>'Misafir ulaşımı HCMI kapsamında ayrı hesaplandıysa varsayım ve mesafe kaynakları açıklama alanında belirtilmelidir.'],
         ];
         $allEntries     = $carbon->entries->where('co2_kg', '>', 0)->sortByDesc('co2_kg')->take(5);
         $hasDynRecs     = $allEntries->count() > 0;
@@ -545,7 +553,7 @@
                         <div class="fw-bold mb-2" style="color:#1a5276">📋 Kapsam (Scope) Tanımları</div>
                         <div class="mb-2 p-2 rounded" style="background:#ffeaea;font-size:.8rem">
                             <strong style="color:#c0392b">🔴 Scope 1 — Doğrudan</strong><br>
-                            Tesiste doğrudan yakılan yakıtlardan (doğal gaz, LNG, fuel oil, LPG) ve soğutucu gaz kaçaklarından kaynaklanan emisyonlar.<br>
+                            Bu raporda girilen LPG, motorin, kömür, jeneratör yakıtı ve varsa manuel soğutucu gaz emisyonundan kaynaklanan doğrudan emisyonlar.<br>
                             <em>Standart: ISO 14064-1 §5.2, GHG Protocol §4</em>
                         </div>
                         <div class="mb-2 p-2 rounded" style="background:#fff8e1;font-size:.8rem">
@@ -555,7 +563,7 @@
                         </div>
                         <div class="p-2 rounded" style="background:#e8f5e9;font-size:.8rem">
                             <strong style="color:#1a6b3c">🟢 Scope 3 — Değer Zinciri</strong><br>
-                            Su tüketimi, atıklar, gıda, ulaşım, tedarik zinciri, çamaşırhane vb. dolaylı emisyonlar.<br>
+                            Su tüketimi, atıklar, satın alma kalemleri ve varsa manuel personel/misafir ulaşımı gibi diğer dolaylı emisyonlar.<br>
                             <em>Standart: GHG Protocol Scope 3 Standard, ISO 14064-1 §5.4</em>
                         </div>
                     </div>
@@ -570,7 +578,7 @@
                                 <tr><td><strong>UK Gov GHG Factors 2025</strong></td><td>Yakıt, su, atık, ulaşım</td></tr>
                                 <tr><td><strong>GHG Protocol</strong></td><td>Scope 1 / 2 / 3 sınıflandırması</td></tr>
                                 <tr><td><strong>FAO / IPCC 2023</strong></td><td>Gıda tüketimi</td></tr>
-                                <tr><td><strong>Ecoinvent 3.9</strong></td><td>Tedarik zinciri, çamaşırhane</td></tr>
+                                <tr><td><strong>Ecoinvent 3.9</strong></td><td>Temizlik kimyasalı ve tekstil tedariki</td></tr>
                                 <tr><td><strong>HCMI</strong></td><td>Otel sektörü karbon yoğunluğu</td></tr>
                                 <tr><td><strong>ISO 14064-1 Market-Based</strong></td><td>I-REC/YEK-G/GoO, tesis içi GES</td></tr>
                             </tbody>
@@ -587,8 +595,7 @@
                         <div class="row g-2">
                             @php
                                 $total = $carbon->total_co2_total;
-                                $waterEntries = $carbon->entries->whereIn('category', ['water_municipal','water_wastewater']);
-                                $totalWaterM3 = $waterEntries->where('unit','m³')->sum('quantity') + $waterEntries->where('unit','m3')->sum('quantity');
+                                $totalWaterM3 = $carbon->total_water_m3;
                             @endphp
                             <div class="col-md-3">
                                 <div class="p-2 rounded text-center" style="background:#f8f9fa;border:1px solid #dee2e6;font-size:.78rem">

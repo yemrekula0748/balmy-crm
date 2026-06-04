@@ -52,116 +52,180 @@ class CarbonFootprintReport extends Model
     // Kategori tanımları (form için)
     // ------------------------------------------------------------------
     const CATEGORIES = [
-        // Scope 1 — Doğrudan emisyonlar
+        // Kullanıcının verdiği veri seti: eski karbon kalemleri formdan çıkarıldı.
         'scope1' => [
-            'energy_gas'       => ['label' => 'Doğal Gaz',                       'unit' => 'm³',  'ef' => 2.204,  'ef_source' => 'IPCC AR6 2023',
-                'help' => 'Doğal gaz ana sayacından dönemlik okuma (m³). Kazan, mutfak ocağı, çamaşırhane kazanı dahil tesisteki tüm tüketimi girin.'],
-            'energy_lng'       => ['label' => 'LNG (Sıvılaştırılmış Doğal Gaz)', 'unit' => 'ton', 'ef' => 2748.0, 'ef_source' => 'IPCC AR6 / UK Gov 2025',
-                'help' => 'LNG tankından kullanılan ton cinsinden miktar. Dolum/teslimat irsaliyesi veya fatura toplamından hesaplanır. 1 m³ LNG ≈ 0.441 ton.'],
-            'energy_fuel_oil'  => ['label' => 'Fuel Oil',                         'unit' => 'L',   'ef' => 2.967,  'ef_source' => 'IPCC AR6 2023',
-                'help' => 'Kazan veya jeneratör fuel oil tüketimi (L). Yakıt faturası veya depo dolum/azalma kayıtlarından hesaplanır.'],
-            'energy_lpg'       => ['label' => 'LPG Tüketimi',                     'unit' => 'L',   'ef' => 1.557,  'ef_source' => 'UK Gov GHG Factors 2025',
-                'help' => 'LPG tüpleri veya depo sayaçlarından ölçülen tüketim (L). Mutfak ve ısıtma kullanımını kapsar. 1 kg LPG ≈ 1.96 L.'],
-            'energy_coal'      => ['label' => 'Kömür Tüketimi',                   'unit' => 'kg',  'ef' => 2.421,  'ef_source' => 'UK Gov GHG Factors 2025',
-                'help' => 'Kazan veya ısıtma sistemine dönemde yüklenen kömür miktarı (kg). Satın alma faturasından veya tartım kayıtlarından.'],
-            'transport_diesel' => ['label' => 'Şirket Araçları — Motorin',        'unit' => 'L',   'ef' => 2.661,  'ef_source' => 'UK Gov GHG Factors 2025',
-                'help' => 'Otele ait araçların (servis, minibüs, kamyonet) motorin tüketimi (L). Yakıt kartı ekstresi veya akaryakıt faturası dökümünden.'],
-            'generator_diesel' => ['label' => 'Jeneratör Yakıtı',                 'unit' => 'L',   'ef' => 2.661,  'ef_source' => 'UK Gov GHG Factors 2025',
-                'help' => 'Jeneratör için kullanılan motorin miktarı (L). Yakıt faturası, depo sayacı veya dolum fişinden alınır.'],
-            'transport_petrol' => ['label' => 'Şirket Araçları — Benzin',         'unit' => 'L',   'ef' => 2.314,  'ef_source' => 'UK Gov GHG Factors 2025',
-                'help' => 'Otele ait benzinli araçların tüketimi (L). Yakıt kartı ekstresi veya akaryakıt faturası dökümünden.'],
-            'refrigerant_r410a'=> ['label' => 'Soğutucu Gaz R410A',              'unit' => 'kg',  'ef' => 2088.0, 'ef_source' => 'IPCC AR6 GWP100',
-                'help' => 'Yıllık klima/VRF/chiller bakımında doldurulan R410A miktarı (kg). Servis formu veya faturasından. GWP=2088 — küçük miktarlar büyük etki yaratır!'],
-            'refrigerant_r32'  => ['label' => 'Soğutucu Gaz R32',                'unit' => 'kg',  'ef' => 675.0,  'ef_source' => 'IPCC AR6 GWP100',
-                'help' => 'Klima servislerinde doldurulan R32 miktarı (kg). Teknik servis faturasından. GWP=675.'],
-            'refrigerant_r134a'=> ['label' => 'Soğutucu Gaz R134a',              'unit' => 'kg',  'ef' => 1430.0, 'ef_source' => 'IPCC AR6 GWP100',
-                'help' => 'Soğutma dolabı, minibar veya merkezi soğutma servisinde kullanılan R134a miktarı (kg). Servis kayıtlarından. GWP=1430.'],
+            'energy_lpg' => [
+                'label' => 'LPG Tüketimi', 'category_group' => 'Enerji', 'sub_category' => 'Yakıt',
+                'unit' => 'Litre', 'ef' => 1.557, 'ef_source' => 'UK Gov GHG Factors 2025',
+                'standard' => 'GHG Protocol / ISO 14064-1', 'frequency' => 'aylık',
+                'help' => 'LPG kullanımı. Hesap: litre x 1,557 kgCO2e/litre.',
+            ],
+            'energy_diesel' => [
+                'label' => 'Motorin Tüketimi', 'category_group' => 'Enerji', 'sub_category' => 'Yakıt',
+                'unit' => 'Litre', 'ef' => 2.661, 'ef_source' => 'UK Gov GHG Factors 2025',
+                'standard' => 'GHG Protocol / ISO 14064-1', 'frequency' => 'aylık',
+                'help' => 'Motorin tüketimi. Servis/araç yakıtı bu satırdan hesaplanır.',
+            ],
+            'energy_coal' => [
+                'label' => 'Kömür Tüketimi', 'category_group' => 'Enerji', 'sub_category' => 'Yakıt',
+                'unit' => 'Kg', 'ef' => 2.421, 'ef_source' => 'UK Gov GHG Factors 2025',
+                'standard' => 'GHG Protocol / ISO 14064-1', 'frequency' => 'aylık',
+                'help' => 'Kömür tüketimi. Tartım/fatura bilgisiyle girilmelidir.',
+            ],
+            'generator_diesel' => [
+                'label' => 'Jeneratör Yakıtı', 'category_group' => 'Enerji', 'sub_category' => 'Yakıt',
+                'unit' => 'Litre', 'ef' => 2.661, 'ef_source' => 'UK Gov GHG Factors 2025',
+                'standard' => 'GHG Protocol / ISO 14064-1', 'frequency' => 'aylık',
+                'help' => 'Jeneratöre ait motorin tüketimi. Araç motoriniyle çift sayılmamalıdır.',
+            ],
+            'carbon_refrigerant_manual' => [
+                'label' => 'Soğutucu Gaz Emisyonu', 'category_group' => 'Karbon', 'sub_category' => 'Scope 1',
+                'unit' => 'tCO2e', 'ef' => 1000, 'ef_source' => 'GHG Protocol / IPCC GWP',
+                'standard' => 'GHG Protocol / ISO 14064-1', 'frequency' => 'hesaplanan',
+                'help' => 'Bakım firmasından kg gaz ve GWP ile hesaplanmış tCO2e varsa girin. Sistem kgCO2e için 1000 ile çarpar.',
+            ],
         ],
-        // Scope 2 — Dolaylı enerji emisyonları
         'scope2' => [
-            // Location-Based Yaklaşım
-            'energy_electricity'      => ['label' => 'Toplam Elektrik Tüketimi — Şebeke',                         'unit' => 'kWh', 'ef' => 0.469, 'ef_source' => 'ETKB EVÇED 2023 Dağıtım',
-                'help' => 'Elektrik dağıtım şebekesinden çekilen toplam kWh. ETKB/EVÇED 2023 tüketim noktası dağıtım hattı faktörü: 0,469 tCO2e/MWh = 0,469 kgCO2e/kWh.'],
-            'energy_electricity_re'   => ['label' => 'Yenilenebilir Enerji — Sertifikasız LCA',                   'unit' => 'kWh', 'ef' => 0.017, 'ef_source' => 'IEA/DEFRA LCA varsayımı',
-                'help' => 'Şebeke bağlantılı ancak sertifikasız yenilenebilir kaynaklı elektrik için yalnızca açıklama/varsayım amaçlı kalem. I-REC/YEK-G yoksa şebeke kaleminden düşmeyin.'],
-            // Market-Based Yaklaşım (ISO 14064-1 §8.3)
-            'energy_electricity_irec' => ['label' => 'Elektrik — I-REC / YEK-G / GoO Sertifikalı (Market-Based)', 'unit' => 'kWh', 'ef' => 0.0,   'ef_source' => 'ISO 14064-1 Market-Based / RE100',
-                'help' => 'I-REC, YEK-G veya GoO belgesiyle ispatlanan yenilenebilir elektrik miktarı (kWh). EF=0 uygulanır. Sertifika belgesi denetçiye ibraz edilmelidir (ISO 14064-1 §8.3.3).'],
-            'energy_onsite_solar'     => ['label' => 'Tesis İçi Üretim — Çatı GES / Rüzgar (Market-Based)',      'unit' => 'kWh', 'ef' => 0.0,   'ef_source' => 'ISO 14064-1 Market-Based / GHG Protocol',
-                'help' => 'Kendi çatı GES veya tesis içi rüzgar türbininden üretilerek tüketilen kWh. Üretim sayacından okunur. EF=0 uygulanır; mahsuplaşma ile Scope 2 emisyonunuzu azaltır.'],
-            'district_cooling'        => ['label' => 'Merkezi Soğutma',                                           'unit' => 'kWh', 'ef' => 0.250, 'ef_source' => 'UK Gov GHG Factors 2025',
-                'help' => 'Bölgesel soğutma ağından veya merkezi chiller istasyonundan alınan soğutma enerjisi (kWh). Enerji sayacı veya sağlayıcı faturasından.'],
-            'district_heating'        => ['label' => 'Merkezi Isıtma',                                            'unit' => 'kWh', 'ef' => 0.180, 'ef_source' => 'UK Gov GHG Factors 2025',
-                'help' => 'Bölgesel ısı ağından veya buhar istasyonundan alınan ısı enerjisi (kWh). Doğalgaz dağıtım şirketi ısı satışı veya buhar sayacından.'],
+            'energy_electricity' => [
+                'label' => 'Toplam Elektrik Tüketimi', 'category_group' => 'Enerji', 'sub_category' => 'Elektrik',
+                'unit' => 'kWh', 'ef' => 0.469, 'ef_source' => 'ETKB EVÇED 2023 Dağıtım',
+                'standard' => 'ISO 50001 / GHG Scope 2', 'frequency' => 'aylık',
+                'help' => 'Aylık toplam elektrik tüketimi. ETKB/EVÇED 2023 dağıtım tüketim noktası faktörü: 0,469 kgCO2e/kWh.',
+            ],
+            'energy_renewable' => [
+                'label' => 'Yenilenebilir Enerji', 'category_group' => 'Enerji', 'sub_category' => 'Elektrik',
+                'unit' => 'kWh', 'ef' => 0, 'ef_source' => 'ISO 14064-1 Market-Based / GHG Protocol',
+                'standard' => 'ISO 50001 / ESG', 'frequency' => 'aylık',
+                'help' => 'GES, YEK-G, I-REC veya benzeri kanıtlı yenilenebilir üretim/tüketim. Karbon toplamına eklenmez; yenilenebilir oranı için kullanılır.',
+            ],
         ],
-        // Scope 3 — Diğer dolaylı emisyonlar
         'scope3' => [
-            'water_municipal'         => ['label' => 'Şebeke Suyu',                  'unit' => 'm³',  'ef' => 0.344,  'ef_source' => 'UK Gov GHG Factors 2025',
-                'help' => 'Su idaresi faturasındaki toplam tüketim (m³). Yüzme havuzu, sulama, mutfak, misafir odaları, çamaşırhane dahil tesisteki tüm su kullanımını girin.'],
-            'water_well'              => ['label' => 'Kuyu Suyu',                    'unit' => 'm³',  'ef' => 0.000,  'ef_source' => 'ISO 14001 izleme',
-                'help' => 'Kuyu suyu çekimi (m³). Pompa elektriği Scope 2 içinde hesaplanıyorsa EF=0 bırakılır; su çekim izni ve sayaç kaydı denetim kanıtıdır.'],
-            'water_wastewater'        => ['label' => 'Atık Su İşleme',               'unit' => 'm³',  'ef' => 0.708,  'ef_source' => 'UK Gov GHG Factors 2025',
-                'help' => 'Atıksu arıtma tesisine gönderilen su miktarı (m³). Atıksu faturanız yoksa şebeke suyu × 0.80 katsayısı ile tahmin edin.'],
-            'waste_general'           => ['label' => 'Karışık Atık (Çöp)',           'unit' => 'kg',  'ef' => 0.490,  'ef_source' => 'IPCC 2019',
-                'help' => 'Ayrıştırılmamış karışık çöp miktarı (kg). Taşıyıcı firma kantar fişlerinden veya konteyner hacim × doluluk oranı tahmini ile hesaplanır.'],
-            'waste_plastic'           => ['label' => 'Plastik Atık',                 'unit' => 'kg',  'ef' => 0.021,  'ef_source' => 'UK Gov GHG Factors 2025',
-                'help' => 'Geri dönüşüme gönderilen plastik atık kg. Kantar fişi veya geri dönüşüm firma formu ile desteklenmelidir.'],
-            'waste_glass'             => ['label' => 'Cam Atık',                     'unit' => 'kg',  'ef' => 0.021,  'ef_source' => 'UK Gov GHG Factors 2025',
-                'help' => 'Geri dönüşüme gönderilen cam atık kg.'],
-            'waste_paper'             => ['label' => 'Kağıt Atık',                   'unit' => 'kg',  'ef' => 0.021,  'ef_source' => 'UK Gov GHG Factors 2025',
-                'help' => 'Geri dönüşüme gönderilen kağıt/karton atık kg.'],
-            'waste_metal'             => ['label' => 'Metal Atık',                   'unit' => 'kg',  'ef' => 0.021,  'ef_source' => 'UK Gov GHG Factors 2025',
-                'help' => 'Geri dönüşüme gönderilen metal atık kg.'],
-            'waste_food'              => ['label' => 'Gıda Atığı',                   'unit' => 'kg',  'ef' => 2.530,  'ef_source' => 'IPCC 2019',
-                'help' => 'Mutfaktan çıkan hazırlanmamış+tabak artığı gıda miktarı (kg). Çöplükte metan (CH₄) ürettiği için yüksek emisyon faktörüne sahiptir. Günlük tartım tutanaklarından.'],
-            'waste_organic'           => ['label' => 'Organik Atık',                 'unit' => 'kg',  'ef' => 0.490,  'ef_source' => 'UK Gov GHG Factors 2025',
-                'help' => 'Gıda dışı organik atık veya ayrıştırılmış organik atık kg. Kompost yapılan miktarı kompost kalemine taşıyın.'],
-            'waste_recycled'          => ['label' => 'Geri Dönüştürülen Atık',       'unit' => 'kg',  'ef' => 0.021,  'ef_source' => 'UK Gov GHG Factors 2025',
-                'help' => 'Kağıt, cam, plastik, metal olarak ayrıştırılan ve geri dönüşüme gönderilen toplam atık (kg). Geri dönüşüm firması kantar fişlerinden.'],
-            'waste_compost'           => ['label' => 'Kompost Atığı',                'unit' => 'kg',  'ef' => 0.010,  'ef_source' => 'UK Gov GHG Factors 2025',
-                'help' => 'Organik atıktan kompost yapılan miktar (kg). Bu kaleme taşıdığınız miktarı Gıda Atığı kaleminden düşürün; çift sayımı önler.'],
-            'waste_hazardous'         => ['label' => 'Kimyasal / Tehlikeli Atık',    'unit' => 'kg',  'ef' => 0.500,  'ef_source' => 'UK Gov GHG Factors 2025',
-                'help' => 'Tehlikeli atık beyanı, MOTAT/Ulusal Atık Taşıma Formu veya lisanslı firma teslim formu ile desteklenmelidir.'],
-            'waste_oil'               => ['label' => 'Atık Yağ',                     'unit' => 'L',   'ef' => 0.000,  'ef_source' => 'ISO 14001 izleme',
-                'help' => 'Lisanslı firmaya verilen atık yağ litre. Karbon hesabından çok ISO 14001 yasal uygunluk/atık yönetimi takibidir.'],
-            'waste_electronic'        => ['label' => 'Elektronik Atık',              'unit' => 'kg',  'ef' => 0.021,  'ef_source' => 'UK Gov GHG Factors 2025',
-                'help' => 'E-atık teslim miktarı kg. Lisanslı firma teslim belgesi açıklama alanına girilmelidir.'],
-            'waste_battery'           => ['label' => 'Pil Atığı',                    'unit' => 'kg',  'ef' => 0.021,  'ef_source' => 'UK Gov GHG Factors 2025',
-                'help' => 'Atık pil kg. TAP/teslim formu veya iç toplama tutanağı kanıt olarak saklanmalıdır.'],
-            'food_beef'               => ['label' => 'Sığır Eti Tüketimi',           'unit' => 'kg',  'ef' => 27.00,  'ef_source' => 'IPCC/FAO 2023',
-                'help' => 'Dönemde satın alınan sığır/dana eti (kg). En yüksek emisyon faktörüne sahip gıda kalemi (27 kgCO₂e/kg). Mutfak tedarik faturalarından.'],
-            'food_chicken'            => ['label' => 'Tavuk Tüketimi',               'unit' => 'kg',  'ef' => 5.70,   'ef_source' => 'IPCC/FAO 2023',
-                'help' => 'Dönemde satın alınan tavuk, hindi gibi kümes hayvanı eti toplamı (kg). Tedarikçi faturası dökümünden.'],
-            'food_fish'               => ['label' => 'Balık & Deniz Ürünleri',       'unit' => 'kg',  'ef' => 3.20,   'ef_source' => 'FAO 2023',
-                'help' => 'Tüm deniz ürünleri dahil balık alımı (kg). Balık çeşitliliğine göre EF değişse de ortalama 3.20 kullanılır. Tedarikçi faturalarından.'],
-            'food_dairy'              => ['label' => 'Süt & Peynir & Tereyağı',      'unit' => 'kg',  'ef' => 3.20,   'ef_source' => 'FAO 2023',
-                'help' => 'Süt, peynir, yoğurt, tereyağı, krema gibi tüm süt ürünleri toplamı (kg). Tedarikçi faturalarından kg cinsinden hesaplayın.'],
-            'food_plant'              => ['label' => 'Bitkisel Gıda',                'unit' => 'kg',  'ef' => 0.78,   'ef_source' => 'IPCC/FAO 2023',
-                'help' => 'Sebze, meyve, tahıl, baklagil gibi bitkisel gıda alımı (kg). En düşük karbon ayak izine sahip gıda grubudur. Yerel tedarikçiden alım nakliye Scope 3\'ünü düşürür.'],
-            'food_meat_total'         => ['label' => 'Et Ürünleri',                  'unit' => 'kg',  'ef' => 12.00,  'ef_source' => 'FAO/IPCC ortalama',
-                'help' => 'Et ürünleri toplam kg. Eğer dana/tavuk/balık ayrı giriliyorsa bu satırı 0 bırakın; çift sayımı önler.'],
-            'food_produce'            => ['label' => 'Sebze Meyve',                  'unit' => 'kg',  'ef' => 0.78,   'ef_source' => 'FAO/IPCC ortalama',
-                'help' => 'Sebze, meyve ve bitkisel ürün tedariki kg.'],
-            'beverage_procurement'    => ['label' => 'İçecek Tedariki',              'unit' => 'L',   'ef' => 0.50,   'ef_source' => 'Scope 3 tedarik varsayımı',
-                'help' => 'İçecek satın alma litre. Ürün bazlı tedarikçi faktörü yoksa düşük güven seviyeli genel Scope 3 varsayımıdır; açıklama alanına tedarikçi/fatura notu girin.'],
-            'transport_staff'         => ['label' => 'Personel Ulaşımı',             'unit' => 'km',  'ef' => 0.192,  'ef_source' => 'UK Gov GHG Factors 2025',
-                'help' => 'Personel servis araçlarının dönemde kat ettiği toplam km. Hesap: güzergah km × günlük sefer × iş günü sayısı.'],
-            'transport_guest_shuttle' => ['label' => 'Misafir Shuttle (Transfer)',   'unit' => 'km',  'ef' => 0.089,  'ef_source' => 'UK Gov GHG Factors 2025',
-                'help' => 'Havalimanı/şehir transfer aracınızın dönemdeki toplam km. Rezervasyon kayıtlarından; gidiş+dönüş dahil toplam mesafe.'],
-            'procurement_cleaning'    => ['label' => 'Temizlik Kimyasalları',        'unit' => 'kg',  'ef' => 3.100,  'ef_source' => 'Ecoinvent 3.9',
-                'help' => 'Satın alınan tüm temizlik kimyasalları toplamı (kg): deterjan, dezenfektan, yüzey temizleyici, halı şampuanı vb. Tedarikçi faturalarından.'],
-            'procurement_cleaning_litre' => ['label' => 'Kimyasal Kullanımı',        'unit' => 'L',   'ef' => 3.100,  'ef_source' => 'Ecoinvent 3.9 varsayım',
-                'help' => 'Temizlik kimyasalları litre. Yoğunluk bilinmiyorsa kg eşdeğeri varsayımı kullanılır; mümkünse MSDS/tedarikçi kg bilgisi ekleyin.'],
-            'procurement_linen'       => ['label' => 'Tekstil Alımı (Yeni Çarşaf/Havlu)', 'unit' => 'kg', 'ef' => 15.00, 'ef_source' => 'Ecoinvent 3.9',
-                'help' => 'Dönemde SATIN ALINAN yeni çarşaf, havlu, bornoz, masa örtüsü (kg). Yıkama miktarı değil, yalnızca yeni alım miktarıdır.'],
-            'laundry_onsite'          => ['label' => 'Çamaşırhane — Tesis İçi',     'unit' => 'kg',  'ef' => 0.0,    'ef_source' => 'GHG Protocol — kapsam çakışması',
-                'help' => 'Tesis içi çamaşırhanenin yıkadığı çamaşır miktarı (kg). Doğal gaz ve elektrik tüketimleri zaten Scope 1/2\'de kayıtlıysa burayı 0 bırakın — çift sayımı önler.'],
-            'laundry_external'        => ['label' => 'Çamaşırhane — Dış Servis',    'unit' => 'kg',  'ef' => 0.540,  'ef_source' => 'UK Gov 2025 / Ecoinvent 3.9',
-                'help' => 'Otel dışı firmaya gönderilen çamaşır miktarı (kg). Teslimat/teslim alım irsaliyelerinden veya dış firma faturasındaki kg bilgisinden.'],
-            'procurement_amenities'   => ['label' => 'Misafir Tüketim Malzemeleri', 'unit' => 'kg',  'ef' => 4.200,  'ef_source' => 'Ecoinvent 3.9',
-                'help' => 'Odalara konan şampuan, sabun, duş jeli, diş fırçası gibi tek/kısa kullanımlık ürünler toplamı (kg). Tedarikçi faturasından.'],
-            'business_travel_air'     => ['label' => 'İş Seyahati (Uçak)',          'unit' => 'km',  'ef' => 0.285,  'ef_source' => 'ICAO 2023',
-                'help' => 'Personelin iş amaçlı uçuş mesafesi toplamı (km). Bilet rezervasyonlarından; gidiş+dönüş dahil toplam km. ICAO hesaplayıcı kullanılabilir.'],
+            'water_total' => [
+                'label' => 'Toplam Su Tüketimi', 'category_group' => 'Su', 'sub_category' => 'Tüketim',
+                'unit' => 'm3', 'ef' => 0, 'ef_source' => 'ISO 14001 izleme',
+                'standard' => 'ISO 14001', 'frequency' => 'aylık',
+                'help' => 'Aylık toplam su tüketimi. Karbon toplamına eklenmez; su KPI ve ISO 14001 takibi için kullanılır.',
+            ],
+            'water_municipal' => [
+                'label' => 'Şebeke Suyu', 'category_group' => 'Su', 'sub_category' => 'Tüketim',
+                'unit' => 'm3', 'ef' => 0.344, 'ef_source' => 'UK Gov GHG Factors 2025',
+                'standard' => 'ISO 14001 / GHG Scope 3', 'frequency' => 'aylık',
+                'help' => 'Belediye/şebeke suyu. Su temini kaynaklı Scope 3 etkisi için hesaplanır.',
+            ],
+            'water_well' => [
+                'label' => 'Kuyu Suyu', 'category_group' => 'Su', 'sub_category' => 'Tüketim',
+                'unit' => 'm3', 'ef' => 0, 'ef_source' => 'ISO 14001 izleme',
+                'standard' => 'ISO 14001', 'frequency' => 'aylık',
+                'help' => 'Kuyu suyu çekimi. Pompa elektriği elektrik satırında hesaplandığı için karbon çarpanı uygulanmaz.',
+            ],
+            'waste_general' => [
+                'label' => 'Evsel Atık Miktarı', 'category_group' => 'Atık', 'sub_category' => 'Evsel Atık',
+                'unit' => 'Kg', 'ef' => 0.490, 'ef_source' => 'UK Gov GHG Factors 2025 / IPCC',
+                'standard' => 'ISO 14001 / GRI 305', 'frequency' => 'aylık',
+                'help' => 'Karışık evsel atık miktarı.',
+            ],
+            'waste_plastic' => [
+                'label' => 'Plastik Atık', 'category_group' => 'Atık', 'sub_category' => 'Geri Dönüşüm',
+                'unit' => 'Kg', 'ef' => 0.021, 'ef_source' => 'UK Gov GHG Factors 2025',
+                'standard' => 'ESG / GRI 305', 'frequency' => 'aylık',
+                'help' => 'Geri dönüşüme gönderilen plastik atık.',
+            ],
+            'waste_glass' => [
+                'label' => 'Cam Atık', 'category_group' => 'Atık', 'sub_category' => 'Geri Dönüşüm',
+                'unit' => 'Kg', 'ef' => 0.021, 'ef_source' => 'UK Gov GHG Factors 2025',
+                'standard' => 'ESG / GRI 305', 'frequency' => 'aylık',
+                'help' => 'Geri dönüşüme gönderilen cam atık.',
+            ],
+            'waste_paper' => [
+                'label' => 'Kağıt Atık', 'category_group' => 'Atık', 'sub_category' => 'Geri Dönüşüm',
+                'unit' => 'Kg', 'ef' => 0.021, 'ef_source' => 'UK Gov GHG Factors 2025',
+                'standard' => 'ESG / GRI 305', 'frequency' => 'aylık',
+                'help' => 'Geri dönüşüme gönderilen kağıt/karton atık.',
+            ],
+            'waste_metal' => [
+                'label' => 'Metal Atık', 'category_group' => 'Atık', 'sub_category' => 'Geri Dönüşüm',
+                'unit' => 'Kg', 'ef' => 0.021, 'ef_source' => 'UK Gov GHG Factors 2025',
+                'standard' => 'ESG / GRI 305', 'frequency' => 'aylık',
+                'help' => 'Geri dönüşüme gönderilen metal atık.',
+            ],
+            'waste_organic' => [
+                'label' => 'Organik Atık', 'category_group' => 'Atık', 'sub_category' => 'Organik',
+                'unit' => 'Kg', 'ef' => 0.490, 'ef_source' => 'UK Gov GHG Factors 2025',
+                'standard' => 'ESG / GRI 305', 'frequency' => 'aylık',
+                'help' => 'Organik/gıda atığı miktarı.',
+            ],
+            'waste_hazardous' => [
+                'label' => 'Kimyasal Atık', 'category_group' => 'Atık', 'sub_category' => 'Tehlikeli Atık',
+                'unit' => 'Kg', 'ef' => 0.500, 'ef_source' => 'UK Gov GHG Factors 2025',
+                'standard' => 'ISO 14001', 'frequency' => 'aylık',
+                'help' => 'Lisanslı firma teslim formu ile izlenmesi gereken tehlikeli/kimyasal atık.',
+            ],
+            'waste_oil' => [
+                'label' => 'Atık Yağ', 'category_group' => 'Atık', 'sub_category' => 'Tehlikeli Atık',
+                'unit' => 'Litre', 'ef' => 0, 'ef_source' => 'ISO 14001 izleme',
+                'standard' => 'ISO 14001', 'frequency' => 'aylık',
+                'help' => 'Lisanslı firmaya verilen atık yağ. Karbon toplamından çok yasal uygunluk takibi içindir.',
+            ],
+            'waste_electronic' => [
+                'label' => 'Elektronik Atık', 'category_group' => 'Atık', 'sub_category' => 'Tehlikeli Atık',
+                'unit' => 'Kg', 'ef' => 0.021, 'ef_source' => 'UK Gov GHG Factors 2025',
+                'standard' => 'ISO 14001', 'frequency' => 'aylık',
+                'help' => 'E-atık teslim miktarı.',
+            ],
+            'waste_battery' => [
+                'label' => 'Pil Atığı', 'category_group' => 'Atık', 'sub_category' => 'Tehlikeli Atık',
+                'unit' => 'Kg', 'ef' => 0.021, 'ef_source' => 'UK Gov GHG Factors 2025',
+                'standard' => 'ISO 14001', 'frequency' => 'aylık',
+                'help' => 'Pil atığı teslim/toplama miktarı.',
+            ],
+            'food_meat_total' => [
+                'label' => 'Et Ürünleri', 'category_group' => 'Satın Alma', 'sub_category' => 'Gıda',
+                'unit' => 'Kg', 'ef' => 12.000, 'ef_source' => 'FAO/IPCC ortalama',
+                'standard' => 'ESG / GHG Scope 3', 'frequency' => 'aylık',
+                'help' => 'Et ürünleri toplam alımı. Ürün bazlı detay yoksa ortalama tedarik faktörü kullanılır.',
+            ],
+            'food_produce' => [
+                'label' => 'Sebze Meyve', 'category_group' => 'Satın Alma', 'sub_category' => 'Gıda',
+                'unit' => 'Kg', 'ef' => 0.780, 'ef_source' => 'FAO/IPCC ortalama',
+                'standard' => 'ESG / GHG Scope 3', 'frequency' => 'aylık',
+                'help' => 'Sebze, meyve ve bitkisel ürün alımı.',
+            ],
+            'beverage_procurement' => [
+                'label' => 'İçecek', 'category_group' => 'Satın Alma', 'sub_category' => 'Gıda',
+                'unit' => 'Litre', 'ef' => 0.500, 'ef_source' => 'Scope 3 tedarik varsayımı',
+                'standard' => 'ESG / GHG Scope 3', 'frequency' => 'aylık',
+                'help' => 'İçecek alımı. Tedarikçi ürün bazlı faktör sağlarsa açıklama alanına not düşülmelidir.',
+            ],
+            'procurement_cleaning_litre' => [
+                'label' => 'Kimyasal Kullanımı', 'category_group' => 'Satın Alma', 'sub_category' => 'Temizlik',
+                'unit' => 'Litre', 'ef' => 3.100, 'ef_source' => 'Ecoinvent 3.9 varsayım',
+                'standard' => 'ISO 14001 / GHG Scope 3', 'frequency' => 'aylık',
+                'help' => 'Temizlik kimyasalı kullanımı. MSDS/tedarikçi belgesi varsa açıklama alanına eklenmelidir.',
+            ],
+            'procurement_linen' => [
+                'label' => 'Çamaşır / Linen', 'category_group' => 'Satın Alma', 'sub_category' => 'Tekstil',
+                'unit' => 'Kg', 'ef' => 15.000, 'ef_source' => 'Ecoinvent 3.9',
+                'standard' => 'ESG / GHG Scope 3', 'frequency' => 'aylık',
+                'help' => 'Yeni çarşaf, havlu, bornoz vb. tekstil alımı.',
+            ],
+            'carbon_procurement_manual' => [
+                'label' => 'Satın Alma Emisyonu', 'category_group' => 'Karbon', 'sub_category' => 'Scope 3',
+                'unit' => 'tCO2e', 'ef' => 1000, 'ef_source' => 'GHG Protocol Scope 3',
+                'standard' => 'GHG Scope 3 / GRI 305', 'frequency' => 'hesaplanan',
+                'help' => 'Tedarikçi veya ayrı hesaplama dosyasından gelen satın alma emisyonu varsa tCO2e olarak girin. Yukarıdaki satın alma kalemleriyle çift sayılmamalıdır.',
+            ],
+            'carbon_staff_commute_manual' => [
+                'label' => 'Personel Ulaşımı', 'category_group' => 'Karbon', 'sub_category' => 'Scope 3',
+                'unit' => 'tCO2e', 'ef' => 1000, 'ef_source' => 'GHG Protocol Scope 3',
+                'standard' => 'GHG Scope 3 / ESRS E1', 'frequency' => 'hesaplanan',
+                'help' => 'Personel ulaşımı ayrı hesaplandıysa tCO2e olarak girin.',
+            ],
+            'carbon_guest_travel_manual' => [
+                'label' => 'Misafir Ulaşımı', 'category_group' => 'Karbon', 'sub_category' => 'Scope 3',
+                'unit' => 'tCO2e', 'ef' => 1000, 'ef_source' => 'HCMI / GHG Scope 3',
+                'standard' => 'HCMI / GHG Scope 3', 'frequency' => 'hesaplanan',
+                'help' => 'Misafir ulaşımı HCMI veya ayrı hesap dosyasıyla hesaplandıysa tCO2e olarak girin.',
+            ],
         ],
     ];
 
@@ -244,19 +308,58 @@ class CarbonFootprintReport extends Model
     ];
 
     const INPUT_SCHEMA = [
-        ['category' => 'Genel Bilgiler', 'sub_category' => 'Otel Bilgisi', 'name' => 'Otel Adı', 'unit' => 'Metin', 'standard' => 'ISO 14001', 'frequency' => 'sabit'],
-        ['category' => 'Genel Bilgiler', 'sub_category' => 'Otel Bilgisi', 'name' => 'Lokasyon', 'unit' => 'Metin', 'standard' => 'ISO 14001', 'frequency' => 'sabit'],
-        ['category' => 'Genel Bilgiler', 'sub_category' => 'Kapasite', 'name' => 'Toplam Oda Sayısı', 'unit' => 'Adet', 'standard' => 'HCMI', 'frequency' => 'sabit'],
-        ['category' => 'Genel Bilgiler', 'sub_category' => 'Kapasite', 'name' => 'Toplam Yatak Sayısı', 'unit' => 'Adet', 'standard' => 'HCMI', 'frequency' => 'sabit'],
-        ['category' => 'Genel Bilgiler', 'sub_category' => 'Kapasite', 'name' => 'Toplam Kapalı Alan', 'unit' => 'm²', 'standard' => 'ISO 50001', 'frequency' => 'sabit'],
-        ['category' => 'Genel Bilgiler', 'sub_category' => 'Kapasite', 'name' => 'Açık Alan', 'unit' => 'm²', 'standard' => 'ISO 14001', 'frequency' => 'sabit'],
-        ['category' => 'Enerji', 'sub_category' => 'Elektrik', 'name' => 'Toplam Elektrik Tüketimi', 'unit' => 'kWh', 'standard' => 'ISO 50001 / GHG', 'frequency' => 'aylık'],
-        ['category' => 'Enerji', 'sub_category' => 'Elektrik', 'name' => 'Yenilenebilir Enerji', 'unit' => 'kWh', 'standard' => 'ESG / ISO 50001', 'frequency' => 'aylık'],
-        ['category' => 'Enerji', 'sub_category' => 'Yakıt', 'name' => 'LPG, Motorin, Kömür, Jeneratör Yakıtı', 'unit' => 'L / kg', 'standard' => 'GHG Protocol', 'frequency' => 'aylık'],
-        ['category' => 'Su', 'sub_category' => 'Tüketim', 'name' => 'Şebeke / Kuyu / Toplam Su', 'unit' => 'm³', 'standard' => 'ISO 14001', 'frequency' => 'aylık'],
-        ['category' => 'Atık', 'sub_category' => 'Tüm Atıklar', 'name' => 'Evsel, geri dönüşüm, organik, tehlikeli atıklar', 'unit' => 'kg / L', 'standard' => 'ISO 14001 / GRI', 'frequency' => 'aylık'],
-        ['category' => 'Satın Alma', 'sub_category' => 'Gıda / Kimyasal / Tekstil', 'name' => 'Et, sebze-meyve, içecek, kimyasal, linen', 'unit' => 'kg / L', 'standard' => 'ESG / Scope 3', 'frequency' => 'aylık'],
-        ['category' => 'KPI', 'sub_category' => 'Karbon', 'name' => 'kgCO2e / Occupied Room, kgCO2e / m²', 'unit' => 'Oran', 'standard' => 'HCMI / GRI', 'frequency' => 'hesaplanan'],
+        ['category' => 'Genel Bilgiler', 'sub_category' => 'Otel Bilgisi', 'name' => 'Otel Adı', 'unit' => 'Metin', 'description' => 'Tesis adı', 'standard' => 'ISO 14001', 'frequency' => 'sabit'],
+        ['category' => 'Genel Bilgiler', 'sub_category' => 'Otel Bilgisi', 'name' => 'Lokasyon', 'unit' => 'Metin', 'description' => 'Şehir / Ülke', 'standard' => 'ISO 14001', 'frequency' => 'sabit'],
+        ['category' => 'Genel Bilgiler', 'sub_category' => 'Kapasite', 'name' => 'Toplam Oda Sayısı', 'unit' => 'Adet', 'description' => 'Toplam oda', 'standard' => 'HCMI', 'frequency' => 'sabit'],
+        ['category' => 'Genel Bilgiler', 'sub_category' => 'Kapasite', 'name' => 'Toplam Yatak Sayısı', 'unit' => 'Adet', 'description' => 'Yatak kapasitesi', 'standard' => 'HCMI', 'frequency' => 'sabit'],
+        ['category' => 'Genel Bilgiler', 'sub_category' => 'Kapasite', 'name' => 'Toplam Kapalı Alan', 'unit' => 'm²', 'description' => 'İç kullanım alanı', 'standard' => 'ISO 50001', 'frequency' => 'sabit'],
+        ['category' => 'Genel Bilgiler', 'sub_category' => 'Kapasite', 'name' => 'Açık Alan', 'unit' => 'm²', 'description' => 'Açık kullanım alanı', 'standard' => 'ISO 14001', 'frequency' => 'sabit'],
+        ['category' => 'Genel Bilgiler', 'sub_category' => 'Personel', 'name' => 'Toplam Personel Sayısı', 'unit' => 'Kişi', 'description' => 'Ortalama yıllık çalışan', 'standard' => 'ESRS', 'frequency' => 'aylık'],
+        ['category' => 'Genel Bilgiler', 'sub_category' => 'Operasyon', 'name' => 'Doluluk Oranı', 'unit' => '%', 'description' => 'Ortalama occupancy', 'standard' => 'HCMI', 'frequency' => 'aylık'],
+        ['category' => 'Genel Bilgiler', 'sub_category' => 'Operasyon', 'name' => 'Toplam Misafir Sayısı', 'unit' => 'Kişi', 'description' => 'Yıllık guest sayısı', 'standard' => 'HCMI', 'frequency' => 'aylık'],
+        ['category' => 'Genel Bilgiler', 'sub_category' => 'Operasyon', 'name' => 'Toplam Geceleme', 'unit' => 'Gece', 'description' => 'Occupied room night', 'standard' => 'HCMI', 'frequency' => 'aylık'],
+        ['category' => 'Enerji', 'sub_category' => 'Elektrik', 'name' => 'Toplam Elektrik Tüketimi', 'unit' => 'kWh', 'description' => 'Aylık toplam', 'standard' => 'ISO 50001', 'frequency' => 'aylık'],
+        ['category' => 'Enerji', 'sub_category' => 'Elektrik', 'name' => 'Yenilenebilir Enerji', 'unit' => 'kWh', 'description' => 'GES vb üretim', 'standard' => 'ESG', 'frequency' => 'aylık'],
+        ['category' => 'Enerji', 'sub_category' => 'Yakıt', 'name' => 'LPG Tüketimi', 'unit' => 'Litre', 'description' => 'LPG kullanımı', 'standard' => 'GHG', 'frequency' => 'aylık'],
+        ['category' => 'Enerji', 'sub_category' => 'Yakıt', 'name' => 'Motorin Tüketimi', 'unit' => 'Litre', 'description' => 'Diesel usage', 'standard' => 'GHG', 'frequency' => 'aylık'],
+        ['category' => 'Enerji', 'sub_category' => 'Yakıt', 'name' => 'Kömür Tüketimi', 'unit' => 'Kg', 'description' => 'Coal usage', 'standard' => 'GHG', 'frequency' => 'aylık'],
+        ['category' => 'Enerji', 'sub_category' => 'Yakıt', 'name' => 'Jeneratör Yakıtı', 'unit' => 'Litre', 'description' => 'Generator fuel', 'standard' => 'GHG', 'frequency' => 'aylık'],
+        ['category' => 'Su', 'sub_category' => 'Tüketim', 'name' => 'Toplam Su Tüketimi', 'unit' => 'm³', 'description' => 'Monthly water', 'standard' => 'ISO 14001', 'frequency' => 'aylık'],
+        ['category' => 'Su', 'sub_category' => 'Tüketim', 'name' => 'Şebeke Suyu', 'unit' => 'm³', 'description' => 'Municipal water', 'standard' => 'ISO 14001', 'frequency' => 'aylık'],
+        ['category' => 'Su', 'sub_category' => 'Tüketim', 'name' => 'Kuyu Suyu', 'unit' => 'm³', 'description' => 'Groundwater', 'standard' => 'ISO 14001', 'frequency' => 'aylık'],
+        ['category' => 'Atık', 'sub_category' => 'Evsel Atık', 'name' => 'Evsel Atık Miktarı', 'unit' => 'Kg', 'description' => 'Mixed waste', 'standard' => 'ISO 14001', 'frequency' => 'aylık'],
+        ['category' => 'Atık', 'sub_category' => 'Geri Dönüşüm', 'name' => 'Plastik Atık', 'unit' => 'Kg', 'description' => 'Plastic waste', 'standard' => 'ESG', 'frequency' => 'aylık'],
+        ['category' => 'Atık', 'sub_category' => 'Geri Dönüşüm', 'name' => 'Cam Atık', 'unit' => 'Kg', 'description' => 'Glass waste', 'standard' => 'ESG', 'frequency' => 'aylık'],
+        ['category' => 'Atık', 'sub_category' => 'Geri Dönüşüm', 'name' => 'Kağıt Atık', 'unit' => 'Kg', 'description' => 'Paper waste', 'standard' => 'ESG', 'frequency' => 'aylık'],
+        ['category' => 'Atık', 'sub_category' => 'Geri Dönüşüm', 'name' => 'Metal Atık', 'unit' => 'Kg', 'description' => 'Metal waste', 'standard' => 'ESG', 'frequency' => 'aylık'],
+        ['category' => 'Atık', 'sub_category' => 'Organik', 'name' => 'Organik Atık', 'unit' => 'Kg', 'description' => 'Food waste', 'standard' => 'ESG', 'frequency' => 'aylık'],
+        ['category' => 'Atık', 'sub_category' => 'Tehlikeli Atık', 'name' => 'Kimyasal Atık', 'unit' => 'Kg', 'description' => 'Hazardous waste', 'standard' => 'ISO 14001', 'frequency' => 'aylık'],
+        ['category' => 'Atık', 'sub_category' => 'Tehlikeli Atık', 'name' => 'Atık Yağ', 'unit' => 'Litre', 'description' => 'Waste oil', 'standard' => 'ISO 14001', 'frequency' => 'aylık'],
+        ['category' => 'Atık', 'sub_category' => 'Tehlikeli Atık', 'name' => 'Elektronik Atık', 'unit' => 'Kg', 'description' => 'E-waste', 'standard' => 'ISO 14001', 'frequency' => 'aylık'],
+        ['category' => 'Atık', 'sub_category' => 'Tehlikeli Atık', 'name' => 'Pil Atığı', 'unit' => 'Kg', 'description' => 'Battery waste', 'standard' => 'ISO 14001', 'frequency' => 'aylık'],
+        ['category' => 'Karbon', 'sub_category' => 'Scope 1', 'name' => 'Yakıt Kaynaklı Emisyon', 'unit' => 'tCO2e', 'description' => 'Direct emissions', 'standard' => 'GHG', 'frequency' => 'hesaplanan'],
+        ['category' => 'Karbon', 'sub_category' => 'Scope 1', 'name' => 'Soğutucu Gaz Emisyonu', 'unit' => 'tCO2e', 'description' => 'Refrigerant leakage', 'standard' => 'GHG', 'frequency' => 'hesaplanan / manuel'],
+        ['category' => 'Karbon', 'sub_category' => 'Scope 1', 'name' => 'Şirket Araçları Emisyonu', 'unit' => 'tCO2e', 'description' => 'Fleet emissions', 'standard' => 'GHG', 'frequency' => 'hesaplanan'],
+        ['category' => 'Karbon', 'sub_category' => 'Scope 2', 'name' => 'Elektrik Emisyonu', 'unit' => 'tCO2e', 'description' => 'Purchased electricity', 'standard' => 'GHG', 'frequency' => 'hesaplanan'],
+        ['category' => 'Karbon', 'sub_category' => 'Scope 3', 'name' => 'Satın Alma Emisyonu', 'unit' => 'tCO2e', 'description' => 'Procurement emissions', 'standard' => 'GHG', 'frequency' => 'hesaplanan / manuel'],
+        ['category' => 'Karbon', 'sub_category' => 'Scope 3', 'name' => 'Personel Ulaşımı', 'unit' => 'tCO2e', 'description' => 'Employee commute', 'standard' => 'GHG', 'frequency' => 'hesaplanan / manuel'],
+        ['category' => 'Karbon', 'sub_category' => 'Scope 3', 'name' => 'Misafir Ulaşımı', 'unit' => 'tCO2e', 'description' => 'Guest travel', 'standard' => 'HCMI', 'frequency' => 'hesaplanan / manuel'],
+        ['category' => 'Karbon', 'sub_category' => 'Scope 3', 'name' => 'Atık Emisyonu', 'unit' => 'tCO2e', 'description' => 'Waste disposal', 'standard' => 'GHG', 'frequency' => 'hesaplanan'],
+        ['category' => 'Karbon', 'sub_category' => 'Scope 3', 'name' => 'Su Emisyonu', 'unit' => 'tCO2e', 'description' => 'Water treatment', 'standard' => 'GHG', 'frequency' => 'hesaplanan'],
+        ['category' => 'Satın Alma', 'sub_category' => 'Gıda', 'name' => 'Et Ürünleri', 'unit' => 'Kg', 'description' => 'Meat procurement', 'standard' => 'ESG', 'frequency' => 'aylık'],
+        ['category' => 'Satın Alma', 'sub_category' => 'Gıda', 'name' => 'Sebze Meyve', 'unit' => 'Kg', 'description' => 'Produce procurement', 'standard' => 'ESG', 'frequency' => 'aylık'],
+        ['category' => 'Satın Alma', 'sub_category' => 'Gıda', 'name' => 'İçecek', 'unit' => 'Litre', 'description' => 'Beverage procurement', 'standard' => 'ESG', 'frequency' => 'aylık'],
+        ['category' => 'Satın Alma', 'sub_category' => 'Temizlik', 'name' => 'Kimyasal Kullanımı', 'unit' => 'Litre', 'description' => 'Cleaning chemicals', 'standard' => 'ISO 14001', 'frequency' => 'aylık'],
+        ['category' => 'Satın Alma', 'sub_category' => 'Tekstil', 'name' => 'Çamaşır / Linen', 'unit' => 'Kg', 'description' => 'Textile procurement', 'standard' => 'ESG', 'frequency' => 'aylık'],
+        ['category' => 'Personel', 'sub_category' => 'İnsan Kaynakları', 'name' => 'Kadın Çalışan Sayısı', 'unit' => 'Kişi', 'description' => 'Female employees', 'standard' => 'ESRS', 'frequency' => 'aylık'],
+        ['category' => 'Personel', 'sub_category' => 'İnsan Kaynakları', 'name' => 'Erkek Çalışan Sayısı', 'unit' => 'Kişi', 'description' => 'Male employees', 'standard' => 'ESRS', 'frequency' => 'aylık'],
+        ['category' => 'Misafir', 'sub_category' => 'Konaklama', 'name' => 'Ortalama Konaklama Süresi', 'unit' => 'Gün', 'description' => 'Average stay', 'standard' => 'HCMI', 'frequency' => 'aylık'],
+        ['category' => 'KPI', 'sub_category' => 'Enerji', 'name' => 'kWh / Occupied Room', 'unit' => 'Oran', 'description' => 'Energy KPI', 'standard' => 'HCMI', 'frequency' => 'hesaplanan'],
+        ['category' => 'KPI', 'sub_category' => 'Su', 'name' => 'Litre / Guest Night', 'unit' => 'Oran', 'description' => 'Water KPI', 'standard' => 'HCMI', 'frequency' => 'hesaplanan'],
+        ['category' => 'KPI', 'sub_category' => 'Atık', 'name' => 'Kg Atık / Guest', 'unit' => 'Oran', 'description' => 'Waste KPI', 'standard' => 'ESG', 'frequency' => 'hesaplanan'],
+        ['category' => 'KPI', 'sub_category' => 'Karbon', 'name' => 'KgCO2e / Occupied Room', 'unit' => 'Oran', 'description' => 'Carbon KPI', 'standard' => 'HCMI', 'frequency' => 'hesaplanan'],
+        ['category' => 'KPI', 'sub_category' => 'Karbon', 'name' => 'KgCO2e / m²', 'unit' => 'Oran', 'description' => 'Area carbon KPI', 'standard' => 'GHG', 'frequency' => 'hesaplanan'],
+        ['category' => 'KPI', 'sub_category' => 'Enerji', 'name' => 'Yenilenebilir Enerji Oranı', 'unit' => '%', 'description' => 'Renewable ratio', 'standard' => 'ESG', 'frequency' => 'hesaplanan'],
     ];
 
     const HCMI_RATINGS = [
@@ -428,5 +531,59 @@ class CarbonFootprintReport extends Model
                     : $entriesWithoutExplanation->count() . ' pozitif kalemde açıklama alanı boş. Denetim için fatura/sayaç/varsayım notu önerilir.',
             ],
         ];
+    }
+
+    private function metricEntries()
+    {
+        return $this->relationLoaded('entries') ? $this->entries : $this->entries()->get();
+    }
+
+    private function metricQuantity(array $categories): float
+    {
+        return (float) $this->metricEntries()->whereIn('category', $categories)->sum('quantity');
+    }
+
+    public function getElectricityKwhAttribute(): float
+    {
+        return $this->metricQuantity(['energy_electricity']);
+    }
+
+    public function getTotalWaterM3Attribute(): float
+    {
+        $totalWater = $this->metricQuantity(['water_total']);
+
+        return $totalWater > 0
+            ? $totalWater
+            : $this->metricQuantity(['water_municipal', 'water_well']);
+    }
+
+    public function getTotalWasteKgAttribute(): float
+    {
+        return $this->metricQuantity([
+            'waste_general', 'waste_plastic', 'waste_glass', 'waste_paper',
+            'waste_metal', 'waste_organic', 'waste_hazardous',
+            'waste_electronic', 'waste_battery',
+        ]);
+    }
+
+    public function getEnergyKwhPerOccupiedRoomAttribute(): float
+    {
+        return $this->occupied_rooms > 0
+            ? round($this->electricity_kwh / $this->occupied_rooms, 4)
+            : 0;
+    }
+
+    public function getWaterLitrePerGuestNightAttribute(): float
+    {
+        return $this->occupied_rooms > 0
+            ? round(($this->total_water_m3 * 1000) / $this->occupied_rooms, 4)
+            : 0;
+    }
+
+    public function getWasteKgPerGuestAttribute(): float
+    {
+        return $this->total_guests > 0
+            ? round($this->total_waste_kg / $this->total_guests, 4)
+            : 0;
     }
 }

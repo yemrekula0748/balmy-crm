@@ -376,7 +376,6 @@ body { font-family: DejaVu Sans, Arial, sans-serif; font-size:9pt; color:#2c3e50
         <tr><td class="intensity-label">Doluluk Oranı</td><td class="intensity-value">%{{ number_format($carbon->occupancy_rate, 1) }}</td></tr>
         <tr><td class="intensity-label">Ortalama Konaklama Süresi</td><td class="intensity-value">{{ number_format($carbon->average_stay_days, 2) }} gün</td></tr>
         <tr><td class="intensity-label">Su Yoğunluğu</td><td class="intensity-value">{{ number_format($carbon->water_intensity, 3) }} m³/oda-gece</td></tr>
-        <tr><td class="intensity-label">Atık Geri Dönüşüm Oranı</td><td class="intensity-value">%{{ number_format($carbon->waste_recycling_rate, 1) }}</td></tr>
     </table>
 
 </div>
@@ -539,16 +538,24 @@ body { font-family: DejaVu Sans, Arial, sans-serif; font-size:9pt; color:#2c3e50
                     <td class="intensity-value">{{ number_format($carbon->co2_per_staff, 3) }}</td>
                 </tr>
                 <tr>
+                    <td class="intensity-label">kWh / Occupied Room</td>
+                    <td class="intensity-value">{{ number_format($carbon->energy_kwh_per_occupied_room, 3) }}</td>
+                </tr>
+                <tr>
+                    <td class="intensity-label">Litre / Guest Night</td>
+                    <td class="intensity-value">{{ number_format($carbon->water_litre_per_guest_night, 2) }}</td>
+                </tr>
+                <tr>
+                    <td class="intensity-label">Kg Atık / Guest</td>
+                    <td class="intensity-value">{{ number_format($carbon->waste_kg_per_guest, 3) }}</td>
+                </tr>
+                <tr>
                     <td class="intensity-label">Su Yoğunluğu (m³/oda-gece)</td>
                     <td class="intensity-value">{{ number_format($carbon->water_intensity, 3) }}</td>
                 </tr>
                 <tr>
                     <td class="intensity-label">Yenilenebilir Enerji Oranı</td>
                     <td class="intensity-value" style="color:#1a6b3c; font-weight:bold;">%{{ number_format($carbon->renewable_energy_pct, 1) }}</td>
-                </tr>
-                <tr>
-                    <td class="intensity-label">Atık Geri Dönüşüm Oranı</td>
-                    <td class="intensity-value">%{{ number_format($carbon->waste_recycling_rate, 1) }}</td>
                 </tr>
             </table>
 

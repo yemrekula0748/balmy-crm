@@ -435,7 +435,7 @@ class CarbonFootprintController extends BaseModuleController
                 'scope'              => $entry['scope'],
                 'category'           => $entry['category'],
                 'sub_category'       => $entry['sub_category'] ?? ($definition['sub_category'] ?? null),
-                'source_description' => $entry['source_description'] ?? null,
+                'source_description' => $entry['source_description'] ?? ($definition['category_group'] ?? null),
                 'quantity'           => $entry['quantity'],
                 'unit'               => $entry['unit'],
                 'emission_factor'    => $entry['emission_factor'],
@@ -475,29 +475,30 @@ class CarbonFootprintController extends BaseModuleController
         $averageStayDays = $report->total_guests > 0 ? round($report->occupied_rooms / $report->total_guests, 2) : (float) $report->average_stay_days;
 
         // Su yoğunluğu m³/oda-gece
-        $waterEntries = $entries->whereIn('category', ['water_municipal', 'water_wastewater']);
-        $totalWaterM3 = 0;
-        foreach ($waterEntries as $we) {
-            if ($we->unit === 'm³' || $we->unit === 'm3') {
-                $totalWaterM3 += $we->quantity;
+        $totalWaterEntry = $entries->firstWhere('category', 'water_total');
+        $totalWaterM3 = (float) ($totalWaterEntry?->quantity ?? 0);
+        if ($totalWaterM3 <= 0) {
+            $waterEntries = $entries->whereIn('category', ['water_municipal', 'water_well']);
+            foreach ($waterEntries as $we) {
+                if (in_array($we->unit, ['m³', 'm3'], true)) {
+                    $totalWaterM3 += $we->quantity;
+                }
             }
         }
         $waterIntensity = $report->occupied_rooms > 0 ? round($totalWaterM3 / $report->occupied_rooms, 4) : 0;
-        $electricityKwh = (float) $entries
-            ->whereIn('category', ['energy_electricity', 'energy_electricity_distribution'])
-            ->sum('quantity');
+        $electricityKwh = (float) $entries->whereIn('category', ['energy_electricity'])->sum('quantity');
         $renewableKwh = (float) $entries
-            ->whereIn('category', ['energy_electricity_re', 'energy_electricity_irec', 'energy_onsite_solar', 'energy_renewable'])
+            ->whereIn('category', ['energy_renewable'])
             ->sum('quantity');
         $renewablePct = ($electricityKwh + $renewableKwh) > 0
             ? round(($renewableKwh / ($electricityKwh + $renewableKwh)) * 100, 2)
             : (float) $report->renewable_energy_pct;
         $recycledWasteKg = (float) $entries
-            ->whereIn('category', ['waste_recycled', 'waste_plastic', 'waste_glass', 'waste_paper', 'waste_metal'])
+            ->whereIn('category', ['waste_plastic', 'waste_glass', 'waste_paper', 'waste_metal'])
             ->sum('quantity');
         $totalWasteKg = (float) $entries
             ->whereIn('category', [
-                'waste_general', 'waste_food', 'waste_organic', 'waste_recycled',
+                'waste_general', 'waste_organic',
                 'waste_plastic', 'waste_glass', 'waste_paper', 'waste_metal',
                 'waste_hazardous', 'waste_electronic', 'waste_battery',
             ])
