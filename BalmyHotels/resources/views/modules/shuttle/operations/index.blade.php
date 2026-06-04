@@ -489,7 +489,7 @@
                                         'selectableBranchIds' => [],
                                         'showInclude' => false,
                                         'title' => 'Kendi Otel Hareketin',
-                                        'description' => 'Yeni hareket eklerken sadece secili otelin gunduz ve aksam geldi / indi / cikti / bindi satirlari gorunur. Diger otel kendi ekranindan isler.',
+                                        'description' => 'İlk/İkinci Uğrama aynı servis kaydı içindeki otel giriş-çıkış hareketidir; ayrı sefer sayılmaz. Yeni hareket eklerken sadece seçili otelin geldi / indi / çıktı / bindi satırları görünür.',
                                         'theme' => 'info',
                                     ])
                                 </div>
@@ -532,11 +532,11 @@
                         <div class="rounded-3 p-3 mb-3" style="background:#fbf8f5;border:1px solid #eadcc9">
                             <div class="small text-uppercase fw-semibold text-muted mb-1">Islem Yapilan Otel</div>
                             <div class="fw-semibold text-dark" id="branchProcessBranchName">-</div>
-                            <div class="small text-muted mt-1">Yalnizca secilen donem icin bu otelin geldi / indi / cikti / bindi bilgisi kaydedilir.</div>
+                            <div class="small text-muted mt-1">İlk/İkinci Uğrama aynı servis kaydı içindeki otel giriş-çıkış hareketidir; ayrı sefer sayılmaz. Yalnızca seçilen uğrama için bu otelin geldi / indi / çıktı / bindi bilgisi kaydedilir.</div>
                         </div>
                         <div class="row g-3">
                             <div class="col-12">
-                                <label class="form-label fw-semibold small">Hareket Donemi <span class="text-danger">*</span></label>
+                                <label class="form-label fw-semibold small">Uğrama <span class="text-danger">*</span></label>
                                 <select name="movement_period" id="branchProcessMovementPeriod" class="form-select" required>
                                     @foreach($movementPeriods as $periodKey => $periodLabel)
                                         <option value="{{ $periodKey }}">{{ $periodLabel }}</option>

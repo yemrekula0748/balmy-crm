@@ -4,7 +4,7 @@
     $selectableBranchIds = collect($selectableBranchIds ?? [])->map(fn ($id) => (int) $id)->all();
     $showInclude = $showInclude ?? true;
     $title = $title ?? 'Otel Bazli Hareket';
-    $description = $description ?? 'Tum otelleri gorebilirsin; sadece kendi otel satirini duzenleyebilirsin.';
+    $description = $description ?? 'İlk/İkinci Uğrama aynı servis kaydı içindeki otel giriş-çıkış hareketidir; ayrı sefer sayılmaz. Sadece kendi otel satırını düzenleyebilirsin.';
     $theme = $theme ?? 'neutral';
     $compact = $compact ?? false;
     $periods = \App\Models\ShuttleTripBranchMovement::PERIODS;
@@ -39,7 +39,7 @@
                         {{ $periodLabel }}
                     </div>
                     <span class="badge" style="background:{{ $themeStyles['bg'] }};color:{{ $themeStyles['text'] }};border:1px solid {{ $themeStyles['border'] }}">
-                        Ayni sefer altinda ayri kayit
+                        Aynı servis kaydı içinde
                     </span>
                 </div>
 

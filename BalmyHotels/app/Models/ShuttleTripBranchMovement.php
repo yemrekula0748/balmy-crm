@@ -10,8 +10,8 @@ class ShuttleTripBranchMovement extends Model
     public const DEFAULT_PERIOD = 'day';
 
     public const PERIODS = [
-        'day' => 'Gunduz Hareketi',
-        'evening' => 'Aksam Hareketi',
+        'day' => 'İlk Uğrama',
+        'evening' => 'İkinci Uğrama',
     ];
 
     public const TYPES = [

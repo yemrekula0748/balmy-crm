@@ -259,7 +259,7 @@
                                         'editableBranchIds' => $visibleBranchIds,
                                         'selectableBranchIds' => $allBranches->pluck('id')->all(),
                                         'title' => 'Otel Bazli Geldi / Indi / Cikti / Bindi',
-                                        'description' => 'Ayni plaka icin her otel gunduz ve aksam geldi-cikti saatini ve kisi sayisini kendi satirinda tutar. Diger satirlar yalnizca gorunur.',
+                                        'description' => 'İlk/İkinci Uğrama aynı servis kaydı içindeki otel giriş-çıkış hareketidir; ayrı sefer sayılmaz. Her otel geldi-çıktı saatini ve kişi sayısını kendi satırında tutar.',
                                         'theme' => 'info',
                                     ])
                                 </div>
@@ -318,8 +318,8 @@
                                         'editableBranchIds' => [$contextBranchId],
                                         'selectableBranchIds' => [],
                                         'showInclude' => false,
-                                        'title' => 'Gunduz / Aksam Otel Hareketleri',
-                                        'description' => 'Bu ekranda yalnizca kendi otelinin gunduz ve aksam satirlarini guncelleyebilirsin. Diger oteller read-only gorunur.',
+                                        'title' => 'İlk / İkinci Uğrama Otel Hareketleri',
+                                        'description' => 'İlk/İkinci Uğrama aynı servis kaydı içindeki otel giriş-çıkış hareketidir; ayrı sefer sayılmaz. Bu ekranda yalnızca kendi otelinin satırlarını güncelleyebilirsin.',
                                         'theme' => 'neutral',
                                     ])
                                 </div>
