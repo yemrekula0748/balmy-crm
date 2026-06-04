@@ -80,6 +80,14 @@
                             @endforeach
                         </select>
                     </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Otel Adı</label>
+                        <input type="text" name="hotel_name" class="form-control" value="{{ old('hotel_name', $carbon->hotel_name) }}">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Lokasyon</label>
+                        <input type="text" name="location" class="form-control" value="{{ old('location', $carbon->location) }}">
+                    </div>
                     <div class="col-md-4">
                         <label class="form-label fw-semibold">Rapor Tipi</label>
                         <select name="report_type" class="form-select">
@@ -97,6 +105,7 @@
                         <input type="date" name="period_end" class="form-control" value="{{ old('period_end', $carbon->period_end->format('Y-m-d')) }}" required>
                     </div>
                 </div>
+                <input type="hidden" name="factor_dataset_version" value="{{ old('factor_dataset_version', $factorDatasetVersion ?? $carbon->factor_dataset_version) }}">
             </div>
         </div>
 
@@ -120,12 +129,36 @@
                         <input type="number" name="total_rooms" class="form-control" value="{{ old('total_rooms', $carbon->total_rooms) }}" min="0">
                     </div>
                     <div class="col-md-2">
+                        <label class="form-label fw-semibold">Toplam Yatak</label>
+                        <input type="number" name="total_beds" class="form-control" value="{{ old('total_beds', $carbon->total_beds) }}" min="0">
+                    </div>
+                    <div class="col-md-2">
                         <label class="form-label fw-semibold">Personel</label>
                         <input type="number" name="staff_count" class="form-control" value="{{ old('staff_count', $carbon->staff_count) }}" min="0">
                     </div>
                     <div class="col-md-2">
+                        <label class="form-label fw-semibold">Kadın Personel</label>
+                        <input type="number" name="female_staff_count" class="form-control" value="{{ old('female_staff_count', $carbon->female_staff_count) }}" min="0">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label fw-semibold">Erkek Personel</label>
+                        <input type="number" name="male_staff_count" class="form-control" value="{{ old('male_staff_count', $carbon->male_staff_count) }}" min="0">
+                    </div>
+                    <div class="col-md-2">
                         <label class="form-label fw-semibold">Alan (m²)</label>
                         <input type="number" name="total_area_sqm" class="form-control" value="{{ old('total_area_sqm', $carbon->total_area_sqm) }}" min="0" step="0.01">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label fw-semibold">Açık Alan (m²)</label>
+                        <input type="number" name="open_area_sqm" class="form-control" value="{{ old('open_area_sqm', $carbon->open_area_sqm) }}" min="0" step="0.01">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label fw-semibold">Doluluk (%)</label>
+                        <input type="number" name="occupancy_rate" class="form-control" value="{{ old('occupancy_rate', $carbon->occupancy_rate) }}" min="0" max="100" step="0.1">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label fw-semibold">Ort. Konaklama</label>
+                        <input type="number" name="average_stay_days" class="form-control" value="{{ old('average_stay_days', $carbon->average_stay_days) }}" min="0" step="0.01">
                     </div>
                     <div class="col-md-4">
                         <label class="form-label fw-semibold">Yenilenebilir Enerji (%)</label>
@@ -175,8 +208,9 @@
                                     <div class="fw-bold text-danger co2-result small">{{ number_format(($existing?->co2_kg ?? 0), 3) }} kg</div>
                                 </div>
                                 <div class="col-md-3">
-                                    <label class="form-label small mb-1">Notlar</label>
+                                    <label class="form-label small mb-1">Açıklama</label>
                                     <input type="text" name="entries[{{ 's1_'.$loop->index }}][notes]" class="form-control form-control-sm"
+                                           placeholder="Fatura, sayaç, kantar fişi veya varsayım notu"
                                            value="{{ old('entries.s1_'.$loop->index.'.notes', $existing?->notes) }}">
                                 </div>
                             </div>
@@ -216,8 +250,10 @@
                                     <div class="fw-bold text-warning co2-result small">{{ number_format(($existing?->co2_kg ?? 0), 3) }} kg</div>
                                 </div>
                                 <div class="col-md-3">
+                                    <label class="form-label small mb-1">Açıklama</label>
                                     <input type="text" name="entries[{{ 's2_'.$loop->index }}][notes]" class="form-control form-control-sm"
-                                           value="{{ old('', $existing?->notes) }}">
+                                           placeholder="Fatura, sayaç veya sertifika bilgisi"
+                                           value="{{ old('entries.s2_'.$loop->index.'.notes', $existing?->notes) }}">
                                 </div>
                             </div>
                         </div>
@@ -253,8 +289,10 @@
                                     <div class="fw-bold text-success co2-result small">{{ number_format(($existing?->co2_kg ?? 0), 3) }} kg</div>
                                 </div>
                                 <div class="col-md-3">
+                                    <label class="form-label small mb-1">Açıklama</label>
                                     <input type="text" name="entries[{{ 's3_'.$loop->index }}][notes]" class="form-control form-control-sm"
-                                           value="{{ $existing?->notes }}">
+                                           placeholder="Belge, tedarikçi, varsayım veya sorumlu departman"
+                                           value="{{ old('entries.s3_'.$loop->index.'.notes', $existing?->notes) }}">
                                 </div>
                             </div>
                         </div>
@@ -307,6 +345,18 @@
                         <textarea name="methodology_notes" class="form-control" rows="4"
                                   placeholder="Örnek notlar:&#10;- Doğalgaz sayıcı okuması alınamadı, fatura verisi kullanıldı&#10;- Servis aracı km kaydı tutulmadığından tahmini güzergâh mesafesi kullanıldı">{{ old('methodology_notes', $carbon->methodology_notes) }}</textarea>
                         <div class="form-text">Veri eksikliği, tahmin yöntemi veya birşey kesin bilinmiyorsa burada açıklayın. Denetim sırasında bu notlar röportaj sorularını yanıtlar.</div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Denetim / Doğrulama Kontrol Notları</label>
+                        <textarea name="verification_notes" class="form-control" rows="4"
+                                  placeholder="Fatura, sayaç, kantar fişi, sertifika ve kontrol notları...">{{ old('verification_notes', $carbon->verification_notes) }}</textarea>
+                        <div class="form-text">Sağlama, doğrulama ve kontrol adımlarını burada tutun.</div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">ISO 14001 Takip Notları</label>
+                        <textarea name="iso_14001_notes" class="form-control" rows="4"
+                                  placeholder="Çevresel boyut, yasal uygunluk ve aksiyon takip notları...">{{ old('iso_14001_notes', $carbon->iso_14001_notes) }}</textarea>
+                        <div class="form-text">ISO 14001 çevre yönetim sistemi kapsamında takip edilebilir.</div>
                     </div>
                     <div class="col-md-6">
                         <label class="form-label fw-semibold">İyileştirme Önerileri & Hedefler</label>

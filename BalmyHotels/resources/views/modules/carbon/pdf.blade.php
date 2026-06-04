@@ -368,10 +368,13 @@ body { font-family: DejaVu Sans, Arial, sans-serif; font-size:9pt; color:#2c3e50
         <tr><td class="intensity-label">Raporlama Dönemi</td><td class="intensity-value">{{ $carbon->period_start->format('d.m.Y') }} — {{ $carbon->period_end->format('d.m.Y') }}</td></tr>
         <tr><td class="intensity-label">Toplam Misafir</td><td class="intensity-value">{{ number_format($carbon->total_guests) }} kişi</td></tr>
         <tr><td class="intensity-label">Oda-Gece (Sold)</td><td class="intensity-value">{{ number_format($carbon->occupied_rooms) }}</td></tr>
+        <tr><td class="intensity-label">Otel / Lokasyon</td><td class="intensity-value">{{ $carbon->hotel_name ?: ($carbon->branch?->name ?? '—') }} / {{ $carbon->location ?: '—' }}</td></tr>
         <tr><td class="intensity-label">Toplam Oda Kapasitesi</td><td class="intensity-value">{{ number_format($carbon->total_rooms) }}</td></tr>
-        <tr><td class="intensity-label">Personel</td><td class="intensity-value">{{ number_format($carbon->staff_count) }} kişi</td></tr>
-        <tr><td class="intensity-label">Toplam Alan</td><td class="intensity-value">{{ number_format($carbon->total_area_sqm, 0) }} m²</td></tr>
-        <tr><td class="intensity-label">Doluluk Oranı</td><td class="intensity-value">{{ $carbon->total_rooms > 0 ? number_format($carbon->occupied_rooms / ($carbon->total_rooms * 30) * 100, 1) : '—' }}%</td></tr>
+        <tr><td class="intensity-label">Toplam Yatak Sayısı</td><td class="intensity-value">{{ number_format($carbon->total_beds) }}</td></tr>
+        <tr><td class="intensity-label">Personel</td><td class="intensity-value">{{ number_format($carbon->staff_count) }} kişi (K: {{ number_format($carbon->female_staff_count) }} / E: {{ number_format($carbon->male_staff_count) }})</td></tr>
+        <tr><td class="intensity-label">Toplam Kapalı / Açık Alan</td><td class="intensity-value">{{ number_format($carbon->total_area_sqm, 0) }} m² / {{ number_format($carbon->open_area_sqm, 0) }} m²</td></tr>
+        <tr><td class="intensity-label">Doluluk Oranı</td><td class="intensity-value">%{{ number_format($carbon->occupancy_rate, 1) }}</td></tr>
+        <tr><td class="intensity-label">Ortalama Konaklama Süresi</td><td class="intensity-value">{{ number_format($carbon->average_stay_days, 2) }} gün</td></tr>
         <tr><td class="intensity-label">Su Yoğunluğu</td><td class="intensity-value">{{ number_format($carbon->water_intensity, 3) }} m³/oda-gece</td></tr>
         <tr><td class="intensity-label">Atık Geri Dönüşüm Oranı</td><td class="intensity-value">%{{ number_format($carbon->waste_recycling_rate, 1) }}</td></tr>
     </table>
@@ -386,11 +389,12 @@ body { font-family: DejaVu Sans, Arial, sans-serif; font-size:9pt; color:#2c3e50
     <div class="section-title">2. Detaylı Emisyon Dökümü</div>
 
     <div class="info-box" style="margin-bottom:10px;">
-        <strong>Metodoloji:</strong> Emisyon faktörleri IPCC AR6 (2023), DEFRA UK GHGCF (2023), IEA ve Ecoinvent 3.9 kaynaklarından alınmıştır.
-        Türkiye elektrik emisyon faktörü için IEA Turkey 2023 grid factor (0.649 kgCO₂e/kWh) kullanılmıştır.
-        GWP değerleri IPCC AR6 100-yıl perspektifine göre belirlenmiştir.
+        <strong>Metodoloji:</strong> CO₂e (kg) = faaliyet verisi × emisyon faktörü.
+        Elektrikte ETKB/EVÇED Türkiye tüketim noktası faktörleri, diğer uygun kalemlerde UK Government GHG Conversion Factors 2025, GHG Protocol ve HCMI referansları esas alınmıştır.
+        Faktör seti: {{ $carbon->factor_dataset_version ?: \App\Models\CarbonFootprintReport::DEFAULT_FACTOR_DATASET_VERSION }}.
     </div>
 
+    @php $allCats2 = \App\Models\CarbonFootprintReport::CATEGORIES; @endphp
     <table class="data-table">
         <thead>
             <tr>
@@ -401,19 +405,19 @@ body { font-family: DejaVu Sans, Arial, sans-serif; font-size:9pt; color:#2c3e50
                 <th class="right">EF (kgCO₂e/birim)</th>
                 <th class="right">CO₂e (kg)</th>
                 <th class="right">CO₂e (tCO₂e)</th>
-                <th>EF Kaynağı</th>
+                <th>Kaynak / Standart</th>
+                <th>Açıklama</th>
             </tr>
         </thead>
         <tbody>
             {{-- SCOPE 1 --}}
             @if($scope1Entries->count())
             <tr class="group-row scope1">
-                <td colspan="8">SCOPE 1 — DOĞRUDAN EMİSYONLAR (Yakıt Yanması, Soğutucu Gaz Kaçakları)</td>
+                <td colspan="9">SCOPE 1 — DOĞRUDAN EMİSYONLAR (Yakıt Yanması, Soğutucu Gaz Kaçakları)</td>
             </tr>
             @foreach($scope1Entries as $e)
             @if($e->quantity > 0)
             @php
-                $allCats2 = \App\Models\CarbonFootprintReport::CATEGORIES;
                 $catLabelPdf = $allCats2['scope1'][$e->category]['label'] ?? $e->category;
             @endphp
             <tr>
@@ -424,7 +428,8 @@ body { font-family: DejaVu Sans, Arial, sans-serif; font-size:9pt; color:#2c3e50
                 <td class="right">{{ number_format($e->emission_factor, 4) }}</td>
                 <td class="right" style="font-weight:bold;color:#c0392b;">{{ number_format($e->co2_kg, 3) }}</td>
                 <td class="right">{{ number_format($e->co2_kg/1000, 5) }}</td>
-                <td style="font-size:7pt;color:#888;">{{ $e->ef_source }}</td>
+                <td style="font-size:7pt;color:#888;">{{ $e->ef_source }}@if($e->standard_code)<br>{{ $e->standard_code }}@endif</td>
+                <td style="font-size:7pt;color:#888;">{{ $e->notes ?: '-' }}</td>
             </tr>
             @endif
             @endforeach
@@ -432,14 +437,14 @@ body { font-family: DejaVu Sans, Arial, sans-serif; font-size:9pt; color:#2c3e50
                 <td colspan="5" style="text-align:right;font-style:italic;">Scope 1 Alt Toplam:</td>
                 <td class="right" style="color:#c0392b;">{{ number_format($scope1Total, 3) }} kg</td>
                 <td class="right" style="color:#c0392b;">{{ number_format($scope1Total/1000, 4) }} t</td>
-                <td></td>
+                <td></td><td></td>
             </tr>
             @endif
 
             {{-- SCOPE 2 --}}
             @if($scope2Entries->count())
             <tr class="group-row scope2">
-                <td colspan="8">SCOPE 2 — DOLAYLI ENERJİ EMİSYONLARI (Satın Alınan Elektrik, Isı, Soğutma)</td>
+                <td colspan="9">SCOPE 2 — DOLAYLI ENERJİ EMİSYONLARI (Satın Alınan Elektrik, Isı, Soğutma)</td>
             </tr>
             @foreach($scope2Entries as $e)
             @if($e->quantity > 0)
@@ -452,7 +457,8 @@ body { font-family: DejaVu Sans, Arial, sans-serif; font-size:9pt; color:#2c3e50
                 <td class="right">{{ number_format($e->emission_factor, 4) }}</td>
                 <td class="right" style="font-weight:bold;color:#b7770d;">{{ number_format($e->co2_kg, 3) }}</td>
                 <td class="right">{{ number_format($e->co2_kg/1000, 5) }}</td>
-                <td style="font-size:7pt;color:#888;">{{ $e->ef_source }}</td>
+                <td style="font-size:7pt;color:#888;">{{ $e->ef_source }}@if($e->standard_code)<br>{{ $e->standard_code }}@endif</td>
+                <td style="font-size:7pt;color:#888;">{{ $e->notes ?: '-' }}</td>
             </tr>
             @endif
             @endforeach
@@ -460,14 +466,14 @@ body { font-family: DejaVu Sans, Arial, sans-serif; font-size:9pt; color:#2c3e50
                 <td colspan="5" style="text-align:right;font-style:italic;">Scope 2 Alt Toplam:</td>
                 <td class="right" style="color:#b7770d;">{{ number_format($scope2Total, 3) }} kg</td>
                 <td class="right" style="color:#b7770d;">{{ number_format($scope2Total/1000, 4) }} t</td>
-                <td></td>
+                <td></td><td></td>
             </tr>
             @endif
 
             {{-- SCOPE 3 --}}
             @if($scope3Entries->count())
             <tr class="group-row scope3">
-                <td colspan="8">SCOPE 3 — DİĞER DOLAYLI EMİSYONLAR (Su, Atık, Gıda, Ulaşım, Tedarik Zinciri)</td>
+                <td colspan="9">SCOPE 3 — DİĞER DOLAYLI EMİSYONLAR (Su, Atık, Gıda, Ulaşım, Tedarik Zinciri)</td>
             </tr>
             @foreach($scope3Entries as $e)
             @if($e->quantity > 0)
@@ -480,7 +486,8 @@ body { font-family: DejaVu Sans, Arial, sans-serif; font-size:9pt; color:#2c3e50
                 <td class="right">{{ number_format($e->emission_factor, 4) }}</td>
                 <td class="right" style="font-weight:bold;color:#1a6b3c;">{{ number_format($e->co2_kg, 3) }}</td>
                 <td class="right">{{ number_format($e->co2_kg/1000, 5) }}</td>
-                <td style="font-size:7pt;color:#888;">{{ $e->ef_source }}</td>
+                <td style="font-size:7pt;color:#888;">{{ $e->ef_source }}@if($e->standard_code)<br>{{ $e->standard_code }}@endif</td>
+                <td style="font-size:7pt;color:#888;">{{ $e->notes ?: '-' }}</td>
             </tr>
             @endif
             @endforeach
@@ -488,7 +495,7 @@ body { font-family: DejaVu Sans, Arial, sans-serif; font-size:9pt; color:#2c3e50
                 <td colspan="5" style="text-align:right;font-style:italic;">Scope 3 Alt Toplam:</td>
                 <td class="right" style="color:#1a6b3c;">{{ number_format($scope3Total, 3) }} kg</td>
                 <td class="right" style="color:#1a6b3c;">{{ number_format($scope3Total/1000, 4) }} t</td>
-                <td></td>
+                <td></td><td></td>
             </tr>
             @endif
 
@@ -497,7 +504,7 @@ body { font-family: DejaVu Sans, Arial, sans-serif; font-size:9pt; color:#2c3e50
                 <td colspan="5" style="text-align:right;">GENEL TOPLAM CO₂e:</td>
                 <td class="right">{{ number_format($carbon->total_co2_total, 3) }} kg</td>
                 <td class="right">{{ number_format($carbon->total_co2_total/1000, 4) }} t</td>
-                <td></td>
+                <td></td><td></td>
             </tr>
         </tbody>
     </table>
@@ -567,7 +574,7 @@ body { font-family: DejaVu Sans, Arial, sans-serif; font-size:9pt; color:#2c3e50
                     </tr>
                     <tr>
                         <td class="intensity-label">Metodoloji</td>
-                        <td class="intensity-value" style="font-size:7.5pt;color:#888;">HCMI v2 (2023)</td>
+                        <td class="intensity-value" style="font-size:7.5pt;color:#888;">HCMI v2.0</td>
                     </tr>
                 </table>
             </div>
@@ -601,7 +608,7 @@ body { font-family: DejaVu Sans, Arial, sans-serif; font-size:9pt; color:#2c3e50
         <div class="note-text">
             Bu rapor GHG Protocol Corporate Standard çerçevesinde operasyonel kontrol yaklaşımı esas alınarak hazırlanmıştır.
             Kapsam 1 emisyonları {{ $carbon->branch?->name ?? 'tesis' }} sınırları içindeki doğrudan yakıt tüketimini ve soğutucu gaz kaçaklarını kapsamaktadır.
-            Kapsam 2 emisyonları piyasa bazlı yöntemle (market-based method) hesaplanmıştır.
+            Kapsam 2 emisyonları şebeke elektriği için location-based yöntemle; I-REC/YEK-G/GoO veya tesis içi GES kanıtı varsa market-based yöntemle hesaplanmıştır.
             Kapsam 3 ilgili kategoriler (ISO 14064, HCMI v2 kapsamındaki) dahil edilmiştir.
         </div>
     </div>
@@ -609,12 +616,10 @@ body { font-family: DejaVu Sans, Arial, sans-serif; font-size:9pt; color:#2c3e50
     <div class="note-box" style="margin-bottom:10px;">
         <div class="note-title">⚗️ Emisyon Faktörü Kaynakları</div>
         <div class="note-text">
-            • <strong>IPCC AR6 (2023):</strong> Yakıt yanma emisyon faktörleri ve GWP değerleri<br>
-            • <strong>DEFRA UK GHGCF (2023):</strong> Ulaşım, atık, su, tedarik kategorileri<br>
-            • <strong>IEA Turkey Grid (2023):</strong> Türkiye elektrik şebekesi emisyon faktörü (0.649 kgCO₂e/kWh)<br>
-            • <strong>ICAO Carbon Calculator (2023):</strong> Uçak yolculukları<br>
-            • <strong>Ecoinvent 3.9:</strong> Tedarik zinciri ve malzeme kategorileri<br>
-            • <strong>FAO/IPCC (2023):</strong> Gıda kategorileri için emisyon faktörleri
+            @foreach($sourceReferences as $source)
+                • <strong>{{ $source['title'] }}:</strong> {{ $source['summary'] }}<br>
+                <span style="font-size:7pt;color:#777;">{{ $source['url'] }}</span><br>
+            @endforeach
         </div>
     </div>
 
@@ -624,6 +629,29 @@ body { font-family: DejaVu Sans, Arial, sans-serif; font-size:9pt; color:#2c3e50
         <div class="note-text">{{ $carbon->methodology_notes }}</div>
     </div>
     @endif
+
+    @if($carbon->verification_notes)
+    <div class="note-box" style="margin-bottom:10px;">
+        <div class="note-title">🔎 Doğrulama / Kontrol Notları</div>
+        <div class="note-text">{{ $carbon->verification_notes }}</div>
+    </div>
+    @endif
+
+    @if($carbon->iso_14001_notes)
+    <div class="note-box" style="margin-bottom:10px;">
+        <div class="note-title">🌱 ISO 14001 Takip Notları</div>
+        <div class="note-text">{{ $carbon->iso_14001_notes }}</div>
+    </div>
+    @endif
+
+    <div class="note-box" style="margin-bottom:10px;">
+        <div class="note-title">✅ Sağlama / Doğrulama Kontrol Sonuçları</div>
+        <div class="note-text">
+            @foreach($auditChecks as $check)
+                • <strong>{{ $check['label'] }}:</strong> {{ $check['ok'] ? 'Uygun' : 'Kontrol gerekli' }} — {{ $check['detail'] }}<br>
+            @endforeach
+        </div>
+    </div>
 
     @if($carbon->improvement_notes)
     <div class="note-box" style="border-color:#27ae60;background:#f0fff4;">
@@ -640,10 +668,12 @@ body { font-family: DejaVu Sans, Arial, sans-serif; font-size:9pt; color:#2c3e50
             Bu rapor aşağıdaki standart ve düzenlemeler kapsamında hazırlanmıştır:<br><br>
             • <strong>AB CSRD (Corporate Sustainability Reporting Directive):</strong> 2014/95/EU ve revize 2022/2464 direktifi kapsamında sürdürülebilirlik açıklamaları<br>
             • <strong>ISO 14064-1:2018:</strong> Kuruluş düzeyinde sera gazı envanterinin nicelleştirilmesi ve raporlanması<br>
-            • <strong>ISO 14001:2015:</strong> Çevre yönetim sistemi çerçevesi<br>
+            • <strong>ISO 14001:2026:</strong> Çevre yönetim sistemi çerçevesi ve çevresel performans takibi<br>
             • <strong>GHG Protocol Corporate Standard:</strong> Scope 1, 2 ve 3 sınıflandırması<br>
             • <strong>HCMI v2:</strong> Otel sektörüne özel karbon ölçüm metodolojisi<br>
-            • <strong>EU Taxonomy:</strong> Çevresel sürdürülebilirlik kriterleri (İklim Değişikliğinin Azaltılması hedefi)<br><br>
+            • <strong>GRI 305:</strong> Emisyonlar ve emisyon yoğunluğu açıklamaları<br>
+            • <strong>CSRD / ESRS E1:</strong> İklim, enerji ve sera gazı açıklamalarına hazırlık<br>
+            • <strong>SASB Hotels & Lodging:</strong> Otelcilik sektörü için yatırımcı odaklı sürdürülebilirlik göstergeleri<br><br>
             <em>Bu belge elektronik olarak oluşturulmuştur ve bilgilendirme amaçlıdır. Doğrulama için yetkili çevre denetim kuruluşuna başvurunuz.</em>
         </div>
     </div>

@@ -79,6 +79,29 @@
     </div>
     @endif
 
+    <div class="card shadow-sm mb-4">
+        <div class="card-body py-3">
+            <div class="row g-3 align-items-center" style="font-size:.86rem">
+                <div class="col-md-3">
+                    <div class="text-muted small text-uppercase fw-semibold">Otel / Lokasyon</div>
+                    <div class="fw-semibold">{{ $carbon->hotel_name ?: ($carbon->branch?->name ?? 'Genel') }} @if($carbon->location) / {{ $carbon->location }} @endif</div>
+                </div>
+                <div class="col-md-3">
+                    <div class="text-muted small text-uppercase fw-semibold">Kapasite</div>
+                    <div class="fw-semibold">{{ number_format($carbon->total_rooms) }} oda / {{ number_format($carbon->total_beds) }} yatak</div>
+                </div>
+                <div class="col-md-3">
+                    <div class="text-muted small text-uppercase fw-semibold">Alan</div>
+                    <div class="fw-semibold">{{ number_format($carbon->total_area_sqm, 0) }} m² kapalı / {{ number_format($carbon->open_area_sqm, 0) }} m² açık</div>
+                </div>
+                <div class="col-md-3">
+                    <div class="text-muted small text-uppercase fw-semibold">Operasyon</div>
+                    <div class="fw-semibold">%{{ number_format($carbon->occupancy_rate, 1) }} doluluk / {{ number_format($carbon->average_stay_days, 2) }} gün ort. konaklama</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     {{-- ============================================================
          ÜST METRİK KARTLARI
     ============================================================ --}}
@@ -396,7 +419,7 @@
                     </table>
                     {{-- Kısa benchmark referansı --}}
                     <div class="px-3 py-2" style="background:#f8f9fa;border-top:1px solid #eee;font-size:.72rem;color:#888">
-                        <strong>Sektör Referansları (HCMI 2023):</strong><br>
+                        <strong>Sektör Referansları (HCMI v2.0):</strong><br>
                         A+ ≤5 kg &nbsp;·&nbsp; A 5–15 &nbsp;·&nbsp; B 15–25 &nbsp;·&nbsp; C 25–40 &nbsp;·&nbsp; D 40–60 &nbsp;·&nbsp; E >60
                     </div>
                 </div>
@@ -543,18 +566,18 @@
                         <table class="table table-bordered table-sm mb-2" style="font-size:.78rem">
                             <thead class="table-light"><tr><th>Kaynak</th><th>Kapsam</th></tr></thead>
                             <tbody>
-                                <tr><td><strong>IPCC AR6 2023</strong></td><td>Yakıtlar, GWP100</td></tr>
-                                <tr><td><strong>DEFRA 2023</strong></td><td>Ulaşım, su, atık, LNG</td></tr>
-                                <tr><td><strong>IEA Turkey 2023</strong></td><td>Türkiye şebeke elektriği</td></tr>
+                                <tr><td><strong>ETKB EVÇED 2023</strong></td><td>Türkiye elektrik tüketim noktası faktörü</td></tr>
+                                <tr><td><strong>UK Gov GHG Factors 2025</strong></td><td>Yakıt, su, atık, ulaşım</td></tr>
+                                <tr><td><strong>GHG Protocol</strong></td><td>Scope 1 / 2 / 3 sınıflandırması</td></tr>
                                 <tr><td><strong>FAO / IPCC 2023</strong></td><td>Gıda tüketimi</td></tr>
                                 <tr><td><strong>Ecoinvent 3.9</strong></td><td>Tedarik zinciri, çamaşırhane</td></tr>
-                                <tr><td><strong>ICAO 2023</strong></td><td>Hava taşımacılığı</td></tr>
-                                <tr><td><strong>ISO 14064-1 Market-Based</strong></td><td>I-REC/GoO, tesis içi GES</td></tr>
+                                <tr><td><strong>HCMI</strong></td><td>Otel sektörü karbon yoğunluğu</td></tr>
+                                <tr><td><strong>ISO 14064-1 Market-Based</strong></td><td>I-REC/YEK-G/GoO, tesis içi GES</td></tr>
                             </tbody>
                         </table>
                         <div class="text-muted" style="font-size:.75rem">
                             <i class="fas fa-info-circle text-primary me-1"></i>
-                            Tüm değerler <strong>kgCO₂e</strong> (GWP100, AR6 7. Değerlendirme Raporu) cinsindedir. Market-Based Scope 2 için sertifikalı yenilenebilir kaynak EF = 0,0 kgCO₂e/kWh (RE100 / GHG Protocol §6.3.3).
+                            Tüm değerler <strong>kgCO₂e</strong> cinsindedir. Market-Based Scope 2 için sertifikalı yenilenebilir kaynak EF = 0,0 kgCO₂e/kWh olarak izlenir; belge açıklama alanında saklanmalıdır.
                         </div>
                     </div>
 
@@ -754,6 +777,7 @@
         </div>
         <div class="card-body p-0">
             <div class="table-responsive">
+                @php $allCats = \App\Models\CarbonFootprintReport::CATEGORIES; @endphp
                 <table class="table table-hover mb-0 entry-table align-middle">
                     <thead class="table-light">
                         <tr>
@@ -763,18 +787,18 @@
                             <th class="text-center">Birim</th>
                             <th class="text-end">Emisyon Faktörü</th>
                             <th class="text-end">CO₂e (kg)</th>
-                            <th class="text-end pe-3 text-muted small">Kaynak</th>
+                            <th class="text-end text-muted small">Kaynak / Standart</th>
+                            <th class="text-end pe-3 text-muted small">Açıklama</th>
                         </tr>
                     </thead>
                     <tbody>
                         {{-- SCOPE 1 --}}
                         @if($scope1Entries->count())
-                        <tr><td colspan="7" class="category-group-header" style="border-left-color:#e74c3c">
+                        <tr><td colspan="8" class="category-group-header" style="border-left-color:#e74c3c">
                             🔴 Scope 1 — Doğrudan Emisyonlar
                         </td></tr>
                         @foreach($scope1Entries as $e)
                         @php
-                            $allCats = \App\Models\CarbonFootprintReport::CATEGORIES;
                             $catLabel = $allCats['scope1'][$e->category]['label'] ?? $e->category;
                         @endphp
                         @if($e->co2_kg > 0 || $e->quantity > 0)
@@ -785,20 +809,24 @@
                             <td class="text-center text-muted">{{ $e->unit }}</td>
                             <td class="text-end text-muted">{{ $e->emission_factor }}</td>
                             <td class="text-end fw-bold text-danger">{{ number_format($e->co2_kg, 3) }}</td>
-                            <td class="text-end pe-3 text-muted" style="font-size:.72rem">{{ $e->ef_source }}</td>
+                            <td class="text-end text-muted" style="font-size:.72rem">
+                                {{ $e->ef_source }}
+                                @if($e->standard_code)<br><span>{{ $e->standard_code }}</span>@endif
+                            </td>
+                            <td class="text-end pe-3 text-muted" style="font-size:.72rem">{{ $e->notes ?: '-' }}</td>
                         </tr>
                         @endif
                         @endforeach
                         <tr class="table-danger table-sm">
                             <td colspan="5" class="ps-3 fw-bold small text-end pe-3">Scope 1 Toplam:</td>
                             <td class="fw-bold text-danger text-end">{{ number_format($scope1Total, 3) }} kg</td>
-                            <td></td>
+                            <td></td><td></td>
                         </tr>
                         @endif
 
                         {{-- SCOPE 2 --}}
                         @if($scope2Entries->count())
-                        <tr><td colspan="7" class="category-group-header" style="border-left-color:#f39c12">
+                        <tr><td colspan="8" class="category-group-header" style="border-left-color:#f39c12">
                             🟡 Scope 2 — Dolaylı Enerji Emisyonları
                         </td></tr>
                         @foreach($scope2Entries as $e)
@@ -811,20 +839,24 @@
                             <td class="text-center text-muted">{{ $e->unit }}</td>
                             <td class="text-end text-muted">{{ $e->emission_factor }}</td>
                             <td class="text-end fw-bold" style="color:#b7770d">{{ number_format($e->co2_kg, 3) }}</td>
-                            <td class="text-end pe-3 text-muted" style="font-size:.72rem">{{ $e->ef_source }}</td>
+                            <td class="text-end text-muted" style="font-size:.72rem">
+                                {{ $e->ef_source }}
+                                @if($e->standard_code)<br><span>{{ $e->standard_code }}</span>@endif
+                            </td>
+                            <td class="text-end pe-3 text-muted" style="font-size:.72rem">{{ $e->notes ?: '-' }}</td>
                         </tr>
                         @endif
                         @endforeach
                         <tr class="table-warning">
                             <td colspan="5" class="ps-3 fw-bold small text-end pe-3">Scope 2 Toplam:</td>
                             <td class="fw-bold text-end" style="color:#b7770d">{{ number_format($scope2Total, 3) }} kg</td>
-                            <td></td>
+                            <td></td><td></td>
                         </tr>
                         @endif
 
                         {{-- SCOPE 3 --}}
                         @if($scope3Entries->count())
-                        <tr><td colspan="7" class="category-group-header" style="border-left-color:#27ae60">
+                        <tr><td colspan="8" class="category-group-header" style="border-left-color:#27ae60">
                             🟢 Scope 3 — Diğer Dolaylı Emisyonlar
                         </td></tr>
                         @foreach($scope3Entries as $e)
@@ -837,14 +869,18 @@
                             <td class="text-center text-muted">{{ $e->unit }}</td>
                             <td class="text-end text-muted">{{ $e->emission_factor }}</td>
                             <td class="text-end fw-bold text-success">{{ number_format($e->co2_kg, 3) }}</td>
-                            <td class="text-end pe-3 text-muted" style="font-size:.72rem">{{ $e->ef_source }}</td>
+                            <td class="text-end text-muted" style="font-size:.72rem">
+                                {{ $e->ef_source }}
+                                @if($e->standard_code)<br><span>{{ $e->standard_code }}</span>@endif
+                            </td>
+                            <td class="text-end pe-3 text-muted" style="font-size:.72rem">{{ $e->notes ?: '-' }}</td>
                         </tr>
                         @endif
                         @endforeach
                         <tr class="table-success">
                             <td colspan="5" class="ps-3 fw-bold small text-end pe-3">Scope 3 Toplam:</td>
                             <td class="fw-bold text-success text-end">{{ number_format($scope3Total, 3) }} kg</td>
-                            <td></td>
+                            <td></td><td></td>
                         </tr>
                         @endif
 
@@ -852,7 +888,7 @@
                         <tr class="table-dark">
                             <td colspan="5" class="ps-3 fw-bold text-end pe-3">GENEL TOPLAM CO₂e:</td>
                             <td class="fw-bold fs-6 text-end">{{ number_format($carbon->total_co2_total, 3) }} kg</td>
-                            <td></td>
+                            <td></td><td></td>
                         </tr>
                     </tbody>
                 </table>
@@ -906,15 +942,78 @@
                         <p class="text-muted small">{{ $carbon->methodology_notes }}</p>
                     </div>
                     @endif
+                    @if($carbon->verification_notes)
+                    <div class="mb-3">
+                        <div class="fw-semibold text-warning mb-1">🔎 Doğrulama Kontrolü</div>
+                        <p class="text-muted small">{{ $carbon->verification_notes }}</p>
+                    </div>
+                    @endif
+                    @if($carbon->iso_14001_notes)
+                    <div class="mb-3">
+                        <div class="fw-semibold text-info mb-1">🌱 ISO 14001 Takibi</div>
+                        <p class="text-muted small">{{ $carbon->iso_14001_notes }}</p>
+                    </div>
+                    @endif
                     @if($carbon->improvement_notes)
                     <div>
                         <div class="fw-semibold text-success mb-1">🎯 İyileştirme Önerileri</div>
                         <p class="text-muted small">{{ $carbon->improvement_notes }}</p>
                     </div>
                     @endif
-                    @if(!$carbon->methodology_notes && !$carbon->improvement_notes)
+                    @if(!$carbon->methodology_notes && !$carbon->verification_notes && !$carbon->iso_14001_notes && !$carbon->improvement_notes)
                         <p class="text-muted">Not eklenmemiş.</p>
                     @endif
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-4">
+        <div class="col-lg-5">
+            <div class="card shadow-sm h-100">
+                <div class="card-header py-3">
+                    <h6 class="mb-0 fw-bold">Sağlama / Doğrulama Kontrolü</h6>
+                </div>
+                <div class="card-body">
+                    @foreach($auditChecks as $check)
+                        <div class="d-flex gap-2 mb-3">
+                            <span class="badge {{ $check['ok'] ? 'bg-success' : 'bg-warning text-dark' }}" style="height:22px">
+                                {{ $check['ok'] ? 'OK' : 'Kontrol' }}
+                            </span>
+                            <div>
+                                <div class="fw-semibold small">{{ $check['label'] }}</div>
+                                <div class="text-muted" style="font-size:.78rem">{{ $check['detail'] }}</div>
+                            </div>
+                        </div>
+                    @endforeach
+                    <div class="alert alert-light border mb-0" style="font-size:.78rem">
+                        <strong>ISO 14001 takibi:</strong> Girilen enerji, su, atık, kimyasal ve yasal atık verileri çevresel boyut, yasal uygunluk, hedef ve aksiyon takibi için kullanılabilir. Bu rapor tek başına sertifika yerine geçmez; denetimde kanıt belgeleriyle desteklenmelidir.
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-7">
+            <div class="card shadow-sm h-100">
+                <div class="card-header py-3">
+                    <h6 class="mb-0 fw-bold">Kaynakça & Algoritma</h6>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-light border py-2 px-3" style="font-size:.8rem">
+                        <strong>Hesap algoritması:</strong> CO₂e (kg) = Faaliyet verisi × emisyon faktörü.
+                        Toplam sonuç Scope 1 + Scope 2 + Scope 3 kalemlerinin toplamıdır.
+                        Faktör seti: {{ $carbon->factor_dataset_version ?: \App\Models\CarbonFootprintReport::DEFAULT_FACTOR_DATASET_VERSION }}.
+                    </div>
+                    <div class="row g-2">
+                        @foreach($sourceReferences as $source)
+                            <div class="col-md-6">
+                                <div class="p-2 rounded h-100" style="background:#fbf8f5;border:1px solid #eadcc9">
+                                    <div class="fw-semibold small">{{ $source['title'] }}</div>
+                                    <div class="text-muted" style="font-size:.72rem">{{ $source['summary'] }}</div>
+                                    <a href="{{ $source['url'] }}" target="_blank" class="small">Kaynak linki</a>
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
                 </div>
             </div>
         </div>

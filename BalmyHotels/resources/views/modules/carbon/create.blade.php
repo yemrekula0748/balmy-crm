@@ -77,6 +77,18 @@
                             @endforeach
                         </select>
                     </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Otel Adı</label>
+                        <input type="text" name="hotel_name" class="form-control"
+                               value="{{ old('hotel_name') }}" placeholder="Örn: Balmy Foresta">
+                        <div class="form-text">ISO 14001 tesis kimliği ve HCMI rapor başlığı için kullanılır.</div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Lokasyon</label>
+                        <input type="text" name="location" class="form-control"
+                               value="{{ old('location') }}" placeholder="Örn: Antalya / Türkiye">
+                        <div class="form-text">Denetim dosyasında tesis sınırı ve ülke faktörleri için referans olur.</div>
+                    </div>
                     <div class="col-md-4">
                         <label class="form-label fw-semibold">Rapor Tipi <span class="text-danger">*</span></label>
                         <select name="report_type" class="form-select" required>
@@ -98,6 +110,7 @@
                         @error('period_end') <div class="invalid-feedback">{{ $message }}</div> @enderror
                     </div>
                 </div>
+                <input type="hidden" name="factor_dataset_version" value="{{ old('factor_dataset_version', $factorDatasetVersion ?? \App\Models\CarbonFootprintReport::DEFAULT_FACTOR_DATASET_VERSION) }}">
             </div>
         </div>
 
@@ -134,14 +147,44 @@
                         <div class="form-text"><strong>Neden?</strong> Doluluk oranı (%) hesabı için.<br>Formül: Oda-Gece ÷ (Oda Sayısı × Gün) × 100</div>
                     </div>
                     <div class="col-md-3">
+                        <label class="form-label fw-semibold">Toplam Yatak Sayısı</label>
+                        <input type="number" name="total_beds" class="form-control" value="{{ old('total_beds',0) }}" min="0">
+                        <div class="form-text">HCMI kapasite ve tesis profil bilgisi.</div>
+                    </div>
+                    <div class="col-md-3">
                         <label class="form-label fw-semibold">Personel Sayısı</label>
                         <input type="number" name="staff_count" class="form-control" value="{{ old('staff_count',0) }}" min="0">
                         <div class="form-text"><strong>Neden?</strong> Çalışan başına emisyon yoğunluğu.<br>Formül: Toplam CO₂e ÷ Personel (CSRD/ESRS)</div>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label fw-semibold">Kadın Çalışan Sayısı</label>
+                        <input type="number" name="female_staff_count" class="form-control" value="{{ old('female_staff_count',0) }}" min="0">
+                        <div class="form-text">ESRS/Sosyal KPI kırılımı için takip edilir.</div>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label fw-semibold">Erkek Çalışan Sayısı</label>
+                        <input type="number" name="male_staff_count" class="form-control" value="{{ old('male_staff_count',0) }}" min="0">
+                        <div class="form-text">ESRS/Sosyal KPI kırılımı için takip edilir.</div>
                     </div>
                     <div class="col-md-4">
                         <label class="form-label fw-semibold">Toplam Alan (m²)</label>
                         <input type="number" name="total_area_sqm" class="form-control" value="{{ old('total_area_sqm',0) }}" min="0" step="0.01">
                         <div class="form-text"><strong>Neden?</strong> Alan başına enerji yoğunluğu (EU Taxonomy / ISO 50001).<br>Formül: Toplam CO₂e ÷ m² = kgCO₂e/m²</div>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label fw-semibold">Açık Alan (m²)</label>
+                        <input type="number" name="open_area_sqm" class="form-control" value="{{ old('open_area_sqm',0) }}" min="0" step="0.01">
+                        <div class="form-text">ISO 14001 çevresel etki alanı, peyzaj ve su tüketimi yorumları için.</div>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label fw-semibold">Doluluk Oranı (%)</label>
+                        <input type="number" name="occupancy_rate" class="form-control" value="{{ old('occupancy_rate',0) }}" min="0" max="100" step="0.1">
+                        <div class="form-text">Boş bırakılırsa oda-gece ve kapasiteden otomatik kontrol edilir.</div>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label fw-semibold">Ortalama Konaklama Süresi (Gün)</label>
+                        <input type="number" name="average_stay_days" class="form-control" value="{{ old('average_stay_days',0) }}" min="0" step="0.01">
+                        <div class="form-text">HCMI misafir yoğunluğu ve operasyon yorumu için.</div>
                     </div>
                     <div class="col-md-4">
                         <label class="form-label fw-semibold">Yenilenebilir Enerji Oranı (%)</label>
@@ -209,9 +252,9 @@
                                         <div class="fw-bold text-danger co2-result small">0.000</div>
                                     </div>
                                     <div class="col-md-3">
-                                        <label class="form-label small mb-1">Notlar</label>
+                                        <label class="form-label small mb-1">Açıklama</label>
                                         <input type="text" name="entries[{{ 's1_'.$loop->index }}][notes]" class="form-control form-control-sm"
-                                               placeholder="İsteğe bağlı açıklama" value="{{ old('entries.s1_'.$loop->index.'.notes') }}">
+                                               placeholder="Fatura, sayaç, kantar fişi veya varsayım notu" value="{{ old('entries.s1_'.$loop->index.'.notes') }}">
                                     </div>
                                 </div>
                             </div>
@@ -253,9 +296,9 @@
                                         <div class="fw-bold text-warning co2-result small">0.000</div>
                                     </div>
                                     <div class="col-md-3">
-                                        <label class="form-label small mb-1">Notlar</label>
+                                        <label class="form-label small mb-1">Açıklama</label>
                                         <input type="text" name="entries[{{ 's2_'.$loop->index }}][notes]" class="form-control form-control-sm"
-                                               placeholder="İsteğe bağlı" value="{{ old('entries.s2_'.$loop->index.'.notes') }}">
+                                               placeholder="Fatura, sayaç veya sertifika bilgisi" value="{{ old('entries.s2_'.$loop->index.'.notes') }}">
                                     </div>
                                 </div>
                             </div>
@@ -296,9 +339,9 @@
                                         <div class="fw-bold text-success co2-result small">0.000</div>
                                     </div>
                                     <div class="col-md-3">
-                                        <label class="form-label small mb-1">Notlar</label>
+                                        <label class="form-label small mb-1">Açıklama</label>
                                         <input type="text" name="entries[{{ 's3_'.$loop->index }}][notes]" class="form-control form-control-sm"
-                                               placeholder="İsteğe bağlı" value="{{ old('entries.s3_'.$loop->index.'.notes') }}">
+                                               placeholder="Belge, tedarikçi, varsayım veya sorumlu departman" value="{{ old('entries.s3_'.$loop->index.'.notes') }}">
                                     </div>
                                 </div>
                             </div>
@@ -349,6 +392,14 @@
                     <i class="fas fa-question-circle text-primary me-1"></i>
                     <strong>Bu seçim ne işe yarar?</strong> Raporunuzun hangi uluslararası metodoloji ve çerçeveler kapsamında hazırlandığını belirtir. Seçtiğiniz standartlar; denetçilere, bankalara ve yeşil sertifika kurumlarına (LEED, Green Key vb.) sunulan resmi raporunuza dahil edilir. <strong>ISO 14064-1 ve GHG Protocol</strong> tüm raporlar için önerilir.
                 </div>
+                <div class="alert alert-light border py-2 px-3 mb-3" style="font-size:.8rem">
+                    <div class="fw-semibold mb-1">Faktör seti ve hesap algoritması</div>
+                    <div class="text-muted">
+                        Varsayılan hesap: <strong>CO₂e (kg) = faaliyet verisi × emisyon faktörü</strong>.
+                        Kullanılan faktör seti: {{ $factorDatasetVersion ?? \App\Models\CarbonFootprintReport::DEFAULT_FACTOR_DATASET_VERSION }}.
+                        Elektrikte Türkiye ETKB/EVÇED tüketim noktası faktörü, diğer uygun kalemlerde UK Government GHG Conversion Factors 2025 ve GHG Protocol/HCMI sınıflandırması esas alınır.
+                    </div>
+                </div>
                 <label class="form-label fw-semibold mb-2">Uygulanan Standartlar</label>
                 <div class="d-flex flex-wrap gap-2 mb-3">
                     @php $defaultStandards = old('standards_applied', ['ISO 14064-1', 'GHG_Protocol', 'HCMI']); @endphp
@@ -372,6 +423,18 @@
                         <textarea name="methodology_notes" class="form-control" rows="4"
                                   placeholder="Örnek notlar:&#10;- Doğalgaz sayıcı okuması alınamadı, fatura verisi kullanıldı&#10;- Sobanın günde ortalama 8 saat çalıştığı varsayıldı&#10;- Servis aracı km kaydı tutulmadığından tahmini güzergâh mesafesi kullanıldı">{{ old('methodology_notes') }}</textarea>
                         <div class="form-text">Veri eksikliği, tahmin yöntemi veya birşey kesin bilinmiyorsa burada açıklayın. Denetim sırasında bu notlar röportaj sorularını yanıtlar.</div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Denetim / Doğrulama Kontrol Notları</label>
+                        <textarea name="verification_notes" class="form-control" rows="4"
+                                  placeholder="Örnek:&#10;- Elektrik tüketimi fatura toplamı ile karşılaştırıldı&#10;- Kantar fişleri atık firması raporuyla doğrulanacak&#10;- I-REC/YEK-G belgesi eklenecek">{{ old('verification_notes') }}</textarea>
+                        <div class="form-text">Sağlama, doğrulama ve kontrol adımlarını burada tutun.</div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">ISO 14001 Takip Notları</label>
+                        <textarea name="iso_14001_notes" class="form-control" rows="4"
+                                  placeholder="Örnek:&#10;- Atık yağ lisanslı firmaya teslim edildi&#10;- Su tüketimi çevresel amaç hedeflerinde takip edilecek&#10;- Kimyasal depolama riski aksiyon planına alındı">{{ old('iso_14001_notes') }}</textarea>
+                        <div class="form-text">Çevresel boyut, yasal uygunluk, risk/fırsat ve aksiyon takibi için kullanılabilir.</div>
                     </div>
                     <div class="col-md-6">
                         <label class="form-label fw-semibold">İyileştirme Önerileri & Hedefler</label>

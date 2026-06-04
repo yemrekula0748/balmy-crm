@@ -10,6 +10,7 @@ class CarbonFootprintEntry extends Model
     protected $fillable = [
         'report_id', 'scope', 'category', 'sub_category', 'source_description',
         'quantity', 'unit', 'emission_factor', 'ef_source', 'co2_kg',
+        'standard_code', 'frequency', 'calculation_method', 'evidence_reference',
         'is_renewable', 'notes',
     ];
 
