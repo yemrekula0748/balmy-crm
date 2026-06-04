@@ -94,12 +94,12 @@
 
     @php
         $cards = [
-            ['label' => 'Toplam Gelen', 'value' => number_format($stats['total_arrival']), 'sub' => 'Donem boyunca gelen personel', 'color' => '#c19b77,#a97d57'],
-            ['label' => 'Toplam Donen', 'value' => number_format($stats['total_departure']), 'sub' => 'Donem boyunca donen personel', 'color' => '#8f6d4f,#c19b77'],
-            ['label' => 'Toplam Sefer', 'value' => number_format($stats['total_trips']), 'sub' => 'Kayitli servis seferi', 'color' => '#7a5c3d,#a97d57'],
+            ['label' => 'Normal Gelen', 'value' => number_format($stats['total_arrival']), 'sub' => 'Lojman haric donem gelen personel', 'color' => '#c19b77,#a97d57'],
+            ['label' => 'Normal Donen', 'value' => number_format($stats['total_departure']), 'sub' => 'Lojman haric donem donen personel', 'color' => '#8f6d4f,#c19b77'],
+            ['label' => 'Normal Servis Seferi', 'value' => number_format($stats['total_trips']), 'sub' => 'Lojman haric / toplam kayit: ' . number_format($stats['total_all_trips']), 'color' => '#7a5c3d,#a97d57'],
             ['label' => 'Aktarimli Sefer', 'value' => $stats['total_transfer_trips'], 'sub' => '%' . $stats['transfer_rate'] . ' oran', 'color' => '#8e5a2b,#d1913c'],
             ['label' => 'Farkli Aracla Gelen', 'value' => $stats['total_different_vehicle_trips'], 'sub' => '%' . $stats['different_vehicle_rate'] . ' oran', 'color' => '#b03a3a,#d98b73'],
-            ['label' => 'Lojman Guzergahi', 'value' => $stats['total_lodging_route_trips'], 'sub' => '%' . $stats['lodging_route_rate'] . ' oran', 'color' => '#3d7a5e,#7fb08c'],
+            ['label' => 'Lojman Seferi', 'value' => $stats['total_lodging_route_trips'], 'sub' => 'Gelen: ' . $stats['total_lodging_arrival'] . ' / Giden: ' . $stats['total_lodging_departure'], 'color' => '#3d7a5e,#7fb08c'],
             ['label' => 'Ort. Gelis Doluluk', 'value' => $stats['avg_occupancy_arr'] . '%', 'sub' => 'Donus ort.: ' . $stats['avg_occupancy_dep'] . '%', 'color' => '#aa6f39,#c19b77'],
         ];
     @endphp
@@ -123,7 +123,7 @@
             <div class="card shadow-sm border-0" style="border-radius:14px">
                 <div class="card-header bg-white border-0 pt-3 px-4">
                     <h5 class="card-title mb-0">
-                        <i class="fas fa-chart-area me-2" style="color:#c19b77"></i>Gunluk Sefer Grafigi
+                        <i class="fas fa-chart-area me-2" style="color:#c19b77"></i>Gunluk Normal Servis Grafigi
                     </h5>
                 </div>
                 <div class="card-body">
@@ -144,7 +144,7 @@
                         <thead class="table-light">
                             <tr>
                                 <th>Vardiya</th>
-                                <th class="text-center">Sefer</th>
+                                <th class="text-center">Normal Sefer</th>
                                 <th class="text-center" style="color:#c19b77">Gelis</th>
                                 <th class="text-center text-success">Donus</th>
                                 <th class="text-center text-warning">Aktarim</th>
@@ -153,7 +153,7 @@
                         </thead>
                         <tbody>
                             @foreach($byShift as $shiftName => $data)
-                                @if($data['count'] > 0)
+                                @if($data['count'] > 0 || $data['lodging_route'] > 0)
                                     <tr>
                                         <td><span class="badge bg-secondary">{{ $shiftName }}</span></td>
                                         <td class="text-center">{{ $data['count'] }}</td>
@@ -173,7 +173,7 @@
                         </tbody>
                         <tfoot class="table-light">
                             <tr>
-                                <td class="fw-bold">TOPLAM</td>
+                                <td class="fw-bold">NORMAL TOPLAM</td>
                                 <td class="text-center fw-bold">{{ $stats['total_trips'] }}</td>
                                 <td class="text-center fw-bold" style="color:#c19b77">{{ $stats['total_arrival'] }}</td>
                                 <td class="text-center fw-bold text-success">{{ $stats['total_departure'] }}</td>
@@ -197,7 +197,7 @@
                             <thead class="table-light">
                                 <tr>
                                     <th>Arac</th>
-                                    <th class="text-center">Sefer</th>
+                                    <th class="text-center">Normal Sefer</th>
                                     <th class="text-center" style="color:#c19b77">Gelis</th>
                                     <th class="text-center text-success">Donus</th>
                                     <th class="text-center">Aktarim</th>
@@ -207,7 +207,7 @@
                             </thead>
                             <tbody>
                                 @foreach($byVehicle as $data)
-                                    @if($data['trips'] > 0)
+                                    @if($data['all_trips'] > 0)
                                         <tr>
                                             <td>
                                                 <div class="fw-semibold">{{ $data['vehicle']->name }}</div>
@@ -239,7 +239,7 @@
                                         </tr>
                                     @endif
                                 @endforeach
-                                @if(empty(array_filter($byVehicle, fn($data) => $data['trips'] > 0)))
+                                @if(empty(array_filter($byVehicle, fn($data) => $data['all_trips'] > 0)))
                                     <tr>
                                         <td colspan="7" class="text-center text-muted py-3">Veri bulunamadi.</td>
                                     </tr>
@@ -261,8 +261,10 @@
                         <thead class="table-light">
                             <tr>
                                 <th>Sube</th>
-                                <th class="text-center">Gelen</th>
-                                <th class="text-center">Giden</th>
+                                <th class="text-center">Normal Gelen</th>
+                                <th class="text-center">Normal Giden</th>
+                                <th class="text-center">Lojman Gelen</th>
+                                <th class="text-center">Lojman Giden</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -271,6 +273,8 @@
                                     <td class="fw-semibold">{{ $summary['branch']->name }}</td>
                                     <td class="text-center fw-bold" style="color:#c19b77">{{ $summary['arrival'] }}</td>
                                     <td class="text-center fw-bold text-success">{{ $summary['departure'] }}</td>
+                                    <td class="text-center fw-bold" style="color:#2e7d52">{{ $summary['lodging_arrival'] }}</td>
+                                    <td class="text-center fw-bold" style="color:#2e7d52">{{ $summary['lodging_departure'] }}</td>
                                 </tr>
                             @endforeach
                         </tbody>
@@ -290,28 +294,28 @@
                             <div class="rounded-3 p-3 h-100" style="background:#fff7e7;border:1px solid #f1ddb2">
                                 <div class="small text-uppercase fw-semibold text-muted mb-1">Aktarim Yapilan</div>
                                 <div class="fs-3 fw-bold" style="color:#9b6a11">{{ $stats['total_transfer_trips'] }}</div>
-                                <div class="small text-muted mt-2">Toplam seferin %{{ $stats['transfer_rate'] }} kadari</div>
+                                <div class="small text-muted mt-2">Normal seferin %{{ $stats['transfer_rate'] }} kadari</div>
                             </div>
                         </div>
                         <div class="col-md-3">
                             <div class="rounded-3 p-3 h-100" style="background:#fff1f1;border:1px solid #f0d0d0">
                                 <div class="small text-uppercase fw-semibold text-muted mb-1">Farkli Aracla Gelen</div>
                                 <div class="fs-3 fw-bold" style="color:#b03a3a">{{ $stats['total_different_vehicle_trips'] }}</div>
-                                <div class="small text-muted mt-2">Toplam seferin %{{ $stats['different_vehicle_rate'] }} kadari</div>
+                                <div class="small text-muted mt-2">Normal seferin %{{ $stats['different_vehicle_rate'] }} kadari</div>
                             </div>
                         </div>
                         <div class="col-md-3">
                             <div class="rounded-3 p-3 h-100" style="background:#eef6f2;border:1px solid #cfe3d8">
-                                <div class="small text-uppercase fw-semibold text-muted mb-1">Lojman Guzergahi</div>
+                                <div class="small text-uppercase fw-semibold text-muted mb-1">Lojman Seferi</div>
                                 <div class="fs-3 fw-bold" style="color:#2e7d52">{{ $stats['total_lodging_route_trips'] }}</div>
-                                <div class="small text-muted mt-2">Toplam seferin %{{ $stats['lodging_route_rate'] }} kadari</div>
+                                <div class="small text-muted mt-2">Normal seferden ayri sayilir</div>
                             </div>
                         </div>
                         <div class="col-md-3">
                             <div class="rounded-3 p-3 h-100" style="background:#f9f4ed;border:1px solid #eadcc9">
                                 <div class="small text-uppercase fw-semibold text-muted mb-1">Toplam Istisna</div>
                                 <div class="fs-3 fw-bold" style="color:#7a5c3d">{{ $stats['exception_trips'] }}</div>
-                                <div class="small text-muted mt-2">Toplam seferin %{{ $stats['exception_rate'] }} kadari</div>
+                                <div class="small text-muted mt-2">Normal seferin %{{ $stats['exception_rate'] }} kadari</div>
                             </div>
                         </div>
                     </div>
@@ -337,12 +341,12 @@
                                     <td class="text-center">%{{ $stats['different_vehicle_rate'] }}</td>
                                 </tr>
                                 <tr>
-                                    <td>Lojman guzergahi yapilan sefer</td>
+                                    <td>Lojman seferi (vardiya veya isaret)</td>
                                     <td class="text-center fw-bold">{{ $stats['total_lodging_route_trips'] }}</td>
                                     <td class="text-center">%{{ $stats['lodging_route_rate'] }}</td>
                                 </tr>
                                 <tr>
-                                    <td>Herhangi bir istisna olan sefer</td>
+                                    <td>Herhangi bir istisna olan normal sefer</td>
                                     <td class="text-center fw-bold">{{ $stats['exception_trips'] }}</td>
                                     <td class="text-center">%{{ $stats['exception_rate'] }}</td>
                                 </tr>
@@ -466,10 +470,10 @@
                                                 @if($trip->is_transfer)
                                                     <span class="badge" style="background:#fff7e7;color:#9b6a11;border:1px solid #f1ddb2">Aktarim</span>
                                                 @endif
-                                                @if($trip->is_lodging_route)
-                                                    <span class="badge" style="background:#eef6f2;color:#2e7d52;border:1px solid #cfe3d8">Lojman guzergahi</span>
+                                                @if($trip->is_lodging_trip)
+                                                    <span class="badge" style="background:#eef6f2;color:#2e7d52;border:1px solid #cfe3d8">Lojman seferi</span>
                                                 @endif
-                                                @if(! $trip->arrived_with_different_vehicle && ! $trip->is_transfer && ! $trip->is_lodging_route)
+                                                @if(! $trip->arrived_with_different_vehicle && ! $trip->is_transfer && ! $trip->is_lodging_trip)
                                                     <span class="text-muted">Normal</span>
                                                 @endif
                                             </div>
@@ -506,7 +510,7 @@ new Chart(ctx, {
         labels: @json($chartData['labels']),
         datasets: [
             {
-                label: 'Gelen Personel',
+                label: 'Normal Gelen Personel',
                 data: @json($chartData['arrival']),
                 borderColor: '#c19b77',
                 backgroundColor: 'rgba(193,155,119,0.15)',
@@ -515,7 +519,7 @@ new Chart(ctx, {
                 pointRadius: 4,
             },
             {
-                label: 'Donen Personel',
+                label: 'Normal Donen Personel',
                 data: @json($chartData['departure']),
                 borderColor: '#8f6d4f',
                 backgroundColor: 'rgba(143,109,79,0.15)',

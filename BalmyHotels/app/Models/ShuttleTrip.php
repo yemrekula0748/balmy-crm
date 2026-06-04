@@ -93,6 +93,11 @@ class ShuttleTrip extends Model
         return round(($this->departure_count / $capacity) * 100, 1);
     }
 
+    public function getIsLodgingTripAttribute(): bool
+    {
+        return (bool) $this->is_lodging_route || strcasecmp(trim((string) $this->shift), 'Lojman') === 0;
+    }
+
     public function scopeForBranch($q, $branchId)
     {
         return $q->where('branch_id', $branchId);

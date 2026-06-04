@@ -67,15 +67,15 @@
     <tr>
         <td style="background:#c19b77">
             <div class="value">{{ number_format($stats['total_arrival']) }}</div>
-            <div class="label">Toplam Gelen</div>
+            <div class="label">Normal Gelen</div>
         </td>
         <td style="background:#8f6d4f">
             <div class="value">{{ number_format($stats['total_departure']) }}</div>
-            <div class="label">Toplam Donen</div>
+            <div class="label">Normal Donen</div>
         </td>
         <td style="background:#7a5c3d">
             <div class="value">{{ number_format($stats['total_trips']) }}</div>
-            <div class="label">Toplam Sefer</div>
+            <div class="label">Normal Sefer</div>
         </td>
         <td style="background:#d1913c">
             <div class="value">{{ $stats['total_transfer_trips'] }}</div>
@@ -87,7 +87,7 @@
         </td>
         <td style="background:#3d7a5e">
             <div class="value">{{ $stats['total_lodging_route_trips'] }}</div>
-            <div class="label">Lojman (%{{ $stats['lodging_route_rate'] }})</div>
+            <div class="label">Lojman Seferi</div>
         </td>
         <td style="background:#7a5c3d">
             <div class="value">{{ $stats['avg_occupancy_arr'] }}%</div>
@@ -101,7 +101,7 @@
     <thead>
         <tr>
             <th>Vardiya</th>
-            <th class="text-center">Sefer</th>
+            <th class="text-center">Normal Sefer</th>
             <th class="text-center">Gelen</th>
             <th class="text-center">Donen</th>
             <th class="text-center">Aktarim</th>
@@ -111,7 +111,7 @@
     </thead>
     <tbody>
         @foreach($byShift as $shiftName => $data)
-            @if($data['count'] > 0)
+            @if($data['count'] > 0 || $data['lodging_route'] > 0)
                 <tr>
                     <td><span class="badge badge-secondary">{{ $shiftName }}</span></td>
                     <td class="text-center">{{ $data['count'] }}</td>
@@ -126,7 +126,7 @@
     </tbody>
     <tfoot>
         <tr class="tfoot-row">
-            <td>TOPLAM</td>
+            <td>NORMAL TOPLAM</td>
             <td class="text-center">{{ $stats['total_trips'] }}</td>
             <td class="text-center">{{ $stats['total_arrival'] }}</td>
             <td class="text-center">{{ $stats['total_departure'] }}</td>
@@ -143,7 +143,7 @@
         <tr>
             <th>Arac</th>
             <th>Plaka</th>
-            <th class="text-center">Sefer</th>
+            <th class="text-center">Normal Sefer</th>
             <th class="text-center">Gelen</th>
             <th class="text-center">Donen</th>
             <th class="text-center">Aktarim</th>
@@ -153,7 +153,7 @@
     </thead>
     <tbody>
         @foreach($byVehicle as $data)
-            @if($data['trips'] > 0)
+            @if($data['all_trips'] > 0)
                 <tr>
                     <td>{{ $data['vehicle']->name }}</td>
                     <td>{{ $data['vehicle']->plate ?: '-' }}</td>
@@ -174,8 +174,10 @@
     <thead>
         <tr>
             <th>Sube</th>
-            <th class="text-center">Gelen</th>
-            <th class="text-center">Giden</th>
+            <th class="text-center">Normal Gelen</th>
+            <th class="text-center">Normal Giden</th>
+            <th class="text-center">Lojman Gelen</th>
+            <th class="text-center">Lojman Giden</th>
         </tr>
     </thead>
     <tbody>
@@ -184,6 +186,8 @@
                 <td>{{ $summary['branch']->name }}</td>
                 <td class="text-center">{{ $summary['arrival'] }}</td>
                 <td class="text-center">{{ $summary['departure'] }}</td>
+                <td class="text-center">{{ $summary['lodging_arrival'] }}</td>
+                <td class="text-center">{{ $summary['lodging_departure'] }}</td>
             </tr>
         @endforeach
     </tbody>
@@ -273,10 +277,10 @@
                         @if($trip->is_transfer)
                             <span class="badge badge-transfer">Aktarim</span>
                         @endif
-                        @if($trip->is_lodging_route)
+                        @if($trip->is_lodging_trip)
                             <span class="badge badge-lodging">Lojman</span>
                         @endif
-                        @if(! $trip->arrived_with_different_vehicle && ! $trip->is_transfer && ! $trip->is_lodging_route)
+                        @if(! $trip->arrived_with_different_vehicle && ! $trip->is_transfer && ! $trip->is_lodging_trip)
                             -
                         @endif
                     </td>
@@ -297,7 +301,7 @@
         </tbody>
         <tfoot>
             <tr class="tfoot-row">
-                <td colspan="4" class="text-right">TOPLAM</td>
+                <td colspan="4" class="text-right">NORMAL TOPLAM</td>
                 <td class="text-center">{{ $stats['total_arrival'] }}</td>
                 <td class="text-center">{{ $stats['total_departure'] }}</td>
                 <td colspan="3"></td>
