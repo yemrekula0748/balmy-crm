@@ -19,6 +19,7 @@ use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rule;
 
 class FaultController extends BaseModuleController
 {
@@ -49,7 +50,7 @@ class FaultController extends BaseModuleController
 
         $query = Fault::with(['reporter', 'department', 'branch', 'faultType', 'faultLocation', 'faultArea'])
             ->whereIn('branch_id', $branchIds)
-            ->orderByRaw("CASE status WHEN 'open' THEN 0 WHEN 'in_progress' THEN 1 WHEN 'resolved' THEN 2 ELSE 3 END")
+            ->orderByRaw("CASE status WHEN 'open' THEN 0 WHEN 'in_progress' THEN 1 WHEN 'winter_plan' THEN 2 WHEN 'waiting_material' THEN 3 WHEN 'resolved' THEN 4 WHEN 'closed' THEN 5 ELSE 6 END")
             ->orderBy('created_at', 'desc');
 
         if ($request->filled('branch_id'))     $query->where('branch_id', $request->branch_id);
@@ -256,7 +257,7 @@ class FaultController extends BaseModuleController
 
         $query = Fault::with(['reporter', 'branch', 'faultType', 'faultLocation', 'faultArea'])
             ->where('assigned_department_id', $deptId)
-            ->orderByRaw("CASE status WHEN 'open' THEN 0 WHEN 'in_progress' THEN 1 WHEN 'resolved' THEN 2 ELSE 3 END")
+            ->orderByRaw("CASE status WHEN 'open' THEN 0 WHEN 'in_progress' THEN 1 WHEN 'winter_plan' THEN 2 WHEN 'waiting_material' THEN 3 WHEN 'resolved' THEN 4 WHEN 'closed' THEN 5 ELSE 6 END")
             ->orderBy('created_at', 'desc');
 
         // Arıza türleri: kullanıcının şubesi ve departmanına uygun
@@ -443,7 +444,7 @@ class FaultController extends BaseModuleController
     public function updateStatus(Request $request, Fault $fault)
     {
         $request->validate([
-            'status' => 'required|in:open,in_progress,winter_plan,waiting_material,closed',
+            'status' => ['required', Rule::in(array_keys(Fault::STATUSES))],
             'note'   => 'required|string|max:1000',
         ]);
 

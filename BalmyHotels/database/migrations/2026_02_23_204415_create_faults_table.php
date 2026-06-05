@@ -21,7 +21,7 @@ return new class extends Migration
             $table->text('description');                 // Açıklama
             $table->string('location')->nullable();      // Konum (oda 101, resepsiyon vb.)
             $table->enum('priority', ['low', 'medium', 'high', 'critical'])->default('medium');
-            $table->enum('status', ['open', 'in_progress', 'resolved', 'closed'])->default('open');
+            $table->enum('status', ['open', 'in_progress', 'winter_plan', 'waiting_material', 'resolved', 'closed'])->default('open');
             $table->timestamp('resolved_at')->nullable();
             $table->timestamp('closed_at')->nullable();
             $table->timestamps();

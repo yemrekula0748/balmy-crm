@@ -32,7 +32,7 @@ class AuthController extends Controller
             LoginLog::create([
                 'email'      => $credentials['email'],
                 'user_id'    => Auth::id(),
-                'ip_address' => $request->ip(),
+                'ip_address' => $this->resolveClientIp($request),
                 'user_agent' => $request->userAgent(),
                 'status'     => 'success',
             ]);
@@ -44,7 +44,7 @@ class AuthController extends Controller
         LoginLog::create([
             'email'          => $credentials['email'],
             'user_id'        => $user?->id,
-            'ip_address'     => $request->ip(),
+            'ip_address'     => $this->resolveClientIp($request),
             'user_agent'     => $request->userAgent(),
             'status'         => 'failed',
             'failure_reason' => $user ? 'Yanlış şifre' : 'E-posta bulunamadı',
@@ -61,5 +61,49 @@ class AuthController extends Controller
         $request->session()->invalidate();
         $request->session()->regenerateToken();
         return redirect('/login');
+    }
+
+    private function resolveClientIp(Request $request): ?string
+    {
+        foreach (['CF-Connecting-IP', 'True-Client-IP', 'X-Real-IP'] as $header) {
+            $ip = $this->normalizeIp($request->headers->get($header));
+
+            if ($ip) {
+                return $ip;
+            }
+        }
+
+        $forwardedFor = $request->headers->get('X-Forwarded-For');
+        if ($forwardedFor) {
+            foreach (explode(',', $forwardedFor) as $candidate) {
+                $ip = $this->normalizeIp($candidate);
+
+                if ($ip) {
+                    return $ip;
+                }
+            }
+        }
+
+        return $this->normalizeIp($request->ip()) ?? $request->ip();
+    }
+
+    private function normalizeIp(?string $ip): ?string
+    {
+        $ip = trim((string) $ip);
+
+        if ($ip === '') {
+            return null;
+        }
+
+        if (filter_var($ip, FILTER_VALIDATE_IP)) {
+            return $ip;
+        }
+
+        if (preg_match('/^(\d{1,3}(?:\.\d{1,3}){3}):\d+$/', $ip, $matches)
+            && filter_var($matches[1], FILTER_VALIDATE_IP)) {
+            return $matches[1];
+        }
+
+        return null;
     }
 }
