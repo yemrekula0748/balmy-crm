@@ -19,6 +19,8 @@ class RolePermissionSeeder extends Seeder
             ['name' => 'insan_kaynaklari', 'display_name' => 'Insan Kaynaklari', 'color' => 'success', 'is_system' => false],
             ['name' => 'egitmen',        'display_name' => 'Egitmen',       'color' => 'warning', 'is_system' => false],
             ['name' => 'ogrenen',        'display_name' => 'Ogrenen',       'color' => 'success', 'is_system' => false],
+            ['name' => 'pdks_personel',  'display_name' => 'PDKS Personel', 'color' => 'secondary', 'is_system' => false],
+            ['name' => 'pdks_sorumlusu', 'display_name' => 'PDKS Sorumlusu', 'color' => 'primary', 'is_system' => false],
         ];
 
         foreach ($roles as $data) {
@@ -96,6 +98,29 @@ class RolePermissionSeeder extends Seeder
             'shuttle_operations' => ['index'=>1,'show'=>0,'create'=>1,'edit'=>0,'delete'=>0],
         ];
         $this->savePerms('insan_kaynaklari', $humanResourcesPerms);
+
+        // 6) PDKS rolleri
+        $pdksModules = [
+            'pdks_dashboard', 'pdks_employees', 'pdks_attendance', 'pdks_breaks',
+            'pdks_shifts', 'pdks_leaves', 'pdks_overtime', 'pdks_reports',
+            'pdks_notifications', 'pdks_settings',
+        ];
+
+        $pdksPersonnelPerms = [
+            'pdks_dashboard'     => ['index'=>1,'show'=>1,'create'=>1,'edit'=>1,'delete'=>0],
+            'pdks_shifts'        => ['index'=>1,'show'=>1,'create'=>0,'edit'=>0,'delete'=>0],
+            'pdks_leaves'        => ['index'=>1,'show'=>1,'create'=>0,'edit'=>0,'delete'=>0],
+            'pdks_overtime'      => ['index'=>1,'show'=>1,'create'=>0,'edit'=>0,'delete'=>0],
+            'pdks_notifications' => ['index'=>1,'show'=>1,'create'=>0,'edit'=>1,'delete'=>0],
+        ];
+        $this->savePerms('pdks_personel', $pdksPersonnelPerms);
+
+        $pdksManagerPerms = [];
+        foreach ($pdksModules as $module) {
+            $pdksManagerPerms[$module] = ['index'=>1,'show'=>1,'create'=>1,'edit'=>1,'delete'=>0];
+        }
+        $this->savePerms('pdks_sorumlusu', $pdksManagerPerms);
+        $this->savePerms('insan_kaynaklari', array_merge($humanResourcesPerms, $pdksManagerPerms));
 
         // 6) egitmen: egitim icerigi, atama, yuz yuze egitim ve rapor yonetimi
         $trainerPerms = [

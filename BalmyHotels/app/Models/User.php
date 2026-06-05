@@ -48,6 +48,11 @@ class User extends Authenticatable
         return $this->belongsTo(Department::class);
     }
 
+    public function pdksEmployee()
+    {
+        return $this->hasOne(PdksEmployee::class);
+    }
+
     /** Pivot: kullanıcıya atanmış tüm roller */
     public function userRoles()
     {

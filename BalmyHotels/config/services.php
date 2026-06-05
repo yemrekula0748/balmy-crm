@@ -57,4 +57,14 @@ return [
         ],
     ],
 
+    'elektra_pdks' => [
+        'foresta' => [
+            'endpoint' => env('ELEKTRA_PDKS_FORESTA_ENDPOINT', 'https://3013.hoteladvisor.net'),
+            'api_key' => env('ELEKTRA_PDKS_FORESTA_API_KEY'),
+            'tenant_id' => env('ELEKTRA_PDKS_FORESTA_TENANT_ID', 2429),
+            'company_id' => env('ELEKTRA_PDKS_FORESTA_FIRMA_ID', '3617'),
+            'branch_id' => env('ELEKTRA_PDKS_FORESTA_BRANCH_ID', env('HOTELADVISOR_FORESTA_BRANCH_ID', 2)),
+        ],
+    ],
+
 ];

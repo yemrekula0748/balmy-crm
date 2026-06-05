@@ -106,6 +106,57 @@
             @endif
 
             {{-- KAPI GİRİŞ/ÇIKIŞ --}}
+            @if($user->hasPermission('pdks_dashboard', 'index') || $user->hasPermission('pdks_employees', 'index') || $user->hasPermission('pdks_reports', 'index'))
+            <li @class(['mm-active' => request()->is('pdks*')])>
+                <a class="has-arrow ai-icon" href="javascript:void()" aria-expanded="false">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
+                         fill="none" stroke="currentColor" stroke-width="2"
+                         stroke-linecap="round" stroke-linejoin="round" style="min-width:20px">
+                        <rect x="3" y="4" width="18" height="16" rx="2"></rect>
+                        <path d="M8 2v4"></path>
+                        <path d="M16 2v4"></path>
+                        <path d="M3 10h18"></path>
+                        <path d="M8 14h.01"></path>
+                        <path d="M12 14h.01"></path>
+                        <path d="M16 14h.01"></path>
+                    </svg>
+                    <span class="nav-text">Personel PDKS</span>
+                </a>
+                <ul aria-expanded="false">
+                    @if($user->hasPermission('pdks_dashboard', 'index'))
+                    <li><a href="{{ route('pdks.index') }}">Giriş / Çıkış</a></li>
+                    @endif
+                    @if($user->hasPermission('pdks_employees', 'index'))
+                    <li><a href="{{ route('pdks.employees') }}">Personeller</a></li>
+                    @endif
+                    @if($user->hasPermission('pdks_attendance', 'index'))
+                    <li><a href="{{ route('pdks.attendance') }}">Devam Kayıtları</a></li>
+                    @endif
+                    @if($user->hasPermission('pdks_shifts', 'index'))
+                    <li><a href="{{ route('pdks.shifts') }}">Vardiya Takvimi</a></li>
+                    @endif
+                    @if($user->hasPermission('pdks_leaves', 'index'))
+                    <li><a href="{{ route('pdks.leaves') }}">İzinler</a></li>
+                    @endif
+                    @if($user->hasPermission('pdks_overtime', 'index'))
+                    <li><a href="{{ route('pdks.overtime') }}">Fazla Mesai</a></li>
+                    @endif
+                    @if($user->hasPermission('pdks_reports', 'index'))
+                    <li><a href="{{ route('pdks.reports') }}">Raporlar</a></li>
+                    @endif
+                    @if($user->hasPermission('pdks_breaks', 'index'))
+                    <li><a href="{{ route('pdks.breaks') }}">Mola Tipleri</a></li>
+                    @endif
+                    @if($user->hasPermission('pdks_notifications', 'index'))
+                    <li><a href="{{ route('pdks.notifications') }}">Bildirimler</a></li>
+                    @endif
+                    @if($user->hasPermission('pdks_settings', 'index'))
+                    <li><a href="{{ route('pdks.settings') }}">Ayarlar</a></li>
+                    @endif
+                </ul>
+            </li>
+            @endif
+
             @if($user->hasPermission('door_logs', 'index') || $user->hasPermission('event_tracking', 'index'))
             <li @class(['mm-active' => request()->is('kapi-giris*')])>
                 <a class="has-arrow ai-icon" href="javascript:void()" aria-expanded="false">

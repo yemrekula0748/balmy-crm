@@ -73,6 +73,7 @@ use App\Http\Controllers\Modules\EducationReportController;
 use App\Http\Controllers\Modules\AnimationEventController;
 use App\Http\Controllers\Modules\EventTrackingController;
 use App\Http\Controllers\Modules\EventShowReportController;
+use App\Http\Controllers\Modules\PdksController;
 use App\Http\Controllers\AssetPublicController;
 
 /*
@@ -299,6 +300,42 @@ Route::middleware('auth')->group(function () {
         ->names('departments')
         ->parameters(['departmanlar' => 'department'])
         ->except(['show']);
+
+    /*
+    |--------------------------------------------------------------------------
+    | Personel PDKS Modülü
+    |--------------------------------------------------------------------------
+    */
+    Route::prefix('pdks')->name('pdks.')->group(function () {
+        Route::get('/',                         [PdksController::class, 'index'])->name('index');
+        Route::post('/giris',                   [PdksController::class, 'checkIn'])->name('check-in');
+        Route::post('/cikis',                   [PdksController::class, 'checkOut'])->name('check-out');
+        Route::post('/mola-baslat',             [PdksController::class, 'startBreak'])->name('break-start');
+        Route::post('/mola-bitir',              [PdksController::class, 'endBreak'])->name('break-end');
+        Route::get('/personeller',              [PdksController::class, 'employees'])->name('employees');
+        Route::post('/personeller/elektra-sync',[PdksController::class, 'syncForesta'])->name('employees.sync-foresta');
+        Route::get('/devam-kayitlari',          [PdksController::class, 'attendance'])->name('attendance');
+        Route::get('/mola-tipleri',             [PdksController::class, 'breakTypes'])->name('breaks');
+        Route::post('/mola-tipleri',            [PdksController::class, 'storeBreakType'])->name('breaks.store');
+        Route::get('/vardiyalar',               [PdksController::class, 'shifts'])->name('shifts');
+        Route::post('/vardiyalar/tip',          [PdksController::class, 'storeShiftType'])->name('shifts.types.store');
+        Route::post('/vardiyalar/ata',          [PdksController::class, 'storeShiftAssignment'])->name('shifts.assign');
+        Route::post('/vardiya-degisim',         [PdksController::class, 'storeShiftChangeRequest'])->name('shift-change.store');
+        Route::post('/vardiya-degisim/{shiftChangeRequest}/durum', [PdksController::class, 'updateShiftChangeStatus'])->name('shift-change.status');
+        Route::get('/izinler',                  [PdksController::class, 'leaves'])->name('leaves');
+        Route::post('/izinler/tip',             [PdksController::class, 'storeLeaveType'])->name('leaves.types.store');
+        Route::post('/izinler',                 [PdksController::class, 'storeLeaveRequest'])->name('leaves.store');
+        Route::post('/izinler/{leaveRequest}/durum', [PdksController::class, 'updateLeaveStatus'])->name('leaves.status');
+        Route::get('/fazla-mesai',              [PdksController::class, 'overtime'])->name('overtime');
+        Route::post('/fazla-mesai',             [PdksController::class, 'storeOvertimeRequest'])->name('overtime.store');
+        Route::post('/fazla-mesai/{overtimeRequest}/durum', [PdksController::class, 'updateOvertimeStatus'])->name('overtime.status');
+        Route::get('/raporlar',                 [PdksController::class, 'reports'])->name('reports');
+        Route::get('/bildirimler',              [PdksController::class, 'notifications'])->name('notifications');
+        Route::post('/bildirimler/{notification}/okundu', [PdksController::class, 'markNotificationRead'])->name('notifications.read');
+        Route::post('/bildirimler/toplu-okundu',[PdksController::class, 'markAllNotificationsRead'])->name('notifications.read-all');
+        Route::get('/ayarlar',                  [PdksController::class, 'settings'])->name('settings');
+        Route::post('/ayarlar/politika',        [PdksController::class, 'storePolicy'])->name('settings.policy.store');
+    });
 
     /*
     |--------------------------------------------------------------------------

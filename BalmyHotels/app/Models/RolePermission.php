@@ -36,6 +36,18 @@ class RolePermission extends Model
             'users'          => 'Kullanıcılar',
             'departments'    => 'Departmanlar',
         ],
+        'Personel PDKS' => [
+            'pdks_dashboard'     => 'PDKS Panel / Giriş Çıkış',
+            'pdks_employees'     => 'PDKS Personeller',
+            'pdks_attendance'    => 'PDKS Devam Kayıtları',
+            'pdks_breaks'        => 'PDKS Mola Tipleri',
+            'pdks_shifts'        => 'PDKS Vardiya Takvimi',
+            'pdks_leaves'        => 'PDKS İzin Yönetimi',
+            'pdks_overtime'      => 'PDKS Fazla Mesai',
+            'pdks_reports'       => 'PDKS Raporlar',
+            'pdks_notifications' => 'PDKS Bildirimler',
+            'pdks_settings'      => 'PDKS Ayarlar',
+        ],
         'Güvenlik & Misafir' => [
             'door_logs'        => 'Kapı Geçiş Logları',
             'event_tracking'   => 'Etkinlik Takip',
