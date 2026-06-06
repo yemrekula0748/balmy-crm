@@ -540,6 +540,15 @@
                             <div class="fw-semibold text-dark" id="branchProcessBranchName">-</div>
                             <div class="small text-muted mt-1">Ilk/Ikinci Ugrama ayni servis kaydi icindeki otel hareketidir; ayri sefer sayilmaz. Secilen ugrama icin tek hareket saati, inen ve binen sayisi kaydedilir.</div>
                         </div>
+                        <div class="rounded-3 p-3 mb-3" style="background:#fffaf4;border:1px solid #eadcc9;border-left:4px solid #c19b77">
+                            <div class="fw-bold mb-1" style="color:#7a5c3d">
+                                <i class="fas fa-info-circle me-1"></i>Ugrama ne demek?
+                            </div>
+                            <div class="small" style="color:#6f5b45">
+                                Ilk/Ikinci Ugrama, ayni plakanin ayni vardiyada otelinize 1. veya 2. temasidir; ayri sefer sayilmaz.
+                                Servis personel getirdiyse <strong>Inen</strong>, personel goturduyse <strong>Binen</strong> sayisini girin.
+                            </div>
+                        </div>
                         <div class="row g-3">
                             <div class="col-12">
                                 <label class="form-label fw-semibold small">Uğrama <span class="text-danger">*</span></label>
@@ -548,6 +557,7 @@
                                         <option value="{{ $periodKey }}">{{ $periodLabel }}</option>
                                     @endforeach
                                 </select>
+                                <div class="small text-muted mt-1">Getirme/goturme ayrimini saat degil, Inen ve Binen sayilari belirler.</div>
                             </div>
                             <div class="col-12">
                                 <label class="form-label fw-semibold small">Hareket Saati</label>

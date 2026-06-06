@@ -17,6 +17,10 @@
 
     $countClass = $compact ? 'form-control form-control-sm text-center' : 'form-control text-center';
     $timeClass = $compact ? 'form-control form-control-sm text-center' : 'form-control text-center';
+    $periodHints = [
+        'day' => 'Bu vardiyada servisin otelinize ilk temasidir. Personel getiriyorsa Inen, personel goturuyorsa Binen sayisini bu satira yazin.',
+        'evening' => 'Ayni plakanin ayni vardiyada otelinize ikinci temasidir. Servis tekrar ugradiginda inen veya binen kisileri bu satira yazin.',
+    ];
 @endphp
 
 <div class="p-3 rounded" style="background:{{ $themeStyles['bg'] }};border:1px solid {{ $themeStyles['border'] }}">
@@ -27,11 +31,22 @@
         {{ $description }}
     </div>
 
+    <div class="rounded-3 p-3 mb-3" style="background:#fffaf4;border:1px solid #eadcc9;border-left:4px solid #c19b77">
+        <div class="fw-bold mb-1" style="color:#7a5c3d">
+            <i class="fas fa-info-circle me-1"></i>Ilk/Ikinci Ugrama nasil okunur?
+        </div>
+        <div class="small" style="color:#6f5b45">
+            <strong>Ilk/Ikinci Ugrama</strong> = ayni plakanin ayni vardiyada otelinize 1. veya 2. temas kaydidir; ayri sefer sayilmaz.
+            Servis personel getiriyorsa <strong>Inen</strong>, personel goturuyorsa <strong>Binen</strong> alanina yazin.
+        </div>
+    </div>
+
     <div class="d-flex flex-column gap-3">
         @foreach($periods as $periodKey => $periodLabel)
             @php
                 $periodMovementValues = collect($movementValues->get($periodKey, []));
                 $showIncludeColumn = $showInclude && $loop->first;
+                $periodHint = $periodHints[$periodKey] ?? 'Bu satir, ayni plakanin ayni vardiyadaki otel temasini ifade eder. Inen veya binen sayisini hareket anina gore girin.';
             @endphp
             <div class="rounded-3 bg-white p-3" style="border:1px solid {{ $themeStyles['border'] }}">
                 <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2">
@@ -41,6 +56,9 @@
                     <span class="badge" style="background:{{ $themeStyles['bg'] }};color:{{ $themeStyles['text'] }};border:1px solid {{ $themeStyles['border'] }}">
                         Ayni servis kaydi icinde
                     </span>
+                </div>
+                <div class="small mb-3 px-3 py-2 rounded" style="background:#fbf8f5;color:#6f5b45;border:1px dashed #eadcc9">
+                    {{ $periodHint }}
                 </div>
 
                 <div class="table-responsive">
