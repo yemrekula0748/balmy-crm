@@ -261,6 +261,7 @@ class ShuttleOperationController extends BaseModuleController
             'branch_movements.*' => 'nullable|array',
             'branch_movements.*.*.arrival' => 'nullable|integer|min:0|max:500',
             'branch_movements.*.*.departure' => 'nullable|integer|min:0|max:500',
+            'branch_movements.*.*.movement_time' => 'nullable|date_format:H:i',
             'branch_movements.*.*.arrival_time' => 'nullable|date_format:H:i',
             'branch_movements.*.*.departure_time' => 'nullable|date_format:H:i',
         ]);
@@ -336,14 +337,18 @@ class ShuttleOperationController extends BaseModuleController
         foreach ($this->movementPeriods() as $period) {
             foreach ($finalBranchIds as $branchId) {
                 $existingCounts = data_get($existingMatrix, "$period.$branchId", $this->emptyMovementRow());
-                $inputRow = $request->input("branch_movements.$period.$branchId", []);
+                $inputRow = (array) $request->input("branch_movements.$period.$branchId", []);
                 $canEditBranch = in_array($branchId, $visibleBranchIds, true);
+                $movementTime = $canEditBranch
+                    ? $this->normaliseMovementTime($inputRow)
+                    : ($existingCounts['movement_time'] ?? $existingCounts['arrival_time'] ?? $existingCounts['departure_time'] ?? null);
 
                 $movementMatrix[$period][$branchId] = [
                     'arrival' => $canEditBranch ? (int) data_get($inputRow, 'arrival', 0) : (int) $existingCounts['arrival'],
                     'departure' => $canEditBranch ? (int) data_get($inputRow, 'departure', 0) : (int) $existingCounts['departure'],
-                    'arrival_time' => $canEditBranch ? $this->normaliseTime(data_get($inputRow, 'arrival_time')) : ($existingCounts['arrival_time'] ?? null),
-                    'departure_time' => $canEditBranch ? $this->normaliseTime(data_get($inputRow, 'departure_time')) : ($existingCounts['departure_time'] ?? null),
+                    'movement_time' => $movementTime,
+                    'arrival_time' => $movementTime,
+                    'departure_time' => $movementTime,
                 ];
             }
         }
@@ -364,17 +369,20 @@ class ShuttleOperationController extends BaseModuleController
                 'branch_movements.*' => 'nullable|array',
                 'branch_movements.*.*.arrival' => 'nullable|integer|min:0|max:500',
                 'branch_movements.*.*.departure' => 'nullable|integer|min:0|max:500',
+                'branch_movements.*.*.movement_time' => 'nullable|date_format:H:i',
                 'branch_movements.*.*.arrival_time' => 'nullable|date_format:H:i',
                 'branch_movements.*.*.departure_time' => 'nullable|date_format:H:i',
             ]);
 
             foreach ($this->movementPeriods() as $period) {
-                $inputRow = $request->input("branch_movements.$period.$contextBranchId", []);
+                $inputRow = (array) $request->input("branch_movements.$period.$contextBranchId", []);
+                $movementTime = $this->normaliseMovementTime($inputRow);
                 $movementMatrix[$period][$contextBranchId] = [
                     'arrival' => (int) data_get($inputRow, 'arrival', 0),
                     'departure' => (int) data_get($inputRow, 'departure', 0),
-                    'arrival_time' => $this->normaliseTime(data_get($inputRow, 'arrival_time')),
-                    'departure_time' => $this->normaliseTime(data_get($inputRow, 'departure_time')),
+                    'movement_time' => $movementTime,
+                    'arrival_time' => $movementTime,
+                    'departure_time' => $movementTime,
                 ];
             }
         } else {
@@ -382,16 +390,19 @@ class ShuttleOperationController extends BaseModuleController
                 'movement_period' => 'required|string|in:' . implode(',', $this->movementPeriods()),
                 'arrival_count' => 'required|integer|min:0|max:500',
                 'departure_count' => 'required|integer|min:0|max:500',
+                'movement_time' => 'nullable|date_format:H:i',
                 'arrival_time' => 'nullable|date_format:H:i',
                 'departure_time' => 'nullable|date_format:H:i',
             ]);
 
             $period = $this->normalisePeriod($data['movement_period'] ?? null);
+            $movementTime = $this->normaliseMovementTime($data);
             $movementMatrix[$period][$contextBranchId] = [
                 'arrival' => (int) $data['arrival_count'],
                 'departure' => (int) $data['departure_count'],
-                'arrival_time' => $this->normaliseTime($data['arrival_time'] ?? null),
-                'departure_time' => $this->normaliseTime($data['departure_time'] ?? null),
+                'movement_time' => $movementTime,
+                'arrival_time' => $movementTime,
+                'departure_time' => $movementTime,
             ];
         }
 
@@ -411,8 +422,9 @@ class ShuttleOperationController extends BaseModuleController
                 $branchId = (int) $branchId;
                 $arrival = (int) ($counts['arrival'] ?? 0);
                 $departure = (int) ($counts['departure'] ?? 0);
-                $arrivalTime = $this->normaliseTime($counts['arrival_time'] ?? null);
-                $departureTime = $this->normaliseTime($counts['departure_time'] ?? null);
+                $movementTime = $this->normaliseMovementTime($counts);
+                $arrivalTime = $movementTime;
+                $departureTime = $movementTime;
 
                 $records[] = [
                     'branch_id' => $branchId,
@@ -505,6 +517,8 @@ class ShuttleOperationController extends BaseModuleController
                             return [
                                 'arrival' => (int) optional($arrivalMovement)->headcount,
                                 'departure' => (int) optional($departureMovement)->headcount,
+                                'movement_time' => $this->normaliseTime(optional($arrivalMovement)->movement_time)
+                                    ?: $this->normaliseTime(optional($departureMovement)->movement_time),
                                 'arrival_time' => $this->normaliseTime(optional($arrivalMovement)->movement_time),
                                 'departure_time' => $this->normaliseTime(optional($departureMovement)->movement_time),
                             ];
@@ -602,6 +616,13 @@ class ShuttleOperationController extends BaseModuleController
         return substr(trim($value), 0, 5);
     }
 
+    private function normaliseMovementTime(array $row): ?string
+    {
+        return $this->normaliseTime($row['movement_time'] ?? null)
+            ?: $this->normaliseTime($row['arrival_time'] ?? null)
+            ?: $this->normaliseTime($row['departure_time'] ?? null);
+    }
+
     private function normalisePeriod(?string $value): string
     {
         return array_key_exists((string) $value, ShuttleTripBranchMovement::PERIODS)
@@ -619,6 +640,7 @@ class ShuttleOperationController extends BaseModuleController
         return [
             'arrival' => 0,
             'departure' => 0,
+            'movement_time' => null,
             'arrival_time' => null,
             'departure_time' => null,
         ];
@@ -628,6 +650,7 @@ class ShuttleOperationController extends BaseModuleController
     {
         return (int) ($row['arrival'] ?? 0) > 0
             || (int) ($row['departure'] ?? 0) > 0
+            || ! empty($row['movement_time'])
             || ! empty($row['arrival_time'])
             || ! empty($row['departure_time']);
     }
@@ -657,11 +680,13 @@ class ShuttleOperationController extends BaseModuleController
             $period = $this->normalisePeriod($period);
 
             foreach ($branchRows as $branchId => $counts) {
+                $movementTime = $this->normaliseMovementTime($counts);
                 $normalisedCounts = [
                     'arrival' => (int) ($counts['arrival'] ?? 0),
                     'departure' => (int) ($counts['departure'] ?? 0),
-                    'arrival_time' => $this->normaliseTime($counts['arrival_time'] ?? null),
-                    'departure_time' => $this->normaliseTime($counts['departure_time'] ?? null),
+                    'movement_time' => $movementTime,
+                    'arrival_time' => $movementTime,
+                    'departure_time' => $movementTime,
                 ];
 
                 if (

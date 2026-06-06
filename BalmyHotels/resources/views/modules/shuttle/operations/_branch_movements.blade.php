@@ -4,7 +4,7 @@
     $selectableBranchIds = collect($selectableBranchIds ?? [])->map(fn ($id) => (int) $id)->all();
     $showInclude = $showInclude ?? true;
     $title = $title ?? 'Otel Bazli Hareket';
-    $description = $description ?? 'İlk/İkinci Uğrama aynı servis kaydı içindeki otel giriş-çıkış hareketidir; ayrı sefer sayılmaz. Sadece kendi otel satırını düzenleyebilirsin.';
+    $description = $description ?? 'Ilk/Ikinci Ugrama ayni servis kaydi icindeki otel hareketidir; ayri sefer sayilmaz. Sadece kendi otel satirini duzenleyebilirsin.';
     $theme = $theme ?? 'neutral';
     $compact = $compact ?? false;
     $periods = \App\Models\ShuttleTripBranchMovement::PERIODS;
@@ -39,7 +39,7 @@
                         {{ $periodLabel }}
                     </div>
                     <span class="badge" style="background:{{ $themeStyles['bg'] }};color:{{ $themeStyles['text'] }};border:1px solid {{ $themeStyles['border'] }}">
-                        Aynı servis kaydı içinde
+                        Ayni servis kaydi icinde
                     </span>
                 </div>
 
@@ -51,10 +51,9 @@
                                     <th class="border-0 ps-0 small text-muted text-uppercase text-center" style="width:82px">Dahil</th>
                                 @endif
                                 <th class="border-0 small text-muted text-uppercase">Otel</th>
-                                <th class="border-0 small text-muted text-uppercase text-center">Geldi</th>
-                                <th class="border-0 small text-muted text-uppercase text-center">Indi</th>
-                                <th class="border-0 small text-muted text-uppercase text-center">Cikti</th>
-                                <th class="border-0 pe-0 small text-muted text-uppercase text-center">Bindi</th>
+                                <th class="border-0 small text-muted text-uppercase text-center">Hareket Saati</th>
+                                <th class="border-0 small text-muted text-uppercase text-center">Inen</th>
+                                <th class="border-0 pe-0 small text-muted text-uppercase text-center">Binen</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -65,8 +64,9 @@
                                     $included = (bool) data_get($branchValue, 'included', false);
                                     $arrivalValue = (int) data_get($branchValue, 'arrival', 0);
                                     $departureValue = (int) data_get($branchValue, 'departure', 0);
-                                    $arrivalTimeValue = data_get($branchValue, 'arrival_time');
-                                    $departureTimeValue = data_get($branchValue, 'departure_time');
+                                    $movementTimeValue = data_get($branchValue, 'movement_time')
+                                        ?: data_get($branchValue, 'arrival_time')
+                                        ?: data_get($branchValue, 'departure_time');
                                     $canEditRow = in_array($branchId, $editableBranchIds, true);
                                     $canToggleInclude = in_array($branchId, $selectableBranchIds, true);
                                     $rowLocked = ! $canEditRow;
@@ -102,10 +102,10 @@
                                     <td class="text-center">
                                         <input
                                             type="time"
-                                            name="branch_movements[{{ $periodKey }}][{{ $branchId }}][arrival_time]"
-                                            value="{{ $arrivalTimeValue ? substr($arrivalTimeValue, 0, 5) : '' }}"
+                                            name="branch_movements[{{ $periodKey }}][{{ $branchId }}][movement_time]"
+                                            value="{{ $movementTimeValue ? substr($movementTimeValue, 0, 5) : '' }}"
                                             class="{{ $timeClass }}"
-                                            style="max-width:110px;margin:0 auto"
+                                            style="max-width:130px;margin:0 auto"
                                             data-branch-id="{{ $branchId }}"
                                             data-period-id="{{ $periodKey }}"
                                             data-auto-time-picker="1"
@@ -123,19 +123,6 @@
                                             style="max-width:96px;margin:0 auto"
                                             data-branch-id="{{ $branchId }}"
                                             data-period-id="{{ $periodKey }}"
-                                            @readonly($rowLocked)
-                                        >
-                                    </td>
-                                    <td class="text-center">
-                                        <input
-                                            type="time"
-                                            name="branch_movements[{{ $periodKey }}][{{ $branchId }}][departure_time]"
-                                            value="{{ $departureTimeValue ? substr($departureTimeValue, 0, 5) : '' }}"
-                                            class="{{ $timeClass }}"
-                                            style="max-width:110px;margin:0 auto"
-                                            data-branch-id="{{ $branchId }}"
-                                            data-period-id="{{ $periodKey }}"
-                                            data-auto-time-picker="1"
                                             @readonly($rowLocked)
                                         >
                                     </td>
@@ -166,6 +153,5 @@
     @error('branch_movements')<div class="text-danger small mt-2">{{ $message }}</div>@enderror
     @error('branch_movements.*.*.arrival')<div class="text-danger small mt-2">{{ $message }}</div>@enderror
     @error('branch_movements.*.*.departure')<div class="text-danger small mt-2">{{ $message }}</div>@enderror
-    @error('branch_movements.*.*.arrival_time')<div class="text-danger small mt-2">{{ $message }}</div>@enderror
-    @error('branch_movements.*.*.departure_time')<div class="text-danger small mt-2">{{ $message }}</div>@enderror
+    @error('branch_movements.*.*.movement_time')<div class="text-danger small mt-2">{{ $message }}</div>@enderror
 </div>

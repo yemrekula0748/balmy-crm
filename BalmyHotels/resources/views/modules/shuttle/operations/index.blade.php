@@ -23,6 +23,9 @@
                         'included' => in_array($branchId, $oldInvolvedBranchIds, true),
                         'arrival' => (int) data_get($oldRow, 'arrival', 0),
                         'departure' => (int) data_get($oldRow, 'departure', 0),
+                        'movement_time' => data_get($oldRow, 'movement_time')
+                            ?: data_get($oldRow, 'arrival_time')
+                            ?: data_get($oldRow, 'departure_time'),
                         'arrival_time' => data_get($oldRow, 'arrival_time'),
                         'departure_time' => data_get($oldRow, 'departure_time'),
                     ],
@@ -37,7 +40,7 @@
         <div class="col-sm-6 p-md-0">
             <div class="welcome-text">
                 <h4>Servis Operasyonu</h4>
-                <span>{{ $date->format('d.m.Y') }} - Plaka bazli geldi / indi / cikti / bindi takibi</span>
+                <span>{{ $date->format('d.m.Y') }} - Plaka bazli hareket saati / inen / binen takibi</span>
             </div>
         </div>
         <div class="col-sm-6 p-md-0 justify-content-sm-end mt-2 mt-sm-0 d-flex">
@@ -74,7 +77,7 @@
                         <div>
                             <div class="text-white fw-semibold fs-5">Ortak Servis Hareketi</div>
                             <div style="color:rgba(255,255,255,0.55);font-size:.82rem">
-                                Ayni plaka altinda Beach ve Foresta ayri saat ve kisi kaydi tutar
+                                Ayni plaka altinda Beach ve Foresta kendi hareket saatini ve kisi sayisini tutar
                             </div>
                         </div>
                     </div>
@@ -193,6 +196,9 @@
                                                 return [
                                                     'arrival' => (int) optional($arrivalMovement)->headcount,
                                                     'departure' => (int) optional($departureMovement)->headcount,
+                                                    'movement_time' => optional($arrivalMovement)->movement_time
+                                                        ? substr($arrivalMovement->movement_time, 0, 5)
+                                                        : (optional($departureMovement)->movement_time ? substr($departureMovement->movement_time, 0, 5) : null),
                                                     'arrival_time' => optional($arrivalMovement)->movement_time ? substr($arrivalMovement->movement_time, 0, 5) : null,
                                                     'departure_time' => optional($departureMovement)->movement_time ? substr($departureMovement->movement_time, 0, 5) : null,
                                                 ];
@@ -203,6 +209,7 @@
                                             $periodKey => (array) data_get($periodMatrix, "$periodKey.$activeBranchId", [
                                                 'arrival' => 0,
                                                 'departure' => 0,
+                                                'movement_time' => null,
                                                 'arrival_time' => null,
                                                 'departure_time' => null,
                                             ]),
@@ -217,6 +224,7 @@
                                     $movementRowHasDataForView = function (array $row): bool {
                                         return (int) ($row['arrival'] ?? 0) > 0
                                             || (int) ($row['departure'] ?? 0) > 0
+                                            || ! empty($row['movement_time'])
                                             || ! empty($row['arrival_time'])
                                             || ! empty($row['departure_time']);
                                     };
@@ -292,17 +300,15 @@
                                                             @php
                                                                 $movementBranch = $allBranches->firstWhere('id', (int) $branchId);
                                                                 $isActiveRow = $activeBranchId && (int) $branchId === (int) $activeBranchId;
+                                                                $movementTime = $counts['movement_time'] ?? ($counts['arrival_time'] ?? ($counts['departure_time'] ?? null));
                                                             @endphp
                                                             <div class="rounded-3 p-2"
                                                                  style="background:{{ $isActiveRow ? '#eef6f2' : '#fff' }};border:1px solid {{ $isActiveRow ? '#cfe3d8' : '#eadcc9' }}">
                                                                 <div class="small fw-semibold text-dark mb-1">{{ $movementBranch->name ?? '-' }}</div>
                                                                 <div class="small text-muted d-flex gap-3 flex-wrap">
-                                                                    <span><strong>Geldi:</strong> {{ $counts['arrival_time'] ?: '-' }}</span>
-                                                                    <span><strong>Indi:</strong> {{ $counts['arrival'] }}</span>
-                                                                </div>
-                                                                <div class="small text-muted d-flex gap-3 flex-wrap mt-1">
-                                                                    <span><strong>Cikti:</strong> {{ $counts['departure_time'] ?: '-' }}</span>
-                                                                    <span><strong>Bindi:</strong> {{ $counts['departure'] }}</span>
+                                                                    <span><strong>Saat:</strong> {{ $movementTime ?: '-' }}</span>
+                                                                    <span><strong>Inen:</strong> {{ $counts['arrival'] }}</span>
+                                                                    <span><strong>Binen:</strong> {{ $counts['departure'] }}</span>
                                                                 </div>
                                                             </div>
                                                         @endforeach
@@ -312,11 +318,11 @@
                                         </div>
                                     </td>
                                     <td>
-                                        <div class="small text-muted">Ilk Gelis</div>
+                                        <div class="small text-muted">Ilk Hareket</div>
                                         <div class="fw-semibold text-dark">{{ $trip->arrival_time ? substr($trip->arrival_time, 0, 5) : '-' }}</div>
-                                        <div class="small text-muted mt-2">Toplam Indi / Bindi</div>
+                                        <div class="small text-muted mt-2">Toplam Inen / Binen</div>
                                         <div class="fw-semibold text-dark">{{ $trip->arrival_count }} / {{ $trip->departure_count }}</div>
-                                        <div class="small text-muted mt-2">Son Cikis</div>
+                                        <div class="small text-muted mt-2">Son Hareket</div>
                                         <div class="fw-semibold text-dark">{{ $trip->departure_time ? substr($trip->departure_time, 0, 5) : '-' }}</div>
                                     </td>
                                     <td style="max-width:250px">
@@ -489,7 +495,7 @@
                                         'selectableBranchIds' => [],
                                         'showInclude' => false,
                                         'title' => 'Kendi Otel Hareketin',
-                                        'description' => 'İlk/İkinci Uğrama aynı servis kaydı içindeki otel giriş-çıkış hareketidir; ayrı sefer sayılmaz. Yeni hareket eklerken sadece seçili otelin geldi / indi / çıktı / bindi satırları görünür.',
+                                        'description' => 'Ilk/Ikinci Ugrama ayni servis kaydi icindeki otel hareketidir; ayri sefer sayilmaz. Yeni hareket eklerken sadece secili otelin hareket saati, inen ve binen sayisi girilir.',
                                         'theme' => 'info',
                                     ])
                                 </div>
@@ -532,7 +538,7 @@
                         <div class="rounded-3 p-3 mb-3" style="background:#fbf8f5;border:1px solid #eadcc9">
                             <div class="small text-uppercase fw-semibold text-muted mb-1">Islem Yapilan Otel</div>
                             <div class="fw-semibold text-dark" id="branchProcessBranchName">-</div>
-                            <div class="small text-muted mt-1">İlk/İkinci Uğrama aynı servis kaydı içindeki otel giriş-çıkış hareketidir; ayrı sefer sayılmaz. Yalnızca seçilen uğrama için bu otelin geldi / indi / çıktı / bindi bilgisi kaydedilir.</div>
+                            <div class="small text-muted mt-1">Ilk/Ikinci Ugrama ayni servis kaydi icindeki otel hareketidir; ayri sefer sayilmaz. Secilen ugrama icin tek hareket saati, inen ve binen sayisi kaydedilir.</div>
                         </div>
                         <div class="row g-3">
                             <div class="col-12">
@@ -543,20 +549,16 @@
                                     @endforeach
                                 </select>
                             </div>
-                            <div class="col-md-6">
-                                <label class="form-label fw-semibold small">Geldi Saati</label>
-                                <input type="time" name="arrival_time" id="branchProcessArrivalTime" class="form-control" data-auto-time-picker="1">
+                            <div class="col-12">
+                                <label class="form-label fw-semibold small">Hareket Saati</label>
+                                <input type="time" name="movement_time" id="branchProcessMovementTime" class="form-control" data-auto-time-picker="1">
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label fw-semibold small">Indi <span class="text-danger">*</span></label>
+                                <label class="form-label fw-semibold small">Inen <span class="text-danger">*</span></label>
                                 <input type="number" name="arrival_count" id="branchProcessArrivalCount" class="form-control" min="0" max="500" required>
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label fw-semibold small">Cikti Saati</label>
-                                <input type="time" name="departure_time" id="branchProcessDepartureTime" class="form-control" data-auto-time-picker="1">
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label fw-semibold small">Bindi <span class="text-danger">*</span></label>
+                                <label class="form-label fw-semibold small">Binen <span class="text-danger">*</span></label>
                                 <input type="number" name="departure_count" id="branchProcessDepartureCount" class="form-control" min="0" max="500" required>
                             </div>
                         </div>
@@ -730,10 +732,16 @@ function openBranchProcessModal(payload) {
     const fillPeriodFields = () => {
         const selectedPeriod = periodSelect?.value || 'day';
         const values = periodMovements[selectedPeriod] || {};
+        const movementTime = values.movement_time
+            || values.arrival_time
+            || values.departure_time
+            || payload.movementTime
+            || payload.arrivalTime
+            || payload.departureTime
+            || '';
 
-        document.getElementById('branchProcessArrivalTime').value = values.arrival_time || payload.arrivalTime || '';
+        document.getElementById('branchProcessMovementTime').value = movementTime;
         document.getElementById('branchProcessArrivalCount').value = Number(values.arrival || payload.arrivalCount || 0);
-        document.getElementById('branchProcessDepartureTime').value = values.departure_time || payload.departureTime || '';
         document.getElementById('branchProcessDepartureCount').value = Number(values.departure || payload.departureCount || 0);
     };
 
@@ -789,6 +797,7 @@ document.addEventListener('DOMContentLoaded', () => {
             contextBranchId: @json((int) old('context_branch_id', $activeBranchId)),
             branchName: @json(optional($branches->firstWhere('id', $activeBranchId))->name ?? ''),
             movementPeriod: @json(old('movement_period', 'day')),
+            movementTime: @json(old('movement_time') ?: old('arrival_time') ?: old('departure_time')),
             arrivalTime: @json(old('arrival_time')),
             arrivalCount: @json((int) old('arrival_count', 0)),
             departureTime: @json(old('departure_time')),

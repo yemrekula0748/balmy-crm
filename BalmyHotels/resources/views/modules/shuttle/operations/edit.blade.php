@@ -20,6 +20,9 @@
                     return [
                         'arrival' => (int) optional($arrivalMovement)->headcount,
                         'departure' => (int) optional($departureMovement)->headcount,
+                        'movement_time' => optional($arrivalMovement)->movement_time
+                            ? substr($arrivalMovement->movement_time, 0, 5)
+                            : (optional($departureMovement)->movement_time ? substr($departureMovement->movement_time, 0, 5) : null),
                         'arrival_time' => optional($arrivalMovement)->movement_time ? substr($arrivalMovement->movement_time, 0, 5) : null,
                         'departure_time' => optional($departureMovement)->movement_time ? substr($departureMovement->movement_time, 0, 5) : null,
                     ];
@@ -55,9 +58,11 @@
                 $currentRow = (array) data_get($existingMatrix, "$periodKey.$branchId", [
                     'arrival' => 0,
                     'departure' => 0,
+                    'movement_time' => null,
                     'arrival_time' => null,
                     'departure_time' => null,
                 ]);
+                $currentMovementTime = $currentRow['movement_time'] ?? ($currentRow['arrival_time'] ?? ($currentRow['departure_time'] ?? null));
 
                 return [
                     $branchId => [
@@ -66,6 +71,10 @@
                             : in_array($branchId, $defaultIncludedBranchIds, true),
                         'arrival' => (int) data_get($oldRow, 'arrival', $currentRow['arrival']),
                         'departure' => (int) data_get($oldRow, 'departure', $currentRow['departure']),
+                        'movement_time' => data_get($oldRow, 'movement_time')
+                            ?: data_get($oldRow, 'arrival_time')
+                            ?: data_get($oldRow, 'departure_time')
+                            ?: $currentMovementTime,
                         'arrival_time' => data_get($oldRow, 'arrival_time', $currentRow['arrival_time']),
                         'departure_time' => data_get($oldRow, 'departure_time', $currentRow['departure_time']),
                     ],
@@ -128,7 +137,7 @@
                 <div class="card-body p-4">
                     @if($isOwner)
                         <div class="alert border-0 mb-4" style="background:#fbf6ef;color:#8f6d4f">
-                            Bu kayit ayni servis plakasi altinda Beach ve Foresta hareketlerini birlikte tutar. Diger taraf sayilari ve saatleri gorebilir; yalnizca kendi satirlarini guncelleyebilir.
+                            Bu kayit ayni servis plakasi altinda Beach ve Foresta hareketlerini birlikte tutar. Diger taraf kendi hareketini gorebilir; yalnizca kendi satirlarini guncelleyebilir.
                         </div>
 
                         <form action="{{ route('shuttle.operations.update', $operation) }}" method="POST" id="editTripForm">
@@ -194,11 +203,11 @@
                                                 <div class="fw-semibold text-dark">{{ $includedBranchCount }}</div>
                                             </div>
                                             <div class="col-md-3">
-                                                <div class="small text-muted text-uppercase fw-semibold mb-1">Toplam Indi</div>
+                                                <div class="small text-muted text-uppercase fw-semibold mb-1">Toplam Inen</div>
                                                 <div class="fw-semibold text-dark">{{ $operation->arrival_count }}</div>
                                             </div>
                                             <div class="col-md-3">
-                                                <div class="small text-muted text-uppercase fw-semibold mb-1">Toplam Bindi</div>
+                                                <div class="small text-muted text-uppercase fw-semibold mb-1">Toplam Binen</div>
                                                 <div class="fw-semibold text-dark">{{ $operation->departure_count }}</div>
                                             </div>
                                             <div class="col-md-3">
@@ -258,8 +267,8 @@
                                         'movementValues' => $movementValues,
                                         'editableBranchIds' => $visibleBranchIds,
                                         'selectableBranchIds' => $allBranches->pluck('id')->all(),
-                                        'title' => 'Otel Bazli Geldi / Indi / Cikti / Bindi',
-                                        'description' => 'İlk/İkinci Uğrama aynı servis kaydı içindeki otel giriş-çıkış hareketidir; ayrı sefer sayılmaz. Her otel geldi-çıktı saatini ve kişi sayısını kendi satırında tutar.',
+                                        'title' => 'Otel Bazli Hareket Saati / Inen / Binen',
+                                        'description' => 'Ilk/Ikinci Ugrama ayni servis kaydi icindeki otel hareketidir; ayri sefer sayilmaz. Her otel tek hareket saatini, inen ve binen sayisini kendi satirinda tutar.',
                                         'theme' => 'info',
                                     ])
                                 </div>
@@ -282,7 +291,7 @@
                         </form>
                     @else
                         <div class="alert border-0 mb-4" style="background:#eef6f2;color:#2e7d52">
-                            Bu plakada sadece kendi otelinin hareketini isleyebilirsin. Diger otelin saat ve sayi bilgileri read-only gorunur.
+                            Bu plakada sadece kendi otelinin hareketini isleyebilirsin. Diger otelin hareket bilgileri read-only gorunur.
                         </div>
 
                         <form action="{{ route('shuttle.operations.update', $operation) }}" method="POST">
@@ -319,7 +328,7 @@
                                         'selectableBranchIds' => [],
                                         'showInclude' => false,
                                         'title' => 'İlk / İkinci Uğrama Otel Hareketleri',
-                                        'description' => 'İlk/İkinci Uğrama aynı servis kaydı içindeki otel giriş-çıkış hareketidir; ayrı sefer sayılmaz. Bu ekranda yalnızca kendi otelinin satırlarını güncelleyebilirsin.',
+                                        'description' => 'Ilk/Ikinci Ugrama ayni servis kaydi icindeki otel hareketidir; ayri sefer sayilmaz. Bu ekranda yalnizca kendi otelinin hareket saati, inen ve binen sayisini guncelleyebilirsin.',
                                         'theme' => 'neutral',
                                     ])
                                 </div>
