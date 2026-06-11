@@ -95,6 +95,7 @@ class RolePermission extends Model
         ],
         'Üst Yönetim Rapor' => [
             'yonetim_kurulu_rapor' => 'Yönetim Kurulu Rapor',
+            'yonetim_siparis_raporu' => 'Sipariş Tüketim Raporu',
         ],
         'Servis Takip' => [
             'shuttle_routes'     => 'Güzergah Tanımları',

@@ -5,12 +5,15 @@ namespace App\Http\Controllers\Modules;
 use App\Models\Branch;
 use App\Models\DoorLog;
 use App\Models\Fault;
+use App\Models\Restaurant;
+use App\Models\RestaurantOrderItem;
 use App\Models\ShuttleTrip;
 use App\Models\ShuttleVehicle;
 use App\Models\User;
 use Carbon\Carbon;
 use Carbon\CarbonPeriod;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 
 class ManagementReportController extends BaseModuleController
 {
@@ -18,17 +21,29 @@ class ManagementReportController extends BaseModuleController
     {
         $this->requirePermission(
             'yonetim_kurulu_rapor',
-            ['index', 'managerDoorLogs', 'technicalFaults', 'shuttleServices'],
+            ['managerDoorLogs', 'technicalFaults', 'shuttleServices'],
             [],
             [],
             [],
             []
         );
+
+        $this->middleware('perm:yonetim_siparis_raporu,index')->only(['orderConsumption']);
     }
 
     public function index()
     {
-        return redirect()->route('management-reports.manager-door-logs');
+        $user = auth()->user();
+
+        if ($user->hasPermission('yonetim_kurulu_rapor', 'index')) {
+            return redirect()->route('management-reports.manager-door-logs');
+        }
+
+        if ($user->hasPermission('yonetim_siparis_raporu', 'index')) {
+            return redirect()->route('management-reports.order-consumption');
+        }
+
+        abort(403);
     }
 
     public function managerDoorLogs(Request $request)
@@ -495,6 +510,247 @@ class ManagementReportController extends BaseModuleController
         ));
     }
 
+    public function orderConsumption(Request $request)
+    {
+        $user      = auth()->user();
+        $branchIds = $user->visibleBranchIds();
+        [$dateFrom, $dateTo] = $this->datePeriod($request, 'month');
+        $branchId = $this->selectedBranchId($request, $branchIds);
+        $restaurantId = $this->selectedRestaurantId($request, $branchIds, $branchId);
+        $branches = $this->branchList($branchIds);
+        $restaurants = Restaurant::with('branch')
+            ->whereIn('branch_id', $branchIds)
+            ->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
+            ->orderBy('name')
+            ->get();
+        $periodDays = $this->periodDays($dateFrom, $dateTo);
+
+        $itemBase = RestaurantOrderItem::query()
+            ->join('restaurant_orders', 'restaurant_orders.id', '=', 'restaurant_order_items.order_id')
+            ->join('table_sessions', 'table_sessions.id', '=', 'restaurant_orders.table_session_id')
+            ->join('restaurant_tables', 'restaurant_tables.id', '=', 'table_sessions.restaurant_table_id')
+            ->join('restaurants', 'restaurants.id', '=', 'restaurant_tables.restaurant_id')
+            ->leftJoin('branches', 'branches.id', '=', 'restaurants.branch_id')
+            ->leftJoin('qr_menus', 'qr_menus.id', '=', 'restaurants.qr_menu_id')
+            ->whereIn('restaurants.branch_id', $branchIds)
+            ->whereDate('table_sessions.opened_at', '>=', $dateFrom->toDateString())
+            ->whereDate('table_sessions.opened_at', '<=', $dateTo->toDateString())
+            ->when($branchId, fn ($q) => $q->where('restaurants.branch_id', $branchId))
+            ->when($restaurantId, fn ($q) => $q->where('restaurants.id', $restaurantId));
+
+        $summaryRaw = (clone $itemBase)
+            ->selectRaw('
+                COALESCE(SUM(restaurant_order_items.quantity), 0) as total_qty,
+                COUNT(DISTINCT restaurant_orders.id) as total_orders,
+                COUNT(DISTINCT table_sessions.id) as total_sessions,
+                COUNT(DISTINCT restaurants.id) as active_restaurants,
+                COALESCE(SUM(CASE WHEN restaurant_order_items.unit_price > 0 THEN restaurant_order_items.quantity ELSE 0 END), 0) as priced_qty,
+                COALESCE(SUM(CASE WHEN restaurant_order_items.unit_price IS NULL OR restaurant_order_items.unit_price <= 0 THEN restaurant_order_items.quantity ELSE 0 END), 0) as inclusive_qty,
+                COALESCE(SUM(CASE WHEN restaurant_order_items.unit_price > 0 THEN restaurant_order_items.unit_price * restaurant_order_items.quantity ELSE 0 END), 0) as recorded_value
+            ')
+            ->first();
+
+        $totalQty = (int) ($summaryRaw->total_qty ?? 0);
+        $totalOrders = (int) ($summaryRaw->total_orders ?? 0);
+        $totalSessions = (int) ($summaryRaw->total_sessions ?? 0);
+        $inclusiveQty = (int) ($summaryRaw->inclusive_qty ?? 0);
+        $pricedQty = (int) ($summaryRaw->priced_qty ?? 0);
+
+        $summary = [
+            'total_qty'              => $totalQty,
+            'total_orders'           => $totalOrders,
+            'total_sessions'         => $totalSessions,
+            'active_restaurants'     => (int) ($summaryRaw->active_restaurants ?? 0),
+            'inclusive_qty'          => $inclusiveQty,
+            'priced_qty'             => $pricedQty,
+            'inclusive_pct'          => $totalQty > 0 ? round($inclusiveQty / $totalQty * 100) : 0,
+            'priced_pct'             => $totalQty > 0 ? round($pricedQty / $totalQty * 100) : 0,
+            'recorded_value'         => round((float) ($summaryRaw->recorded_value ?? 0), 2),
+            'avg_qty_per_session'    => $totalSessions > 0 ? round($totalQty / $totalSessions, 1) : 0,
+            'avg_orders_per_session' => $totalSessions > 0 ? round($totalOrders / $totalSessions, 1) : 0,
+            'avg_daily_qty'          => round($totalQty / max(1, $periodDays), 1),
+        ];
+
+        $byRestaurant = (clone $itemBase)
+            ->selectRaw('
+                restaurants.id as restaurant_id,
+                restaurants.name as restaurant_name,
+                COALESCE(branches.name, \'-\') as branch_name,
+                COALESCE(qr_menus.name, \'\') as menu_name,
+                COALESCE(SUM(restaurant_order_items.quantity), 0) as total_qty,
+                COUNT(DISTINCT restaurant_orders.id) as total_orders,
+                COUNT(DISTINCT table_sessions.id) as total_sessions,
+                COUNT(DISTINCT restaurant_order_items.item_name) as item_variety,
+                COALESCE(SUM(CASE WHEN restaurant_order_items.unit_price > 0 THEN restaurant_order_items.quantity ELSE 0 END), 0) as priced_qty,
+                COALESCE(SUM(CASE WHEN restaurant_order_items.unit_price IS NULL OR restaurant_order_items.unit_price <= 0 THEN restaurant_order_items.quantity ELSE 0 END), 0) as inclusive_qty,
+                COALESCE(SUM(CASE WHEN restaurant_order_items.unit_price > 0 THEN restaurant_order_items.unit_price * restaurant_order_items.quantity ELSE 0 END), 0) as recorded_value
+            ')
+            ->groupBy('restaurants.id', 'restaurants.name', 'branches.name', 'qr_menus.name')
+            ->get()
+            ->map(function ($row) {
+                $row->total_qty = (int) $row->total_qty;
+                $row->total_orders = (int) $row->total_orders;
+                $row->total_sessions = (int) $row->total_sessions;
+                $row->item_variety = (int) $row->item_variety;
+                $row->priced_qty = (int) $row->priced_qty;
+                $row->inclusive_qty = (int) $row->inclusive_qty;
+                $row->recorded_value = round((float) $row->recorded_value, 2);
+                $row->avg_qty_per_session = $row->total_sessions > 0 ? round($row->total_qty / $row->total_sessions, 1) : 0;
+                $row->avg_orders_per_session = $row->total_sessions > 0 ? round($row->total_orders / $row->total_sessions, 1) : 0;
+                $row->inclusive_pct = $row->total_qty > 0 ? round($row->inclusive_qty / $row->total_qty * 100) : 0;
+                $row->outlet_type = $this->outletType($row->restaurant_name, $row->menu_name);
+
+                return $row;
+            })
+            ->sortByDesc('total_qty')
+            ->values();
+
+        $outletSummary = $byRestaurant
+            ->groupBy('outlet_type')
+            ->map(fn ($rows, $type) => [
+                'type' => $type,
+                'outlets' => $rows->count(),
+                'qty' => $rows->sum('total_qty'),
+                'orders' => $rows->sum('total_orders'),
+                'sessions' => $rows->sum('total_sessions'),
+                'inclusive_qty' => $rows->sum('inclusive_qty'),
+                'recorded_value' => round($rows->sum('recorded_value'), 2),
+                'avg_qty_per_session' => $rows->sum('total_sessions') > 0
+                    ? round($rows->sum('total_qty') / $rows->sum('total_sessions'), 1)
+                    : 0,
+            ])
+            ->sortByDesc('qty')
+            ->values();
+
+        $topProducts = (clone $itemBase)
+            ->selectRaw('
+                restaurant_order_items.item_name,
+                COALESCE(SUM(restaurant_order_items.quantity), 0) as total_qty,
+                COUNT(DISTINCT restaurants.id) as restaurant_count,
+                COUNT(DISTINCT table_sessions.id) as session_count,
+                COALESCE(SUM(CASE WHEN restaurant_order_items.unit_price > 0 THEN restaurant_order_items.quantity ELSE 0 END), 0) as priced_qty,
+                COALESCE(SUM(CASE WHEN restaurant_order_items.unit_price IS NULL OR restaurant_order_items.unit_price <= 0 THEN restaurant_order_items.quantity ELSE 0 END), 0) as inclusive_qty,
+                COALESCE(SUM(CASE WHEN restaurant_order_items.unit_price > 0 THEN restaurant_order_items.unit_price * restaurant_order_items.quantity ELSE 0 END), 0) as recorded_value
+            ')
+            ->groupBy('restaurant_order_items.item_name')
+            ->orderByDesc('total_qty')
+            ->limit(15)
+            ->get();
+
+        $topInclusiveProducts = (clone $itemBase)
+            ->where(function ($q) {
+                $q->whereNull('restaurant_order_items.unit_price')
+                  ->orWhere('restaurant_order_items.unit_price', '<=', 0);
+            })
+            ->selectRaw('
+                restaurant_order_items.item_name,
+                COALESCE(SUM(restaurant_order_items.quantity), 0) as total_qty,
+                COUNT(DISTINCT restaurants.id) as restaurant_count,
+                COUNT(DISTINCT table_sessions.id) as session_count
+            ')
+            ->groupBy('restaurant_order_items.item_name')
+            ->orderByDesc('total_qty')
+            ->limit(10)
+            ->get();
+
+        $topRecordedValueProducts = (clone $itemBase)
+            ->where('restaurant_order_items.unit_price', '>', 0)
+            ->selectRaw('
+                restaurant_order_items.item_name,
+                COALESCE(SUM(restaurant_order_items.quantity), 0) as total_qty,
+                COALESCE(SUM(restaurant_order_items.unit_price * restaurant_order_items.quantity), 0) as recorded_value,
+                AVG(restaurant_order_items.unit_price) as avg_unit_price
+            ')
+            ->groupBy('restaurant_order_items.item_name')
+            ->orderByDesc('recorded_value')
+            ->limit(10)
+            ->get();
+
+        $dailyRows = (clone $itemBase)
+            ->selectRaw('
+                DATE(table_sessions.opened_at) as day,
+                COALESCE(SUM(restaurant_order_items.quantity), 0) as qty,
+                COUNT(DISTINCT restaurant_orders.id) as orders,
+                COUNT(DISTINCT table_sessions.id) as sessions
+            ')
+            ->groupByRaw('DATE(table_sessions.opened_at)')
+            ->get()
+            ->keyBy('day');
+
+        $dailyLabels = [];
+        $dailyQty = [];
+        $dailyOrders = [];
+        $dailySessions = [];
+        foreach (CarbonPeriod::create($dateFrom->copy()->startOfDay(), $dateTo->copy()->startOfDay()) as $day) {
+            $key = $day->format('Y-m-d');
+            $row = $dailyRows->get($key);
+            $dailyLabels[] = $day->locale('tr')->isoFormat('D MMM');
+            $dailyQty[] = (int) ($row->qty ?? 0);
+            $dailyOrders[] = (int) ($row->orders ?? 0);
+            $dailySessions[] = (int) ($row->sessions ?? 0);
+        }
+
+        $hourlyRows = (clone $itemBase)
+            ->selectRaw('HOUR(restaurant_orders.created_at) as hour, COUNT(DISTINCT restaurant_orders.id) as orders')
+            ->groupByRaw('HOUR(restaurant_orders.created_at)')
+            ->pluck('orders', 'hour');
+        $hourlyLabels = collect(range(0, 23))->map(fn ($hour) => sprintf('%02d:00', $hour))->values();
+        $hourlyOrders = collect(range(0, 23))->map(fn ($hour) => (int) $hourlyRows->get($hour, 0))->values();
+
+        $topWaiters = (clone $itemBase)
+            ->join('users', 'users.id', '=', 'restaurant_orders.created_by')
+            ->selectRaw('
+                users.name as waiter_name,
+                COUNT(DISTINCT restaurant_orders.id) as order_count,
+                COUNT(DISTINCT table_sessions.id) as session_count,
+                COALESCE(SUM(restaurant_order_items.quantity), 0) as item_qty
+            ')
+            ->groupBy('users.id', 'users.name')
+            ->orderByDesc('order_count')
+            ->limit(10)
+            ->get();
+
+        $branchSummary = (clone $itemBase)
+            ->selectRaw('
+                COALESCE(branches.name, \'-\') as branch_name,
+                COUNT(DISTINCT restaurants.id) as restaurant_count,
+                COUNT(DISTINCT table_sessions.id) as session_count,
+                COUNT(DISTINCT restaurant_orders.id) as order_count,
+                COALESCE(SUM(restaurant_order_items.quantity), 0) as item_qty
+            ')
+            ->groupBy('branches.name')
+            ->orderByDesc('item_qty')
+            ->get();
+
+        $costRecommendations = $this->orderConsumptionInsights($summary, $byRestaurant, $topProducts, $topInclusiveProducts, $outletSummary);
+        $page_title = 'Sipariş Tüketim Raporu';
+
+        return view('modules.management_reports.order_consumption', compact(
+            'page_title',
+            'dateFrom',
+            'dateTo',
+            'branchId',
+            'restaurantId',
+            'branches',
+            'restaurants',
+            'summary',
+            'byRestaurant',
+            'outletSummary',
+            'topProducts',
+            'topInclusiveProducts',
+            'topRecordedValueProducts',
+            'dailyLabels',
+            'dailyQty',
+            'dailyOrders',
+            'dailySessions',
+            'hourlyLabels',
+            'hourlyOrders',
+            'topWaiters',
+            'branchSummary',
+            'costRecommendations'
+        ));
+    }
+
     private function datePeriod(Request $request, string $default): array
     {
         $defaultFrom = match ($default) {
@@ -527,6 +783,23 @@ class ManagementReportController extends BaseModuleController
         abort_if(!in_array($branchId, $branchIds, true), 403);
 
         return $branchId;
+    }
+
+    private function selectedRestaurantId(Request $request, array $branchIds, ?int $branchId): ?int
+    {
+        if (!$request->filled('restaurant_id')) {
+            return null;
+        }
+
+        $restaurantId = (int) $request->input('restaurant_id');
+        $exists = Restaurant::whereKey($restaurantId)
+            ->whereIn('branch_id', $branchIds)
+            ->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
+            ->exists();
+
+        abort_if(!$exists, 403);
+
+        return $restaurantId;
     }
 
     private function branchList(array $branchIds)
@@ -700,6 +973,62 @@ class ManagementReportController extends BaseModuleController
         $topShift = $byShift->first();
         if ($topShift) {
             $lines[] = "En yoğun vardiya {$topShift['name']}; toplam {$topShift['movement']} hareket.";
+        }
+
+        return $lines;
+    }
+
+    private function outletType(?string $restaurantName, ?string $menuName): string
+    {
+        $text = Str::of(trim(($restaurantName ?? '') . ' ' . ($menuName ?? '')))->lower()->toString();
+
+        if (Str::contains($text, ['bar', 'lobby', 'pool', 'beach', 'pub', 'disco', 'snack'])) {
+            return 'Bar / ücretsiz tüketim';
+        }
+
+        if (Str::contains($text, ['restoran', 'restaurant', 'a la carte', 'alacarte', 'steak', 'fish', 'balik', 'balık', 'italian', 'mexican', 'ottoman'])) {
+            return 'Restoran / girişli kullanım';
+        }
+
+        return 'Genel outlet';
+    }
+
+    private function orderConsumptionInsights(array $summary, $byRestaurant, $topProducts, $topInclusiveProducts, $outletSummary): array
+    {
+        if ($summary['total_qty'] === 0) {
+            return ['Seçili dönemde sipariş kaydı bulunmuyor. Bu dönem için ölçülebilir restoran veya bar tüketimi oluşmamış.'];
+        }
+
+        $lines = [];
+        $lines[] = "Seçili dönemde {$summary['total_orders']} sipariş, {$summary['total_sessions']} masa/seans ve toplam {$summary['total_qty']} ürün adedi takip edildi.";
+        $lines[] = "Her şey dahil düzende bu ekranı net gelir raporu gibi değil, tüketim yükü ve maliyet baskısı göstergesi olarak okumak gerekir.";
+
+        if ($summary['inclusive_qty'] > 0) {
+            $lines[] = "Ücretsiz/ikram veya fiyatı sıfır girilen ürün adedi {$summary['inclusive_qty']} ve toplam tüketimin yaklaşık %{$summary['inclusive_pct']} oranında.";
+        }
+
+        if ($summary['avg_qty_per_session'] > 0) {
+            $lines[] = "Seans başına ortalama {$summary['avg_qty_per_session']} ürün tüketilmiş. Giriş/kuver bedeli ayrı takip edildiği için kişi başı karlılık hesabı ayrıca cover sayısıyla eşleştirilmeli.";
+        }
+
+        $topRestaurant = $byRestaurant->first();
+        if ($topRestaurant) {
+            $lines[] = "En yüksek tüketim {$topRestaurant->restaurant_name} alanında: {$topRestaurant->total_qty} ürün, {$topRestaurant->total_sessions} seans, seans başına {$topRestaurant->avg_qty_per_session} ürün.";
+        }
+
+        $topProduct = $topProducts->first();
+        if ($topProduct) {
+            $lines[] = "En çok çıkan ürün {$topProduct->item_name}; toplam {$topProduct->total_qty} adet. Bu ürün için porsiyon, reçete ve hazırlık fireleri kontrol edilmeli.";
+        }
+
+        $topInclusive = $topInclusiveProducts->first();
+        if ($topInclusive) {
+            $lines[] = "Fiyatı sıfır/ikram görünen ürünlerde ilk sırada {$topInclusive->item_name} var: {$topInclusive->total_qty} adet. Bar ve ikram ürünlerinde stok tüketimiyle karşılaştırmak maliyeti düşürür.";
+        }
+
+        $barSummary = $outletSummary->firstWhere('type', 'Bar / ücretsiz tüketim');
+        if ($barSummary) {
+            $lines[] = "Bar/ücretsiz tüketim alanlarında {$barSummary['qty']} ürün hareketi var. Yüksek adetli içeceklerde reçete standardı, ölçü kullanımı ve depo çıkışı birlikte izlenmeli.";
         }
 
         return $lines;
