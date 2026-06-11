@@ -93,6 +93,9 @@ class RolePermission extends Model
             'google_report'      => 'Google Puanları',
             'event_show_reports' => 'Etkinlik/Show Raporları',
         ],
+        'Üst Yönetim Rapor' => [
+            'yonetim_kurulu_rapor' => 'Yönetim Kurulu Rapor',
+        ],
         'Servis Takip' => [
             'shuttle_routes'     => 'Güzergah Tanımları',
             'shuttle_vehicles'   => 'Servis Araçları',

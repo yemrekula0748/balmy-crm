@@ -592,6 +592,33 @@
             </li>
             @endif
 
+            {{-- ÜST YÖNETİM RAPOR --}}
+            @if($user->hasPermission('yonetim_kurulu_rapor','index'))
+            <li @class(['mm-active' => request()->is('ust-yonetim-rapor*')])>
+                <a class="has-arrow ai-icon" href="javascript:void()" aria-expanded="false">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
+                         fill="none" stroke="currentColor" stroke-width="2"
+                         stroke-linecap="round" stroke-linejoin="round" style="min-width:20px">
+                        <path d="M3 3v18h18"></path>
+                        <path d="M7 14l4-4 3 3 5-6"></path>
+                        <path d="M17 7h2v2"></path>
+                    </svg>
+                    <span class="nav-text">Üst Yönetim Rapor</span>
+                </a>
+                <ul aria-expanded="false">
+                    <li @class(['mm-active' => request()->routeIs('management-reports.manager-door-logs')])>
+                        <a href="{{ route('management-reports.manager-door-logs') }}">Müdür Giriş Çıkışları</a>
+                    </li>
+                    <li @class(['mm-active' => request()->routeIs('management-reports.technical-faults')])>
+                        <a href="{{ route('management-reports.technical-faults') }}">Teknik Arıza Raporu</a>
+                    </li>
+                    <li @class(['mm-active' => request()->routeIs('management-reports.shuttle-services')])>
+                        <a href="{{ route('management-reports.shuttle-services') }}">Servis Raporu</a>
+                    </li>
+                </ul>
+            </li>
+            @endif
+
             {{-- SERVİS TAKİP --}}
             @if($user->hasPermission('shuttle_operations','index') || (($user->isSuperAdmin() || $user->isHumanResources()) && ($user->hasPermission('shuttle_routes','index') || $user->hasPermission('shuttle_vehicles','index') || $user->hasPermission('shuttle_reports','index'))))
             <li @class(['mm-active' => request()->is('servis-takip*')])>

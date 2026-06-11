@@ -42,6 +42,7 @@ use App\Http\Controllers\Modules\ShuttleRouteController;
 use App\Http\Controllers\Modules\ShuttleVehicleController;
 use App\Http\Controllers\Modules\ShuttleOperationController;
 use App\Http\Controllers\Modules\ShuttleReportController;
+use App\Http\Controllers\Modules\ManagementReportController;
 use App\Http\Controllers\Modules\RestaurantController;
 use App\Http\Controllers\Modules\OrderController;
 use App\Http\Controllers\Modules\OrderReportController;
@@ -64,6 +65,7 @@ use App\Http\Controllers\Modules\FrontDeskBedTypeController;
 use App\Http\Controllers\Modules\GuestControlController;
 use App\Http\Controllers\Modules\FrontDeskRoomTypeController;
 use App\Http\Controllers\Modules\FrontDeskRoomController;
+use App\Http\Controllers\Modules\FrontDeskReservationController;
 use App\Http\Controllers\Modules\EducationAssignmentController;
 use App\Http\Controllers\Modules\EducationCourseController;
 use App\Http\Controllers\Modules\EducationEventController;
@@ -681,6 +683,18 @@ Route::middleware('auth')->group(function () {
         Route::post('/google/snapshot', [\App\Http\Controllers\Modules\GoogleReportController::class, 'snapshot'])->name('google.snapshot');
         Route::get('/etkinlik-show', [EventShowReportController::class, 'index'])->name('event-shows');
         Route::get('/etkinlik-show/pdf', [EventShowReportController::class, 'pdf'])->name('event-shows.pdf');
+    });
+
+    /*
+    |--------------------------------------------------------------------------
+    | Üst Yönetim Rapor Modülü
+    |--------------------------------------------------------------------------
+    */
+    Route::prefix('ust-yonetim-rapor')->name('management-reports.')->group(function () {
+        Route::get('/',                         [ManagementReportController::class, 'index'])->name('index');
+        Route::get('/mudur-giris-cikislari',    [ManagementReportController::class, 'managerDoorLogs'])->name('manager-door-logs');
+        Route::get('/teknik-ariza-raporu',      [ManagementReportController::class, 'technicalFaults'])->name('technical-faults');
+        Route::get('/servis-raporu',            [ManagementReportController::class, 'shuttleServices'])->name('shuttle-services');
     });
 
     /*
