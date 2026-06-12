@@ -28,7 +28,7 @@ class ManagementReportController extends BaseModuleController
             []
         );
 
-        $this->middleware('perm:yonetim_siparis_raporu,index')->only(['orderConsumption']);
+        $this->middleware('perm:yonetim_siparis_raporu,index')->only(['orderConsumption', 'focusedOrderConsumption']);
     }
 
     public function index()
@@ -751,6 +751,257 @@ class ManagementReportController extends BaseModuleController
         ));
     }
 
+    public function focusedOrderConsumption(Request $request)
+    {
+        $user = auth()->user();
+        $branchIds = $user->visibleBranchIds();
+        [$dateFrom, $dateTo] = $this->datePeriod($request, 'month');
+        $branchId = $this->selectedBranchId($request, $branchIds);
+        $restaurantId = $this->selectedRestaurantId($request, $branchIds, $branchId);
+        $branches = $this->branchList($branchIds);
+        $restaurants = Restaurant::with('branch')
+            ->whereIn('branch_id', $branchIds)
+            ->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
+            ->orderBy('name')
+            ->get();
+        $periodDays = $this->periodDays($dateFrom, $dateTo);
+
+        $itemRows = RestaurantOrderItem::query()
+            ->join('restaurant_orders', 'restaurant_orders.id', '=', 'restaurant_order_items.order_id')
+            ->join('table_sessions', 'table_sessions.id', '=', 'restaurant_orders.table_session_id')
+            ->join('restaurant_tables', 'restaurant_tables.id', '=', 'table_sessions.restaurant_table_id')
+            ->join('restaurants', 'restaurants.id', '=', 'restaurant_tables.restaurant_id')
+            ->leftJoin('branches', 'branches.id', '=', 'restaurants.branch_id')
+            ->leftJoin('qr_menu_items', 'qr_menu_items.id', '=', 'restaurant_order_items.qr_menu_item_id')
+            ->leftJoin('qr_menu_categories', 'qr_menu_categories.id', '=', 'qr_menu_items.category_id')
+            ->whereIn('restaurants.branch_id', $branchIds)
+            ->whereDate('table_sessions.opened_at', '>=', $dateFrom->toDateString())
+            ->whereDate('table_sessions.opened_at', '<=', $dateTo->toDateString())
+            ->when($branchId, fn ($q) => $q->where('restaurants.branch_id', $branchId))
+            ->when($restaurantId, fn ($q) => $q->where('restaurants.id', $restaurantId))
+            ->selectRaw('
+                restaurant_order_items.item_name,
+                restaurant_order_items.quantity,
+                restaurant_order_items.unit_price,
+                restaurant_orders.id as order_id,
+                restaurant_orders.created_at as ordered_at,
+                HOUR(restaurant_orders.created_at) as order_hour,
+                table_sessions.id as session_id,
+                restaurants.id as restaurant_id,
+                restaurants.name as restaurant_name,
+                COALESCE(branches.name, \'-\') as branch_name,
+                qr_menu_items.title as menu_item_title,
+                qr_menu_categories.title as category_title
+            ')
+            ->get()
+            ->map(function ($row) {
+                $classification = $this->classifyConsumption($row->item_name, $row->category_title, $row->menu_item_title);
+
+                $row->quantity = (int) $row->quantity;
+                $row->order_hour = $row->order_hour !== null
+                    ? (int) $row->order_hour
+                    : Carbon::parse($row->ordered_at)->hour;
+                $row->category_key = $classification['key'];
+                $row->category_label = $classification['label'];
+                $row->source_category = $this->localizedJsonText($row->category_title);
+
+                return $row;
+            });
+
+        $hourBuckets = [];
+        foreach (range(0, 23) as $hour) {
+            $hourBuckets[$hour] = [
+                'hour' => $hour,
+                'label' => sprintf('%02d:00', $hour),
+                'total_qty' => 0,
+                'soft_drink_qty' => 0,
+                'alcohol_qty' => 0,
+                'distilled_alcohol_qty' => 0,
+                'order_ids' => [],
+                'session_ids' => [],
+                'products' => [],
+            ];
+        }
+
+        $categoryMeta = [
+            'soft_drink' => ['label' => 'Meşrubat', 'qty' => 0, 'hourly' => array_fill(0, 24, 0), 'products' => []],
+            'alcohol' => ['label' => 'Alkol', 'qty' => 0, 'hourly' => array_fill(0, 24, 0), 'products' => []],
+            'distilled_alcohol' => ['label' => 'Distile Alkol', 'qty' => 0, 'hourly' => array_fill(0, 24, 0), 'products' => []],
+            'food' => ['label' => 'Yiyecek', 'qty' => 0, 'hourly' => array_fill(0, 24, 0), 'products' => []],
+            'other' => ['label' => 'Diğer', 'qty' => 0, 'hourly' => array_fill(0, 24, 0), 'products' => []],
+        ];
+
+        $products = [];
+        $orderIds = [];
+        $sessionIds = [];
+        $activeRestaurantIds = [];
+        $recordedValue = 0;
+
+        foreach ($itemRows as $row) {
+            $qty = max(0, (int) $row->quantity);
+            $hour = max(0, min(23, (int) $row->order_hour));
+            $name = trim((string) $row->item_name) ?: 'Belirtilmemiş ürün';
+            $key = isset($categoryMeta[$row->category_key]) ? $row->category_key : 'other';
+
+            $orderIds[$row->order_id] = true;
+            $sessionIds[$row->session_id] = true;
+            $activeRestaurantIds[$row->restaurant_id] = true;
+            $recordedValue += $row->unit_price > 0 ? ((float) $row->unit_price * $qty) : 0;
+
+            $hourBuckets[$hour]['total_qty'] += $qty;
+            $hourBuckets[$hour]['order_ids'][$row->order_id] = true;
+            $hourBuckets[$hour]['session_ids'][$row->session_id] = true;
+            $hourBuckets[$hour]["{$key}_qty"] = ($hourBuckets[$hour]["{$key}_qty"] ?? 0) + $qty;
+            $hourBuckets[$hour]['products'][$name] = ($hourBuckets[$hour]['products'][$name] ?? 0) + $qty;
+
+            $categoryMeta[$key]['qty'] += $qty;
+            $categoryMeta[$key]['hourly'][$hour] += $qty;
+            $categoryMeta[$key]['products'][$name] = ($categoryMeta[$key]['products'][$name] ?? 0) + $qty;
+
+            if (!isset($products[$name])) {
+                $products[$name] = [
+                    'name' => $name,
+                    'category' => $row->category_label,
+                    'source_category' => $row->source_category,
+                    'qty' => 0,
+                    'recorded_value' => 0,
+                    'orders' => [],
+                    'sessions' => [],
+                    'hourly' => array_fill(0, 24, 0),
+                ];
+            }
+
+            $products[$name]['qty'] += $qty;
+            $products[$name]['recorded_value'] += $row->unit_price > 0 ? ((float) $row->unit_price * $qty) : 0;
+            $products[$name]['orders'][$row->order_id] = true;
+            $products[$name]['sessions'][$row->session_id] = true;
+            $products[$name]['hourly'][$hour] += $qty;
+        }
+
+        $totalQty = (int) $itemRows->sum('quantity');
+        $summary = [
+            'total_qty' => $totalQty,
+            'total_orders' => count($orderIds),
+            'total_sessions' => count($sessionIds),
+            'active_restaurants' => count($activeRestaurantIds),
+            'recorded_value' => round($recordedValue, 2),
+            'avg_qty_per_session' => count($sessionIds) > 0 ? round($totalQty / count($sessionIds), 1) : 0,
+            'avg_daily_qty' => round($totalQty / max(1, $periodDays), 1),
+        ];
+
+        $hourlyRows = collect($hourBuckets)
+            ->map(function ($bucket) {
+                arsort($bucket['products']);
+                $topProductName = array_key_first($bucket['products']);
+
+                return [
+                    'hour' => $bucket['label'],
+                    'total_qty' => $bucket['total_qty'],
+                    'orders' => count($bucket['order_ids']),
+                    'sessions' => count($bucket['session_ids']),
+                    'soft_drink_qty' => $bucket['soft_drink_qty'],
+                    'alcohol_qty' => $bucket['alcohol_qty'],
+                    'distilled_alcohol_qty' => $bucket['distilled_alcohol_qty'],
+                    'top_product' => $topProductName ?: '-',
+                    'top_product_qty' => $topProductName ? $bucket['products'][$topProductName] : 0,
+                ];
+            })
+            ->values();
+
+        $peakHours = $hourlyRows
+            ->filter(fn ($row) => $row['total_qty'] > 0)
+            ->sortByDesc('total_qty')
+            ->take(8)
+            ->values();
+
+        $topProducts = collect($products)
+            ->map(function ($product) use ($totalQty) {
+                $hourly = collect($product['hourly']);
+                $peakQty = (int) $hourly->max();
+                $peakHour = $peakQty > 0 ? sprintf('%02d:00', $hourly->search($peakQty)) : '-';
+
+                return [
+                    'name' => $product['name'],
+                    'category' => $product['category'],
+                    'source_category' => $product['source_category'],
+                    'qty' => $product['qty'],
+                    'orders' => count($product['orders']),
+                    'sessions' => count($product['sessions']),
+                    'peak_hour' => $peakHour,
+                    'peak_qty' => $peakQty,
+                    'share' => $totalQty > 0 ? round($product['qty'] / $totalQty * 100, 1) : 0,
+                    'recorded_value' => round($product['recorded_value'], 2),
+                ];
+            })
+            ->sortByDesc('qty')
+            ->take(20)
+            ->values();
+
+        $beverageSummary = collect(['soft_drink', 'alcohol', 'distilled_alcohol'])
+            ->map(function ($key) use ($categoryMeta, $totalQty) {
+                $meta = $categoryMeta[$key];
+                $hourly = collect($meta['hourly']);
+                $peakQty = (int) $hourly->max();
+                arsort($meta['products']);
+                $topProduct = array_key_first($meta['products']);
+
+                return [
+                    'key' => $key,
+                    'label' => $meta['label'],
+                    'qty' => $meta['qty'],
+                    'share' => $totalQty > 0 ? round($meta['qty'] / $totalQty * 100, 1) : 0,
+                    'peak_hour' => $peakQty > 0 ? sprintf('%02d:00', $hourly->search($peakQty)) : '-',
+                    'peak_qty' => $peakQty,
+                    'top_product' => $topProduct ?: '-',
+                    'top_product_qty' => $topProduct ? $meta['products'][$topProduct] : 0,
+                    'top_products' => collect($meta['products'])
+                        ->sortDesc()
+                        ->take(6)
+                        ->map(fn ($qty, $name) => ['name' => $name, 'qty' => $qty])
+                        ->values(),
+                ];
+            })
+            ->values();
+
+        $hourlyLabels = $hourlyRows->pluck('hour')->values();
+        $hourlyTotalQty = $hourlyRows->pluck('total_qty')->values();
+        $hourlyOrderCount = $hourlyRows->pluck('orders')->values();
+        $hourlySoftDrinkQty = $hourlyRows->pluck('soft_drink_qty')->values();
+        $hourlyAlcoholQty = $hourlyRows->pluck('alcohol_qty')->values();
+        $hourlyDistilledAlcoholQty = $hourlyRows->pluck('distilled_alcohol_qty')->values();
+
+        $selectedOutlet = $restaurantId ? $restaurants->firstWhere('id', $restaurantId) : null;
+        $selectedOutletName = $selectedOutlet
+            ? ($selectedOutlet->name . ($selectedOutlet->branch ? ' - ' . $selectedOutlet->branch->name : ''))
+            : 'Tüm restoran ve barlar';
+
+        $insights = $this->focusedOrderConsumptionInsights($summary, $selectedOutletName, $peakHours, $topProducts, $beverageSummary);
+        $page_title = 'Sipariş Tüketim Raporu';
+
+        return view('modules.management_reports.order_consumption', compact(
+            'page_title',
+            'dateFrom',
+            'dateTo',
+            'branchId',
+            'restaurantId',
+            'branches',
+            'restaurants',
+            'selectedOutletName',
+            'summary',
+            'hourlyRows',
+            'peakHours',
+            'topProducts',
+            'beverageSummary',
+            'hourlyLabels',
+            'hourlyTotalQty',
+            'hourlyOrderCount',
+            'hourlySoftDrinkQty',
+            'hourlyAlcoholQty',
+            'hourlyDistilledAlcoholQty',
+            'insights'
+        ));
+    }
+
     private function datePeriod(Request $request, string $default): array
     {
         $defaultFrom = match ($default) {
@@ -1029,6 +1280,119 @@ class ManagementReportController extends BaseModuleController
         $barSummary = $outletSummary->firstWhere('type', 'Bar / ücretsiz tüketim');
         if ($barSummary) {
             $lines[] = "Bar/ücretsiz tüketim alanlarında {$barSummary['qty']} ürün hareketi var. Yüksek adetli içeceklerde reçete standardı, ölçü kullanımı ve depo çıkışı birlikte izlenmeli.";
+        }
+
+        return $lines;
+    }
+
+    private function classifyConsumption(?string $itemName, ?string $categoryJson = null, ?string $itemJson = null): array
+    {
+        $text = ' ' . $this->normalisedSearchText(
+            $itemName,
+            $this->localizedJsonText($categoryJson),
+            $this->localizedJsonText($itemJson)
+        ) . ' ';
+
+        if ($this->containsAny($text, [
+            ' distile ', ' spirit ', ' vodka ', ' votka ', ' viski ', ' whiskey ', ' whisky ',
+            ' gin ', ' cin ', ' rom ', ' rum ', ' tekila ', ' tequila ', ' raki ', ' konyak ',
+            ' cognac ', ' brandy ', ' bourbon ', ' baileys ', ' jager ', ' shot ', ' likor ',
+            ' liqueur ', ' aperol ', ' martini ', ' vermut ', ' vermouth ',
+        ])) {
+            return ['key' => 'distilled_alcohol', 'label' => 'Distile Alkol'];
+        }
+
+        if ($this->containsAny($text, [
+            ' bira ', ' beer ', ' sarap ', ' wine ', ' sampanya ', ' champagne ', ' prosecco ',
+            ' kokteyl ', ' cocktail ', ' sangria ', ' spritz ', ' alkollu ', ' alkol ',
+        ])) {
+            return ['key' => 'alcohol', 'label' => 'Alkol'];
+        }
+
+        if ($this->containsAny($text, [
+            ' mesrubat ', ' soft drink ', ' kola ', ' cola ', ' pepsi ', ' fanta ', ' sprite ',
+            ' gazoz ', ' soda ', ' tonik ', ' tonic ', ' ice tea ', ' iced tea ', ' icetea ',
+            ' meyve suyu ', ' juice ', ' limonata ', ' lemonade ', ' ayran ', ' salgam ',
+            ' su ', ' water ', ' mineral ', ' red bull ', ' enerji ',
+        ])) {
+            return ['key' => 'soft_drink', 'label' => 'Meşrubat'];
+        }
+
+        if ($this->containsAny($text, [
+            ' yemek ', ' yiyecek ', ' food ', ' et ', ' balik ', ' tavuk ', ' salata ', ' pizza ',
+            ' makarna ', ' pasta ', ' tatli ', ' burger ', ' sandvic ', ' corba ', ' kebap ',
+        ])) {
+            return ['key' => 'food', 'label' => 'Yiyecek'];
+        }
+
+        return ['key' => 'other', 'label' => 'Diğer'];
+    }
+
+    private function localizedJsonText(?string $value): string
+    {
+        if (!$value) {
+            return '';
+        }
+
+        $decoded = json_decode($value, true);
+        if (is_array($decoded)) {
+            return collect($decoded)
+                ->filter(fn ($part) => is_string($part) && trim($part) !== '')
+                ->implode(' ');
+        }
+
+        return (string) $value;
+    }
+
+    private function normalisedSearchText(?string ...$parts): string
+    {
+        return Str::of(implode(' ', array_filter($parts)))
+            ->lower()
+            ->ascii()
+            ->replaceMatches('/[^a-z0-9]+/', ' ')
+            ->squish()
+            ->toString();
+    }
+
+    private function containsAny(string $text, array $needles): bool
+    {
+        foreach ($needles as $needle) {
+            if (Str::contains($text, $needle)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function focusedOrderConsumptionInsights(array $summary, string $selectedOutletName, $peakHours, $topProducts, $beverageSummary): array
+    {
+        if ($summary['total_qty'] === 0) {
+            return ["{$selectedOutletName} için seçili dönemde sipariş kaydı bulunmuyor."];
+        }
+
+        $lines = [];
+        $lines[] = "{$selectedOutletName} için toplam {$summary['total_qty']} ürün, {$summary['total_orders']} sipariş ve {$summary['total_sessions']} masa/seans kaydı var.";
+
+        $peak = $peakHours->first();
+        if ($peak) {
+            $lines[] = "En yoğun saat {$peak['hour']}; bu saatte {$peak['total_qty']} ürün çıkmış. Öne çıkan ürün: {$peak['top_product']} ({$peak['top_product_qty']} adet).";
+        }
+
+        $topProduct = $topProducts->first();
+        if ($topProduct) {
+            $lines[] = "En çok tüketilen ürün {$topProduct['name']}; toplam {$topProduct['qty']} adet ve tüm tüketimin yaklaşık %{$topProduct['share']} payı.";
+        }
+
+        foreach ($beverageSummary as $row) {
+            if ($row['qty'] > 0) {
+                $lines[] = "{$row['label']} tüketimi {$row['qty']} adet; en yoğun saat {$row['peak_hour']}, en çok çıkan ürün {$row['top_product']}.";
+            }
+        }
+
+        $distilled = $beverageSummary->firstWhere('key', 'distilled_alcohol');
+        if ($distilled && $distilled['qty'] > 0) {
+            $lines[] = "Distile alkol yüksek saatlerde ölçü standardı, reçete ve stok çıkışı birlikte kontrol edilmeli; bu alan her şey dahil maliyetinde hızlı büyür.";
         }
 
         return $lines;

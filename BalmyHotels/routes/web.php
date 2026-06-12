@@ -695,7 +695,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/mudur-giris-cikislari',    [ManagementReportController::class, 'managerDoorLogs'])->name('manager-door-logs');
         Route::get('/teknik-ariza-raporu',      [ManagementReportController::class, 'technicalFaults'])->name('technical-faults');
         Route::get('/servis-raporu',            [ManagementReportController::class, 'shuttleServices'])->name('shuttle-services');
-        Route::get('/siparis-tuketim-raporu',   [ManagementReportController::class, 'orderConsumption'])->name('order-consumption');
+        Route::get('/siparis-tuketim-raporu',   [ManagementReportController::class, 'focusedOrderConsumption'])->name('order-consumption');
     });
 
     /*
