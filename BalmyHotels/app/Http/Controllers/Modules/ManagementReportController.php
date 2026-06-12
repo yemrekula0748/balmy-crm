@@ -19,27 +19,42 @@ class ManagementReportController extends BaseModuleController
 {
     public function __construct()
     {
-        $this->requirePermission(
-            'yonetim_kurulu_rapor',
-            ['managerDoorLogs', 'technicalFaults', 'shuttleServices'],
-            [],
-            [],
-            [],
-            []
-        );
+        $this->middleware(function ($request, $next) {
+            abort_unless($this->canAccessManagerDoorLogs(), 403);
+            return $next($request);
+        })->only(['managerDoorLogs']);
 
-        $this->middleware('perm:yonetim_siparis_raporu,index')->only(['orderConsumption', 'focusedOrderConsumption']);
+        $this->middleware(function ($request, $next) {
+            abort_unless($this->canAccessTechnicalFaults(), 403);
+            return $next($request);
+        })->only(['technicalFaults']);
+
+        $this->middleware(function ($request, $next) {
+            abort_unless($this->canAccessShuttleServices(), 403);
+            return $next($request);
+        })->only(['shuttleServices']);
+
+        $this->middleware(function ($request, $next) {
+            abort_unless($this->canAccessOrderConsumption(), 403);
+            return $next($request);
+        })->only(['orderConsumption', 'focusedOrderConsumption']);
     }
 
     public function index()
     {
-        $user = auth()->user();
-
-        if ($user->hasPermission('yonetim_kurulu_rapor', 'index')) {
+        if ($this->canAccessManagerDoorLogs()) {
             return redirect()->route('management-reports.manager-door-logs');
         }
 
-        if ($user->hasPermission('yonetim_siparis_raporu', 'index')) {
+        if ($this->canAccessTechnicalFaults()) {
+            return redirect()->route('management-reports.technical-faults');
+        }
+
+        if ($this->canAccessShuttleServices()) {
+            return redirect()->route('management-reports.shuttle-services');
+        }
+
+        if ($this->canAccessOrderConsumption()) {
             return redirect()->route('management-reports.order-consumption');
         }
 
@@ -1000,6 +1015,36 @@ class ManagementReportController extends BaseModuleController
             'hourlyDistilledAlcoholQty',
             'insights'
         ));
+    }
+
+    private function canAccessManagerDoorLogs(): bool
+    {
+        $user = auth()->user();
+        return $user
+            && ($user->hasPermission('yonetim_kurulu_rapor', 'index')
+            || $user->hasPermission('yonetim_mudur_giris_cikis_raporu', 'index'));
+    }
+
+    private function canAccessTechnicalFaults(): bool
+    {
+        $user = auth()->user();
+        return $user
+            && ($user->hasPermission('yonetim_kurulu_rapor', 'index')
+            || $user->hasPermission('yonetim_teknik_ariza_raporu', 'index'));
+    }
+
+    private function canAccessShuttleServices(): bool
+    {
+        $user = auth()->user();
+        return $user
+            && ($user->hasPermission('yonetim_kurulu_rapor', 'index')
+            || $user->hasPermission('yonetim_servis_raporu', 'index'));
+    }
+
+    private function canAccessOrderConsumption(): bool
+    {
+        $user = auth()->user();
+        return $user && $user->hasPermission('yonetim_siparis_raporu', 'index');
     }
 
     private function datePeriod(Request $request, string $default): array

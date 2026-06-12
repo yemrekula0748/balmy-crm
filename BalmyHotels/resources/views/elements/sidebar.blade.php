@@ -593,7 +593,13 @@
             @endif
 
             {{-- ÜST YÖNETİM RAPOR --}}
-            @if($user->hasPermission('yonetim_kurulu_rapor','index') || $user->hasPermission('yonetim_siparis_raporu','index'))
+            @if(
+                $user->hasPermission('yonetim_kurulu_rapor','index')
+                || $user->hasPermission('yonetim_mudur_giris_cikis_raporu','index')
+                || $user->hasPermission('yonetim_teknik_ariza_raporu','index')
+                || $user->hasPermission('yonetim_servis_raporu','index')
+                || $user->hasPermission('yonetim_siparis_raporu','index')
+            )
             <li @class(['mm-active' => request()->is('ust-yonetim-rapor*')])>
                 <a class="has-arrow ai-icon" href="javascript:void()" aria-expanded="false">
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
@@ -606,13 +612,17 @@
                     <span class="nav-text">Üst Yönetim Rapor</span>
                 </a>
                 <ul aria-expanded="false">
-                    @if($user->hasPermission('yonetim_kurulu_rapor','index'))
+                    @if($user->hasPermission('yonetim_kurulu_rapor','index') || $user->hasPermission('yonetim_mudur_giris_cikis_raporu','index'))
                     <li @class(['mm-active' => request()->routeIs('management-reports.manager-door-logs')])>
                         <a href="{{ route('management-reports.manager-door-logs') }}">Müdür Giriş Çıkışları</a>
                     </li>
+                    @endif
+                    @if($user->hasPermission('yonetim_kurulu_rapor','index') || $user->hasPermission('yonetim_teknik_ariza_raporu','index'))
                     <li @class(['mm-active' => request()->routeIs('management-reports.technical-faults')])>
                         <a href="{{ route('management-reports.technical-faults') }}">Teknik Arıza Raporu</a>
                     </li>
+                    @endif
+                    @if($user->hasPermission('yonetim_kurulu_rapor','index') || $user->hasPermission('yonetim_servis_raporu','index'))
                     <li @class(['mm-active' => request()->routeIs('management-reports.shuttle-services')])>
                         <a href="{{ route('management-reports.shuttle-services') }}">Servis Raporu</a>
                     </li>

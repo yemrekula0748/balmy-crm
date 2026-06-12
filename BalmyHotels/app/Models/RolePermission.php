@@ -94,7 +94,10 @@ class RolePermission extends Model
             'event_show_reports' => 'Etkinlik/Show Raporları',
         ],
         'Üst Yönetim Rapor' => [
-            'yonetim_kurulu_rapor' => 'Yönetim Kurulu Rapor',
+            'yonetim_kurulu_rapor' => 'Üst Yönetim Rapor Menü Yetkisi',
+            'yonetim_mudur_giris_cikis_raporu' => 'Müdür Giriş Çıkışları',
+            'yonetim_teknik_ariza_raporu' => 'Teknik Arıza Raporu',
+            'yonetim_servis_raporu' => 'Servis Raporu',
             'yonetim_siparis_raporu' => 'Sipariş Tüketim Raporu',
         ],
         'Servis Takip' => [
