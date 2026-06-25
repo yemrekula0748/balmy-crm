@@ -570,6 +570,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/{qrmenu}/kategori/{category}/duzenle', [QrMenuCategoryController::class, 'editCategory'])->name('category.edit');
         Route::put('/{qrmenu}/kategori/{category}', [QrMenuCategoryController::class, 'updateCategory'])->name('category.update');
         Route::delete('/{qrmenu}/kategori/{category}', [QrMenuCategoryController::class, 'destroyCategory'])->name('category.destroy');
+        Route::post('/{qrmenu}/kategori/{category}/kutuphane-guncelle', [QrMenuCategoryController::class, 'syncCategoryFromLibrary'])->name('category.syncLibrary');
         // Ürün
         Route::get('/{qrmenu}/kategori/{category}/urun/ekle', [QrMenuCategoryController::class, 'createItem'])->name('item.create');
         Route::post('/{qrmenu}/kategori/{category}/urun/ekle', [QrMenuCategoryController::class, 'storeItem'])->name('item.store');

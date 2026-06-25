@@ -64,6 +64,16 @@
                                 data-bs-toggle="modal" data-bs-target="#libraryModal-{{ $category->id }}">
                             <i class="fa fa-book"></i> Kütüphane
                         </button>
+                        @if($category->sub_headings && count($category->sub_headings) > 0 && auth()->user()->hasPermission('qrmenus', 'edit'))
+                        <form method="POST" action="{{ route('qrmenus.category.syncLibrary', [$menu, $category]) }}"
+                              onsubmit="return confirm('Bu kategori kutuphanedeki guncel urunlerle senkronlanacak. Devam edilsin mi?')">
+                            @csrf
+                            <button type="submit" class="btn btn-outline-info btn-sm py-0 px-2"
+                                    title="Alt gruplara gore kutuphaneden guncelle">
+                                <i class="fa fa-rotate"></i> Icecekleri Guncelle
+                            </button>
+                        </form>
+                        @endif
                         @endif
                         <a href="{{ route('qrmenus.category.edit', [$menu, $category]) }}"
                            class="btn btn-outline-warning btn-sm py-0 px-2">
