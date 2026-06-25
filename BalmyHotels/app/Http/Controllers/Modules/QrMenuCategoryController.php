@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Modules;
 
 use App\Http\Controllers\Controller;
-use App\Models\FoodCategory;
 use App\Models\FoodProduct;
 use App\Models\QrMenu;
 use App\Models\QrMenuCategory;
@@ -15,6 +14,8 @@ use Illuminate\Support\Str;
 
 class QrMenuCategoryController extends BaseModuleController
 {
+    private const DEFAULT_DRINK_SOURCE_MENU_ID = 18;
+
     public function __construct()
     {
         $this->requirePermission(
@@ -261,148 +262,116 @@ class QrMenuCategoryController extends BaseModuleController
     public function syncCategoryFromLibrary(QrMenu $qrmenu, QrMenuCategory $category)
     {
         abort_if($category->qr_menu_id !== $qrmenu->id, 404);
+        $sourceMenuId = (int) request('source_menu_id', self::DEFAULT_DRINK_SOURCE_MENU_ID);
 
-        $category->load(['items.foodProduct.foodCategory']);
+        $sourceMenu = QrMenu::with(['categories.items' => function ($query) {
+            $query->orderBy('sort_order')->orderBy('id');
+        }])->find($sourceMenuId);
 
-        $subHeadingMap = $this->resolveLibrarySubHeadingMap($qrmenu, $category);
-
-        if ($subHeadingMap === []) {
+        if (!$sourceMenu) {
             return redirect()->route('qrmenus.show', $qrmenu)
-                ->with('warning', 'Bu kategori icin kutuphane alt grup eslesmesi bulunamadi.');
+                ->with('warning', 'Kaynak icecek menusu bulunamadi. Beklenen menu ID: ' . $sourceMenuId);
         }
 
-        $products = FoodProduct::with('foodCategory')
-            ->where('is_active', true)
-            ->whereIn('food_category_id', array_keys($subHeadingMap))
-            ->when($qrmenu->branch_id, fn($q) => $q->where('branch_id', $qrmenu->branch_id))
-            ->orderBy('food_category_id')
-            ->orderBy('sort_order')
-            ->orderBy('id')
-            ->get();
+        $sourceCategory = $this->resolveSourceCategory($sourceMenu, $category);
 
-        if ($products->isEmpty()) {
+        if (!$sourceCategory) {
             return redirect()->route('qrmenus.show', $qrmenu)
-                ->with('warning', 'Kutuphane tarafinda senkronlanacak aktif urun bulunamadi.');
+                ->with('warning', 'Kaynak menude eslesen kategori bulunamadi. Kaynak menu ID: ' . $sourceMenuId);
         }
 
-        $stats = DB::transaction(function () use ($category, $products, $subHeadingMap) {
-            $existingItems = $category->items()->with('foodProduct.foodCategory')->orderBy('sort_order')->get();
+        $stats = DB::transaction(function () use ($category, $sourceCategory) {
+            $category->update([
+                'sub_headings' => $sourceCategory->sub_headings,
+            ]);
 
+            $existingItems = $category->items()->orderBy('sort_order')->get();
             $existingByProductId = [];
-            $duplicateIds = [];
+            $existingByTitle = [];
 
             foreach ($existingItems as $existingItem) {
-                if (!$existingItem->food_product_id) {
-                    continue;
-                }
-
-                if (!isset($existingByProductId[$existingItem->food_product_id])) {
+                if ($existingItem->food_product_id && !isset($existingByProductId[$existingItem->food_product_id])) {
                     $existingByProductId[$existingItem->food_product_id] = $existingItem;
-                    continue;
-                }
-
-                $duplicateIds[] = $existingItem->id;
-            }
-
-            $orphanByTitle = [];
-            foreach ($existingItems as $existingItem) {
-                if ($existingItem->food_product_id) {
-                    continue;
                 }
 
                 $titleKey = $this->normalizeSyncKey($existingItem->getTitle('tr'));
-                if ($titleKey !== '' && !isset($orphanByTitle[$titleKey])) {
-                    $orphanByTitle[$titleKey] = $existingItem;
+                if ($titleKey !== '' && !isset($existingByTitle[$titleKey])) {
+                    $existingByTitle[$titleKey] = $existingItem;
                 }
             }
 
-            $orderedItems = [];
-            $seenItemIds = [];
+            $matchedIds = [];
             $created = 0;
             $updated = 0;
+            $sortOrder = 0;
 
-            foreach ($products as $product) {
-                $subHeading = $subHeadingMap[$product->food_category_id] ?? null;
-                if (!$subHeading) {
-                    continue;
+            foreach ($sourceCategory->items as $sourceItem) {
+                $targetItem = null;
+
+                if ($sourceItem->food_product_id && isset($existingByProductId[$sourceItem->food_product_id])) {
+                    $targetItem = $existingByProductId[$sourceItem->food_product_id];
                 }
 
-                $item = $existingByProductId[$product->id] ?? null;
-
-                if (!$item) {
-                    $titleKey = $this->normalizeSyncKey($product->getTitle('tr'));
-                    if ($titleKey !== '' && isset($orphanByTitle[$titleKey])) {
-                        $item = $orphanByTitle[$titleKey];
-                        unset($orphanByTitle[$titleKey]);
+                if (!$targetItem) {
+                    $titleKey = $this->normalizeSyncKey($sourceItem->getTitle('tr'));
+                    if ($titleKey !== '' && isset($existingByTitle[$titleKey])) {
+                        $targetItem = $existingByTitle[$titleKey];
                     }
                 }
 
                 $payload = [
-                    'food_product_id' => $product->id,
-                    'title' => $product->title,
-                    'description' => $product->description,
-                    'price' => $product->price,
-                    'price_glass' => $product->price_glass,
-                    'price_bottle' => $product->price_bottle,
-                    'cl_glass' => $product->cl_glass,
-                    'cl_bottle' => $product->cl_bottle,
-                    'sub_heading' => $subHeading,
-                    'badges' => $product->badges,
-                    'is_active' => true,
+                    'food_product_id' => $sourceItem->food_product_id,
+                    'title' => $sourceItem->title,
+                    'description' => $sourceItem->description,
+                    'price' => $sourceItem->price,
+                    'price_override' => $sourceItem->price_override,
+                    'image' => $sourceItem->getRawOriginal('image'),
+                    'is_active' => $sourceItem->is_active,
+                    'is_featured' => $sourceItem->is_featured,
+                    'badges' => $sourceItem->badges,
+                    'sort_order' => $sortOrder,
+                    'sub_heading' => $sourceItem->sub_heading,
+                    'price_glass' => $sourceItem->price_glass,
+                    'price_bottle' => $sourceItem->price_bottle,
+                    'cl_glass' => $sourceItem->cl_glass,
+                    'cl_bottle' => $sourceItem->cl_bottle,
                 ];
 
-                if ($item) {
-                    $rawImage = (string) $item->getRawOriginal('image');
-                    if ($rawImage === '' || !str_starts_with($rawImage, 'qrmenu/items/')) {
-                        $payload['image'] = $product->getRawOriginal('image');
-                    }
-
-                    $item->fill($payload);
-                    if ($item->isDirty()) {
-                        $item->save();
+                if ($targetItem) {
+                    $targetItem->fill($payload);
+                    if ($targetItem->isDirty()) {
+                        $targetItem->save();
                         $updated++;
                     }
                 } else {
-                    $item = $category->items()->create($payload + [
-                        'image' => $product->getRawOriginal('image'),
-                        'is_featured' => false,
-                        'sort_order' => 0,
-                    ]);
+                    $targetItem = $category->items()->create($payload);
                     $created++;
                 }
 
-                $orderedItems[] = $item;
-                $seenItemIds[$item->id] = true;
-            }
-
-            $remainingItems = $category->items()
-                ->whereNotIn('id', array_keys($seenItemIds))
-                ->orderBy('sort_order')
-                ->get();
-
-            $sortOrder = 0;
-            foreach (array_merge($orderedItems, $remainingItems->all()) as $orderedItem) {
-                if ((int) $orderedItem->sort_order !== $sortOrder) {
-                    $orderedItem->update(['sort_order' => $sortOrder]);
-                }
+                $matchedIds[] = $targetItem->id;
                 $sortOrder++;
             }
 
-            if ($duplicateIds !== []) {
-                QrMenuItem::whereIn('id', $duplicateIds)->delete();
+            $deleted = 0;
+            if ($matchedIds !== []) {
+                $deleted = $category->items()->whereNotIn('id', $matchedIds)->delete();
             }
 
             return [
                 'created' => $created,
                 'updated' => $updated,
-                'duplicates_removed' => count($duplicateIds),
+                'deleted' => $deleted,
+                'source_menu_id' => $sourceCategory->qr_menu_id,
+                'source_category_name' => $sourceCategory->getTitle('tr'),
             ];
         });
 
-        $message = $stats['created'] . ' yeni urun eklendi, ' . $stats['updated'] . ' urun guncellendi.';
-        if ($stats['duplicates_removed'] > 0) {
-            $message .= ' ' . $stats['duplicates_removed'] . ' mukerrer kayit temizlendi.';
+        $message = 'Kaynak menu #' . $stats['source_menu_id'] . ' / ' . $stats['source_category_name'] . ' baz alinarak ';
+        $message .= $stats['created'] . ' urun eklendi, ' . $stats['updated'] . ' urun guncellendi';
+        if ($stats['deleted'] > 0) {
+            $message .= ', ' . $stats['deleted'] . ' eski urun kaldirildi';
         }
+        $message .= '.';
 
         return redirect()->route('qrmenus.show', $qrmenu)->with('success', $message);
     }
@@ -450,54 +419,43 @@ class QrMenuCategoryController extends BaseModuleController
             ->with('success', $added . ' urun menuye eklendi.');
     }
 
-    private function resolveLibrarySubHeadingMap(QrMenu $qrmenu, QrMenuCategory $category): array
+    private function resolveSourceCategory(QrMenu $sourceMenu, QrMenuCategory $targetCategory): ?QrMenuCategory
     {
-        $map = [];
+        $targetTitleKey = $this->normalizeSyncKey($targetCategory->getTitle('tr'));
 
-        foreach ($category->items as $item) {
-            $foodCategoryId = $item->foodProduct?->food_category_id;
-            $subHeading = $item->sub_heading;
+        if ($targetTitleKey !== '') {
+            $matchedByTitle = $sourceMenu->categories->first(function ($sourceCategory) use ($targetTitleKey) {
+                return $this->normalizeSyncKey($sourceCategory->getTitle('tr')) === $targetTitleKey;
+            });
 
-            if (!$foodCategoryId || !$this->subHeadingHasText($subHeading) || isset($map[$foodCategoryId])) {
-                continue;
-            }
-
-            $map[$foodCategoryId] = $subHeading;
-        }
-
-        if (!empty($category->sub_headings)) {
-            $libraryCategories = FoodCategory::query()
-                ->where('is_active', true)
-                ->when($qrmenu->branch_id, fn($q) => $q->where('branch_id', $qrmenu->branch_id))
-                ->orderBy('sort_order')
-                ->orderBy('id')
-                ->get();
-
-            foreach ((array) $category->sub_headings as $subHeading) {
-                $subHeadingKey = $this->normalizeSyncKey($subHeading['tr'] ?? '');
-                if ($subHeadingKey === '') {
-                    continue;
-                }
-
-                $alreadyMapped = collect($map)->contains(function ($mappedSubHeading) use ($subHeadingKey) {
-                    return $this->normalizeSyncKey($mappedSubHeading['tr'] ?? '') === $subHeadingKey;
-                });
-
-                if ($alreadyMapped) {
-                    continue;
-                }
-
-                $matchedCategory = $libraryCategories->first(function ($libraryCategory) use ($subHeadingKey) {
-                    return $this->normalizeSyncKey($libraryCategory->getTitle('tr')) === $subHeadingKey;
-                });
-
-                if ($matchedCategory) {
-                    $map[$matchedCategory->id] = $subHeading;
-                }
+            if ($matchedByTitle) {
+                return $matchedByTitle;
             }
         }
 
-        return $map;
+        $drinkKeywords = ['icecek', 'içecek', 'beverage', 'drink', 'bar'];
+        $matchedByKeyword = $sourceMenu->categories->first(function ($sourceCategory) use ($drinkKeywords) {
+            $title = Str::lower($sourceCategory->getTitle('tr') . ' ' . $sourceCategory->getTitle('en'));
+            foreach ($drinkKeywords as $keyword) {
+                if (str_contains($title, $keyword)) {
+                    return true;
+                }
+            }
+
+            return false;
+        });
+
+        if ($matchedByKeyword) {
+            return $matchedByKeyword;
+        }
+
+        if ($sourceMenu->categories->count() === 1) {
+            return $sourceMenu->categories->first();
+        }
+
+        return $sourceMenu->categories
+            ->sortByDesc(fn ($sourceCategory) => $sourceCategory->items->count())
+            ->first();
     }
 
     private function normalizeSyncKey(?string $value): string
@@ -505,14 +463,4 @@ class QrMenuCategoryController extends BaseModuleController
         return Str::slug(trim((string) $value));
     }
 
-    private function subHeadingHasText($subHeading): bool
-    {
-        foreach ((array) $subHeading as $value) {
-            if (is_string($value) && trim($value) !== '') {
-                return true;
-            }
-        }
-
-        return false;
-    }
 }

@@ -66,10 +66,11 @@
                         </button>
                         @if($category->sub_headings && count($category->sub_headings) > 0 && auth()->user()->hasPermission('qrmenus', 'edit'))
                         <form method="POST" action="{{ route('qrmenus.category.syncLibrary', [$menu, $category]) }}"
-                              onsubmit="return confirm('Bu kategori kutuphanedeki guncel urunlerle senkronlanacak. Devam edilsin mi?')">
+                              onsubmit="return confirm('Bu kategori kaynak icecek menusu #18 ile senkronlanacak. Devam edilsin mi?')">
                             @csrf
+                            <input type="hidden" name="source_menu_id" value="18">
                             <button type="submit" class="btn btn-outline-info btn-sm py-0 px-2"
-                                    title="Alt gruplara gore kutuphaneden guncelle">
+                                    title="Kaynak: menu #18">
                                 <i class="fa fa-rotate"></i> Icecekleri Guncelle
                             </button>
                         </form>
