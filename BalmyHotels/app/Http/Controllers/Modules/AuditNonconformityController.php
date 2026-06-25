@@ -14,7 +14,7 @@ class AuditNonconformityController extends BaseModuleController
         $this->requirePermission(
             'audit_nonconformities',
             ['index'],
-            [],
+            ['show'],
             [],
             ['resolve'],
             []
@@ -63,6 +63,25 @@ class AuditNonconformityController extends BaseModuleController
             'departments',
             'page_title'
         ));
+    }
+
+    public function show(AuditNonconformity $nonconformity)
+    {
+        $user = auth()->user();
+
+        $nonconformity->load(['audit.auditType', 'audit.auditor', 'branch', 'department', 'resolver']);
+
+        if (!$user->isSuperAdmin()) {
+            abort_if($user->branch_id !== $nonconformity->branch_id, 403);
+
+            if ($user->department_id && !$user->isBranchManager()) {
+                abort_if($user->department_id !== $nonconformity->department_id, 403);
+            }
+        }
+
+        $page_title = 'Uygunsuzluk Detayi #' . $nonconformity->id;
+
+        return view('modules.audit.nonconformity-show', compact('nonconformity', 'page_title'));
     }
 
     public function resolve(Request $request, AuditNonconformity $nonconformity)

@@ -158,7 +158,7 @@
                             <tr class="{{ $nc->status === 'resolved' ? 'table-light' : '' }}">
                                 <td class="text-muted small">{{ $nc->id }}</td>
                                 <td>
-                                    <a href="{{ route('audit.show', $nc->audit_id) }}" class="text-primary small">
+                                    <a href="{{ route('audit.nonconformities.show', $nc) }}" class="text-primary small">
                                         #{{ $nc->audit_id }} - {{ $nc->audit?->auditType?->name ?? '-' }}
                                     </a>
                                 </td>

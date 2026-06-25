@@ -866,6 +866,7 @@ Route::middleware('auth')->group(function () {
 
         // Uygunsuzluklarım
         Route::get('uygunsuzluklarim',          [AuditNonconformityController::class, 'index'])->name('nonconformities.index');
+        Route::get('uygunsuzluk/{nonconformity}', [AuditNonconformityController::class, 'show'])->name('nonconformities.show');
         Route::patch('uygunsuzluk/{nonconformity}/coz', [AuditNonconformityController::class, 'resolve'])->name('nonconformities.resolve');
 
         // Analiz & PDF (static routes before {audit} wildcard)
