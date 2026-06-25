@@ -262,27 +262,36 @@ class QrMenuCategoryController extends BaseModuleController
     public function syncCategoryFromLibrary(QrMenu $qrmenu, QrMenuCategory $category)
     {
         abort_if($category->qr_menu_id !== $qrmenu->id, 404);
+
         $sourceMenuId = (int) request('source_menu_id', self::DEFAULT_DRINK_SOURCE_MENU_ID);
 
-        $sourceMenu = QrMenu::with(['categories.items' => function ($query) {
-            $query->orderBy('sort_order')->orderBy('id');
-        }])->find($sourceMenuId);
+        $sourceMenu = QrMenu::with([
+            'categories' => function ($query) {
+                $query->where('is_active', true)->orderBy('sort_order')->orderBy('id');
+            },
+            'categories.items' => function ($query) {
+                $query->where('is_active', true)->orderBy('sort_order')->orderBy('id');
+            },
+        ])->find($sourceMenuId);
 
         if (!$sourceMenu) {
             return redirect()->route('qrmenus.show', $qrmenu)
                 ->with('warning', 'Kaynak icecek menusu bulunamadi. Beklenen menu ID: ' . $sourceMenuId);
         }
 
-        $sourceCategory = $this->resolveSourceCategory($sourceMenu, $category);
+        $sourceCategories = $this->resolveSourceCategories($sourceMenu);
 
-        if (!$sourceCategory) {
+        if ($sourceCategories->isEmpty()) {
             return redirect()->route('qrmenus.show', $qrmenu)
-                ->with('warning', 'Kaynak menude eslesen kategori bulunamadi. Kaynak menu ID: ' . $sourceMenuId);
+                ->with('warning', 'Kaynak menude aktarilacak aktif kategori bulunamadi. Kaynak menu ID: ' . $sourceMenuId);
         }
 
-        $stats = DB::transaction(function () use ($category, $sourceCategory) {
+        $stats = DB::transaction(function () use ($category, $sourceCategories, $sourceMenuId) {
             $category->update([
-                'sub_headings' => $sourceCategory->sub_headings,
+                'sub_headings' => $sourceCategories
+                    ->map(fn ($sourceCategory) => $sourceCategory->title)
+                    ->values()
+                    ->all(),
             ]);
 
             $existingItems = $category->items()->orderBy('sort_order')->get();
@@ -304,52 +313,56 @@ class QrMenuCategoryController extends BaseModuleController
             $created = 0;
             $updated = 0;
             $sortOrder = 0;
+            $sourceItemCount = 0;
 
-            foreach ($sourceCategory->items as $sourceItem) {
-                $targetItem = null;
+            foreach ($sourceCategories as $sourceCategory) {
+                foreach ($sourceCategory->items as $sourceItem) {
+                    $sourceItemCount++;
+                    $targetItem = null;
 
-                if ($sourceItem->food_product_id && isset($existingByProductId[$sourceItem->food_product_id])) {
-                    $targetItem = $existingByProductId[$sourceItem->food_product_id];
-                }
-
-                if (!$targetItem) {
-                    $titleKey = $this->normalizeSyncKey($sourceItem->getTitle('tr'));
-                    if ($titleKey !== '' && isset($existingByTitle[$titleKey])) {
-                        $targetItem = $existingByTitle[$titleKey];
+                    if ($sourceItem->food_product_id && isset($existingByProductId[$sourceItem->food_product_id])) {
+                        $targetItem = $existingByProductId[$sourceItem->food_product_id];
                     }
-                }
 
-                $payload = [
-                    'food_product_id' => $sourceItem->food_product_id,
-                    'title' => $sourceItem->title,
-                    'description' => $sourceItem->description,
-                    'price' => $sourceItem->price,
-                    'price_override' => $sourceItem->price_override,
-                    'image' => $sourceItem->getRawOriginal('image'),
-                    'is_active' => $sourceItem->is_active,
-                    'is_featured' => $sourceItem->is_featured,
-                    'badges' => $sourceItem->badges,
-                    'sort_order' => $sortOrder,
-                    'sub_heading' => $sourceItem->sub_heading,
-                    'price_glass' => $sourceItem->price_glass,
-                    'price_bottle' => $sourceItem->price_bottle,
-                    'cl_glass' => $sourceItem->cl_glass,
-                    'cl_bottle' => $sourceItem->cl_bottle,
-                ];
-
-                if ($targetItem) {
-                    $targetItem->fill($payload);
-                    if ($targetItem->isDirty()) {
-                        $targetItem->save();
-                        $updated++;
+                    if (!$targetItem) {
+                        $titleKey = $this->normalizeSyncKey($sourceItem->getTitle('tr'));
+                        if ($titleKey !== '' && isset($existingByTitle[$titleKey])) {
+                            $targetItem = $existingByTitle[$titleKey];
+                        }
                     }
-                } else {
-                    $targetItem = $category->items()->create($payload);
-                    $created++;
-                }
 
-                $matchedIds[] = $targetItem->id;
-                $sortOrder++;
+                    $payload = [
+                        'food_product_id' => $sourceItem->food_product_id,
+                        'title' => $sourceItem->title,
+                        'description' => $sourceItem->description,
+                        'price' => $sourceItem->price,
+                        'price_override' => $sourceItem->price_override,
+                        'image' => $sourceItem->getRawOriginal('image'),
+                        'is_active' => $sourceItem->is_active,
+                        'is_featured' => $sourceItem->is_featured,
+                        'badges' => $sourceItem->badges,
+                        'sort_order' => $sortOrder,
+                        'sub_heading' => $sourceCategory->title,
+                        'price_glass' => $sourceItem->price_glass,
+                        'price_bottle' => $sourceItem->price_bottle,
+                        'cl_glass' => $sourceItem->cl_glass,
+                        'cl_bottle' => $sourceItem->cl_bottle,
+                    ];
+
+                    if ($targetItem) {
+                        $targetItem->fill($payload);
+                        if ($targetItem->isDirty()) {
+                            $targetItem->save();
+                            $updated++;
+                        }
+                    } else {
+                        $targetItem = $category->items()->create($payload);
+                        $created++;
+                    }
+
+                    $matchedIds[] = $targetItem->id;
+                    $sortOrder++;
+                }
             }
 
             $deleted = 0;
@@ -361,12 +374,13 @@ class QrMenuCategoryController extends BaseModuleController
                 'created' => $created,
                 'updated' => $updated,
                 'deleted' => $deleted,
-                'source_menu_id' => $sourceCategory->qr_menu_id,
-                'source_category_name' => $sourceCategory->getTitle('tr'),
+                'source_menu_id' => $sourceMenuId,
+                'source_category_count' => $sourceCategories->count(),
+                'source_item_count' => $sourceItemCount,
             ];
         });
 
-        $message = 'Kaynak menu #' . $stats['source_menu_id'] . ' / ' . $stats['source_category_name'] . ' baz alinarak ';
+        $message = 'Kaynak menu #' . $stats['source_menu_id'] . ' icindeki ' . $stats['source_category_count'] . ' kategori ve ' . $stats['source_item_count'] . ' urun baz alinarak ';
         $message .= $stats['created'] . ' urun eklendi, ' . $stats['updated'] . ' urun guncellendi';
         if ($stats['deleted'] > 0) {
             $message .= ', ' . $stats['deleted'] . ' eski urun kaldirildi';
@@ -419,48 +433,15 @@ class QrMenuCategoryController extends BaseModuleController
             ->with('success', $added . ' urun menuye eklendi.');
     }
 
-    private function resolveSourceCategory(QrMenu $sourceMenu, QrMenuCategory $targetCategory): ?QrMenuCategory
+    private function resolveSourceCategories(QrMenu $sourceMenu)
     {
-        $targetTitleKey = $this->normalizeSyncKey($targetCategory->getTitle('tr'));
-
-        if ($targetTitleKey !== '') {
-            $matchedByTitle = $sourceMenu->categories->first(function ($sourceCategory) use ($targetTitleKey) {
-                return $this->normalizeSyncKey($sourceCategory->getTitle('tr')) === $targetTitleKey;
-            });
-
-            if ($matchedByTitle) {
-                return $matchedByTitle;
-            }
-        }
-
-        $drinkKeywords = ['icecek', 'içecek', 'beverage', 'drink', 'bar'];
-        $matchedByKeyword = $sourceMenu->categories->first(function ($sourceCategory) use ($drinkKeywords) {
-            $title = Str::lower($sourceCategory->getTitle('tr') . ' ' . $sourceCategory->getTitle('en'));
-            foreach ($drinkKeywords as $keyword) {
-                if (str_contains($title, $keyword)) {
-                    return true;
-                }
-            }
-
-            return false;
-        });
-
-        if ($matchedByKeyword) {
-            return $matchedByKeyword;
-        }
-
-        if ($sourceMenu->categories->count() === 1) {
-            return $sourceMenu->categories->first();
-        }
-
         return $sourceMenu->categories
-            ->sortByDesc(fn ($sourceCategory) => $sourceCategory->items->count())
-            ->first();
+            ->filter(fn ($sourceCategory) => $sourceCategory->items->isNotEmpty())
+            ->values();
     }
 
     private function normalizeSyncKey(?string $value): string
     {
         return Str::slug(trim((string) $value));
     }
-
 }
