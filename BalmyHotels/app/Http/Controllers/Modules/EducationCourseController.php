@@ -5,8 +5,10 @@ namespace App\Http\Controllers\Modules;
 use App\Models\EducationCourse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 class EducationCourseController extends BaseModuleController
 {
@@ -132,6 +134,8 @@ class EducationCourseController extends BaseModuleController
 
     private function validateCourse(Request $request, ?EducationCourse $course = null): array
     {
+        $this->guardVideoUploadFailure($request, $course);
+
         $data = $request->validate([
             'title' => 'required|string|max:255',
             'description' => 'nullable|string|max:5000',
@@ -186,6 +190,79 @@ class EducationCourseController extends BaseModuleController
             'm' => (int) round($number * 1024),
             'k' => (int) round($number),
             default => (int) round($number / 1024),
+        };
+    }
+
+    private function guardVideoUploadFailure(Request $request, ?EducationCourse $course = null): void
+    {
+        $videoFile = $request->file('video');
+        if ($videoFile) {
+            return;
+        }
+
+        $fileInfo = $_FILES['video'] ?? null;
+        if (! is_array($fileInfo)) {
+            return;
+        }
+
+        $errorCode = (int) ($fileInfo['error'] ?? UPLOAD_ERR_OK);
+
+        if ($errorCode === UPLOAD_ERR_OK) {
+            return;
+        }
+
+        if ($errorCode === UPLOAD_ERR_NO_FILE && $course) {
+            return;
+        }
+
+        Log::warning('Education course video upload failed before validation.', [
+            'error_code' => $errorCode,
+            'error_label' => $this->getUploadErrorLabel($errorCode),
+            'content_length' => $request->server('CONTENT_LENGTH'),
+            'content_type' => $request->server('CONTENT_TYPE'),
+            'upload_max_filesize' => ini_get('upload_max_filesize'),
+            'post_max_size' => ini_get('post_max_size'),
+            'memory_limit' => ini_get('memory_limit'),
+            'upload_tmp_dir' => ini_get('upload_tmp_dir') ?: sys_get_temp_dir(),
+            'tmp_dir_writable' => is_writable(ini_get('upload_tmp_dir') ?: sys_get_temp_dir()),
+            'files_video' => $fileInfo,
+        ]);
+
+        throw ValidationException::withMessages([
+            'video' => $this->getVideoUploadErrorMessage($errorCode),
+        ]);
+    }
+
+    private function getVideoUploadErrorMessage(int $errorCode): string
+    {
+        $limits = sprintf(
+            'Canli PHP limitleri: upload_max_filesize=%s, post_max_size=%s.',
+            ini_get('upload_max_filesize') ?: '?',
+            ini_get('post_max_size') ?: '?'
+        );
+
+        return match ($errorCode) {
+            UPLOAD_ERR_INI_SIZE, UPLOAD_ERR_FORM_SIZE => 'Video yuklenemedi: dosya sunucu upload limitini asti. ' . $limits . ' Kod: ' . $errorCode . '.',
+            UPLOAD_ERR_PARTIAL => 'Video yuklenemedi: dosya sunucuya eksik ulasti. Baglanti veya proxy kesintisi olabilir. Kod: ' . $errorCode . '.',
+            UPLOAD_ERR_NO_TMP_DIR => 'Video yuklenemedi: sunucuda gecici upload klasoru bulunamadi. Kod: ' . $errorCode . '.',
+            UPLOAD_ERR_CANT_WRITE => 'Video yuklenemedi: sunucu dosyayi diske yazamadi. Kod: ' . $errorCode . '.',
+            UPLOAD_ERR_EXTENSION => 'Video yuklenemedi: bir PHP eklentisi yuklemeyi durdurdu. Kod: ' . $errorCode . '.',
+            default => 'Video yuklenemedi. ' . $limits . ' Kod: ' . $errorCode . '.',
+        };
+    }
+
+    private function getUploadErrorLabel(int $errorCode): string
+    {
+        return match ($errorCode) {
+            UPLOAD_ERR_OK => 'UPLOAD_ERR_OK',
+            UPLOAD_ERR_INI_SIZE => 'UPLOAD_ERR_INI_SIZE',
+            UPLOAD_ERR_FORM_SIZE => 'UPLOAD_ERR_FORM_SIZE',
+            UPLOAD_ERR_PARTIAL => 'UPLOAD_ERR_PARTIAL',
+            UPLOAD_ERR_NO_FILE => 'UPLOAD_ERR_NO_FILE',
+            UPLOAD_ERR_NO_TMP_DIR => 'UPLOAD_ERR_NO_TMP_DIR',
+            UPLOAD_ERR_CANT_WRITE => 'UPLOAD_ERR_CANT_WRITE',
+            UPLOAD_ERR_EXTENSION => 'UPLOAD_ERR_EXTENSION',
+            default => 'UPLOAD_ERR_UNKNOWN',
         };
     }
 }
