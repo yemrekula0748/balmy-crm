@@ -10,6 +10,8 @@ use Illuminate\Validation\Rule;
 
 class EducationCourseController extends BaseModuleController
 {
+    private const VIDEO_MAX_KB = 512000;
+
     public function __construct()
     {
         $this->requirePermission(
@@ -45,6 +47,7 @@ class EducationCourseController extends BaseModuleController
         return view('modules.education.courses.form', [
             'course' => new EducationCourse(),
             'languages' => EducationCourse::LANGUAGES,
+            'videoUploadLimitMb' => $this->getEffectiveVideoUploadLimitMb(),
         ]);
     }
 
@@ -93,6 +96,7 @@ class EducationCourseController extends BaseModuleController
         return view('modules.education.courses.form', [
             'course' => $course,
             'languages' => EducationCourse::LANGUAGES,
+            'videoUploadLimitMb' => $this->getEffectiveVideoUploadLimitMb(),
         ]);
     }
 
@@ -138,13 +142,50 @@ class EducationCourseController extends BaseModuleController
                 $course ? 'nullable' : 'required',
                 'file',
                 'mimes:mp4,mov,avi,mpeg,webm',
-                'max:512000',
+                'max:' . self::VIDEO_MAX_KB,
             ],
+        ], [
+            'video.uploaded' => 'Video yuklenemedi. Sunucu dosyayi kabul etmedi; buyuk ihtimalle dosya boyutu limiti asildi.',
+            'video.max' => 'Video en fazla ' . $this->getEffectiveVideoUploadLimitMb() . ' MB olabilir.',
+            'video.mimes' => 'Video formati desteklenmiyor. Lutfen MP4, MOV, AVI, MPEG veya WebM yukleyin.',
+        ], [
+            'video' => 'video dosyasi',
         ]);
 
         $data['duration_seconds'] = (int) ($data['duration_seconds'] ?? 0);
         $data['is_active'] = $request->boolean('is_active');
 
         return $data;
+    }
+
+    private function getEffectiveVideoUploadLimitMb(): int
+    {
+        $phpUploadLimitKb = $this->iniSizeToKilobytes(ini_get('upload_max_filesize'));
+        $phpPostLimitKb = $this->iniSizeToKilobytes(ini_get('post_max_size'));
+        $effectiveKb = min(
+            self::VIDEO_MAX_KB,
+            $phpUploadLimitKb > 0 ? $phpUploadLimitKb : self::VIDEO_MAX_KB,
+            $phpPostLimitKb > 0 ? $phpPostLimitKb : self::VIDEO_MAX_KB
+        );
+
+        return max(1, (int) floor($effectiveKb / 1024));
+    }
+
+    private function iniSizeToKilobytes(string|false $value): int
+    {
+        if (! is_string($value) || trim($value) === '') {
+            return 0;
+        }
+
+        $value = trim($value);
+        $unit = strtolower(substr($value, -1));
+        $number = (float) $value;
+
+        return match ($unit) {
+            'g' => (int) round($number * 1024 * 1024),
+            'm' => (int) round($number * 1024),
+            'k' => (int) round($number),
+            default => (int) round($number / 1024),
+        };
     }
 }

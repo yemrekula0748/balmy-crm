@@ -49,7 +49,10 @@
                     <div class="col-md-6">
                         <label class="form-label">Video {{ $course->exists ? '' : '*' }}</label>
                         <input type="file" name="video" class="form-control" accept="video/mp4,video/webm,video/quicktime,video/x-msvideo,video/mpeg" {{ $course->exists ? '' : 'required' }}>
-                        <small class="text-muted">MP4/WebM/MOV/AVI/MPEG, sunucu limitine bagli olarak yuklenir.</small>
+                        <small class="text-muted">MP4/WebM/MOV/AVI/MPEG, en fazla {{ $videoUploadLimitMb ?? 500 }} MB.</small>
+                        @error('video')
+                            <div class="text-danger small mt-1">{{ $message }}</div>
+                        @enderror
                     </div>
                     <div class="col-md-3">
                         <label class="form-label">Tahmini Sure (saniye)</label>
