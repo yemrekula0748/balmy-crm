@@ -14,12 +14,20 @@ use App\Models\FaultLocation;
 use App\Models\FaultType;
 use App\Models\FaultUpdate;
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
+use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Style\Alignment;
+use PhpOffice\PhpSpreadsheet\Style\Border;
+use PhpOffice\PhpSpreadsheet\Style\Fill;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 
 class FaultController extends BaseModuleController
 {
@@ -35,8 +43,8 @@ class FaultController extends BaseModuleController
         );
         $this->middleware('fault.detail')->only(['show']);
         $this->middleware('perm:fault_stats,index')->only(['stats', 'analysis', 'sendAnalysisReport']);
-        $this->middleware('perm:fault_room_reports,index')->only(['roomReport']);
-        $this->middleware('perm:fault_type_reports,index')->only(['typeReport']);
+        $this->middleware('perm:fault_room_reports,index')->only(['roomReport', 'roomReportExcel']);
+        $this->middleware('perm:fault_type_reports,index')->only(['typeReport', 'typeReportExcel']);
     }
 
 
@@ -760,6 +768,8 @@ class FaultController extends BaseModuleController
      --------------------------------------------------------------- */
     public function roomReport(Request $request)
     {
+        return view('modules.faults.reports.room', $this->buildRoomReportPayload($request));
+
         $request->validate([
             'branch_id'         => 'nullable|integer',
             'fault_location_id' => 'nullable|integer',
@@ -883,6 +893,8 @@ class FaultController extends BaseModuleController
      --------------------------------------------------------------- */
     public function typeReport(Request $request)
     {
+        return view('modules.faults.reports.type', $this->buildTypeReportPayload($request));
+
         $request->validate([
             'branch_id'         => 'nullable|integer',
             'fault_location_id' => 'nullable|integer',
@@ -1006,6 +1018,675 @@ class FaultController extends BaseModuleController
     /* ---------------------------------------------------------------
      | ANALİZ — Son 3 Gün Yapay Zeka Analiz Raporu
      --------------------------------------------------------------- */
+    public function roomReportExcel(Request $request)
+    {
+        $payload = $this->buildRoomReportPayload($request);
+
+        if (!$payload['hasSearch']) {
+            return redirect()
+                ->route('faults.room-report', $request->query())
+                ->with('error', 'Excel almak için önce en az bir filtre seçip raporu oluşturun.');
+        }
+
+        $spreadsheet = new Spreadsheet();
+        $summarySheet = $spreadsheet->getActiveSheet();
+        $summarySheet->setTitle('Ozet');
+
+        $filters = $this->buildFaultFilterSummary([
+            'Şube' => optional($payload['branches']->firstWhere('id', (int) $request->branch_id))->name,
+            'Konum' => optional($payload['locations']->firstWhere('id', (int) $request->fault_location_id))->name,
+            'Oda / Alan' => $payload['selectedArea']?->name,
+            'Arıza Türü' => optional($payload['faultTypes']->firstWhere('id', (int) $request->fault_type_id))->name,
+            'Durum' => Fault::STATUSES[$request->status] ?? null,
+            'Başlangıç' => $this->formatFilterDate($request->date_from),
+            'Bitiş' => $this->formatFilterDate($request->date_to),
+        ]);
+
+        $metrics = [
+            ['label' => 'Toplam Arıza', 'value' => $payload['summary']['total']],
+            ['label' => 'Açık / Devam Eden', 'value' => $payload['summary']['open']],
+            ['label' => 'Çözülen / Kapalı', 'value' => $payload['summary']['resolved']],
+            ['label' => 'Kategori Sayısı', 'value' => $payload['summary']['type_count']],
+        ];
+
+        $this->buildFaultOverviewSheet(
+            $summarySheet,
+            'Oda Bazlı Arıza Raporu',
+            'Seçili oda / alan filtresine ait genel görünüm ve aktif filtre özeti',
+            $filters,
+            $metrics,
+            '#1E3A5F'
+        );
+
+        $this->buildFaultTableSheet(
+            $spreadsheet,
+            'Kategori Dagilimi',
+            'Arıza türlerine göre yoğunluk kırılımı',
+            '#1E3A5F',
+            ['Arıza Türü', 'Toplam', 'Açık', 'Çözülen', 'Ort. Çözüm (saat)', 'Son Kayıt No', 'Son Kayıt Tarihi'],
+            $payload['typeStats']->map(function (array $stat) {
+                return [
+                    $stat['name'],
+                    $stat['total'],
+                    $stat['open'],
+                    $stat['resolved'],
+                    $stat['avg_hours'] !== null ? round($stat['avg_hours'], 1) : '-',
+                    $stat['last_fault']?->id ?? '-',
+                    $stat['last_fault']?->created_at?->format('d.m.Y H:i') ?? '-',
+                ];
+            })->all()
+        );
+
+        $this->buildFaultTableSheet(
+            $spreadsheet,
+            'Ariza Listesi',
+            'Filtreye giren tüm kayıtların detay tablosu',
+            '#1E3A5F',
+            ['ID', 'Tarih', 'Saat', 'Şube', 'Konum', 'Oda / Alan', 'Arıza Türü', 'Başlık', 'Departman', 'Bildiren', 'Durum', 'Öncelik', 'Çözüm Tarihi', 'Çözüm Süresi (saat)', 'Açıklama'],
+            $payload['reportFaults']->map(function (Fault $fault) {
+                $resolutionHours = $fault->resolved_at
+                    ? round($fault->created_at->diffInMinutes($fault->resolved_at) / 60, 1)
+                    : '-';
+
+                return [
+                    $fault->id,
+                    $fault->created_at?->format('d.m.Y'),
+                    $fault->created_at?->format('H:i'),
+                    $fault->branch?->name ?? '-',
+                    $fault->faultLocation?->name ?? '-',
+                    $fault->faultArea?->name ?? '-',
+                    $fault->faultType?->name ?? ($fault->title ?: '-'),
+                    $fault->title ?: '-',
+                    $fault->department?->name ?? '-',
+                    $fault->reporter?->name ?? '-',
+                    Fault::STATUSES[$fault->status] ?? $fault->status,
+                    Fault::PRIORITIES[$fault->priority] ?? $fault->priority,
+                    $fault->resolved_at?->format('d.m.Y H:i') ?? '-',
+                    $resolutionHours,
+                    trim(strip_tags((string) $fault->description)) ?: '-',
+                ];
+            })->all()
+        );
+
+        return $this->downloadSpreadsheet(
+            $spreadsheet,
+            'oda-ariza-raporu-' . now()->format('Y-m-d-His') . '.xlsx'
+        );
+    }
+
+    public function typeReportExcel(Request $request)
+    {
+        $payload = $this->buildTypeReportPayload($request);
+
+        $spreadsheet = new Spreadsheet();
+        $summarySheet = $spreadsheet->getActiveSheet();
+        $summarySheet->setTitle('Ozet');
+
+        $filters = $this->buildFaultFilterSummary([
+            'Arıza Türü' => $payload['selectedType']?->name,
+            'Şube' => optional($payload['branches']->firstWhere('id', (int) $request->branch_id))->name,
+            'Konum' => optional($payload['locations']->firstWhere('id', (int) $request->fault_location_id))->name,
+            'Durum' => Fault::STATUSES[$request->status] ?? null,
+            'Başlangıç' => $this->formatFilterDate($request->date_from),
+            'Bitiş' => $this->formatFilterDate($request->date_to),
+        ]);
+
+        if ($payload['selectedType']) {
+            $metrics = [
+                ['label' => 'Seçilen Arıza', 'value' => $payload['selectedType']->name],
+                ['label' => 'Toplam Kayıt', 'value' => $payload['summary']['total']],
+                ['label' => 'Etkilenen Oda', 'value' => $payload['summary']['room_count']],
+                ['label' => 'Açık Kayıt', 'value' => $payload['summary']['open']],
+            ];
+
+            $subtitle = 'Seçilen arıza türünün odalara göre dağılımı ve detaylı kayıt listesi';
+        } else {
+            $metrics = [
+                ['label' => 'Listelenen Tür', 'value' => $payload['topTypes']->count()],
+                ['label' => 'Toplam Kayıt Havuzu', 'value' => $payload['topTypes']->sum('total')],
+                ['label' => 'Filtrelenen Konum', 'value' => $request->filled('fault_location_id') ? 1 : 'Tümü'],
+                ['label' => 'Filtrelenen Şube', 'value' => $request->filled('branch_id') ? 1 : 'Tümü'],
+            ];
+
+            $subtitle = 'Arıza türü seçilmeden önce öne çıkan türlerin yoğunluk özeti';
+        }
+
+        $this->buildFaultOverviewSheet(
+            $summarySheet,
+            'Arıza Bazlı Rapor',
+            $subtitle,
+            $filters,
+            $metrics,
+            '#B45309'
+        );
+
+        if ($payload['selectedType']) {
+            $this->buildFaultTableSheet(
+                $spreadsheet,
+                'Oda Dagilimi',
+                'Seçilen türün en çok görüldüğü oda / alan kırılımı',
+                '#B45309',
+                ['Oda / Alan', 'Konum', 'Şube', 'Toplam', 'Açık', 'Çözülen', 'Son Kayıt No', 'Son Kayıt Tarihi'],
+                $payload['roomStats']->map(function (array $room) {
+                    return [
+                        $room['room_name'],
+                        $room['location_name'],
+                        $room['branch_name'],
+                        $room['total'],
+                        $room['open'],
+                        $room['resolved'],
+                        $room['last_fault']?->id ?? '-',
+                        $room['last_fault']?->created_at?->format('d.m.Y H:i') ?? '-',
+                    ];
+                })->all()
+            );
+
+            $this->buildFaultTableSheet(
+                $spreadsheet,
+                'Ariza Detaylari',
+                'Seçilen arıza türüne ait ayrıntılı kayıt listesi',
+                '#B45309',
+                ['ID', 'Tarih', 'Saat', 'Şube', 'Konum', 'Oda / Alan', 'Departman', 'Bildiren', 'Durum', 'Öncelik', 'Başlık', 'Çözüm Tarihi', 'Açıklama'],
+                $payload['reportFaults']->map(function (Fault $fault) {
+                    return [
+                        $fault->id,
+                        $fault->created_at?->format('d.m.Y'),
+                        $fault->created_at?->format('H:i'),
+                        $fault->branch?->name ?? '-',
+                        $fault->faultLocation?->name ?? '-',
+                        $fault->faultArea?->name ?? '-',
+                        $fault->department?->name ?? '-',
+                        $fault->reporter?->name ?? '-',
+                        Fault::STATUSES[$fault->status] ?? $fault->status,
+                        Fault::PRIORITIES[$fault->priority] ?? $fault->priority,
+                        $fault->title ?: '-',
+                        $fault->resolved_at?->format('d.m.Y H:i') ?? '-',
+                        trim(strip_tags((string) $fault->description)) ?: '-',
+                    ];
+                })->all()
+            );
+        } else {
+            $this->buildFaultTableSheet(
+                $spreadsheet,
+                'On Plana Cikan Turler',
+                'Filtrelere göre en sık görülen arıza türleri',
+                '#B45309',
+                ['Arıza Türü', 'Toplam', 'Etkilenen Oda', 'Son Kayıt No', 'Son Kayıt Tarihi'],
+                $payload['topTypes']->map(function (array $item) {
+                    return [
+                        $item['name'],
+                        $item['total'],
+                        $item['room_count'],
+                        $item['last_fault']?->id ?? '-',
+                        $item['last_fault']?->created_at?->format('d.m.Y H:i') ?? '-',
+                    ];
+                })->all()
+            );
+        }
+
+        return $this->downloadSpreadsheet(
+            $spreadsheet,
+            'ariza-turu-raporu-' . now()->format('Y-m-d-His') . '.xlsx'
+        );
+    }
+
+    private function buildRoomReportPayload(Request $request): array
+    {
+        $request->validate([
+            'branch_id'         => 'nullable|integer',
+            'fault_location_id' => 'nullable|integer',
+            'fault_area_id'     => 'nullable|integer',
+            'fault_type_id'     => 'nullable|integer',
+            'status'            => 'nullable|in:open,in_progress,winter_plan,waiting_material,resolved,closed',
+            'date_from'         => 'nullable|date',
+            'date_to'           => 'nullable|date|after_or_equal:date_from',
+        ]);
+
+        $user = auth()->user();
+        $branchIds = $user->visibleBranchIds();
+
+        $branches = Branch::whereIn('id', $branchIds)->orderBy('name')->get();
+        $locations = FaultLocation::with('branch')
+            ->whereIn('branch_id', $branchIds)
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->get();
+        $areas = FaultArea::with('location.branch')
+            ->where('is_active', true)
+            ->whereHas('location', fn ($q) => $q->whereIn('branch_id', $branchIds)->where('is_active', true))
+            ->get()
+            ->sortBy(fn ($area) => ($area->location?->branch?->name ?? '') . ' ' . ($area->location?->name ?? '') . ' ' . $area->name)
+            ->values();
+        $faultTypes = FaultType::where('is_active', true)
+            ->where(fn ($q) => $q->whereNull('branch_id')->orWhereIn('branch_id', $branchIds))
+            ->orderBy('name')
+            ->get();
+
+        $selectedArea = null;
+        if ($request->filled('branch_id')) {
+            abort_if(!in_array((int) $request->branch_id, $branchIds, true), 403);
+        }
+        if ($request->filled('fault_location_id')) {
+            abort_if(!FaultLocation::whereKey($request->fault_location_id)->whereIn('branch_id', $branchIds)->exists(), 403);
+        }
+        if ($request->filled('fault_area_id')) {
+            $selectedArea = FaultArea::with('location.branch')
+                ->whereKey($request->fault_area_id)
+                ->whereHas('location', fn ($q) => $q->whereIn('branch_id', $branchIds))
+                ->firstOrFail();
+        }
+
+        $hasSearch = $request->filled('branch_id')
+            || $request->filled('fault_location_id')
+            || $request->filled('fault_area_id')
+            || $request->filled('fault_type_id')
+            || $request->filled('status')
+            || $request->filled('date_from')
+            || $request->filled('date_to');
+
+        $baseQuery = $this->makeFaultReportBaseQuery($branchIds);
+        $this->applyRoomReportFilters($baseQuery, $request);
+
+        $reportFaults = $hasSearch ? (clone $baseQuery)->latest()->get() : collect();
+        $faults = $hasSearch
+            ? (clone $baseQuery)->latest()->paginate(30)->withQueryString()
+            : $this->emptyFaultPaginator($request);
+
+        $typeStats = $reportFaults
+            ->groupBy(fn ($fault) => $fault->fault_type_id ?: 'unknown')
+            ->map(function (Collection $group) {
+                $first = $group->first();
+                $resolved = $group->whereIn('status', ['resolved', 'closed'])->count();
+                $open = $group->whereNotIn('status', ['resolved', 'closed'])->count();
+                $avgHours = $group->whereNotNull('resolved_at')->avg(
+                    fn (Fault $fault) => $fault->created_at->diffInMinutes($fault->resolved_at) / 60
+                );
+
+                return [
+                    'type' => $first?->faultType,
+                    'name' => $first?->faultType?->name ?? 'Tür seçilmemiş',
+                    'total' => $group->count(),
+                    'open' => $open,
+                    'resolved' => $resolved,
+                    'last_fault' => $group->sortByDesc('created_at')->first(),
+                    'avg_hours' => $avgHours,
+                ];
+            })
+            ->sortByDesc('total')
+            ->values();
+
+        return [
+            'branches' => $branches,
+            'locations' => $locations,
+            'areas' => $areas,
+            'faultTypes' => $faultTypes,
+            'selectedArea' => $selectedArea,
+            'faults' => $faults,
+            'reportFaults' => $reportFaults,
+            'typeStats' => $typeStats,
+            'summary' => [
+                'total' => $reportFaults->count(),
+                'open' => $reportFaults->whereNotIn('status', ['resolved', 'closed'])->count(),
+                'resolved' => $reportFaults->whereIn('status', ['resolved', 'closed'])->count(),
+                'type_count' => $typeStats->count(),
+            ],
+            'hasSearch' => $hasSearch,
+            'page_title' => 'Oda Bazlı Arıza Raporu',
+        ];
+    }
+
+    private function buildTypeReportPayload(Request $request): array
+    {
+        $request->validate([
+            'branch_id'         => 'nullable|integer',
+            'fault_location_id' => 'nullable|integer',
+            'fault_type_id'     => 'nullable|integer',
+            'status'            => 'nullable|in:open,in_progress,winter_plan,waiting_material,resolved,closed',
+            'date_from'         => 'nullable|date',
+            'date_to'           => 'nullable|date|after_or_equal:date_from',
+        ]);
+
+        $user = auth()->user();
+        $branchIds = $user->visibleBranchIds();
+
+        $branches = Branch::whereIn('id', $branchIds)->orderBy('name')->get();
+        $locations = FaultLocation::with('branch')
+            ->whereIn('branch_id', $branchIds)
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->get();
+        $faultTypes = FaultType::where('is_active', true)
+            ->where(fn ($q) => $q->whereNull('branch_id')->orWhereIn('branch_id', $branchIds))
+            ->orderBy('name')
+            ->get();
+
+        if ($request->filled('branch_id')) {
+            abort_if(!in_array((int) $request->branch_id, $branchIds, true), 403);
+        }
+        if ($request->filled('fault_location_id')) {
+            abort_if(!FaultLocation::whereKey($request->fault_location_id)->whereIn('branch_id', $branchIds)->exists(), 403);
+        }
+
+        $filterQuery = $this->makeFaultReportBaseQuery($branchIds);
+        $this->applyTypeReportFilters($filterQuery, $request);
+
+        $topTypes = (clone $filterQuery)
+            ->whereNotNull('fault_type_id')
+            ->latest()
+            ->get()
+            ->groupBy('fault_type_id')
+            ->map(function (Collection $group) {
+                $first = $group->first();
+
+                return [
+                    'type' => $first?->faultType,
+                    'name' => $first?->faultType?->name ?? 'Tür seçilmemiş',
+                    'total' => $group->count(),
+                    'room_count' => $group->whereNotNull('fault_area_id')->pluck('fault_area_id')->unique()->count(),
+                    'last_fault' => $group->sortByDesc('created_at')->first(),
+                ];
+            })
+            ->sortByDesc('total')
+            ->take(12)
+            ->values();
+
+        $selectedType = null;
+        $reportFaults = collect();
+        $faults = $this->emptyFaultPaginator($request);
+        $roomStats = collect();
+        $summary = ['total' => 0, 'room_count' => 0, 'open' => 0, 'resolved' => 0, 'top_room' => null];
+
+        if ($request->filled('fault_type_id')) {
+            $selectedType = FaultType::where('is_active', true)
+                ->where(fn ($q) => $q->whereNull('branch_id')->orWhereIn('branch_id', $branchIds))
+                ->findOrFail($request->fault_type_id);
+
+            $typeQuery = (clone $filterQuery)->where('fault_type_id', $selectedType->id);
+            $reportFaults = (clone $typeQuery)->latest()->get();
+            $faults = (clone $typeQuery)->latest()->paginate(30)->withQueryString();
+
+            $roomStats = $reportFaults
+                ->groupBy(fn ($fault) => $fault->fault_area_id ?: 'no_area')
+                ->map(function (Collection $group) {
+                    $first = $group->first();
+
+                    return [
+                        'area' => $first?->faultArea,
+                        'location' => $first?->faultLocation,
+                        'branch' => $first?->branch,
+                        'room_name' => $first?->faultArea?->name ?? 'Alan seçilmemiş',
+                        'location_name' => $first?->faultLocation?->name ?? '-',
+                        'branch_name' => $first?->branch?->name ?? '-',
+                        'total' => $group->count(),
+                        'open' => $group->whereNotIn('status', ['resolved', 'closed'])->count(),
+                        'resolved' => $group->whereIn('status', ['resolved', 'closed'])->count(),
+                        'last_fault' => $group->sortByDesc('created_at')->first(),
+                    ];
+                })
+                ->sortByDesc('total')
+                ->values();
+
+            $summary = [
+                'total' => $reportFaults->count(),
+                'room_count' => $roomStats->count(),
+                'open' => $reportFaults->whereNotIn('status', ['resolved', 'closed'])->count(),
+                'resolved' => $reportFaults->whereIn('status', ['resolved', 'closed'])->count(),
+                'top_room' => $roomStats->first(),
+            ];
+        }
+
+        return [
+            'branches' => $branches,
+            'locations' => $locations,
+            'faultTypes' => $faultTypes,
+            'selectedType' => $selectedType,
+            'topTypes' => $topTypes,
+            'roomStats' => $roomStats,
+            'faults' => $faults,
+            'reportFaults' => $reportFaults,
+            'summary' => $summary,
+            'page_title' => 'Arıza Bazlı Rapor',
+        ];
+    }
+
+    private function makeFaultReportBaseQuery(array $branchIds)
+    {
+        return Fault::with(['branch', 'department', 'faultType', 'faultLocation', 'faultArea', 'reporter'])
+            ->whereIn('branch_id', $branchIds);
+    }
+
+    private function applyRoomReportFilters($query, Request $request): void
+    {
+        if ($request->filled('branch_id')) {
+            $query->where('branch_id', $request->branch_id);
+        }
+        if ($request->filled('fault_location_id')) {
+            $query->where('fault_location_id', $request->fault_location_id);
+        }
+        if ($request->filled('fault_area_id')) {
+            $query->where('fault_area_id', $request->fault_area_id);
+        }
+        if ($request->filled('fault_type_id')) {
+            $query->where('fault_type_id', $request->fault_type_id);
+        }
+
+        $this->applySharedFaultReportFilters($query, $request);
+    }
+
+    private function applyTypeReportFilters($query, Request $request): void
+    {
+        if ($request->filled('branch_id')) {
+            $query->where('branch_id', $request->branch_id);
+        }
+        if ($request->filled('fault_location_id')) {
+            $query->where('fault_location_id', $request->fault_location_id);
+        }
+
+        $this->applySharedFaultReportFilters($query, $request);
+    }
+
+    private function applySharedFaultReportFilters($query, Request $request): void
+    {
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+        if ($request->filled('date_from')) {
+            $query->whereDate('created_at', '>=', $request->date_from);
+        }
+        if ($request->filled('date_to')) {
+            $query->whereDate('created_at', '<=', $request->date_to);
+        }
+    }
+
+    private function buildFaultFilterSummary(array $map): array
+    {
+        $items = [];
+
+        foreach ($map as $label => $value) {
+            if ($value !== null && $value !== '') {
+                $items[] = $label . ': ' . $value;
+            }
+        }
+
+        if (empty($items)) {
+            $items[] = 'Filtre: Varsayılan görünüm';
+        }
+
+        $items[] = 'Rapor Tarihi: ' . now()->format('d.m.Y H:i');
+
+        return $items;
+    }
+
+    private function formatFilterDate(?string $date): ?string
+    {
+        if (!$date) {
+            return null;
+        }
+
+        return Carbon::parse($date)->format('d.m.Y');
+    }
+
+    private function buildFaultOverviewSheet(
+        $sheet,
+        string $title,
+        string $subtitle,
+        array $filters,
+        array $metrics,
+        string $accentColor
+    ): void {
+        $sheet->freezePane('A9');
+        $sheet->setCellValue('A1', $title);
+        $sheet->mergeCells('A1:F1');
+        $sheet->setCellValue('A2', $subtitle);
+        $sheet->mergeCells('A2:F2');
+        $sheet->setCellValue('A4', 'Aktif Filtreler');
+        $sheet->mergeCells('A4:F4');
+
+        $row = 5;
+        foreach ($filters as $filter) {
+            $sheet->setCellValue('A' . $row, '- ' . $filter);
+            $sheet->mergeCells('A' . $row . ':F' . $row);
+            $row++;
+        }
+
+        $metricStartRow = max($row + 1, 9);
+        $sheet->setCellValue('A' . $metricStartRow, 'Gösterge');
+        $sheet->setCellValue('B' . $metricStartRow, 'Değer');
+
+        $metricRow = $metricStartRow + 1;
+        foreach ($metrics as $metric) {
+            $sheet->setCellValue('A' . $metricRow, $metric['label']);
+            $sheet->setCellValue('B' . $metricRow, $metric['value']);
+            $metricRow++;
+        }
+
+        $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(18);
+        $sheet->getStyle('A2')->getFont()->setSize(11)->getColor()->setARGB('FF64748B');
+        $sheet->getStyle('A4')->getFont()->setBold(true)->setSize(11);
+        $sheet->getStyle('A4:F4')->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setARGB('FFF8FAFC');
+        $sheet->getStyle('A' . $metricStartRow . ':B' . $metricStartRow)->applyFromArray($this->faultTableHeaderStyle($accentColor));
+        $sheet->getStyle('A' . ($metricStartRow + 1) . ':B' . ($metricRow - 1))->applyFromArray($this->faultTableBodyStyle());
+        $sheet->getStyle('A1:F' . max($metricRow - 1, 1))->getAlignment()->setVertical(Alignment::VERTICAL_CENTER);
+
+        foreach (range(1, 6) as $column) {
+            $sheet->getColumnDimension(Coordinate::stringFromColumnIndex($column))->setAutoSize(true);
+        }
+    }
+
+    private function buildFaultTableSheet(
+        Spreadsheet $spreadsheet,
+        string $title,
+        string $subtitle,
+        string $accentColor,
+        array $headers,
+        array $rows
+    ): void {
+        $sheet = $spreadsheet->createSheet();
+        $sheet->setTitle($this->limitWorksheetTitle($title));
+        $sheet->freezePane('A4');
+
+        $lastColumn = Coordinate::stringFromColumnIndex(count($headers));
+
+        $sheet->setCellValue('A1', $title);
+        $sheet->mergeCells('A1:' . $lastColumn . '1');
+        $sheet->setCellValue('A2', $subtitle);
+        $sheet->mergeCells('A2:' . $lastColumn . '2');
+
+        foreach ($headers as $index => $header) {
+            $sheet->setCellValue(Coordinate::stringFromColumnIndex($index + 1) . '3', $header);
+        }
+
+        $rowIndex = 4;
+        foreach ($rows as $row) {
+            foreach (array_values($row) as $columnIndex => $value) {
+                $sheet->setCellValue(Coordinate::stringFromColumnIndex($columnIndex + 1) . $rowIndex, $value);
+            }
+            $rowIndex++;
+        }
+
+        $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(16);
+        $sheet->getStyle('A2')->getFont()->setSize(10)->getColor()->setARGB('FF64748B');
+        $sheet->getStyle('A3:' . $lastColumn . '3')->applyFromArray($this->faultTableHeaderStyle($accentColor));
+
+        if ($rowIndex > 4) {
+            $sheet->getStyle('A4:' . $lastColumn . ($rowIndex - 1))->applyFromArray($this->faultTableBodyStyle());
+        } else {
+            $sheet->setCellValue('A4', 'Kayıt bulunamadı.');
+            $sheet->mergeCells('A4:' . $lastColumn . '4');
+            $sheet->getStyle('A4')->getFont()->getColor()->setARGB('FF94A3B8');
+        }
+
+        $sheet->setAutoFilter('A3:' . $lastColumn . '3');
+
+        for ($column = 1; $column <= count($headers); $column++) {
+            $sheet->getColumnDimension(Coordinate::stringFromColumnIndex($column))->setAutoSize(true);
+        }
+    }
+
+    private function faultTableHeaderStyle(string $accentColor): array
+    {
+        return [
+            'font' => [
+                'bold' => true,
+                'color' => ['argb' => 'FFFFFFFF'],
+            ],
+            'fill' => [
+                'fillType' => Fill::FILL_SOLID,
+                'startColor' => ['argb' => $this->normalizeSpreadsheetColor($accentColor)],
+            ],
+            'alignment' => [
+                'vertical' => Alignment::VERTICAL_CENTER,
+            ],
+            'borders' => [
+                'allBorders' => [
+                    'borderStyle' => Border::BORDER_THIN,
+                    'color' => ['argb' => 'FFE2E8F0'],
+                ],
+            ],
+        ];
+    }
+
+    private function faultTableBodyStyle(): array
+    {
+        return [
+            'alignment' => [
+                'vertical' => Alignment::VERTICAL_TOP,
+                'wrapText' => true,
+            ],
+            'borders' => [
+                'allBorders' => [
+                    'borderStyle' => Border::BORDER_THIN,
+                    'color' => ['argb' => 'FFE2E8F0'],
+                ],
+            ],
+        ];
+    }
+
+    private function normalizeSpreadsheetColor(string $color): string
+    {
+        $normalized = strtoupper(ltrim($color, '#'));
+
+        return strlen($normalized) === 6 ? 'FF' . $normalized : $normalized;
+    }
+
+    private function limitWorksheetTitle(string $title): string
+    {
+        return mb_substr($title, 0, 31);
+    }
+
+    private function downloadSpreadsheet(Spreadsheet $spreadsheet, string $filename)
+    {
+        $spreadsheet->setActiveSheetIndex(0);
+        $writer = new Xlsx($spreadsheet);
+
+        return response()->streamDownload(function () use ($writer) {
+            $writer->save('php://output');
+        }, $filename, [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'Cache-Control' => 'max-age=0',
+        ]);
+    }
+
     public function analysis()
     {
         $user        = auth()->user();

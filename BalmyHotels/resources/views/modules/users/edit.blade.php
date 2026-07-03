@@ -19,8 +19,8 @@
     </div>
 
     <div class="row">
-        <div class="col-xl-7 col-lg-9 mx-auto">
-            <div class="card">
+        <div class="col-12 col-xl-8 col-lg-10 mx-auto">
+            <div class="card edit-user-card">
                 <div class="card-header">
                     <h4 class="card-title">
                         <i class="fas fa-user-edit me-2 text-warning"></i> {{ $user->name }}
@@ -106,20 +106,19 @@
                                 </label>
                                 @error('roles') <div class="text-danger small mb-2"><i class="fas fa-exclamation-circle me-1"></i>{{ $message }}</div> @enderror
                                 @error('roles.*') <div class="text-danger small mb-2">{{ $message }}</div> @enderror
-                                <div class="role-picker d-flex flex-wrap gap-2">
+                                <div class="role-picker">
                                     @foreach($roles as $role_item)
                                     @php $checked = in_array($role_item->name, old('roles', $userRoleNames)); @endphp
-                                    <div class="role-card @if($checked) selected @endif"
-                                         style="--role-color: {{ $role_item->color ?? '#6c757d' }}"
-                                         onclick="toggleRole(this)">
+                                    <label class="role-card @if($checked) selected @endif"
+                                           style="--role-color: {{ $role_item->color ?? '#6c757d' }}">
                                         <input type="checkbox" name="roles[]"
+                                               class="role-input"
                                                value="{{ $role_item->name }}"
-                                               @checked($checked)
-                                               style="display:none">
+                                               @checked($checked)>
                                         <span class="role-dot"></span>
                                         <span class="role-name">{{ $role_item->display_name }}</span>
                                         <span class="role-check"><i class="fas fa-check"></i></span>
-                                    </div>
+                                    </label>
                                     @endforeach
                                 </div>
                             </div>
@@ -172,7 +171,7 @@
 
                         </div>
 
-                        <div class="d-flex gap-2">
+                        <div class="d-flex gap-2 form-actions">
                             <button type="submit" class="btn btn-warning">
                                 <i class="fas fa-save me-1"></i> Güncelle
                             </button>
@@ -189,13 +188,33 @@
 @endsection
 @push('styles')
 <style>
+.edit-user-card {
+    border: 1px solid #e9eef5;
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: 0 18px 45px rgba(15, 23, 42, .08);
+}
+.edit-user-card .card-header {
+    padding: 18px 22px;
+    background: linear-gradient(135deg, #fff8e1, #ffffff);
+    border-bottom: 1px solid #eef2f7;
+}
+.edit-user-card .card-body {
+    padding: 24px 22px 22px;
+}
+.role-picker {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 12px;
+}
 .role-card {
-    display: inline-flex;
+    display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 8px 16px;
+    gap: 10px;
+    min-height: 58px;
+    padding: 12px 14px;
     border: 2px solid #dee2e6;
-    border-radius: 50px;
+    border-radius: 16px;
     cursor: pointer;
     user-select: none;
     background: #fff;
@@ -204,6 +223,7 @@
     font-weight: 500;
     color: #495057;
     position: relative;
+    width: 100%;
 }
 .role-card:hover {
     border-color: var(--role-color);
@@ -219,6 +239,16 @@
     background: var(--role-color);
     flex-shrink: 0;
     transition: transform .18s ease;
+}
+.role-input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+}
+.role-name {
+    flex: 1;
+    min-width: 0;
+    line-height: 1.3;
 }
 .role-check {
     display: none;
@@ -244,6 +274,26 @@
 }
 .role-card.selected .role-dot {
     transform: scale(1.3);
+}
+.form-actions .btn {
+    min-width: 148px;
+}
+@media (max-width: 767px) {
+    .edit-user-card .card-header,
+    .edit-user-card .card-body {
+        padding-left: 16px;
+        padding-right: 16px;
+    }
+    .role-picker {
+        grid-template-columns: 1fr;
+    }
+    .form-actions {
+        flex-direction: column-reverse;
+    }
+    .form-actions .btn {
+        width: 100%;
+        justify-content: center;
+    }
 }
 </style>
 @endpush
@@ -280,10 +330,10 @@
     rebuildDepts(branchSel.value, oldDept);
 })();
 
-function toggleRole(card) {
-    card.classList.toggle('selected');
-    const cb = card.querySelector('input[type=checkbox]');
-    cb.checked = card.classList.contains('selected');
-}
+document.querySelectorAll('.role-input').forEach((input) => {
+    input.addEventListener('change', function () {
+        this.closest('.role-card')?.classList.toggle('selected', this.checked);
+    });
+});
 </script>
 @endpush

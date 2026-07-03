@@ -67,6 +67,19 @@
 @endphp
 
 <div class="container-fluid pb-5">
+    @if(session('success'))
+    <div class="alert alert-success alert-dismissible fade show shadow-sm border-0">
+        {{ session('success') }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    @endif
+    @if(session('error'))
+    <div class="alert alert-danger alert-dismissible fade show shadow-sm border-0">
+        {{ session('error') }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    @endif
+
     <div class="row page-titles mx-0">
         <div class="col-sm-6 p-md-0">
             <div class="welcome-text">
@@ -141,6 +154,9 @@
                 <input type="date" name="date_to" class="form-control" value="{{ request('date_to') }}">
             </div>
             <div class="col-12 d-flex gap-2 justify-content-end">
+                <a href="{{ route('faults.type-report.excel', request()->except('page')) }}" class="btn btn-success">
+                    <i class="fas fa-file-excel me-1"></i> Excel İndir
+                </a>
                 <a href="{{ route('faults.type-report') }}" class="btn btn-outline-secondary">Temizle</a>
                 <button type="submit" class="btn btn-primary">
                     <i class="fas fa-filter me-1"></i> Raporla

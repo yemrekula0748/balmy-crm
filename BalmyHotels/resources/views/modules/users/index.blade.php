@@ -51,6 +51,77 @@
 .btn-add:hover { opacity:.88;color:#fff; }
 .empty-state { padding:56px 24px;text-align:center;color:#9ca3af; }
 .empty-state .es-icon { font-size:2.5rem;margin-bottom:12px;opacity:.25;display:block; }
+.desktop-users-table { display:block; }
+.mobile-user-list { display:none; }
+.mobile-user-card {
+    padding: 16px;
+    border-bottom: 1px solid #f3f4f6;
+}
+.mobile-user-card:last-child {
+    border-bottom: none;
+}
+.mobile-user-meta {
+    font-size: .78rem;
+    color: #6b7280;
+    margin-top: 8px;
+}
+.mobile-user-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 14px;
+}
+.mobile-user-actions .btn {
+    flex: 1;
+    justify-content: center;
+}
+@media (max-width: 767px) {
+    .page-hero {
+        flex-direction: column;
+    }
+    .page-hero-stripe {
+        width: 100%;
+        height: 6px;
+        border-radius: 16px 16px 0 0;
+    }
+    .page-hero-icon {
+        width: 100%;
+        height: 72px;
+    }
+    .page-hero-actions {
+        border-left: 0;
+        border-top: 1px solid #f3f4f6;
+        padding: 16px 18px 18px;
+        justify-content: stretch;
+    }
+    .page-hero-actions .btn-add {
+        width: 100%;
+        justify-content: center;
+    }
+    .filter-card {
+        padding: 16px;
+    }
+    .filter-card form .col-md-3 {
+        width: 100%;
+    }
+    .filter-card form .col-md-3.d-flex {
+        flex-wrap: wrap;
+    }
+    .filter-card form .col-md-3.d-flex .btn {
+        flex: 1 1 calc(50% - 4px);
+        justify-content: center;
+    }
+    .filter-card form .col-md-3.d-flex span {
+        width: 100%;
+        margin-left: 0 !important;
+        margin-top: 4px;
+    }
+    .desktop-users-table {
+        display: none;
+    }
+    .mobile-user-list {
+        display: block;
+    }
+}
 </style>
 @endpush
 
@@ -179,6 +250,7 @@
 
     {{-- Table --}}
     <div class="users-card">
+        <div class="table-responsive desktop-users-table">
         <table class="table table-hover mb-0">
             <thead>
                 <tr>
@@ -276,6 +348,81 @@
                 @endforelse
             </tbody>
         </table>
+        </div>
+
+        <div class="mobile-user-list">
+            @forelse($users as $u)
+                @php
+                    $initials = collect(explode(' ', $u->name))
+                        ->map(fn($w) => mb_strtoupper(mb_substr($w,0,1)))
+                        ->take(2)->implode('');
+                    $avatarColors = ['#4361ee','#10b981','#f59e0b','#ef4444','#8b5cf6','#06b6d4','#c19b77'];
+                    $avatarColor  = $avatarColors[abs(crc32($u->name)) % count($avatarColors)];
+                @endphp
+                <div class="mobile-user-card">
+                    <div class="d-flex align-items-start gap-3">
+                        <div class="u-avatar" style="background:linear-gradient(135deg,{{ $avatarColor }},{{ $avatarColor }}bb)">
+                            @if($u->avatar)
+                                <img src="{{ asset('storage/'.$u->avatar) }}" alt="{{ $u->name }}">
+                            @else
+                                {{ $initials }}
+                            @endif
+                        </div>
+                        <div class="flex-grow-1" style="min-width:0">
+                            <div class="d-flex justify-content-between gap-2 align-items-start">
+                                <div>
+                                    <div style="font-weight:700;color:#1f2937;font-size:.95rem;line-height:1.2">{{ $u->name }}</div>
+                                    @if($u->title)
+                                        <div class="mobile-user-meta" style="margin-top:2px">{{ $u->title }}</div>
+                                    @endif
+                                </div>
+                                @if($u->is_active)
+                                    <span style="display:inline-flex;align-items:center;gap:4px;font-size:.72rem;font-weight:700;color:#059669;background:rgba(16,185,129,.1);padding:4px 8px;border-radius:999px">
+                                        <i class="fas fa-check-circle"></i>Aktif
+                                    </span>
+                                @else
+                                    <span style="display:inline-flex;align-items:center;gap:4px;font-size:.72rem;font-weight:700;color:#9ca3af;background:rgba(156,163,175,.1);padding:4px 8px;border-radius:999px">
+                                        <i class="fas fa-times-circle"></i>Pasif
+                                    </span>
+                                @endif
+                            </div>
+                            <div class="mobile-user-meta">{{ $u->email }}</div>
+                            <div class="mobile-user-meta">
+                                {{ optional($u->branch)->name ?? 'Şube yok' }} · {{ optional($u->department)->name ?? 'Departman yok' }}
+                            </div>
+                            <div class="mt-2">
+                                @foreach($u->userRoles as $ur)
+                                    @php $roleObj = $roles->firstWhere('name', $ur->role_name); @endphp
+                                    <span class="role-pill"
+                                        style="background:{{ ($roleObj->color ?? '#6c757d') }}1a;color:{{ $roleObj->color ?? '#6c757d' }};border:1px solid {{ ($roleObj->color ?? '#6c757d') }}33">
+                                        {{ $roleObj->display_name ?? $ur->role_name }}
+                                    </span>
+                                @endforeach
+                            </div>
+                            <div class="mobile-user-actions">
+                                <a href="{{ route('users.edit', $u) }}" class="btn btn-sm act-btn-edit">
+                                    <i class="fas fa-pencil-alt me-1"></i>Düzenle
+                                </a>
+                                @if($u->id !== auth()->id())
+                                    <form action="{{ route('users.destroy', $u) }}" method="POST" class="flex-grow-1" data-user-del="{{ $u->name }}">
+                                        @csrf @method('DELETE')
+                                        <button type="submit" class="btn btn-sm act-btn-delete w-100">
+                                            <i class="fas fa-trash me-1"></i>Sil
+                                        </button>
+                                    </form>
+                                @endif
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            @empty
+                <div class="empty-state">
+                    <i class="fas fa-users es-icon"></i>
+                    <div style="font-weight:600;color:#374151;margin-bottom:4px">KullanÄ±cÄ± bulunamadÄ±</div>
+                    <div style="font-size:.82rem">Filtreleri deÄŸiÅŸtirin veya yeni kullanÄ±cÄ± ekleyin.</div>
+                </div>
+            @endforelse
+        </div>
 
         @if($users->hasPages())
             <div style="padding:14px 20px;border-top:1px solid #f3f4f6;display:flex;justify-content:center">
