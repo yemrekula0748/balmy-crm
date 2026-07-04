@@ -6,6 +6,37 @@
 <style>
 /* ═══════ GENEL ══════════════════════════════════════════════════════════ */
 .ai-page { font-family: 'Inter', system-ui, -apple-system, sans-serif; }
+.ai-page .welcome-text > span.text-muted { display: none; }
+.ai-page .analysis-live-subtitle {
+    display: block;
+    font-size: .8rem;
+    color: #64748b;
+}
+.ai-filter-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 16px;
+    box-shadow: 0 10px 28px rgba(15, 23, 42, .05);
+    padding: 16px 18px;
+    margin: 16px 0 20px;
+}
+.ai-filter-card .form-label {
+    font-size: .74rem;
+    font-weight: 800;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    color: #64748b;
+    margin-bottom: 6px;
+}
+.ai-filter-card .form-control {
+    border-radius: 11px;
+    min-height: 44px;
+}
+.ai-filter-help {
+    font-size: .78rem;
+    color: #64748b;
+    margin-top: 10px;
+}
 
 /* ═══════ HERO ═══════════════════════════════════════════════════════════ */
 .ai-hero {
@@ -38,8 +69,14 @@
     letter-spacing: -.02em; margin: 0 0 10px; line-height: 1.2;
 }
 .ai-hero-sub {
-    font-size: .9rem; color: rgba(255,255,255,.6);
-    max-width: 700px; margin: 0 0 22px; line-height: 1.6;
+    display: none;
+}
+.ai-hero-sub-live {
+    font-size: .9rem;
+    color: rgba(255,255,255,.76);
+    max-width: 760px;
+    margin: 0 0 22px;
+    line-height: 1.7;
 }
 .ai-hero-chips { display: flex; flex-wrap: wrap; gap: 10px; }
 .ai-hero-chip {
@@ -320,6 +357,7 @@
 .ai-pulse-3 { animation: pulse-dot 1.5s ease-in-out infinite 1s; }
 
 @media (max-width: 767px) {
+    .ai-filter-card { padding: 14px; }
     .ai-hero-inner { padding: 22px 20px; }
     .ai-hero-title { font-size: 1.3rem; }
     .ai-brief { padding: 16px; margin-top: -4px; }
@@ -346,6 +384,7 @@ $levelMeta = [
     'info'     => ['label'=>'BİLGİ',   'pill'=>'pill-info',     'section'=>'as-info',     'icon'=>'fa-circle-info',          'color'=>'#3b82f6'],
     'positive' => ['label'=>'OLUMLU',  'pill'=>'pill-positive', 'section'=>'as-positive', 'icon'=>'fa-circle-check',         'color'=>'#10b981'],
 ];
+$rangeQuery = $analysisMeta['query'] ?? ['date_from' => request('date_from'), 'date_to' => request('date_to')];
 @endphp
 
 <div class="container-fluid pb-5 ai-page">
@@ -358,6 +397,9 @@ $levelMeta = [
                     <i class="fas fa-brain text-primary" style="font-size:1rem"></i>
                     Yapay Zeka Analiz Raporu
                 </h4>
+                <span class="analysis-live-subtitle">
+                    {{ $analysisMeta['period_label'] ?? 'Seçili dönem' }} · Derin Arıza Örüntüsü &amp; Operasyonel Analiz
+                </span>
                 <span class="text-muted" style="font-size:.8rem">
                     Son 3 Günlük Derin Arıza Örüntüsü &amp; Operasyonel Analiz
                 </span>
@@ -373,6 +415,30 @@ $levelMeta = [
     </div>
 
     {{-- ── Hero Banner ─────────────────────────────────────────────────── --}}
+    <form method="GET" action="{{ route('faults.analysis') }}" class="ai-filter-card">
+        <div class="row g-3 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label">Başlangıç Tarihi</label>
+                <input type="date" name="date_from" class="form-control" value="{{ $rangeQuery['date_from'] ?? '' }}">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Bitiş Tarihi</label>
+                <input type="date" name="date_to" class="form-control" value="{{ $rangeQuery['date_to'] ?? '' }}">
+            </div>
+            <div class="col-md-6 d-flex gap-2 flex-wrap justify-content-md-end">
+                <a href="{{ route('faults.analysis') }}" class="btn btn-outline-secondary">
+                    <i class="fas fa-rotate-left me-1"></i> Varsayılan 3 Gün
+                </a>
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-filter me-1"></i> Analizi Güncelle
+                </button>
+            </div>
+        </div>
+        <div class="ai-filter-help">
+            İncelenen aralık: <strong>{{ $analysisMeta['range_label'] ?? '-' }}</strong>. Son gün karşılaştırmaları bitiş tarihine göre hesaplanır.
+        </div>
+    </form>
+
     <div class="ai-hero mt-2">
         <div class="ai-hero-inner">
             <div class="ai-hero-badge">
@@ -393,6 +459,11 @@ $levelMeta = [
                 üzerinde çok boyutlu desen analizi, SLA uyum kontrolü, departman yük tespiti
                 ve tekrarlayan hata örüntüsü taraması gerçekleştirildi.
                 Aşağıdaki bulgular, veri üzerinden otomatik olarak türetilmiştir.
+            </p>
+            <p class="ai-hero-sub-live">
+                <strong style="color:#fff">{{ $analysisMeta['range_label'] ?? '-' }}</strong> aralığındaki gerçek arıza kayıtları üzerinde
+                tekrar eden hata çizgileri, açık iş baskısı, SLA sapması, lokasyon kümelenmesi ve departman yükü birlikte tarandı.
+                Buradaki dil ve öncelik sırası sabit demo içerik değil, seçtiğiniz dönemde öne çıkan veri sinyallerinden üretilir.
             </p>
             <div class="ai-hero-chips">
                 <span class="ai-hero-chip">
@@ -483,14 +554,20 @@ $levelMeta = [
 
             <div>
                 <div class="ai-brief-title">
-                    <i class="fas fa-list-check"></i>
+                    <i class="fas fa-wave-square"></i>
                     Önerilen Aksiyon Planı
                 </div>
                 <ol class="ai-action-list">
-                    @foreach(($narrative['action_plan'] ?? []) as $step)
+                    @foreach(($narrative['signal_items'] ?? []) as $signal)
                     <li class="ai-action-item">
                         <span class="ai-action-index">{{ $loop->iteration }}</span>
-                        <span>{{ $step }}</span>
+                        <span>
+                            <strong>{{ $signal['label'] ?? 'Sinyal' }}:</strong>
+                            {{ $signal['value'] ?? '-' }}
+                            @if(!empty($signal['detail']))
+                                · {{ $signal['detail'] }}
+                            @endif
+                        </span>
                     </li>
                     @endforeach
                 </ol>
@@ -693,6 +770,37 @@ $levelMeta = [
 @push('scripts')
 <script src="{{ asset('vendor/sweetalert2/dist/sweetalert2.min.js') }}"></script>
 <script>
+const analysisMeta = @json($analysisMeta ?? []);
+
+const liveSignalTitle = document.querySelector('.ai-brief-grid > div:nth-child(3) .ai-brief-title');
+if (liveSignalTitle) {
+    liveSignalTitle.innerHTML = '<i class="fas fa-wave-square"></i> Veri Sinyalleri';
+}
+
+const heroDateChip = document.querySelectorAll('.ai-hero-chip')[2];
+if (heroDateChip && analysisMeta.last_day_label) {
+    heroDateChip.innerHTML = '<i class="fas fa-calendar-day"></i> Son gün (' + analysisMeta.last_day_label + '): {{ $todayFaults->count() }} arıza';
+}
+
+const summaryRangeSub = document.querySelector('.ai-summary .ai-summary-chip:last-child .sch-sub');
+if (summaryRangeSub && analysisMeta.period_label) {
+    summaryRangeSub.textContent = analysisMeta.period_label;
+}
+
+const emptyStateText = document.querySelector('.ai-empty p');
+if (emptyStateText && analysisMeta.range_label) {
+    emptyStateText.textContent = analysisMeta.range_label + ' aralığında sisteme arıza kaydı girilmemiştir.';
+}
+
+const methodologyText = document.querySelector('.container-fluid .d-flex.align-items-start.gap-3 p');
+if (methodologyText && analysisMeta.range_start_text && analysisMeta.range_end_text) {
+    methodologyText.innerHTML =
+        'Bu analiz, <strong>' + analysisMeta.range_start_text + '</strong> – ' +
+        '<strong>' + analysisMeta.range_end_text + '</strong> tarihleri arasındaki arıza kayıtlarını kapsamaktadır. ' +
+        'Bulgular doğrudan seçili aralığın gerçek verisinden üretilir; her filtre değişiminde analiz yeniden hesaplanır. ' +
+        'Daha geniş dönem kıyasları için <a href="{{ route('faults.stats') }}" style="color:#6366f1;font-weight:600">İstatistikler &amp; Skor</a> sayfasını kullanabilirsiniz.';
+}
+
 document.getElementById('btn-send-report').addEventListener('click', function () {
     Swal.fire({
         title: '<strong>Raporu E-posta ile Gönder</strong>',
@@ -720,7 +828,11 @@ document.getElementById('btn-send-report').addEventListener('click', function ()
                     'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
                     'Accept': 'application/json',
                 },
-                body: JSON.stringify({ email }),
+                body: JSON.stringify({
+                    email,
+                    date_from: document.querySelector('input[name="date_from"]')?.value || '',
+                    date_to: document.querySelector('input[name="date_to"]')?.value || '',
+                }),
             })
             .then(response => {
                 if (!response.ok) {
