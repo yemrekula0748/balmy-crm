@@ -67,7 +67,9 @@
                 <div class="card-body">
                     <div class="small text-uppercase text-muted mb-2">Geocode</div>
                     <div class="h4 mb-1">{{ $stats['geocoded_count'] }}</div>
-                    <div class="text-muted">{{ $stats['failed_geocode_count'] }} problemli adres</div>
+                    <div class="text-muted">
+                        {{ $stats['approximate_count'] }} yaklasik, {{ $stats['failed_geocode_count'] }} problemli adres
+                    </div>
                 </div>
             </div>
         </div>
@@ -206,10 +208,15 @@
                                             <td>
                                                 @if($stop->geocode_status === 'success')
                                                     <span class="badge bg-success">Hazir</span>
+                                                @elseif($stop->geocode_status === 'approximate')
+                                                    <span class="badge bg-warning text-dark">Yaklasik</span>
                                                 @elseif($stop->geocode_status === 'failed')
                                                     <span class="badge bg-danger">Sorunlu</span>
                                                 @else
                                                     <span class="badge bg-secondary">Bekliyor</span>
+                                                @endif
+                                                @if($stop->geocode_message)
+                                                    <div class="small text-muted mt-1">{{ $stop->geocode_message }}</div>
                                                 @endif
                                             </td>
                                             <td>{{ $stop->distance_to_start_km ? number_format($stop->distance_to_start_km, 1, ',', '.') . ' km' : '-' }}</td>

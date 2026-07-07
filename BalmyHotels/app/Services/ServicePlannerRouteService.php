@@ -32,8 +32,9 @@ class ServicePlannerRouteService
             ]);
         }
 
-        $this->geocodePlanStart($plan);
         $stops = $this->geocodeStops($plan);
+        $this->resolvePlanStart($plan, $stops);
+        $stops = $this->syncStopDistances($plan);
         $vehicles = $plan->vehicles->values();
 
         $totalCapacity = (int) $vehicles->sum('seat_capacity');
@@ -160,23 +161,32 @@ class ServicePlannerRouteService
         return $bestPlan ?? [];
     }
 
-    private function geocodePlanStart(ServicePlannerPlan $plan): void
+    private function resolvePlanStart(ServicePlannerPlan $plan, Collection $stops): void
     {
         if ($plan->start_latitude !== null && $plan->start_longitude !== null) {
             return;
         }
 
-        $result = $this->geocodingService->geocode($plan->start_address);
+        $result = $this->geocodingService->geocodeAny(array_filter([
+            $plan->start_address,
+            $plan->start_location_name . ' ' . $plan->start_address,
+            $plan->branch?->address,
+        ]));
+
+        if (! $result) {
+            $result = $this->deriveStartFromStops($stops);
+        }
+
         if (! $result) {
             throw ValidationException::withMessages([
-                'start_address' => 'Kalkis noktasi cozumlenemedi. Lutfen adresi daha acik girin.',
+                'start_address' => 'Kalkis noktasi ve adresler cozumlenemedi. Lutfen Excel adreslerini kontrol edin.',
             ]);
         }
 
         $plan->update([
             'start_latitude' => $result['latitude'],
             'start_longitude' => $result['longitude'],
-            'geocoding_provider' => $result['provider'],
+            'geocoding_provider' => $result['provider'] ?? 'derived',
         ]);
     }
 
@@ -187,41 +197,21 @@ class ServicePlannerRouteService
         $stops = $plan->stops()->orderBy('row_number')->get();
         foreach ($stops as $stop) {
             if ($stop->latitude !== null && $stop->longitude !== null) {
-                $stop->distance_to_start_km = round($this->distanceKm([
-                    'latitude' => (float) $plan->start_latitude,
-                    'longitude' => (float) $plan->start_longitude,
-                ], [
-                    'latitude' => (float) $stop->latitude,
-                    'longitude' => (float) $stop->longitude,
-                ]), 2);
                 $stop->geocode_status = 'success';
                 $stop->save();
                 continue;
             }
 
-            $queryAddress = trim($stop->address . ' ' . ($stop->district ? ' ' . $stop->district : ''));
-            $result = $this->geocodingService->geocode($queryAddress);
+            $result = $this->geocodingService->geocodeAny($this->stopAddressCandidates($stop));
 
             if (! $result) {
-                $stop->update([
-                    'geocode_status' => 'failed',
-                    'geocode_message' => 'Adres cozumlenemedi',
-                ]);
-
-                $failedStops[] = $stop->passenger_name . ' - ' . $stop->address;
+                $failedStops[] = $stop;
                 continue;
             }
 
             $stop->update([
                 'latitude' => $result['latitude'],
                 'longitude' => $result['longitude'],
-                'distance_to_start_km' => round($this->distanceKm([
-                    'latitude' => (float) $plan->start_latitude,
-                    'longitude' => (float) $plan->start_longitude,
-                ], [
-                    'latitude' => (float) $result['latitude'],
-                    'longitude' => (float) $result['longitude'],
-                ]), 2),
                 'geocode_status' => 'success',
                 'geocode_provider' => $result['provider'],
                 'geocode_message' => $result['formatted_address'] ?? null,
@@ -229,12 +219,92 @@ class ServicePlannerRouteService
         }
 
         if (! empty($failedStops)) {
-            throw ValidationException::withMessages([
-                'excel_file' => 'Bazi adresler cozumlenemedi: ' . implode(' | ', array_slice($failedStops, 0, 8)),
-            ]);
+            $this->approximateFailedStops($plan, collect($failedStops));
         }
 
         return $plan->stops()->orderBy('row_number')->get();
+    }
+
+    private function syncStopDistances(ServicePlannerPlan $plan): Collection
+    {
+        $stops = $plan->stops()->orderBy('row_number')->get();
+
+        foreach ($stops as $stop) {
+            if ($stop->latitude === null || $stop->longitude === null) {
+                continue;
+            }
+
+            $stop->update([
+                'distance_to_start_km' => round($this->distanceKm([
+                    'latitude' => (float) $plan->start_latitude,
+                    'longitude' => (float) $plan->start_longitude,
+                ], [
+                    'latitude' => (float) $stop->latitude,
+                    'longitude' => (float) $stop->longitude,
+                ]), 2),
+            ]);
+        }
+
+        return $plan->stops()->orderBy('distance_to_start_km')->get();
+    }
+
+    private function deriveStartFromStops(Collection $stops): ?array
+    {
+        $resolvedStops = $stops->filter(fn ($stop) => $stop->latitude !== null && $stop->longitude !== null)->values();
+
+        if ($resolvedStops->isEmpty()) {
+            return null;
+        }
+
+        return [
+            'latitude' => round((float) $resolvedStops->avg('latitude'), 7),
+            'longitude' => round((float) $resolvedStops->avg('longitude'), 7),
+            'provider' => 'stop_centroid',
+        ];
+    }
+
+    private function stopAddressCandidates(ServicePlannerStop $stop): array
+    {
+        $district = trim((string) $stop->district);
+        $address = trim((string) $stop->address);
+
+        return array_filter([
+            trim($address . ' ' . $district),
+            $address,
+            $district !== '' ? $district . ' ' . $address : null,
+            $district !== '' ? $address . ', ' . $district . ', Antalya' : null,
+            $address . ', Antalya',
+        ]);
+    }
+
+    private function approximateFailedStops(ServicePlannerPlan $plan, Collection $failedStops): void
+    {
+        $resolvedStops = $plan->stops()
+            ->whereNotNull('latitude')
+            ->whereNotNull('longitude')
+            ->get();
+
+        if ($resolvedStops->isEmpty()) {
+            throw ValidationException::withMessages([
+                'excel_file' => 'Yuklenen adresler cozumlenemedi. Lutfen mahalle/ilce bilgilerini daha acik yazin.',
+            ]);
+        }
+
+        foreach ($failedStops as $stop) {
+            $sameDistrictStops = $resolvedStops
+                ->filter(fn ($resolvedStop) => $resolvedStop->district && $stop->district && mb_strtolower($resolvedStop->district) === mb_strtolower($stop->district))
+                ->values();
+
+            $referenceStops = $sameDistrictStops->isNotEmpty() ? $sameDistrictStops : $resolvedStops;
+
+            $stop->update([
+                'latitude' => round((float) $referenceStops->avg('latitude'), 7),
+                'longitude' => round((float) $referenceStops->avg('longitude'), 7),
+                'geocode_status' => 'approximate',
+                'geocode_provider' => 'fallback_centroid',
+                'geocode_message' => 'Yaklasik konum otomatik atandi',
+            ]);
+        }
     }
 
     private function rotateStops(array $stops, int $offset): array

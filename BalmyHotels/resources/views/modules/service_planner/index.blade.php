@@ -13,8 +13,7 @@
         <div class="col-sm-6 p-md-0 d-flex justify-content-sm-end mt-2 mt-sm-0">
             <ol class="breadcrumb">
                 <li class="breadcrumb-item"><a href="{{ url('/') }}">Anasayfa</a></li>
-                <li class="breadcrumb-item"><a href="#">Servis Takip</a></li>
-                <li class="breadcrumb-item active">Planlayici</li>
+                <li class="breadcrumb-item active">Servis Planlayici</li>
             </ol>
         </div>
     </div>

@@ -100,8 +100,10 @@ class RolePermission extends Model
             'yonetim_servis_raporu' => 'Servis Raporu',
             'yonetim_siparis_raporu' => 'Sipariş Tüketim Raporu',
         ],
+        'Planlama' => [
+            'service_planner' => 'Servis Planlayici',
+        ],
         'Servis Takip' => [
-            'service_planner'    => 'Servis Planlayici',
             'shuttle_routes'     => 'Güzergah Tanımları',
             'shuttle_vehicles'   => 'Servis Araçları',
             'shuttle_operations' => 'Servis Operasyonu',

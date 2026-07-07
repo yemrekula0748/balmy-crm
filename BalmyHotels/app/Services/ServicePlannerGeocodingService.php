@@ -13,20 +13,27 @@ class ServicePlannerGeocodingService
 
     public function geocode(string $address): ?array
     {
-        $normalizedAddress = $this->normalizeAddress($address);
+        return $this->geocodeAny([$address]);
+    }
 
-        if ($normalizedAddress === '') {
-            return null;
+    public function geocodeAny(array $addresses): ?array
+    {
+        foreach ($this->buildAddressVariants($addresses) as $normalizedAddress) {
+            $result = Cache::remember(
+                'service_planner_geocode_' . md5($normalizedAddress),
+                now()->addDays(30),
+                function () use ($normalizedAddress) {
+                    return $this->geocodeWithGoogle($normalizedAddress)
+                        ?? $this->geocodeWithOpenStreetMap($normalizedAddress);
+                }
+            );
+
+            if ($result) {
+                return $result;
+            }
         }
 
-        return Cache::remember(
-            'service_planner_geocode_' . md5($normalizedAddress),
-            now()->addDays(30),
-            function () use ($normalizedAddress) {
-                return $this->geocodeWithGoogle($normalizedAddress)
-                    ?? $this->geocodeWithOpenStreetMap($normalizedAddress);
-            }
-        );
+        return null;
     }
 
     private function geocodeWithGoogle(string $address): ?array
@@ -115,5 +122,30 @@ class ServicePlannerGeocodingService
     private function normalizeAddress(string $address): string
     {
         return trim(preg_replace('/\s+/', ' ', $address));
+    }
+
+    private function buildAddressVariants(array $addresses): array
+    {
+        $variants = [];
+
+        foreach ($addresses as $address) {
+            $normalized = $this->normalizeAddress((string) $address);
+            if ($normalized === '') {
+                continue;
+            }
+
+            $variants[] = $normalized;
+
+            if (! str_contains(mb_strtolower($normalized), 'antalya')) {
+                $variants[] = $normalized . ', Antalya';
+            }
+
+            if (! preg_match('/\b(turkiye|türkiye|turkey)\b/i', $normalized)) {
+                $variants[] = $normalized . ', Turkiye';
+                $variants[] = $normalized . ', Antalya, Turkiye';
+            }
+        }
+
+        return array_values(array_unique(array_filter($variants)));
     }
 }

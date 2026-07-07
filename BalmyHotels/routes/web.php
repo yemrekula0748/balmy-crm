@@ -748,7 +748,7 @@ Route::middleware('auth')->group(function () {
 
     });
 
-    Route::prefix('servis-takip/planlayici')->name('service-planner.')->group(function () {
+    Route::prefix('servis-planlayici')->name('service-planner.')->group(function () {
         Route::get('/', [ServicePlannerController::class, 'index'])->name('index');
         Route::get('/yeni', [ServicePlannerController::class, 'create'])->name('create');
         Route::post('/', [ServicePlannerController::class, 'store'])->name('store');
@@ -760,6 +760,17 @@ Route::middleware('auth')->group(function () {
         Route::post('/{plan}/excel-yukle', [ServicePlannerController::class, 'importStops'])->name('importStops');
         Route::post('/{plan}/hesapla', [ServicePlannerController::class, 'calculate'])->name('calculate');
         Route::get('/{plan}/pdf', [ServicePlannerController::class, 'pdf'])->name('pdf');
+    });
+
+    Route::prefix('servis-takip/planlayici')->group(function () {
+        Route::get('/', fn () => redirect()->route('service-planner.index'));
+        Route::get('/sablon/excel', fn () => redirect()->route('service-planner.template'));
+        Route::get('/yeni', fn () => redirect()->route('service-planner.create'));
+        Route::get('/{plan}', fn (\App\Models\ServicePlannerPlan $plan) => redirect()->route('service-planner.show', $plan));
+        Route::get('/{plan}/duzenle', fn (\App\Models\ServicePlannerPlan $plan) => redirect()->route('service-planner.edit', $plan));
+        Route::get('/{plan}/pdf', fn (\App\Models\ServicePlannerPlan $plan) => redirect()->route('service-planner.pdf', $plan));
+        Route::post('/{plan}/excel-yukle', [ServicePlannerController::class, 'importStops']);
+        Route::post('/{plan}/hesapla', [ServicePlannerController::class, 'calculate']);
     });
 
     /*
