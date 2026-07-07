@@ -13,6 +13,7 @@ use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 
 class ServicePlannerController extends BaseModuleController
@@ -188,7 +189,7 @@ class ServicePlannerController extends BaseModuleController
 
         $headers = ['Ad Soyad', 'Adres', 'Telefon', 'Ilce/Semt', 'Not'];
         foreach ($headers as $index => $header) {
-            $sheet->setCellValueByColumnAndRow($index + 1, 1, $header);
+            $sheet->setCellValue(Coordinate::stringFromColumnIndex($index + 1) . '1', $header);
         }
 
         $examples = [
@@ -198,7 +199,10 @@ class ServicePlannerController extends BaseModuleController
 
         foreach ($examples as $rowIndex => $row) {
             foreach ($row as $columnIndex => $value) {
-                $sheet->setCellValueByColumnAndRow($columnIndex + 1, $rowIndex + 2, $value);
+                $sheet->setCellValue(
+                    Coordinate::stringFromColumnIndex($columnIndex + 1) . ($rowIndex + 2),
+                    $value
+                );
             }
         }
 
