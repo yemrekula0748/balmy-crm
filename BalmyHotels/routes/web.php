@@ -42,6 +42,7 @@ use App\Http\Controllers\Modules\ShuttleRouteController;
 use App\Http\Controllers\Modules\ShuttleVehicleController;
 use App\Http\Controllers\Modules\ShuttleOperationController;
 use App\Http\Controllers\Modules\ShuttleReportController;
+use App\Http\Controllers\Modules\ServicePlannerController;
 use App\Http\Controllers\Modules\ManagementReportController;
 use App\Http\Controllers\Modules\RestaurantController;
 use App\Http\Controllers\Modules\OrderController;
@@ -745,6 +746,20 @@ Route::middleware('auth')->group(function () {
             Route::get('/excel', [ShuttleReportController::class, 'excel'])->name('excel');
         });
 
+    });
+
+    Route::prefix('servis-takip/planlayici')->name('service-planner.')->group(function () {
+        Route::get('/', [ServicePlannerController::class, 'index'])->name('index');
+        Route::get('/yeni', [ServicePlannerController::class, 'create'])->name('create');
+        Route::post('/', [ServicePlannerController::class, 'store'])->name('store');
+        Route::get('/sablon/excel', [ServicePlannerController::class, 'template'])->name('template');
+        Route::get('/{plan}', [ServicePlannerController::class, 'show'])->name('show');
+        Route::get('/{plan}/duzenle', [ServicePlannerController::class, 'edit'])->name('edit');
+        Route::put('/{plan}', [ServicePlannerController::class, 'update'])->name('update');
+        Route::delete('/{plan}', [ServicePlannerController::class, 'destroy'])->name('destroy');
+        Route::post('/{plan}/excel-yukle', [ServicePlannerController::class, 'importStops'])->name('importStops');
+        Route::post('/{plan}/hesapla', [ServicePlannerController::class, 'calculate'])->name('calculate');
+        Route::get('/{plan}/pdf', [ServicePlannerController::class, 'pdf'])->name('pdf');
     });
 
     /*

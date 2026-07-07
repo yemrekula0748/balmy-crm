@@ -2446,6 +2446,7 @@ class FaultController extends BaseModuleController
             ->groupBy(fn ($fault) => $fault->fault_area_id . '|' . $fault->fault_type_id);
 
         foreach ($areaTypeGroups as $group) {
+            $sortedGroup = $group->sortBy('created_at')->values();
             $distinctDays = $group->pluck('created_at')->map(fn ($date) => $date->format('Y-m-d'))->unique()->values();
             if ($distinctDays->count() < 2) {
                 continue;
@@ -2456,24 +2457,75 @@ class FaultController extends BaseModuleController
             $areaName = $first?->faultArea?->name ?? 'Belirtilmemiş alan';
             $locName = $first?->faultLocation?->name ?? 'Belirtilmemiş konum';
             $deptName = $first?->department?->name ?? 'İlgili departman';
+            $periodDays = max(1, (int) ($meta['period_days'] ?? 1));
+            $repeatCount = $sortedGroup->count();
+            $distinctDayCount = $distinctDays->count();
+            $firstOccurrence = $sortedGroup->first()?->created_at;
+            $lastOccurrence = $sortedGroup->last()?->created_at;
+            $spanDays = ($firstOccurrence && $lastOccurrence)
+                ? max(1, $firstOccurrence->copy()->startOfDay()->diffInDays($lastOccurrence->copy()->startOfDay()) + 1)
+                : 1;
+            $daysSinceLast = $lastOccurrence
+                ? $lastOccurrence->copy()->startOfDay()->diffInDays($now->copy()->startOfDay())
+                : $periodDays;
+            $recentWindowDays = max(3, min(14, (int) ceil($periodDays * 0.25)));
+            $compressedWindowDays = max(5, min(21, (int) ceil($periodDays * 0.35)));
+            $periodDensity = $distinctDayCount / $periodDays;
+            $isRecentPattern = $daysSinceLast <= $recentWindowDays;
+            $isCompressedPattern = $spanDays <= $compressedWindowDays;
 
-            $insights[] = [
-                'level' => $distinctDays->count() >= 3 ? 'critical' : 'warning',
-                'icon' => $distinctDays->count() >= 3 ? 'fa-triangle-exclamation' : 'fa-rotate',
-                'title' => '"' . $locName . ' – ' . $areaName . '" noktasında ' . $typeName . ' tekrarı',
-                'body' => sprintf(
-                    '<strong>%s</strong> konumundaki <strong>%s</strong> alanında <strong>%s</strong> kaydı %s içinde <strong>%d farklı günde</strong> tekrarlandı. En son kayıt <strong>%s</strong> tarihinde açıldı. Bu örüntü, <strong>%s</strong> tarafında geçici müdahale yerine kök neden kontrolü gerektiğini gösteriyor.',
+            $level = null;
+            $icon = null;
+            $title = '"' . $locName . ' – ' . $areaName . '" noktasında ' . $typeName . ' tekrar sinyali';
+            $body = null;
+            $tagLabel = null;
+
+            if ($distinctDayCount >= 3 && $isRecentPattern && $spanDays <= 10) {
+                $level = 'critical';
+                $icon = 'fa-triangle-exclamation';
+                $tagLabel = 'Sık tekrar';
+                $body = sprintf(
+                    '<strong>%s</strong> konumundaki <strong>%s</strong> alanında <strong>%s</strong> arızası son <strong>%d gün</strong> içinde <strong>%d farklı günde</strong> ve toplam <strong>%d kayıtla</strong> tekrarlandı. En son kayıt <strong>%s</strong> tarihinde açıldı. Bu yoğunluk, <strong>%s</strong> tarafında kalıcı neden incelemesi gerektiren güncel bir kümelenmeye işaret ediyor.',
                     $locName,
                     $areaName,
                     $typeName,
-                    $periodPhrase,
-                    $distinctDays->count(),
-                    $group->sortByDesc('created_at')->first()?->created_at?->format('d.m.Y H:i') ?? '-',
+                    $spanDays,
+                    $distinctDayCount,
+                    $repeatCount,
+                    $lastOccurrence?->format('d.m.Y H:i') ?? '-',
                     $deptName
-                ),
+                );
+            } elseif (
+                ($distinctDayCount >= 2 && $daysSinceLast <= 3 && $spanDays <= 3)
+                || ($distinctDayCount >= 2 && $periodDays <= 30 && $isRecentPattern && $spanDays <= 10)
+                || ($repeatCount >= 3 && $distinctDayCount >= 2 && $periodDensity >= 0.12 && $isRecentPattern && $isCompressedPattern)
+            ) {
+                $level = 'warning';
+                $icon = 'fa-rotate';
+                $tagLabel = 'Yakın dönem tekrarı';
+                $body = sprintf(
+                    '<strong>%s</strong> konumundaki <strong>%s</strong> alanında <strong>%s</strong> arızası kısa aralıkta <strong>%d farklı günde</strong> tekrarlandı. Son kayıt <strong>%s</strong> tarihinde açıldı. Bu desen tek başına kritik alarm üretmiyor; ancak <strong>%s</strong> için ilk müdahale kalitesi ve lokal kontrol ihtiyacını yakın takibe almayı gerektiriyor.',
+                    $locName,
+                    $areaName,
+                    $typeName,
+                    $distinctDayCount,
+                    $lastOccurrence?->format('d.m.Y H:i') ?? '-',
+                    $deptName
+                );
+            }
+
+            if (!$level || !$body || !$icon || !$tagLabel) {
+                continue;
+            }
+
+            $insights[] = [
+                'level' => $level,
+                'icon' => $icon,
+                'title' => $title,
+                'body' => $body,
                 'faults' => $group->sortByDesc('created_at')->values(),
-                'metric' => ['value' => $group->count() . '×', 'label' => 'tekrar kaydı'],
-                'tags' => [$typeName, $areaName, $distinctDays->count() >= 3 ? 'Sürekli tekrar' : 'Yinelenen arıza'],
+                'metric' => ['value' => $repeatCount . '×', 'label' => $distinctDayCount . ' farklı gün'],
+                'tags' => [$typeName, $areaName, $tagLabel],
             ];
         }
 
@@ -2914,7 +2966,7 @@ class FaultController extends BaseModuleController
                 'level' => $positiveCount > 0 ? 'positive' : 'info',
                 'metric' => $totalFaults,
                 'why' => $totalFaults > 0
-                    ? 'Son 3 günlük veride kritik tekrar veya acil müdahale sinyali düşük görünüyor.'
+                    ? 'Seçilen dönemde kritik tekrar veya acil müdahale sinyali düşük görünüyor.'
                     : 'Analiz penceresinde arıza kaydı bulunmadığı için sistem yalnızca izleme önerisi üretiyor.',
             ];
         }
@@ -2947,7 +2999,8 @@ class FaultController extends BaseModuleController
                 : 'Veri hacmi düşük; bu nedenle yorumlar erken uyarı niteliğinde okunmalıdır.');
 
         $summary = sprintf(
-            'Son 3 günlük pencerede %d arıza kaydı ve %d analiz bulgusu değerlendirildi. Genel risk seviyesi %s olarak okunuyor; %s. Açık iş oranı %d%%, kritik açık kayıt sayısı %d.',
+            '%s içinde %d arıza kaydı ve %d analiz bulgusu değerlendirildi. Genel risk seviyesi %s olarak okunuyor; %s. Açık iş oranı %d%%, kritik açık kayıt sayısı %d.',
+            ucfirst($periodPhrase),
             $totalFaults,
             count($insights),
             mb_strtolower($riskLabel),

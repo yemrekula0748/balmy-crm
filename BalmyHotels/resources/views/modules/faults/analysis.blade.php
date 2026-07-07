@@ -555,7 +555,7 @@ $rangeQuery = $analysisMeta['query'] ?? ['date_from' => request('date_from'), 'd
             <div>
                 <div class="ai-brief-title">
                     <i class="fas fa-wave-square"></i>
-                    Önerilen Aksiyon Planı
+                    Analitik Sinyaller
                 </div>
                 <ol class="ai-action-list">
                     @foreach(($narrative['signal_items'] ?? []) as $signal)
@@ -641,7 +641,7 @@ $rangeQuery = $analysisMeta['query'] ?? ['date_from' => request('date_from'), 'd
             <i class="fas fa-magnifying-glass"></i>
         </div>
         <h5 style="font-weight:700;color:#1e293b;margin-bottom:8px">Analiz edilecek veri bulunamadı</h5>
-        <p style="color:#64748b;font-size:.88rem">Son 3 günlük dönemde sisteme arıza kaydı girilmemiştir.</p>
+        <p style="color:#64748b;font-size:.88rem">Seçilen tarih aralığında sisteme arıza kaydı girilmemiştir.</p>
     </div>
     @else
 

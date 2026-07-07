@@ -92,6 +92,7 @@ class RolePermissionSeeder extends Seeder
 
         // 5) insan_kaynaklari: servis tanimlari ve iki otel servis raporlari
         $humanResourcesPerms = [
+            'service_planner' => ['index'=>1,'show'=>1,'create'=>1,'edit'=>1,'delete'=>0],
             'shuttle_reports' => ['index'=>1,'show'=>0,'create'=>0,'edit'=>0,'delete'=>0],
             'shuttle_routes' => ['index'=>1,'show'=>0,'create'=>1,'edit'=>0,'delete'=>0],
             'shuttle_vehicles' => ['index'=>1,'show'=>0,'create'=>1,'edit'=>0,'delete'=>0],
