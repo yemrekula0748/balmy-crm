@@ -2,6 +2,10 @@
 
 @section('content')
 <div class="container-fluid">
+    @php
+        $canResolveNonconformity = auth()->user()->hasPermission('audit_nonconformities', 'edit')
+            || auth()->user()->hasPermission('audits', 'show');
+    @endphp
     <div class="row page-titles mx-0">
         <div class="col-sm-6 p-md-0">
             <div class="welcome-text">
@@ -87,7 +91,7 @@
                         </a>
                     @endif
 
-                    @if($nonconformity->status === 'open' && auth()->user()->hasPermission('audit_nonconformities', 'edit'))
+                    @if($nonconformity->status === 'open' && $canResolveNonconformity)
                         <form action="{{ route('audit.nonconformities.resolve', $nonconformity) }}" method="POST" class="ms-lg-auto">
                             @csrf
                             @method('PATCH')

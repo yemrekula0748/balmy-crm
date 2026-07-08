@@ -2,6 +2,10 @@
 
 @section('content')
 <div class="container-fluid">
+    @php
+        $canResolveNonconformity = auth()->user()->hasPermission('audit_nonconformities', 'edit')
+            || auth()->user()->hasPermission('audits', 'show');
+    @endphp
     <div class="row page-titles mx-0">
         <div class="col-sm-6 p-md-0">
             <div class="welcome-text">
@@ -120,7 +124,7 @@
                                         <span class="badge badge-success light">Çözüldü</span>
                                     @endif
                                 </div>
-                                @if($nc->status === 'open' && auth()->user()->hasPermission('audit_nonconformities', 'edit'))
+                                @if($nc->status === 'open' && $canResolveNonconformity)
                                 <form action="{{ route('audit.nonconformities.resolve', $nc) }}" method="POST">
                                     @csrf @method('PATCH')
                                     <button type="submit" class="btn btn-success btn-xs">

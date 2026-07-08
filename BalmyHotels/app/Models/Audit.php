@@ -40,4 +40,15 @@ class Audit extends Model
     {
         return $this->hasMany(AuditNonconformity::class);
     }
+
+    public function syncStatusFromNonconformities(): void
+    {
+        $targetStatus = $this->nonconformities()->where('status', 'open')->exists()
+            ? 'open'
+            : 'closed';
+
+        if ($this->status !== $targetStatus) {
+            $this->update(['status' => $targetStatus]);
+        }
+    }
 }
