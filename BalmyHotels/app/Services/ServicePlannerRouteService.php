@@ -178,9 +178,13 @@ class ServicePlannerRouteService
         }
 
         if (! $result) {
-            throw ValidationException::withMessages([
-                'start_address' => 'Kalkis noktasi ve adresler cozumlenemedi. Lutfen Excel adreslerini kontrol edin.',
-            ]);
+            $result = [
+                ...$this->buildPseudoCoordinates(
+                    (string) ($plan->start_location_name ?: $plan->name),
+                    (string) ($plan->start_address ?: $plan->name)
+                ),
+                'provider' => 'text_cluster_start',
+            ];
         }
 
         $plan->update([
@@ -285,9 +289,22 @@ class ServicePlannerRouteService
             ->get();
 
         if ($resolvedStops->isEmpty()) {
-            throw ValidationException::withMessages([
-                'excel_file' => 'Yuklenen adresler cozumlenemedi. Lutfen mahalle/ilce bilgilerini daha acik yazin.',
-            ]);
+            foreach ($failedStops as $stop) {
+                $coordinates = $this->buildPseudoCoordinates(
+                    (string) ($stop->district ?: $stop->department_name ?: $stop->address),
+                    (string) $stop->address
+                );
+
+                $stop->update([
+                    'latitude' => $coordinates['latitude'],
+                    'longitude' => $coordinates['longitude'],
+                    'geocode_status' => 'approximate',
+                    'geocode_provider' => 'text_cluster',
+                    'geocode_message' => 'Metin tabanli yaklasik konum atandi',
+                ]);
+            }
+
+            return;
         }
 
         foreach ($failedStops as $stop) {
@@ -296,15 +313,42 @@ class ServicePlannerRouteService
                 ->values();
 
             $referenceStops = $sameDistrictStops->isNotEmpty() ? $sameDistrictStops : $resolvedStops;
+            $coordinates = $sameDistrictStops->isNotEmpty()
+                ? [
+                    'latitude' => round((float) $referenceStops->avg('latitude'), 7),
+                    'longitude' => round((float) $referenceStops->avg('longitude'), 7),
+                ]
+                : $this->buildPseudoCoordinates(
+                    (string) ($stop->district ?: $stop->department_name ?: $stop->address),
+                    (string) $stop->address,
+                    round((float) $resolvedStops->avg('latitude'), 7),
+                    round((float) $resolvedStops->avg('longitude'), 7)
+                );
 
             $stop->update([
-                'latitude' => round((float) $referenceStops->avg('latitude'), 7),
-                'longitude' => round((float) $referenceStops->avg('longitude'), 7),
+                'latitude' => $coordinates['latitude'],
+                'longitude' => $coordinates['longitude'],
                 'geocode_status' => 'approximate',
                 'geocode_provider' => 'fallback_centroid',
                 'geocode_message' => 'Yaklasik konum otomatik atandi',
             ]);
         }
+    }
+
+    private function buildPseudoCoordinates(string $clusterSeed, string $addressSeed, float $baseLatitude = 36.70, float $baseLongitude = 30.57): array
+    {
+        $clusterHash = abs(crc32(mb_strtolower(trim($clusterSeed))));
+        $addressHash = abs(crc32(mb_strtolower(trim($addressSeed))));
+
+        $clusterLatOffset = (($clusterHash % 700) - 350) / 10000;
+        $clusterLngOffset = (((int) floor($clusterHash / 700) % 700) - 350) / 10000;
+        $addressLatOffset = (($addressHash % 90) - 45) / 100000;
+        $addressLngOffset = (((int) floor($addressHash / 90) % 90) - 45) / 100000;
+
+        return [
+            'latitude' => round($baseLatitude + $clusterLatOffset + $addressLatOffset, 7),
+            'longitude' => round($baseLongitude + $clusterLngOffset + $addressLngOffset, 7),
+        ];
     }
 
     private function rotateStops(array $stops, int $offset): array

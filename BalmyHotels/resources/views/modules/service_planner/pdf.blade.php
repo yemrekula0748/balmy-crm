@@ -68,8 +68,9 @@
                     <tr>
                         <th style="width:7%;">Sira</th>
                         <th style="width:18%;">Personel</th>
+                        <th style="width:12%;">Departman</th>
                         <th>Adres</th>
-                        <th style="width:12%;">Ilce</th>
+                        <th style="width:10%;">Ilce</th>
                         <th style="width:10%;">Mesafe</th>
                         <th style="width:10%;">Sure</th>
                     </tr>
@@ -79,6 +80,7 @@
                         <tr>
                             <td>{{ $assignment->stop_order }}</td>
                             <td>{{ $assignment->stop?->passenger_name }}</td>
+                            <td>{{ $assignment->stop?->department_name ?: ($assignment->stop?->department?->name ?? '-') }}</td>
                             <td>
                                 {{ $assignment->stop?->address }}
                                 @if($assignment->stop?->notes)
@@ -91,7 +93,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="6">Bu servis icin atama bulunmuyor.</td>
+                            <td colspan="7">Bu servis icin atama bulunmuyor.</td>
                         </tr>
                     @endforelse
                 </tbody>

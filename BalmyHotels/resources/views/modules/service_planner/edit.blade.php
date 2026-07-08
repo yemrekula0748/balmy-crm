@@ -21,7 +21,7 @@
 
     @if($errors->any())
         <div class="alert alert-danger">
-            Lutfem formu kontrol edin. Eksik veya hatali alanlar var.
+            Lutfen formu kontrol edin. Eksik veya hatali alanlar var.
         </div>
     @endif
 

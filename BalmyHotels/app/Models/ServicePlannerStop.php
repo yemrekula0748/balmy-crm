@@ -12,6 +12,8 @@ class ServicePlannerStop extends Model
         'service_planner_plan_id',
         'row_number',
         'passenger_name',
+        'department_id',
+        'department_name',
         'phone',
         'district',
         'address',
@@ -39,5 +41,10 @@ class ServicePlannerStop extends Model
     public function assignment(): HasOne
     {
         return $this->hasOne(ServicePlannerAssignment::class, 'service_planner_stop_id');
+    }
+
+    public function department(): BelongsTo
+    {
+        return $this->belongsTo(Department::class);
     }
 }

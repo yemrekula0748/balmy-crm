@@ -58,7 +58,7 @@
                 <div class="card-body">
                     <div class="small text-uppercase text-muted mb-2">Yuklenen Kisi</div>
                     <div class="h4 mb-1">{{ $stats['stop_count'] }}</div>
-                    <div class="text-muted">{{ $stats['assigned_count'] }} kisi rotaya yerlesti</div>
+                    <div class="text-muted">{{ $stats['assigned_count'] }} kisi servislere yerlesti</div>
                 </div>
             </div>
         </div>
@@ -113,10 +113,77 @@
         <div class="col-lg-7">
             <div class="card border-0 shadow-sm h-100" style="border-radius:16px;">
                 <div class="card-body p-4">
+                    <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-4">
+                        <div>
+                            <h5 class="mb-1">Sabit Servisler</h5>
+                            <div class="text-muted small">Bu plan icin aktif servis tanimlari kullaniliyor.</div>
+                        </div>
+                        <a href="{{ route('service-planner.index') }}" class="btn btn-outline-secondary btn-sm">Servis Tanimlarini Ac</a>
+                    </div>
+
+                    <div class="row g-3 mb-4">
+                        @foreach($plan->vehicles as $vehicle)
+                            <div class="col-md-6">
+                                <div class="rounded-3 p-3 h-100" style="background:#fafafa;border:1px solid #ececec;">
+                                    <div class="d-flex align-items-center justify-content-between">
+                                        <div class="fw-semibold">{{ $vehicle->name }}</div>
+                                        <span class="badge" style="background:{{ $vehicle->color ?: '#c19b77' }};">{{ $vehicle->seat_capacity }} koltuk</span>
+                                    </div>
+                                    <div class="small text-muted mt-2">Servis sirasi: {{ $vehicle->vehicle_order }}</div>
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+                        <div>
+                            <h5 class="mb-1">Yeni Personel Ekle</h5>
+                            <div class="text-muted small">Kayit eklenince sistem tum servisleri yeniden hesaplayip en uygun dagilimi kurar.</div>
+                        </div>
+                    </div>
+
+                    <form action="{{ route('service-planner.stops.store', $plan) }}" method="POST" class="row g-3 mb-4">
+                        @csrf
+                        <div class="col-md-6">
+                            <label class="form-label">Ad Soyad</label>
+                            <input type="text" name="passenger_name" class="form-control" placeholder="Ornek: Ayse Yilmaz">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Departman</label>
+                            <select name="department_id" class="form-select">
+                                <option value="">Seciniz</option>
+                                @foreach($departments as $department)
+                                    <option value="{{ $department->id }}">{{ $department->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="col-md-8">
+                            <label class="form-label">Acik Adres</label>
+                            <input type="text" name="address" class="form-control" placeholder="Mahalle, sokak, bina no dahil girin">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Telefon</label>
+                            <input type="text" name="phone" class="form-control" placeholder="0555...">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Ilce / Semt</label>
+                            <input type="text" name="district" class="form-control" placeholder="Kemer">
+                        </div>
+                        <div class="col-md-8">
+                            <label class="form-label">Not</label>
+                            <input type="text" name="notes" class="form-control" placeholder="Vardiya veya operasyon notu">
+                        </div>
+                        <div class="col-12">
+                            <button type="submit" class="btn" style="background:#c19b77;border-color:#c19b77;color:#fff;">
+                                Personeli Ekle ve Otomatik Ata
+                            </button>
+                        </div>
+                    </form>
+
                     <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
                         <div>
                             <h5 class="mb-1">Excel Yukle</h5>
-                            <div class="text-muted small">Ad Soyad ve Adres kolonlari zorunludur.</div>
+                            <div class="text-muted small">Ad Soyad, Departman ve Adres kolonlariyla toplu personel ekleyebilirsiniz.</div>
                         </div>
                         <a href="{{ route('service-planner.template') }}" class="btn btn-outline-secondary btn-sm">Sablon Indir</a>
                     </div>
@@ -138,7 +205,7 @@
                     <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
                         <div>
                             <div class="fw-semibold">Otomatik Hesaplama</div>
-                            <div class="small text-muted">Kapasiteyi dikkate alarak adresleri servisler arasinda paylastirir.</div>
+                            <div class="small text-muted">Kapasite, mevcut doluluk ve rota yakinligini dikkate alarak servisleri yeniden dengeler.</div>
                         </div>
                         <form action="{{ route('service-planner.calculate', $plan) }}" method="POST">
                             @csrf
@@ -149,19 +216,6 @@
                         </form>
                     </div>
 
-                    <div class="row mt-4 g-3">
-                        @foreach($plan->vehicles as $vehicle)
-                            <div class="col-md-6">
-                                <div class="rounded-3 p-3 h-100" style="background:#fafafa;border:1px solid #ececec;">
-                                    <div class="d-flex align-items-center justify-content-between">
-                                        <div class="fw-semibold">{{ $vehicle->name }}</div>
-                                        <span class="badge" style="background:{{ $vehicle->color ?: '#c19b77' }};">{{ $vehicle->seat_capacity }} koltuk</span>
-                                    </div>
-                                    <div class="small text-muted mt-2">Servis sirasi: {{ $vehicle->vehicle_order }}</div>
-                                </div>
-                            </div>
-                        @endforeach
-                    </div>
                 </div>
             </div>
         </div>
@@ -184,6 +238,7 @@
                                     <tr>
                                         <th>#</th>
                                         <th>Personel</th>
+                                        <th>Departman</th>
                                         <th>Adres</th>
                                         <th>Ilce</th>
                                         <th>Durum</th>
@@ -198,6 +253,7 @@
                                                 <div class="fw-semibold">{{ $stop->passenger_name }}</div>
                                                 @if($stop->phone)<div class="small text-muted">{{ $stop->phone }}</div>@endif
                                             </td>
+                                            <td>{{ $stop->department_name ?: ($stop->department?->name ?? '-') }}</td>
                                             <td>
                                                 {{ $stop->address }}
                                                 @if($stop->notes)
@@ -255,6 +311,9 @@
                                         <div class="d-flex justify-content-between align-items-start gap-3">
                                             <div>
                                                 <div class="fw-semibold">{{ $assignment->stop_order }}. {{ $assignment->stop?->passenger_name }}</div>
+                                                @if($assignment->stop?->department_name || $assignment->stop?->department?->name)
+                                                    <div class="small text-muted">{{ $assignment->stop->department_name ?: $assignment->stop?->department?->name }}</div>
+                                                @endif
                                                 <div class="small text-muted">{{ $assignment->stop?->address }}</div>
                                                 @if($assignment->stop?->district)
                                                     <div class="small text-muted">{{ $assignment->stop->district }}</div>

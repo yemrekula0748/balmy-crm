@@ -3,8 +3,10 @@
 namespace App\Http\Controllers\Modules;
 
 use App\Models\Branch;
+use App\Models\Department;
 use App\Models\ServicePlannerAssignment;
 use App\Models\ServicePlannerPlan;
+use App\Models\ServicePlannerServiceDefinition;
 use App\Services\ServicePlannerRouteService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
@@ -25,8 +27,8 @@ class ServicePlannerController extends BaseModuleController
             'service_planner',
             ['index', 'template'],
             ['show'],
-            ['create', 'store', 'importStops', 'calculate', 'pdf'],
-            ['edit', 'update'],
+            ['create', 'store', 'importStops', 'calculate', 'pdf', 'storeServiceDefinition', 'storeStop'],
+            ['edit', 'update', 'updateServiceDefinition', 'destroyServiceDefinition'],
             ['destroy']
         );
 
@@ -63,7 +65,18 @@ class ServicePlannerController extends BaseModuleController
             ->orderBy('name')
             ->get();
 
-        return view('modules.service_planner.index', compact('plans', 'branches'));
+        $serviceDefinitions = ServicePlannerServiceDefinition::query()
+            ->with('branch')
+            ->where(function ($query) use ($branches) {
+                $query->whereNull('branch_id')
+                    ->orWhereIn('branch_id', $branches->pluck('id'));
+            })
+            ->orderByRaw('branch_id is null desc')
+            ->orderBy('sort_order')
+            ->orderBy('name')
+            ->get();
+
+        return view('modules.service_planner.index', compact('plans', 'branches', 'serviceDefinitions'));
     }
 
     public function create()
@@ -73,25 +86,34 @@ class ServicePlannerController extends BaseModuleController
             ->orderBy('name')
             ->get();
 
+        $serviceDefinitions = $this->serviceDefinitionsForBranch(old('branch_id'));
+
         $plan = new ServicePlannerPlan([
             'plan_date' => now()->toDateString(),
             'start_location_name' => 'Personel Toplama Noktasi',
         ]);
 
-        return view('modules.service_planner.create', compact('plan', 'branches'));
+        return view('modules.service_planner.create', compact('plan', 'branches', 'serviceDefinitions'));
     }
 
     public function store(Request $request)
     {
-        [$data, $vehicles] = $this->validatePlan($request);
+        $data = $this->validatePlan($request);
+        $definitions = $this->serviceDefinitionsForBranch($data['branch_id'] ?? null);
 
-        $plan = DB::transaction(function () use ($data, $vehicles) {
+        if ($definitions->isEmpty()) {
+            throw ValidationException::withMessages([
+                'branch_id' => 'Bu modulde once sabit servis tanimi yapmalisiniz.',
+            ]);
+        }
+
+        $plan = DB::transaction(function () use ($data, $definitions) {
             $plan = ServicePlannerPlan::create($data + [
                 'created_by' => auth()->id(),
                 'status' => 'draft',
             ]);
 
-            $this->syncVehicles($plan, $vehicles);
+            $this->syncVehiclesFromDefinitions($plan, $definitions);
 
             return $plan;
         });
@@ -106,14 +128,26 @@ class ServicePlannerController extends BaseModuleController
         $plan->load([
             'branch',
             'creator',
-            'vehicles.assignments.stop',
-            'stops',
+            'vehicles.assignments.stop.department',
+            'stops.department',
         ]);
 
         $branches = Branch::query()
             ->whereIn('id', auth()->user()->visibleShuttleBranchIds())
             ->orderBy('name')
             ->get();
+        $departments = Department::query()
+            ->where(function ($query) use ($plan) {
+                if ($plan->branch_id) {
+                    $query->where('branch_id', $plan->branch_id)->orWhereNull('branch_id');
+                } else {
+                    $query->whereNull('branch_id');
+                }
+            })
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->get();
+        $serviceDefinitions = $this->serviceDefinitionsForBranch($plan->branch_id);
 
         $assignmentsByVehicle = $plan->vehicles->map(function ($vehicle) {
             $assignments = $vehicle->assignments->sortBy('stop_order')->values();
@@ -138,7 +172,7 @@ class ServicePlannerController extends BaseModuleController
             'total_distance_km' => round((float) $assignmentsByVehicle->sum('total_distance_km'), 2),
         ];
 
-        return view('modules.service_planner.show', compact('plan', 'branches', 'assignmentsByVehicle', 'stats'));
+        return view('modules.service_planner.show', compact('plan', 'branches', 'departments', 'serviceDefinitions', 'assignmentsByVehicle', 'stats'));
     }
 
     public function edit(ServicePlannerPlan $plan)
@@ -148,15 +182,23 @@ class ServicePlannerController extends BaseModuleController
             ->whereIn('id', auth()->user()->visibleShuttleBranchIds())
             ->orderBy('name')
             ->get();
+        $serviceDefinitions = $this->serviceDefinitionsForBranch($plan->branch_id);
 
-        return view('modules.service_planner.edit', compact('plan', 'branches'));
+        return view('modules.service_planner.edit', compact('plan', 'branches', 'serviceDefinitions'));
     }
 
     public function update(Request $request, ServicePlannerPlan $plan)
     {
-        [$data, $vehicles] = $this->validatePlan($request);
+        $data = $this->validatePlan($request);
+        $definitions = $this->serviceDefinitionsForBranch($data['branch_id'] ?? null);
 
-        DB::transaction(function () use ($plan, $data, $vehicles) {
+        if ($definitions->isEmpty()) {
+            throw ValidationException::withMessages([
+                'branch_id' => 'Bu plan icin kullanilacak sabit servis tanimi bulunamadi.',
+            ]);
+        }
+
+        DB::transaction(function () use ($plan, $data, $definitions) {
             $plan->update($data + [
                 'status' => 'draft',
                 'route_generated_at' => null,
@@ -165,7 +207,7 @@ class ServicePlannerController extends BaseModuleController
             ]);
 
             $this->clearAssignments($plan);
-            $this->syncVehicles($plan, $vehicles);
+            $this->syncVehiclesFromDefinitions($plan, $definitions);
         });
 
         return redirect()
@@ -188,14 +230,14 @@ class ServicePlannerController extends BaseModuleController
         $sheet = $spreadsheet->getActiveSheet();
         $sheet->setTitle('Personel Listesi');
 
-        $headers = ['Ad Soyad', 'Adres', 'Telefon', 'Ilce/Semt', 'Not'];
+        $headers = ['Ad Soyad', 'Departman', 'Acik Adres', 'Telefon', 'Ilce/Semt', 'Not'];
         foreach ($headers as $index => $header) {
             $sheet->setCellValue(Coordinate::stringFromColumnIndex($index + 1) . '1', $header);
         }
 
         $examples = [
-            ['Ayse Yilmaz', 'Yeni Mah. Ataturk Cad. No:12 Kemer Antalya', '05550000001', 'Kemer', 'Sabah servisi'],
-            ['Mehmet Demir', 'Arslanbucak Mah. 401 Sok. No:8 Kemer Antalya', '05550000002', 'Arslanbucak', 'Aksam servisi'],
+            ['Ayse Yilmaz', 'Mutfak', 'Yeni Mah. Ataturk Cad. No:12 Kemer Antalya', '05550000001', 'Kemer', 'Sabah servisi'],
+            ['Mehmet Demir', 'Kat Hizmetleri', 'Arslanbucak Mah. 401 Sok. No:8 Kemer Antalya', '05550000002', 'Arslanbucak', 'Aksam servisi'],
         ];
 
         foreach ($examples as $rowIndex => $row) {
@@ -207,7 +249,7 @@ class ServicePlannerController extends BaseModuleController
             }
         }
 
-        foreach (['A' => 24, 'B' => 54, 'C' => 18, 'D' => 18, 'E' => 22] as $column => $width) {
+        foreach (['A' => 24, 'B' => 22, 'C' => 54, 'D' => 18, 'E' => 18, 'F' => 22] as $column => $width) {
             $sheet->getColumnDimension($column)->setWidth($width);
         }
 
@@ -255,6 +297,8 @@ class ServicePlannerController extends BaseModuleController
             $stops[] = [
                 'row_number' => $rowNumber + 2,
                 'passenger_name' => $name,
+                'department_id' => $this->findDepartmentIdByName($row[$mappedColumns['department']] ?? null, $plan->branch_id),
+                'department_name' => $mappedColumns['department'] ? trim((string) ($row[$mappedColumns['department']] ?? '')) : null,
                 'address' => $address,
                 'phone' => $mappedColumns['phone'] ? trim((string) ($row[$mappedColumns['phone']] ?? '')) : null,
                 'district' => $mappedColumns['district'] ? trim((string) ($row[$mappedColumns['district']] ?? '')) : null,
@@ -279,9 +323,11 @@ class ServicePlannerController extends BaseModuleController
             ]);
         });
 
+        $this->routeService->calculate($plan->fresh());
+
         return redirect()
             ->route('service-planner.show', $plan)
-            ->with('success', count($stops) . ' personel kaydi Excel dosyasindan ice aktarildi.');
+            ->with('success', count($stops) . ' personel kaydi Excel dosyasindan ice aktarildi ve servis atamalari otomatik guncellendi.');
     }
 
     public function calculate(ServicePlannerPlan $plan)
@@ -298,7 +344,7 @@ class ServicePlannerController extends BaseModuleController
         $plan->load([
             'branch',
             'creator',
-            'vehicles.assignments.stop',
+            'vehicles.assignments.stop.department',
             'stops',
         ]);
 
@@ -338,57 +384,117 @@ class ServicePlannerController extends BaseModuleController
         return $pdf->download('servis-planlayici-' . Str::slug($plan->name) . '.pdf');
     }
 
-    private function validatePlan(Request $request): array
+    public function storeServiceDefinition(Request $request)
     {
         $data = $request->validate([
+            'service_branch_id' => 'nullable|exists:branches,id',
+            'service_name' => 'required|string|max:100',
+            'service_capacity' => 'required|integer|min:1|max:100',
+            'service_color' => 'nullable|string|max:20',
+            'service_sort_order' => 'nullable|integer|min:1|max:999',
+        ]);
+
+        ServicePlannerServiceDefinition::create([
+            'branch_id' => $data['service_branch_id'] ?? null,
+            'name' => $data['service_name'],
+            'seat_capacity' => $data['service_capacity'],
+            'color' => $data['service_color'] ?: $this->defaultVehicleColor((int) ($data['service_sort_order'] ?? 1) - 1),
+            'sort_order' => $data['service_sort_order'] ?? 1,
+            'is_active' => true,
+        ]);
+
+        return redirect()->route('service-planner.index')->with('success', 'Sabit servis tanimi eklendi.');
+    }
+
+    public function updateServiceDefinition(Request $request, ServicePlannerServiceDefinition $serviceDefinition)
+    {
+        $data = $request->validate([
+            'service_name' => 'required|string|max:100',
+            'service_capacity' => 'required|integer|min:1|max:100',
+            'service_color' => 'nullable|string|max:20',
+            'service_sort_order' => 'nullable|integer|min:1|max:999',
+            'service_is_active' => 'nullable|boolean',
+        ]);
+
+        $serviceDefinition->update([
+            'name' => $data['service_name'],
+            'seat_capacity' => $data['service_capacity'],
+            'color' => $data['service_color'] ?: $serviceDefinition->color,
+            'sort_order' => $data['service_sort_order'] ?? $serviceDefinition->sort_order,
+            'is_active' => $request->boolean('service_is_active', true),
+        ]);
+
+        return redirect()->route('service-planner.index')->with('success', 'Sabit servis tanimi guncellendi.');
+    }
+
+    public function destroyServiceDefinition(ServicePlannerServiceDefinition $serviceDefinition)
+    {
+        $serviceDefinition->delete();
+
+        return redirect()->route('service-planner.index')->with('success', 'Sabit servis tanimi silindi.');
+    }
+
+    public function storeStop(Request $request, ServicePlannerPlan $plan)
+    {
+        $data = $request->validate([
+            'passenger_name' => 'required|string|max:150',
+            'department_id' => 'nullable|exists:departments,id',
+            'address' => 'required|string|max:2000',
+            'phone' => 'nullable|string|max:40',
+            'district' => 'nullable|string|max:100',
+            'notes' => 'nullable|string|max:500',
+        ]);
+
+        $department = ! empty($data['department_id'])
+            ? Department::find($data['department_id'])
+            : null;
+
+        $nextRowNumber = ((int) $plan->stops()->max('row_number')) + 1;
+
+        $plan->stops()->create([
+            'row_number' => $nextRowNumber > 0 ? $nextRowNumber : 1,
+            'passenger_name' => $data['passenger_name'],
+            'department_id' => $department?->id,
+            'department_name' => $department?->name,
+            'address' => $data['address'],
+            'phone' => $data['phone'] ?? null,
+            'district' => $data['district'] ?? null,
+            'notes' => $data['notes'] ?? null,
+            'geocode_status' => 'pending',
+        ]);
+
+        $this->routeService->calculate($plan->fresh());
+
+        return redirect()
+            ->route('service-planner.show', $plan)
+            ->with('success', 'Personel eklendi ve en uygun servise otomatik atama yeniden hesaplandi.');
+    }
+
+    private function validatePlan(Request $request): array
+    {
+        return $request->validate([
             'name' => 'required|string|max:150',
             'branch_id' => 'nullable|exists:branches,id',
             'plan_date' => 'nullable|date',
             'start_location_name' => 'required|string|max:150',
             'start_address' => 'required|string|max:2000',
             'planning_notes' => 'nullable|string|max:2000',
-            'vehicle_names' => 'required|array|min:1',
-            'vehicle_names.*' => 'nullable|string|max:80',
-            'vehicle_capacities' => 'required|array|min:1',
-            'vehicle_capacities.*' => 'nullable|integer|min:1|max:100',
-            'vehicle_colors' => 'nullable|array',
-            'vehicle_colors.*' => 'nullable|string|max:20',
         ]);
-
-        $vehicles = [];
-        foreach ($request->input('vehicle_capacities', []) as $index => $capacity) {
-            if (! $capacity) {
-                continue;
-            }
-
-            $vehicles[] = [
-                'name' => trim((string) ($request->input('vehicle_names.' . $index) ?: 'Servis ' . ($index + 1))),
-                'seat_capacity' => (int) $capacity,
-                'vehicle_order' => count($vehicles) + 1,
-                'color' => $request->input('vehicle_colors.' . $index) ?: $this->defaultVehicleColor(count($vehicles)),
-            ];
-        }
-
-        if (empty($vehicles)) {
-            throw ValidationException::withMessages([
-                'vehicle_capacities' => 'En az bir servis ve koltuk kapasitesi girin.',
-            ]);
-        }
-
-        return [[
-            'name' => $data['name'],
-            'branch_id' => $data['branch_id'] ?? null,
-            'plan_date' => $data['plan_date'] ?? null,
-            'start_location_name' => $data['start_location_name'],
-            'start_address' => $data['start_address'],
-            'planning_notes' => $data['planning_notes'] ?? null,
-        ], $vehicles];
     }
 
-    private function syncVehicles(ServicePlannerPlan $plan, array $vehicles): void
+    private function syncVehiclesFromDefinitions(ServicePlannerPlan $plan, $definitions): void
     {
         $plan->vehicles()->delete();
-        $plan->vehicles()->createMany($vehicles);
+        $plan->vehicles()->createMany(
+            $definitions->values()->map(function ($definition, $index) {
+                return [
+                    'name' => $definition->name,
+                    'seat_capacity' => (int) $definition->seat_capacity,
+                    'vehicle_order' => $index + 1,
+                    'color' => $definition->color ?: $this->defaultVehicleColor($index),
+                ];
+            })->all()
+        );
     }
 
     private function clearAssignments(ServicePlannerPlan $plan): void
@@ -419,16 +525,51 @@ class ServicePlannerController extends BaseModuleController
             return null;
         };
 
-        $nameColumn = $findColumn(['adsoyad', 'isim', 'ad', 'name', 'personel', 'personeladi']) ?? 'A';
-        $addressColumn = $findColumn(['adres', 'address', 'konum', 'ikametadres']) ?? 'B';
+        $departmentColumn = $findColumn(['departman', 'departmani', 'department', 'birim']);
+        $nameColumn = $findColumn(['adsoyad', 'isim', 'ad', 'name', 'personel', 'personeladi', 'personeladisoyadi']) ?? 'A';
+        $addressColumn = $findColumn(['adres', 'acikadres', 'address', 'konum', 'ikametadres']) ?? ($departmentColumn ? 'C' : 'B');
 
         return [
             'name' => $nameColumn,
+            'department' => $departmentColumn,
             'address' => $addressColumn,
             'phone' => $findColumn(['telefon', 'gsm', 'phone', 'ceptelefonu']),
-            'district' => $findColumn(['ilce', 'semt', 'district', 'bolge']),
+            'district' => $findColumn(['ilce', 'semt', 'ilcesemt', 'district', 'bolge']),
             'notes' => $findColumn(['not', 'aciklama', 'notes']),
         ];
+    }
+
+    private function serviceDefinitionsForBranch($branchId)
+    {
+        $branchId = $branchId ? (int) $branchId : null;
+
+        return ServicePlannerServiceDefinition::query()
+            ->where('is_active', true)
+            ->when($branchId, function ($query) use ($branchId) {
+                $query->where(function ($subQuery) use ($branchId) {
+                    $subQuery->where('branch_id', $branchId)->orWhereNull('branch_id');
+                });
+            }, fn ($query) => $query->whereNull('branch_id'))
+            ->orderBy('sort_order')
+            ->orderBy('name')
+            ->get();
+    }
+
+    private function findDepartmentIdByName($value, ?int $branchId): ?int
+    {
+        $name = trim((string) $value);
+        if ($name === '') {
+            return null;
+        }
+
+        return Department::query()
+            ->when($branchId, function ($query) use ($branchId) {
+                $query->where(function ($subQuery) use ($branchId) {
+                    $subQuery->where('branch_id', $branchId)->orWhereNull('branch_id');
+                });
+            })
+            ->whereRaw('LOWER(name) = ?', [mb_strtolower($name)])
+            ->value('id');
     }
 
     private function buildDirectionsUrl(ServicePlannerPlan $plan, array $waypoints): ?string

@@ -7,7 +7,7 @@
         <div class="col-sm-6 p-md-0">
             <div class="welcome-text">
                 <h4>Yeni Servis Plani</h4>
-                <span>Servis sayisi, koltuk kapasitesi ve kalkis noktasi tanimlayin</span>
+                <span>Sabit servisleri kullanarak yeni personel dagitim plani olusturun</span>
             </div>
         </div>
         <div class="col-sm-6 p-md-0 d-flex justify-content-sm-end mt-2 mt-sm-0">
@@ -20,7 +20,7 @@
 
     @if($errors->any())
         <div class="alert alert-danger">
-            Lutfem formu kontrol edin. Eksik veya hatali alanlar var.
+            Lutfen formu kontrol edin. Eksik veya hatali alanlar var.
         </div>
     @endif
 

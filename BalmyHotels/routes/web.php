@@ -753,11 +753,15 @@ Route::middleware('auth')->group(function () {
         Route::get('/yeni', [ServicePlannerController::class, 'create'])->name('create');
         Route::post('/', [ServicePlannerController::class, 'store'])->name('store');
         Route::get('/sablon/excel', [ServicePlannerController::class, 'template'])->name('template');
+        Route::post('/servisler', [ServicePlannerController::class, 'storeServiceDefinition'])->name('services.store');
+        Route::put('/servisler/{serviceDefinition}', [ServicePlannerController::class, 'updateServiceDefinition'])->name('services.update');
+        Route::delete('/servisler/{serviceDefinition}', [ServicePlannerController::class, 'destroyServiceDefinition'])->name('services.destroy');
         Route::get('/{plan}', [ServicePlannerController::class, 'show'])->name('show');
         Route::get('/{plan}/duzenle', [ServicePlannerController::class, 'edit'])->name('edit');
         Route::put('/{plan}', [ServicePlannerController::class, 'update'])->name('update');
         Route::delete('/{plan}', [ServicePlannerController::class, 'destroy'])->name('destroy');
         Route::post('/{plan}/excel-yukle', [ServicePlannerController::class, 'importStops'])->name('importStops');
+        Route::post('/{plan}/personel', [ServicePlannerController::class, 'storeStop'])->name('stops.store');
         Route::post('/{plan}/hesapla', [ServicePlannerController::class, 'calculate'])->name('calculate');
         Route::get('/{plan}/pdf', [ServicePlannerController::class, 'pdf'])->name('pdf');
     });
