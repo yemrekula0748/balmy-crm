@@ -29,11 +29,11 @@ class AuditNonconformityController extends BaseModuleController
         $query = AuditNonconformity::with(['audit.auditType', 'branch', 'department', 'resolver'])
             ->orderBy('created_at', 'desc');
 
-        // Sube bazli erisim: yoneticiler kendi subesini, departmanli kullanicilar kendi departmanini gorur.
+        // Sube bazli erisim: denetimi gorebilenler sube geneline, digerleri kendi departmanina erisir.
         if (!$user->isSuperAdmin()) {
             $query->where('branch_id', $user->branch_id);
 
-            if ($user->department_id && !$user->isBranchManager()) {
+            if ($user->department_id && !$this->canAccessAuditAcrossDepartments($user)) {
                 $query->where('department_id', $user->department_id);
             }
         }
@@ -107,7 +107,7 @@ class AuditNonconformityController extends BaseModuleController
 
         abort_if($user->branch_id !== $nonconformity->branch_id, 403);
 
-        if ($user->department_id && !$user->isBranchManager()) {
+        if ($user->department_id && !$this->canAccessAuditAcrossDepartments($user)) {
             abort_if($user->department_id !== $nonconformity->department_id, 403);
         }
     }
@@ -115,6 +115,12 @@ class AuditNonconformityController extends BaseModuleController
     private function canResolveNonconformity(User $user): bool
     {
         return $user->hasPermission('audit_nonconformities', 'edit')
+            || $user->hasPermission('audits', 'show');
+    }
+
+    private function canAccessAuditAcrossDepartments(User $user): bool
+    {
+        return $user->isBranchManager()
             || $user->hasPermission('audits', 'show');
     }
 }

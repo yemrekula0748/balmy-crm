@@ -71,6 +71,10 @@
 
 @section('content')
 <div class="container-fluid">
+    @php
+        $canResolveNonconformity = auth()->user()->hasPermission('audit_nonconformities', 'edit')
+            || auth()->user()->hasPermission('audits', 'show');
+    @endphp
     <div class="row page-titles mx-0">
         <div class="col-sm-6 p-md-0">
             <div class="welcome-text">
@@ -212,7 +216,7 @@
                                     <small class="text-muted">{{ $nc->created_at->diffForHumans() }}</small>
                                 </td>
                                 <td class="text-end">
-                                    @if($nc->status === 'open' && auth()->user()->hasPermission('audit_nonconformities', 'edit'))
+                                    @if($nc->status === 'open' && $canResolveNonconformity)
                                         <form action="{{ route('audit.nonconformities.resolve', $nc) }}" method="POST" class="d-inline">
                                             @csrf
                                             @method('PATCH')
