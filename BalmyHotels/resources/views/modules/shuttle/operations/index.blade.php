@@ -300,9 +300,9 @@
                                         <td colspan="7" class="py-2 ps-4" style="background:#fbf6ef;border-top:2px solid #eadcc9">
                                             <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
                                                 <div class="d-inline-flex align-items-center gap-2 fw-bold text-uppercase"
-                                                     style="color:#7a5c3d;letter-spacing:.7px;font-size:.92rem">
-                                                    <span style="width:28px;height:28px;border-radius:50%;background:#eadcc9;color:#8f6d4f;display:inline-flex;align-items:center;justify-content:center">
-                                                        <i class="fas fa-clock" style="font-size:.78rem"></i>
+                                                     style="color:#7a5c3d;font-size:1.08rem">
+                                                    <span style="width:34px;height:34px;border-radius:50%;background:#eadcc9;color:#8f6d4f;display:inline-flex;align-items:center;justify-content:center">
+                                                        <i class="fas fa-clock" style="font-size:.92rem"></i>
                                                     </span>
                                                     {{ $trip->shift }}
                                                 </div>
@@ -319,14 +319,14 @@
 
                                 <tr style="--bs-table-bg:{{ $rowBackground }};--bs-table-hover-bg:{{ $rowHoverBackground }};background:{{ $rowBackground }};border-left:4px solid {{ $rowBorder }}">
                                     <td class="ps-4">
-                                        <span style="display:inline-flex;align-items:center;min-width:86px;justify-content:center;background:#fbf6ef;color:#7a5c3d;font-size:.9rem;font-weight:800;padding:7px 12px;border-radius:999px;border:1px solid #eadcc9;letter-spacing:.2px;box-shadow:0 2px 6px rgba(122,92,61,.08)">
+                                        <span style="display:inline-flex;align-items:center;min-width:112px;justify-content:center;background:#fbf6ef;color:#7a5c3d;font-size:1.08rem;font-weight:900;padding:9px 14px;border-radius:999px;border:1px solid #eadcc9;box-shadow:0 2px 6px rgba(122,92,61,.08)">
                                             {{ $trip->shift }}
                                         </span>
                                     </td>
                                     <td>
-                                        <div class="fw-bold text-dark" style="font-size:.98rem;line-height:1.2">{{ $trip->vehicle->name ?? '-' }}</div>
+                                        <div class="fw-bold text-dark" style="font-size:1.04rem;line-height:1.2">{{ $trip->vehicle->name ?? '-' }}</div>
                                         @if($trip->vehicle?->plate)
-                                            <span style="display:inline-flex;align-items:center;margin-top:5px;background:#8f6d4f;color:#fff;font-family:'Courier New',monospace;font-size:1.02rem;font-weight:800;padding:5px 12px;border-radius:7px;letter-spacing:1.2px;box-shadow:0 2px 8px rgba(143,109,79,.22)">
+                                            <span style="display:inline-flex;align-items:center;margin-top:6px;background:#8f6d4f;color:#fff;font-family:'Courier New',monospace;font-size:1.34rem;font-weight:900;padding:7px 16px;border-radius:7px;letter-spacing:1.4px;box-shadow:0 2px 8px rgba(143,109,79,.22)">
                                                 {{ $trip->vehicle->plate }}
                                             </span>
                                         @endif
@@ -336,7 +336,12 @@
                                         <div class="fw-semibold text-dark">
                                             {{ $isLodgingTrip ? 'Lojman Hareketi' : ($trip->route->name ?? (collect($trip->vehicle?->routes ?? [])->pluck('name')->implode(', ') ?: 'Guzergah atanmadi')) }}
                                         </div>
-                                        <div class="small text-muted mt-1">Tarih: {{ $trip->trip_date->format('d.m.Y') }}</div>
+                                        <div class="mt-2">
+                                            <span style="display:inline-flex;align-items:center;gap:6px;background:#fffaf4;color:#7a5c3d;border:1px solid #eadcc9;border-radius:8px;padding:6px 10px;font-size:1rem;font-weight:800">
+                                                <i class="fas fa-calendar-day" style="color:#8f6d4f"></i>
+                                                {{ $trip->trip_date->format('d.m.Y') }}
+                                            </span>
+                                        </div>
                                     </td>
                                     <td style="min-width:320px">
                                         <div class="d-flex flex-column gap-2">
