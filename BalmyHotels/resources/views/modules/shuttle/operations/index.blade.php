@@ -134,30 +134,57 @@
     </div>
 
     <div class="row mb-4 g-3">
-        <div class="col-md-4">
+        <div class="col-md-4 col-xl-2">
             <div class="card border-0 shadow-sm h-100" style="border-top:3px solid #c19b77;border-radius:10px">
                 <div class="card-body py-3">
-                    <div class="small text-muted text-uppercase fw-semibold mb-1">Bu Otelde Inen</div>
+                    <div class="small text-muted text-uppercase fw-semibold mb-1">Normal Inen</div>
                     <div class="fw-bold" style="font-size:1.8rem;color:#8f6d4f">{{ $totalIncoming }}</div>
-                    <div class="small text-muted mt-1">Secili otel icin gunluk toplam inen personel</div>
+                    <div class="small text-muted mt-1">Lojman haric gunluk inen personel</div>
                 </div>
             </div>
         </div>
-        <div class="col-md-4">
+        <div class="col-md-4 col-xl-2">
             <div class="card border-0 shadow-sm h-100" style="border-top:3px solid #2e7d52;border-radius:10px">
                 <div class="card-body py-3">
-                    <div class="small text-muted text-uppercase fw-semibold mb-1">Bu Otelden Binen</div>
+                    <div class="small text-muted text-uppercase fw-semibold mb-1">Normal Binen</div>
                     <div class="fw-bold" style="font-size:1.8rem;color:#8f6d4f">{{ $totalOutgoing }}</div>
-                    <div class="small text-muted mt-1">Secili otel icin gunluk toplam binen personel</div>
+                    <div class="small text-muted mt-1">Lojman haric gunluk binen personel</div>
                 </div>
             </div>
         </div>
-        <div class="col-md-4">
+        <div class="col-md-4 col-xl-2">
             <div class="card border-0 shadow-sm h-100" style="border-top:3px solid #7a5c3d;border-radius:10px">
                 <div class="card-body py-3">
-                    <div class="small text-muted text-uppercase fw-semibold mb-1">Gorunen Servis</div>
+                    <div class="small text-muted text-uppercase fw-semibold mb-1">Normal Servis</div>
                     <div class="fw-bold" style="font-size:1.8rem;color:#8f6d4f">{{ $totalTrips }}</div>
-                    <div class="small text-muted mt-1">Bu otelin dahil oldugu gunluk plaka hareketi</div>
+                    <div class="small text-muted mt-1">Lojman haric gunluk plaka hareketi</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 col-xl-2">
+            <div class="card border-0 shadow-sm h-100" style="border-top:3px solid #6a9f7d;border-radius:10px">
+                <div class="card-body py-3">
+                    <div class="small text-muted text-uppercase fw-semibold mb-1">Lojman Gelen</div>
+                    <div class="fw-bold" style="font-size:1.8rem;color:#2e7d52">{{ $totalLodgingIncoming }}</div>
+                    <div class="small text-muted mt-1">Gunluk lojman gelis personeli</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 col-xl-2">
+            <div class="card border-0 shadow-sm h-100" style="border-top:3px solid #3d7a5e;border-radius:10px">
+                <div class="card-body py-3">
+                    <div class="small text-muted text-uppercase fw-semibold mb-1">Lojman Giden</div>
+                    <div class="fw-bold" style="font-size:1.8rem;color:#2e7d52">{{ $totalLodgingOutgoing }}</div>
+                    <div class="small text-muted mt-1">Gunluk lojman gidis personeli</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 col-xl-2">
+            <div class="card border-0 shadow-sm h-100" style="border-top:3px solid #24583f;border-radius:10px">
+                <div class="card-body py-3">
+                    <div class="small text-muted text-uppercase fw-semibold mb-1">Lojman Seferi</div>
+                    <div class="fw-bold" style="font-size:1.8rem;color:#2e7d52">{{ $totalLodgingTrips }}</div>
+                    <div class="small text-muted mt-1">Her gidis/gelis ayri sayilir</div>
                 </div>
             </div>
         </div>

@@ -62,8 +62,14 @@ class ShuttleOperationController extends BaseModuleController
         $trips = $this->tripMergeService->mergeCollection($trips);
         $trips = $this->sortTripsForOperation($trips, $currentBranchId);
 
-        [$totalIncoming, $totalOutgoing] = $this->summariseTripsForContext($trips, $currentBranchId, $visibleBranchIds);
-        $totalTrips = $trips->count();
+        [
+            $totalIncoming,
+            $totalOutgoing,
+            $totalLodgingIncoming,
+            $totalLodgingOutgoing,
+            $totalLodgingTrips,
+        ] = $this->summariseTripsForContext($trips, $currentBranchId, $visibleBranchIds);
+        $totalTrips = $this->countServiceTripsForContext($trips, $currentBranchId, $visibleBranchIds);
         $serviceShifts = $this->serviceShifts();
 
         return view('modules.shuttle.operations.index', compact(
@@ -75,6 +81,9 @@ class ShuttleOperationController extends BaseModuleController
             'date',
             'totalIncoming',
             'totalOutgoing',
+            'totalLodgingIncoming',
+            'totalLodgingOutgoing',
+            'totalLodgingTrips',
             'totalTrips',
             'serviceShifts'
         ));
@@ -624,19 +633,53 @@ class ShuttleOperationController extends BaseModuleController
     {
         $incoming = 0;
         $outgoing = 0;
+        $lodgingIncoming = 0;
+        $lodgingOutgoing = 0;
+        $lodgingTrips = 0;
+        $contextBranchIds = $this->contextBranchIds($currentBranchId, $visibleBranchIds);
 
         foreach ($trips as $trip) {
-            if ($currentBranchId !== null) {
-                $incoming += (int) $trip->branchMovements
-                    ->filter(fn ($movement) => (int) $movement->branch_id === $currentBranchId && $movement->movement_type === 'arrival')
-                    ->sum('headcount');
-                $outgoing += (int) $trip->branchMovements
-                    ->filter(fn ($movement) => (int) $movement->branch_id === $currentBranchId && $movement->movement_type === 'departure')
-                    ->sum('headcount');
+            if ($trip->branchMovements->isEmpty()) {
+                if (! in_array((int) $trip->branch_id, $contextBranchIds, true)) {
+                    continue;
+                }
+
+                if ($trip->is_lodging_trip) {
+                    $arrival = (int) $trip->arrival_count;
+                    $departure = (int) $trip->departure_count;
+                    $lodgingIncoming += $arrival;
+                    $lodgingOutgoing += $departure;
+                    $lodgingTrips += ($arrival > 0 ? 1 : 0) + ($departure > 0 ? 1 : 0);
+
+                    continue;
+                }
+
+                $incoming += (int) $trip->arrival_count;
+                $outgoing += (int) $trip->departure_count;
+
                 continue;
             }
 
-            foreach ($visibleBranchIds as $branchId) {
+            if ($trip->is_lodging_trip) {
+                foreach ($contextBranchIds as $branchId) {
+                    $arrivalMovements = $trip->branchMovements
+                        ->filter(fn ($movement) => (int) $movement->branch_id === $branchId
+                            && $movement->movement_type === 'arrival'
+                            && (int) $movement->headcount > 0);
+                    $departureMovements = $trip->branchMovements
+                        ->filter(fn ($movement) => (int) $movement->branch_id === $branchId
+                            && $movement->movement_type === 'departure'
+                            && (int) $movement->headcount > 0);
+
+                    $lodgingIncoming += (int) $arrivalMovements->sum('headcount');
+                    $lodgingOutgoing += (int) $departureMovements->sum('headcount');
+                    $lodgingTrips += $arrivalMovements->count() + $departureMovements->count();
+                }
+
+                continue;
+            }
+
+            foreach ($contextBranchIds as $branchId) {
                 $incoming += (int) $trip->branchMovements
                     ->filter(fn ($movement) => (int) $movement->branch_id === $branchId && $movement->movement_type === 'arrival')
                     ->sum('headcount');
@@ -646,7 +689,24 @@ class ShuttleOperationController extends BaseModuleController
             }
         }
 
-        return [$incoming, $outgoing];
+        return [$incoming, $outgoing, $lodgingIncoming, $lodgingOutgoing, $lodgingTrips];
+    }
+
+    private function countServiceTripsForContext($trips, ?int $currentBranchId, array $visibleBranchIds): int
+    {
+        $contextBranchIds = $this->contextBranchIds($currentBranchId, $visibleBranchIds);
+
+        return (int) collect($trips)
+            ->filter(fn (ShuttleTrip $trip) => ! $trip->is_lodging_trip
+                && $this->tripMergeService->tripTouchesBranches($trip, $contextBranchIds))
+            ->count();
+    }
+
+    private function contextBranchIds(?int $currentBranchId, array $visibleBranchIds): array
+    {
+        return $currentBranchId !== null
+            ? [(int) $currentBranchId]
+            : array_map('intval', $visibleBranchIds);
     }
 
     private function sortTripsForOperation($trips, ?int $currentBranchId)
