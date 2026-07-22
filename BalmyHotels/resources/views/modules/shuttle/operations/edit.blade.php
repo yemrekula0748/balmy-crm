@@ -246,17 +246,6 @@
                                                     </label>
                                                 </div>
                                             </div>
-                                            <div class="col-md-4">
-                                                <input type="hidden" name="is_lodging_route" value="0">
-                                                <div class="form-check">
-                                                    <input class="form-check-input" type="checkbox" value="1"
-                                                           name="is_lodging_route" id="editIsLodgingRoute"
-                                                           @checked(old('is_lodging_route', $operation->is_lodging_route))>
-                                                    <label class="form-check-label fw-semibold" for="editIsLodgingRoute">
-                                                        Lojman guzergahi yapildi
-                                                    </label>
-                                                </div>
-                                            </div>
                                         </div>
                                     </div>
                                 </div>

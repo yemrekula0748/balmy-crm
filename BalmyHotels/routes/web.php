@@ -733,6 +733,7 @@ Route::middleware('auth')->group(function () {
         Route::prefix('operasyon')->name('operations.')->group(function () {
             Route::get('/',                     [ShuttleOperationController::class, 'index'])->name('index');
             Route::post('/',                    [ShuttleOperationController::class, 'store'])->name('store');
+            Route::post('/lojman',              [ShuttleOperationController::class, 'storeLodging'])->name('lodging-store');
             Route::get('/{operation}/duzenle',      [ShuttleOperationController::class, 'edit'])->name('edit');
             Route::put('/{operation}',               [ShuttleOperationController::class, 'update'])->name('update');
             Route::patch('/{operation}/donus',       [ShuttleOperationController::class, 'departure'])->name('departure');

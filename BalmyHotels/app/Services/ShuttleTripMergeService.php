@@ -88,6 +88,12 @@ class ShuttleTripMergeService
 
     private function loadGroup(ShuttleTrip $trip): EloquentCollection
     {
+        if ($trip->is_lodging_trip) {
+            return ShuttleTrip::with(['vehicle', 'route', 'branch', 'creator', 'branchMovements.branch'])
+                ->whereKey($trip->id)
+                ->get();
+        }
+
         $tripDate = $trip->trip_date instanceof \Carbon\CarbonInterface
             ? $trip->trip_date->toDateString()
             : (string) $trip->trip_date;
@@ -96,6 +102,10 @@ class ShuttleTripMergeService
             ->where('trip_date', $tripDate)
             ->where('shift', $trip->shift)
             ->where('shuttle_vehicle_id', $trip->shuttle_vehicle_id)
+            ->where(function ($query) {
+                $query->where('is_lodging_route', false)
+                    ->orWhereNull('is_lodging_route');
+            })
             ->orderBy('id')
             ->get();
     }
@@ -362,6 +372,14 @@ class ShuttleTripMergeService
             ? $trip->trip_date->toDateString()
             : (string) $trip->trip_date;
 
+        if ($trip->is_lodging_trip) {
+            return implode('|', [
+                $tripDate,
+                'lojman',
+                (string) $trip->id,
+            ]);
+        }
+
         return implode('|', [
             $tripDate,
             (string) $trip->shift,
@@ -377,12 +395,13 @@ class ShuttleTripMergeService
 
         $shiftIndex = array_search($trip->shift, ShuttleTrip::SHIFTS, true);
         $shiftIndex = $shiftIndex === false ? 99 : $shiftIndex;
+        $sortTime = $trip->arrival_time ?: ($trip->is_lodging_trip ? $trip->departure_time : null);
 
         return sprintf(
             '%s|%02d|%s|%s',
             $tripDate,
             $shiftIndex,
-            $trip->arrival_time ?? '99:99',
+            $sortTime ?? '99:99',
             $trip->vehicle->plate ?? ''
         );
     }

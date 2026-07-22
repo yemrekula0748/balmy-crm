@@ -135,7 +135,6 @@ class ShuttleReportController extends BaseModuleController
             ->filter(fn (ShuttleTrip $trip) => $this->tripMergeService->tripTouchesBranches($trip, $queryBranchIds))
             ->values();
 
-        $allTripCount = $trips->count();
         $serviceTrips = $trips->reject(fn (ShuttleTrip $trip) => $this->isLodgingTrip($trip))->values();
         $lodgingTrips = $trips->filter(fn (ShuttleTrip $trip) => $this->isLodgingTrip($trip))->values();
 
@@ -144,10 +143,11 @@ class ShuttleReportController extends BaseModuleController
         $totalDeparture = $this->sumMovements($serviceTrips, $reportBranchIds, 'departure');
         $totalLodgingArrival = $this->sumMovements($lodgingTrips, $reportBranchIds, 'arrival');
         $totalLodgingDeparture = $this->sumMovements($lodgingTrips, $reportBranchIds, 'departure');
+        $lodgingRouteTrips = $this->countLodgingMovements($lodgingTrips, $reportBranchIds);
+        $allTripCount = $totalTrips + $lodgingRouteTrips;
         $dayCount = max(1, $from->diffInDays($to) + 1);
         $transferTrips = $serviceTrips->where('is_transfer', true)->count();
         $differentVehicleTrips = $serviceTrips->where('arrived_with_different_vehicle', true)->count();
-        $lodgingRouteTrips = $lodgingTrips->count();
         $exceptionTrips = $serviceTrips->filter(fn ($trip) => $this->tripHasException($trip))->count();
 
         $occupancyArr = [];
@@ -189,7 +189,8 @@ class ShuttleReportController extends BaseModuleController
             $serviceSubset = $subset->reject(fn (ShuttleTrip $trip) => $this->isLodgingTrip($trip))->values();
             $lodgingSubset = $subset->filter(fn (ShuttleTrip $trip) => $this->isLodgingTrip($trip))->values();
             $shiftTripCount = $serviceSubset->count();
-            $shiftAllTripCount = $subset->count();
+            $shiftLodgingTripCount = $this->countLodgingMovements($lodgingSubset, $reportBranchIds);
+            $shiftAllTripCount = $shiftTripCount + $shiftLodgingTripCount;
 
             $byShift[$shift] = [
                 'count' => $shiftTripCount,
@@ -200,10 +201,10 @@ class ShuttleReportController extends BaseModuleController
                 'lodging_departure' => $this->sumMovements($lodgingSubset, $reportBranchIds, 'departure'),
                 'transfer' => $serviceSubset->where('is_transfer', true)->count(),
                 'different_vehicle' => $serviceSubset->where('arrived_with_different_vehicle', true)->count(),
-                'lodging_route' => $lodgingSubset->count(),
+                'lodging_route' => $shiftLodgingTripCount,
                 'transfer_rate' => $shiftTripCount > 0 ? round($serviceSubset->where('is_transfer', true)->count() / $shiftTripCount * 100, 1) : 0,
                 'different_vehicle_rate' => $shiftTripCount > 0 ? round($serviceSubset->where('arrived_with_different_vehicle', true)->count() / $shiftTripCount * 100, 1) : 0,
-                'lodging_route_rate' => $shiftAllTripCount > 0 ? round($lodgingSubset->count() / $shiftAllTripCount * 100, 1) : 0,
+                'lodging_route_rate' => $shiftAllTripCount > 0 ? round($shiftLodgingTripCount / $shiftAllTripCount * 100, 1) : 0,
             ];
         }
 
@@ -213,7 +214,8 @@ class ShuttleReportController extends BaseModuleController
             $serviceSubset = $subset->reject(fn (ShuttleTrip $trip) => $this->isLodgingTrip($trip))->values();
             $lodgingSubset = $subset->filter(fn (ShuttleTrip $trip) => $this->isLodgingTrip($trip))->values();
             $tripCount = $serviceSubset->count();
-            $allVehicleTripCount = $subset->count();
+            $vehicleLodgingTripCount = $this->countLodgingMovements($lodgingSubset, $reportBranchIds);
+            $allVehicleTripCount = $tripCount + $vehicleLodgingTripCount;
             $totalVehicleArrival = $this->sumMovements($serviceSubset, $reportBranchIds, 'arrival');
             $totalVehicleDeparture = $this->sumMovements($serviceSubset, $reportBranchIds, 'departure');
             $cap = $vehicle->capacity;
@@ -228,12 +230,12 @@ class ShuttleReportController extends BaseModuleController
                 'lodging_departure' => $this->sumMovements($lodgingSubset, $reportBranchIds, 'departure'),
                 'transfer' => $serviceSubset->where('is_transfer', true)->count(),
                 'different_vehicle' => $serviceSubset->where('arrived_with_different_vehicle', true)->count(),
-                'lodging_route' => $lodgingSubset->count(),
+                'lodging_route' => $vehicleLodgingTripCount,
                 'occupancy_arr' => ($cap > 0 && $tripCount > 0) ? round($totalVehicleArrival / ($cap * $tripCount) * 100, 1) : 0,
                 'occupancy_dep' => ($cap > 0 && $tripCount > 0) ? round($totalVehicleDeparture / ($cap * $tripCount) * 100, 1) : 0,
                 'transfer_rate' => $tripCount > 0 ? round($serviceSubset->where('is_transfer', true)->count() / $tripCount * 100, 1) : 0,
                 'different_vehicle_rate' => $tripCount > 0 ? round($serviceSubset->where('arrived_with_different_vehicle', true)->count() / $tripCount * 100, 1) : 0,
-                'lodging_route_rate' => $allVehicleTripCount > 0 ? round($lodgingSubset->count() / $allVehicleTripCount * 100, 1) : 0,
+                'lodging_route_rate' => $allVehicleTripCount > 0 ? round($vehicleLodgingTripCount / $allVehicleTripCount * 100, 1) : 0,
             ];
         }
 
@@ -997,6 +999,35 @@ class ShuttleReportController extends BaseModuleController
         return (int) $trip->branchMovements
             ->filter(fn ($movement) => in_array((int) $movement->branch_id, $branchIds, true) && $movement->movement_type === $movementType)
             ->sum('headcount');
+    }
+
+    private function countLodgingMovements($trips, array $branchIds): int
+    {
+        return (int) collect($trips)->sum(
+            fn ($trip) => $this->countTripLodgingMovements($trip, $branchIds)
+        );
+    }
+
+    private function countTripLodgingMovements($trip, array $branchIds): int
+    {
+        if (! $this->isLodgingTrip($trip)) {
+            return 0;
+        }
+
+        if ($trip->branchMovements->isEmpty()) {
+            if (! in_array((int) $trip->branch_id, $branchIds, true)) {
+                return 0;
+            }
+
+            return ((int) $trip->arrival_count > 0 ? 1 : 0)
+                + ((int) $trip->departure_count > 0 ? 1 : 0);
+        }
+
+        return (int) $trip->branchMovements
+            ->filter(fn ($movement) => in_array((int) $movement->branch_id, $branchIds, true)
+                && (int) $movement->headcount > 0
+                && in_array($movement->movement_type, ['arrival', 'departure'], true))
+            ->count();
     }
 
     private function resolveTripMovementTime($trip, array $branchIds, string $movementType, string $mode): ?string

@@ -27,7 +27,7 @@ class ShuttleOperationController extends BaseModuleController
             'shuttle_operations',
             ['index', 'departure'],
             [],
-            ['create', 'store'],
+            ['create', 'store', 'storeLodging'],
             ['edit', 'update'],
             ['destroy']
         );
@@ -64,6 +64,7 @@ class ShuttleOperationController extends BaseModuleController
 
         [$totalIncoming, $totalOutgoing] = $this->summariseTripsForContext($trips, $currentBranchId, $visibleBranchIds);
         $totalTrips = $trips->count();
+        $serviceShifts = $this->serviceShifts();
 
         return view('modules.shuttle.operations.index', compact(
             'trips',
@@ -74,7 +75,8 @@ class ShuttleOperationController extends BaseModuleController
             'date',
             'totalIncoming',
             'totalOutgoing',
-            'totalTrips'
+            'totalTrips',
+            'serviceShifts'
         ));
     }
 
@@ -91,6 +93,10 @@ class ShuttleOperationController extends BaseModuleController
                 ->where('trip_date', $tripData['trip_date'])
                 ->where('shift', $tripData['shift'])
                 ->where('shuttle_vehicle_id', $tripData['shuttle_vehicle_id'])
+                ->where(function ($query) {
+                    $query->where('is_lodging_route', false)
+                        ->orWhereNull('is_lodging_route');
+                })
                 ->orderBy('id')
                 ->first();
 
@@ -125,6 +131,84 @@ class ShuttleOperationController extends BaseModuleController
             : 'Servis hareketi kaydedildi. Diger otel ayni kaydi gorup kendi saat ve sayi bilgisini isleyebilir.');
     }
 
+    public function storeLodging(Request $request)
+    {
+        $user = Auth::user();
+        $visibleBranchIds = array_map('intval', $user->visibleShuttleBranchIds());
+
+        $data = $request->validate([
+            'shuttle_vehicle_id' => 'required|exists:shuttle_vehicles,id',
+            'branch_id' => 'required|exists:branches,id',
+            'trip_date' => 'required|date',
+            'movement_type' => 'required|in:arrival,departure',
+            'movement_time' => 'required|date_format:H:i',
+            'headcount' => 'required|integer|min:1|max:500',
+            'notes' => 'nullable|string|max:500',
+        ]);
+
+        $branchId = (int) $data['branch_id'];
+        if (! in_array($branchId, $visibleBranchIds, true)) {
+            throw ValidationException::withMessages([
+                'branch_id' => 'Bu lojman hareketini secili otel adina planlayamazsin.',
+            ]);
+        }
+
+        $vehicle = ShuttleVehicle::query()
+            ->where('is_active', true)
+            ->find((int) $data['shuttle_vehicle_id']);
+
+        if (! $vehicle) {
+            throw ValidationException::withMessages([
+                'shuttle_vehicle_id' => 'Secilen arac aktif degil ya da bulunamadi.',
+            ]);
+        }
+
+        $movementType = (string) $data['movement_type'];
+        $movementTime = $this->normaliseTime($data['movement_time']);
+        $headcount = (int) $data['headcount'];
+        $isArrival = $movementType === 'arrival';
+
+        $tripData = [
+            'shuttle_vehicle_id' => (int) $data['shuttle_vehicle_id'],
+            'route_id' => null,
+            'branch_id' => $branchId,
+            'shift' => 'Lojman',
+            'trip_date' => $data['trip_date'],
+            'arrival_time' => $isArrival ? $movementTime : null,
+            'arrival_count' => $isArrival ? $headcount : 0,
+            'departure_time' => $isArrival ? null : $movementTime,
+            'departure_count' => $isArrival ? 0 : $headcount,
+            'arrived_with_different_vehicle' => false,
+            'is_transfer' => false,
+            'is_lodging_route' => true,
+            'notes' => $data['notes'] ?? null,
+            'created_by' => $user->id,
+        ];
+
+        DB::transaction(function () use ($tripData, $branchId, $isArrival, $headcount, $movementTime) {
+            $trip = ShuttleTrip::create($tripData);
+
+            $this->saveMovementMatrix($trip, [
+                ShuttleTripBranchMovement::DEFAULT_PERIOD => [
+                    $branchId => [
+                        'arrival' => $isArrival ? $headcount : 0,
+                        'departure' => $isArrival ? 0 : $headcount,
+                        'movement_time' => null,
+                        'arrival_time' => $isArrival ? $movementTime : null,
+                        'departure_time' => $isArrival ? null : $movementTime,
+                    ],
+                ],
+            ]);
+        });
+
+        return redirect()->route('shuttle.operations.index', [
+            'branch_id' => $branchId,
+            'date' => $data['trip_date'],
+        ])->with('success', $isArrival
+            ? 'Lojman gelis hareketi kaydedildi.'
+            : 'Lojman gidis hareketi kaydedildi.');
+    }
+
     public function edit(Request $request, ShuttleTrip $operation)
     {
         $user = Auth::user();
@@ -156,6 +240,9 @@ class ShuttleOperationController extends BaseModuleController
             ->orderBy('name')
             ->get();
         $shifts = ShuttleTrip::SHIFTS;
+        if (! $operation->is_lodging_trip) {
+            $shifts = $this->serviceShifts();
+        }
 
         $operation->load(['branch', 'creator', 'vehicle', 'route', 'branchMovements.branch']);
 
@@ -245,11 +332,15 @@ class ShuttleOperationController extends BaseModuleController
 
     private function validateOwnerPayload(Request $request, array $visibleBranchIds, ?ShuttleTrip $operation = null): array
     {
+        $allowedShifts = ($operation && $operation->is_lodging_trip)
+            ? ShuttleTrip::SHIFTS
+            : $this->serviceShifts();
+
         $data = $request->validate([
             'shuttle_vehicle_id' => 'required|exists:shuttle_vehicles,id',
             'route_id' => 'nullable|exists:shuttle_routes,id',
             'branch_id' => 'required|exists:branches,id',
-            'shift' => 'required|in:' . implode(',', ShuttleTrip::SHIFTS),
+            'shift' => 'required|in:' . implode(',', $allowedShifts),
             'trip_date' => 'required|date',
             'notes' => 'nullable|string|max:500',
             'arrived_with_different_vehicle' => 'nullable|boolean',
@@ -272,7 +363,7 @@ class ShuttleOperationController extends BaseModuleController
         $data['notes'] = $data['notes'] ?? null;
         $data['arrived_with_different_vehicle'] = $request->boolean('arrived_with_different_vehicle');
         $data['is_transfer'] = $request->boolean('is_transfer');
-        $data['is_lodging_route'] = $request->boolean('is_lodging_route');
+        $data['is_lodging_route'] = $operation ? (bool) $operation->is_lodging_trip : false;
 
         if (! in_array((int) $data['branch_id'], $visibleBranchIds, true)) {
             throw ValidationException::withMessages([
@@ -422,9 +513,9 @@ class ShuttleOperationController extends BaseModuleController
                 $branchId = (int) $branchId;
                 $arrival = (int) ($counts['arrival'] ?? 0);
                 $departure = (int) ($counts['departure'] ?? 0);
-                $movementTime = $this->normaliseMovementTime($counts);
-                $arrivalTime = $movementTime;
-                $departureTime = $movementTime;
+                $movementTime = $this->normaliseTime($counts['movement_time'] ?? null);
+                $arrivalTime = $this->normaliseTime($counts['arrival_time'] ?? null) ?: $movementTime;
+                $departureTime = $this->normaliseTime($counts['departure_time'] ?? null) ?: $movementTime;
 
                 $records[] = [
                     'branch_id' => $branchId,
@@ -633,6 +724,14 @@ class ShuttleOperationController extends BaseModuleController
     private function movementPeriods(): array
     {
         return array_keys(ShuttleTripBranchMovement::PERIODS);
+    }
+
+    private function serviceShifts(): array
+    {
+        return array_values(array_filter(
+            ShuttleTrip::SHIFTS,
+            fn (string $shift) => strcasecmp(trim($shift), 'Lojman') !== 0
+        ));
     }
 
     private function emptyMovementRow(): array

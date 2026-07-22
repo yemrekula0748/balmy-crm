@@ -341,7 +341,7 @@
                                     <td class="text-center">%{{ $stats['different_vehicle_rate'] }}</td>
                                 </tr>
                                 <tr>
-                                    <td>Lojman seferi (vardiya veya isaret)</td>
+                                    <td>Lojman seferi (tekli gidis/gelis)</td>
                                     <td class="text-center fw-bold">{{ $stats['total_lodging_route_trips'] }}</td>
                                     <td class="text-center">%{{ $stats['lodging_route_rate'] }}</td>
                                 </tr>
