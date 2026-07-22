@@ -4,6 +4,8 @@
 @section('content')
 @php
     $activeBranchId = $currentBranchId ?? ($branches->count() === 1 ? ($branches->first()->id ?? null) : null);
+    $listEndDate = $listEndDate ?? $date->copy()->addDay();
+    $selectedDateString = $date->toDateString();
     $oldBranchMovements = collect(old('branch_movements', []));
     $createBranchId = old('branch_id', $activeBranchId);
     $oldInvolvedBranchIds = collect(old('involved_branch_ids', $createBranchId ? [$createBranchId] : []))
@@ -193,7 +195,7 @@
     <div class="card border-0 shadow-sm" style="border-radius:12px;overflow:hidden">
         <div class="card-header border-0 d-flex align-items-center justify-content-between px-4 py-3"
              style="background:linear-gradient(135deg,#c19b77 0%,#a97d57 100%)">
-            <span class="text-white fw-semibold">{{ $date->format('d.m.Y') }} Hareket Listesi</span>
+            <span class="text-white fw-semibold">{{ $date->format('d.m.Y') }} - {{ $listEndDate->format('d.m.Y') }} Hareket Listesi</span>
             @if($activeBranchId)
                 <span style="background:rgba(255,255,255,0.12);color:#fff;font-size:.75rem;padding:3px 10px;border-radius:20px">
                     {{ optional($branches->firstWhere('id', $activeBranchId))->name ?? 'Secili Otel' }}
@@ -204,7 +206,7 @@
             @if($trips->isEmpty())
                 <div class="text-center py-5 text-muted">
                     <i class="fas fa-route fa-2x mb-3 d-block"></i>
-                    Bu tarih icin servis hareketi bulunmuyor.
+                    Bu tarih ve ertesi gun icin servis hareketi bulunmuyor.
                 </div>
             @else
                 <div class="table-responsive">
@@ -221,9 +223,21 @@
                             </tr>
                         </thead>
                         <tbody>
-                            @php $lastMovementGroup = null; @endphp
+                            @php
+                                $lastOperationDayGroup = null;
+                                $lastMovementGroup = null;
+                            @endphp
                             @foreach($trips as $trip)
                                 @php
+                                    $tripDateString = $trip->trip_date->toDateString();
+                                    $isNextDayTrip = $tripDateString !== $selectedDateString;
+                                    $dayGroupTitle = $isNextDayTrip ? 'Ertesi Gun Kayitlari' : 'Secili Gun Hareketleri';
+                                    $dayGroupDescription = $isNextDayTrip
+                                        ? 'Gece vardiyasi veya sarkan kayit kontrolu icin gosteriliyor'
+                                        : 'Gunluk ozet kartlari bu tarihten beslenir';
+                                    $dayGroupStyle = $isNextDayTrip
+                                        ? 'background:#eef6f2;border-top:2px solid #cfe3d8;color:#2e7d52'
+                                        : 'background:#fbf6ef;border-top:2px solid #eadcc9;color:#7a5c3d';
                                     $periodMatrix = $trip->branchMovements
                                         ->groupBy(fn ($movement) => $movement->movement_period ?? \App\Models\ShuttleTripBranchMovement::DEFAULT_PERIOD)
                                         ->map(function ($periodItems) {
@@ -278,7 +292,7 @@
                                     $movementGroupStatus = $activeBranchId
                                         ? ($isLodgingTrip ? 'Lojman Hareketleri' : ($activeBranchMovementComplete ? 'Tamamlanan Hareketler' : 'Bekleyen Hareketler'))
                                         : 'Servis Hareketleri';
-                                    $movementGroupKey = ($isLodgingTrip ? 'lodging' : ($activeBranchMovementComplete ? 'done' : 'pending')) . '|' . $trip->shift;
+                                    $movementGroupKey = $tripDateString . '|' . ($isLodgingTrip ? 'lodging' : ($activeBranchMovementComplete ? 'done' : 'pending')) . '|' . $trip->shift;
                                     $rowBackground = $isLodgingTrip ? '#f1fbf5' : ($activeBranchId ? ($activeBranchMovementComplete ? '#f1fbf5' : '#fff6f3') : '#fff');
                                     $rowHoverBackground = $isLodgingTrip ? '#e8f7ee' : ($activeBranchId ? ($activeBranchMovementComplete ? '#e8f7ee' : '#ffeeea') : '#fff');
                                     $rowBorder = $isLodgingTrip ? '#2e7d52' : ($activeBranchId ? ($activeBranchMovementComplete ? '#2e7d52' : '#d36b55') : '#eadcc9');
@@ -294,6 +308,26 @@
                                     $firstMovementTime = $trip->arrival_time ?: ($isLodgingTrip ? $trip->departure_time : null);
                                     $lastMovementTime = $trip->departure_time ?: ($isLodgingTrip ? $trip->arrival_time : null);
                                 @endphp
+
+                                @if($lastOperationDayGroup !== $tripDateString)
+                                    <tr>
+                                        <td colspan="7" class="py-3 ps-4" style="{{ $dayGroupStyle }}">
+                                            <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                                                <div class="d-inline-flex align-items-center gap-2 fw-bold" style="font-size:1.05rem">
+                                                    <span style="width:34px;height:34px;border-radius:8px;background:#fff;color:inherit;display:inline-flex;align-items:center;justify-content:center;border:1px solid rgba(0,0,0,.06)">
+                                                        <i class="fas {{ $isNextDayTrip ? 'fa-arrow-right' : 'fa-calendar-day' }}"></i>
+                                                    </span>
+                                                    {{ $dayGroupTitle }} - {{ $trip->trip_date->format('d.m.Y') }}
+                                                </div>
+                                                <span class="small fw-semibold" style="opacity:.78">{{ $dayGroupDescription }}</span>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    @php
+                                        $lastOperationDayGroup = $tripDateString;
+                                        $lastMovementGroup = null;
+                                    @endphp
+                                @endif
 
                                 @if($lastMovementGroup !== $movementGroupKey)
                                     <tr>

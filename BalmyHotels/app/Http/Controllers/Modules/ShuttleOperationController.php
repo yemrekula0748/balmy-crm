@@ -54,8 +54,19 @@ class ShuttleOperationController extends BaseModuleController
             ->orderBy('name')
             ->get();
 
-        $trips = ShuttleTrip::with(['vehicle.routes', 'route', 'branch', 'creator', 'branchMovements.branch'])
+        $listEndDate = $date->copy()->addDay();
+
+        $summaryTrips = ShuttleTrip::with(['vehicle.routes', 'route', 'branch', 'creator', 'branchMovements.branch'])
             ->where('trip_date', $date->toDateString())
+            ->orderBy('shift')
+            ->orderBy('arrival_time')
+            ->get();
+        $summaryTrips = $this->tripMergeService->mergeCollection($summaryTrips);
+        $summaryTrips = $this->sortTripsForOperation($summaryTrips, $currentBranchId);
+
+        $trips = ShuttleTrip::with(['vehicle.routes', 'route', 'branch', 'creator', 'branchMovements.branch'])
+            ->whereBetween('trip_date', [$date->toDateString(), $listEndDate->toDateString()])
+            ->orderBy('trip_date')
             ->orderBy('shift')
             ->orderBy('arrival_time')
             ->get();
@@ -68,8 +79,8 @@ class ShuttleOperationController extends BaseModuleController
             $totalLodgingIncoming,
             $totalLodgingOutgoing,
             $totalLodgingTrips,
-        ] = $this->summariseTripsForContext($trips, $currentBranchId, $visibleBranchIds);
-        $totalTrips = $this->countServiceTripsForContext($trips, $currentBranchId, $visibleBranchIds);
+        ] = $this->summariseTripsForContext($summaryTrips, $currentBranchId, $visibleBranchIds);
+        $totalTrips = $this->countServiceTripsForContext($summaryTrips, $currentBranchId, $visibleBranchIds);
         $serviceShifts = $this->serviceShifts();
 
         return view('modules.shuttle.operations.index', compact(
@@ -79,6 +90,7 @@ class ShuttleOperationController extends BaseModuleController
             'allBranches',
             'currentBranchId',
             'date',
+            'listEndDate',
             'totalIncoming',
             'totalOutgoing',
             'totalLodgingIncoming',
@@ -718,6 +730,13 @@ class ShuttleOperationController extends BaseModuleController
         $shiftOrder = array_flip(ShuttleTrip::SHIFTS);
 
         return $trips->sort(function (ShuttleTrip $first, ShuttleTrip $second) use ($currentBranchId, $shiftOrder) {
+            $firstDate = $first->trip_date?->toDateString() ?? '';
+            $secondDate = $second->trip_date?->toDateString() ?? '';
+
+            if ($firstDate !== $secondDate) {
+                return strcmp($firstDate, $secondDate);
+            }
+
             $firstComplete = $this->tripBranchMovementsComplete($first, $currentBranchId);
             $secondComplete = $this->tripBranchMovementsComplete($second, $currentBranchId);
 
