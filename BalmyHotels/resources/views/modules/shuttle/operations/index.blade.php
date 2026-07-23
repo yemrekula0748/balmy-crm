@@ -380,10 +380,21 @@
                                     <td style="min-width:320px">
                                         <div class="d-flex flex-column gap-2">
                                             @foreach($movementPeriods as $periodKey => $periodLabel)
-                                                @php $periodRows = collect($periodMatrix->get($periodKey, [])); @endphp
+                                                @php
+                                                    $periodRows = collect($periodMatrix->get($periodKey, []));
+                                                    $periodArrivalTotal = (int) $periodRows->sum(fn ($counts) => (int) ($counts['arrival'] ?? 0));
+                                                    $periodDepartureTotal = (int) $periodRows->sum(fn ($counts) => (int) ($counts['departure'] ?? 0));
+                                                    $periodDisplayLabel = $periodLabel;
+
+                                                    if ($isLodgingTrip) {
+                                                        $periodDisplayLabel = $periodArrivalTotal > 0 && $periodDepartureTotal > 0
+                                                            ? 'Lojman Gelis / Gidis'
+                                                            : ($periodArrivalTotal > 0 ? 'Lojman Gelis' : ($periodDepartureTotal > 0 ? 'Lojman Gidis' : 'Lojman Hareketi'));
+                                                    }
+                                                @endphp
                                                 @continue($periodRows->isEmpty())
                                                 <div class="rounded-3 p-2" style="background:#fbf6ef;border:1px solid #eadcc9">
-                                                    <div class="small fw-bold mb-2" style="color:#8f6d4f">{{ $periodLabel }}</div>
+                                                    <div class="small fw-bold mb-2" style="color:#8f6d4f">{{ $periodDisplayLabel }}</div>
                                                     <div class="d-flex flex-column gap-2">
                                                         @foreach($periodRows as $branchId => $counts)
                                                             @php
