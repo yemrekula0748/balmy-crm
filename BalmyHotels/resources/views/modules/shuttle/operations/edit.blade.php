@@ -3,6 +3,9 @@
 
 @section('content')
 @php
+    $operationDate = $operationDate ?? $operation->trip_date;
+    $operationDateString = $operationDate->format('Y-m-d');
+    $hasDifferentCalendarDate = $operationDateString !== $operation->trip_date->format('Y-m-d');
     $visibleBranchIds = collect(auth()->user()->visibleShuttleBranchIds())
         ->map(fn ($id) => (int) $id)
         ->all();
@@ -91,13 +94,13 @@
         <div class="col-sm-6 p-md-0">
             <div class="welcome-text">
                 <h4>Sefer Duzenle</h4>
-                <span>{{ $operation->trip_date->format('d.m.Y') }} - {{ $operation->shift }}</span>
+                <span>{{ $operationDate->format('d.m.Y') }} - {{ $operation->shift }}</span>
             </div>
         </div>
         <div class="col-sm-6 p-md-0 justify-content-sm-end mt-2 mt-sm-0 d-flex">
             <ol class="breadcrumb">
                 <li class="breadcrumb-item"><a href="{{ url('/') }}">Anasayfa</a></li>
-                <li class="breadcrumb-item"><a href="{{ route('shuttle.operations.index', ['branch_id' => $contextBranchId, 'date' => $operation->trip_date->format('Y-m-d')]) }}">Operasyon</a></li>
+                <li class="breadcrumb-item"><a href="{{ route('shuttle.operations.index', ['branch_id' => $contextBranchId, 'date' => $operationDateString]) }}">Operasyon</a></li>
                 <li class="breadcrumb-item active">Duzenle</li>
             </ol>
         </div>
@@ -128,8 +131,13 @@
                                 {{ $operation->shift }}
                             </span>
                             <span style="background:rgba(255,255,255,0.12);color:#fff;font-size:.75rem;padding:4px 10px;border-radius:20px">
-                                {{ $operation->trip_date->format('d.m.Y') }}
+                                Operasyon: {{ $operationDate->format('d.m.Y') }}
                             </span>
+                            @if($hasDifferentCalendarDate)
+                                <span style="background:rgba(255,255,255,0.12);color:#fff;font-size:.75rem;padding:4px 10px;border-radius:20px">
+                                    Takvim: {{ $operation->trip_date->format('d.m.Y') }}
+                                </span>
+                            @endif
                         </div>
                     </div>
                 </div>
@@ -191,8 +199,8 @@
                                     </select>
                                 </div>
                                 <div class="col-md-6">
-                                    <label class="form-label fw-semibold small">Tarih <span class="text-danger">*</span></label>
-                                    <input type="date" name="trip_date" value="{{ old('trip_date', $operation->trip_date->format('Y-m-d')) }}" class="form-control" required>
+                                    <label class="form-label fw-semibold small">{{ $operation->is_lodging_trip ? 'Hareket Tarihi' : 'Operasyon Tarihi' }} <span class="text-danger">*</span></label>
+                                    <input type="date" name="trip_date" value="{{ old('trip_date', $operation->is_lodging_trip ? $operation->trip_date->format('Y-m-d') : $operationDateString) }}" class="form-control" required>
                                 </div>
 
                                 <div class="col-12">
@@ -272,7 +280,7 @@
                                 <button type="submit" class="btn" style="background:#c19b77;border-color:#c19b77;color:#fff;">
                                     <i class="fas fa-save me-1"></i> Kaydet
                                 </button>
-                                <a href="{{ route('shuttle.operations.index', ['branch_id' => $contextBranchId, 'date' => old('trip_date', $operation->trip_date->format('Y-m-d'))]) }}"
+                                <a href="{{ route('shuttle.operations.index', ['branch_id' => $contextBranchId, 'date' => old('trip_date', $operation->is_lodging_trip ? $operation->trip_date->format('Y-m-d') : $operationDateString)]) }}"
                                    class="btn btn-outline-secondary">
                                     Vazgec
                                 </a>
@@ -332,7 +340,7 @@
                                 <button type="submit" class="btn" style="background:#c19b77;border-color:#c19b77;color:#fff;">
                                     <i class="fas fa-save me-1"></i> Kaydet
                                 </button>
-                                <a href="{{ route('shuttle.operations.index', ['branch_id' => $contextBranchId, 'date' => $operation->trip_date->format('Y-m-d')]) }}"
+                                <a href="{{ route('shuttle.operations.index', ['branch_id' => $contextBranchId, 'date' => $operationDateString]) }}"
                                    class="btn btn-outline-secondary">
                                     Vazgec
                                 </a>

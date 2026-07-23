@@ -77,6 +77,11 @@ class ShuttleTrip extends Model
         return $this->hasMany(ShuttleTripBranchMovement::class, 'shuttle_trip_id');
     }
 
+    public function branchCompletions(): HasMany
+    {
+        return $this->hasMany(ShuttleTripBranchCompletion::class, 'shuttle_trip_id');
+    }
+
     /** Doluluk oranı (geliş) % */
     public function getArrivalOccupancyAttribute(): ?float
     {

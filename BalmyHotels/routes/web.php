@@ -737,6 +737,7 @@ Route::middleware('auth')->group(function () {
             Route::get('/{operation}/duzenle',      [ShuttleOperationController::class, 'edit'])->name('edit');
             Route::put('/{operation}',               [ShuttleOperationController::class, 'update'])->name('update');
             Route::patch('/{operation}/donus',       [ShuttleOperationController::class, 'departure'])->name('departure');
+            Route::patch('/{operation}/tamamla',     [ShuttleOperationController::class, 'complete'])->name('complete');
             Route::delete('/{operation}',            [ShuttleOperationController::class, 'destroy'])->name('destroy');
         });
 

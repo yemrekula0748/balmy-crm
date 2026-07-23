@@ -6,6 +6,7 @@ use App\Http\Controllers\Modules\BaseModuleController;
 use App\Models\Branch;
 use App\Models\ShuttleRoute;
 use App\Models\ShuttleTrip;
+use App\Models\ShuttleTripBranchCompletion;
 use App\Models\ShuttleTripBranchMovement;
 use App\Models\ShuttleVehicle;
 use App\Services\ShuttleTripMergeService;
@@ -17,6 +18,8 @@ use Illuminate\Validation\ValidationException;
 
 class ShuttleOperationController extends BaseModuleController
 {
+    private const OPERATION_DAY_START_TIME = '08:00';
+
     private ShuttleTripMergeService $tripMergeService;
 
     public function __construct()
@@ -25,7 +28,7 @@ class ShuttleOperationController extends BaseModuleController
 
         $this->requirePermission(
             'shuttle_operations',
-            ['index', 'departure'],
+            ['index', 'departure', 'complete'],
             [],
             ['create', 'store', 'storeLodging'],
             ['edit', 'update'],
@@ -48,30 +51,43 @@ class ShuttleOperationController extends BaseModuleController
         $date = $request->date ? Carbon::parse($request->date) : Carbon::today();
         $currentBranchId = $request->branch_id ?? ($branches->count() === 1 ? $branches->first()->id : null);
         $currentBranchId = $currentBranchId ? (int) $currentBranchId : null;
+        $showCompleted = $request->boolean('show_completed');
 
         $vehicles = ShuttleVehicle::with('routes')
             ->where('is_active', true)
             ->orderBy('name')
             ->get();
 
+        $listStartDate = $showCompleted ? $date->copy() : $date->copy()->subDay();
         $listEndDate = $date->copy()->addDay();
+        $listQueryEndDate = $listEndDate->copy()->addDay();
 
         $summaryTrips = ShuttleTrip::with(['vehicle.routes', 'route', 'branch', 'creator', 'branchMovements.branch'])
-            ->where('trip_date', $date->toDateString())
+            ->whereBetween('trip_date', [$date->toDateString(), $date->copy()->addDay()->toDateString()])
             ->orderBy('shift')
             ->orderBy('arrival_time')
             ->get();
         $summaryTrips = $this->tripMergeService->mergeCollection($summaryTrips);
+        $summaryTrips = $this->filterTripsForOperationDateRange($summaryTrips, $date, $date);
         $summaryTrips = $this->sortTripsForOperation($summaryTrips, $currentBranchId);
 
+        $completedTripCompletionsForContext = $this->completedTripCompletionsForContext($currentBranchId, $listStartDate, $listEndDate);
+        $completedTripIdsForContext = $completedTripCompletionsForContext
+            ->keys()
+            ->map(fn ($id) => (int) $id)
+            ->all();
+
         $trips = ShuttleTrip::with(['vehicle.routes', 'route', 'branch', 'creator', 'branchMovements.branch'])
-            ->whereBetween('trip_date', [$date->toDateString(), $listEndDate->toDateString()])
+            ->whereBetween('trip_date', [$listStartDate->toDateString(), $listQueryEndDate->toDateString()])
             ->orderBy('trip_date')
             ->orderBy('shift')
             ->orderBy('arrival_time')
             ->get();
         $trips = $this->tripMergeService->mergeCollection($trips);
+        $trips = $this->filterTripsForOperationDateRange($trips, $listStartDate, $listEndDate);
         $trips = $this->sortTripsForOperation($trips, $currentBranchId);
+        $trips = $this->filterTripsForCompletion($trips, $currentBranchId, $showCompleted, $completedTripIdsForContext);
+        $trips = $this->annotateTripsWithOperationDate($trips);
 
         [
             $totalIncoming,
@@ -90,7 +106,11 @@ class ShuttleOperationController extends BaseModuleController
             'allBranches',
             'currentBranchId',
             'date',
+            'listStartDate',
             'listEndDate',
+            'showCompleted',
+            'completedTripCompletionsForContext',
+            'completedTripIdsForContext',
             'totalIncoming',
             'totalOutgoing',
             'totalLodgingIncoming',
@@ -146,7 +166,7 @@ class ShuttleOperationController extends BaseModuleController
 
         return redirect()->route('shuttle.operations.index', [
             'branch_id' => $tripData['branch_id'],
-            'date' => $tripData['trip_date'],
+            'date' => $this->operationDateForShiftDate($tripData['trip_date'], $tripData['shift'])->toDateString(),
         ])->with('success', $wasMerged
             ? 'Ayni plaka icin mevcut servis hareketi bulundu ve yeni bilgiler onunla birlestirildi.'
             : 'Servis hareketi kaydedildi. Diger otel ayni kaydi gorup kendi saat ve sayi bilgisini isleyebilir.');
@@ -222,9 +242,11 @@ class ShuttleOperationController extends BaseModuleController
             ]);
         });
 
+        $operationDate = $this->operationDateForLodgingData($data['trip_date'], $data['movement_time']);
+
         return redirect()->route('shuttle.operations.index', [
             'branch_id' => $branchId,
-            'date' => $data['trip_date'],
+            'date' => $operationDate->toDateString(),
         ])->with('success', $isArrival
             ? 'Lojman gelis hareketi kaydedildi.'
             : 'Lojman gidis hareketi kaydedildi.');
@@ -267,6 +289,8 @@ class ShuttleOperationController extends BaseModuleController
 
         $operation->load(['branch', 'creator', 'vehicle', 'route', 'branchMovements.branch']);
 
+        $operationDate = $this->operationDateForTrip($operation);
+
         return view('modules.shuttle.operations.edit', [
             'operation' => $operation,
             'vehicles' => $vehicles,
@@ -276,6 +300,7 @@ class ShuttleOperationController extends BaseModuleController
             'shifts' => $shifts,
             'contextBranchId' => $contextBranchId,
             'isOwner' => $isOwner,
+            'operationDate' => $operationDate,
         ]);
     }
 
@@ -303,7 +328,7 @@ class ShuttleOperationController extends BaseModuleController
 
             return redirect()->route('shuttle.operations.index', [
                 'branch_id' => $updatedTrip?->branch_id ?? $contextBranchId,
-                'date' => $updatedTrip?->trip_date?->toDateString() ?? $operation->trip_date->toDateString(),
+                'date' => $this->operationDateForTrip($updatedTrip ?? $operation)->toDateString(),
             ])->with('success', 'Sefer ve kendi otel hareketlerin guncellendi.');
         }
 
@@ -311,7 +336,7 @@ class ShuttleOperationController extends BaseModuleController
 
         return redirect()->route('shuttle.operations.index', [
             'branch_id' => $contextBranchId,
-            'date' => $operation->trip_date->toDateString(),
+            'date' => $this->operationDateForTrip($operation)->toDateString(),
         ])->with('success', 'Kendi otel satirin guncellendi.');
     }
 
@@ -331,8 +356,55 @@ class ShuttleOperationController extends BaseModuleController
 
         return redirect()->route('shuttle.operations.index', [
             'branch_id' => $contextBranchId,
-            'date' => $operation->trip_date->toDateString(),
+            'date' => $this->operationDateForTrip($operation)->toDateString(),
         ])->with('success', 'Kendi otel icin indi / bindi bilgisi kaydedildi.');
+    }
+
+    public function complete(Request $request, ShuttleTrip $operation)
+    {
+        $visibleBranchIds = array_map('intval', Auth::user()->visibleShuttleBranchIds());
+        $operation = $this->tripMergeService->consolidateTrip($operation);
+        abort_unless($this->canAccessTrip($operation, $visibleBranchIds), 403);
+
+        $data = $request->validate([
+            'context_branch_id' => 'required|integer|exists:branches,id',
+            'confirm_missing' => 'nullable|boolean',
+            'return_date' => 'nullable|date',
+        ]);
+
+        $contextBranchId = $this->resolveContextBranchId(
+            $operation,
+            $visibleBranchIds,
+            (int) $data['context_branch_id']
+        );
+
+        $hasMissingData = $this->tripHasMissingCompletionData($operation, $contextBranchId);
+        if ($hasMissingData && ! $request->boolean('confirm_missing')) {
+            throw ValidationException::withMessages([
+                'confirm_missing' => 'Bu seferde secili otel icin gelis veya gidis bilgisi eksik. Eksikle kapatmak icin onay verin.',
+            ]);
+        }
+
+        ShuttleTripBranchCompletion::updateOrCreate(
+            [
+                'shuttle_trip_id' => $operation->id,
+                'branch_id' => $contextBranchId,
+            ],
+            [
+                'completed_at' => now(),
+                'completed_by' => Auth::id(),
+                'completed_with_missing_data' => $hasMissingData,
+            ]
+        );
+
+        $returnDate = Carbon::parse($data['return_date'] ?? $this->operationDateForTrip($operation)->toDateString())->toDateString();
+
+        return redirect()->route('shuttle.operations.index', [
+            'branch_id' => $contextBranchId,
+            'date' => $returnDate,
+        ])->with('success', $hasMissingData
+            ? 'Sefer eksik bilgi onayi ile bitirildi ve hareket listesinden kaldirildi.'
+            : 'Sefer bitirildi ve hareket listesinden kaldirildi.');
     }
 
     public function destroy(ShuttleTrip $operation)
@@ -342,7 +414,7 @@ class ShuttleOperationController extends BaseModuleController
         abort_unless(in_array((int) $operation->branch_id, $visibleBranchIds, true) || Auth::user()->isSuperAdmin(), 403);
 
         $branchId = $operation->branch_id;
-        $date = $operation->trip_date->toDateString();
+        $date = $this->operationDateForTrip($operation)->toDateString();
         $operation->delete();
 
         return redirect()->route('shuttle.operations.index', [
@@ -385,6 +457,10 @@ class ShuttleOperationController extends BaseModuleController
         $data['arrived_with_different_vehicle'] = $request->boolean('arrived_with_different_vehicle');
         $data['is_transfer'] = $request->boolean('is_transfer');
         $data['is_lodging_route'] = $operation ? (bool) $operation->is_lodging_trip : false;
+
+        if (! $data['is_lodging_route']) {
+            $data['trip_date'] = $this->actualTripDateForOperationDate($data['trip_date'], $data['shift'])->toDateString();
+        }
 
         if (! in_array((int) $data['branch_id'], $visibleBranchIds, true)) {
             throw ValidationException::withMessages([
@@ -641,6 +717,208 @@ class ShuttleOperationController extends BaseModuleController
         );
     }
 
+    private function completedTripCompletionsForContext(?int $currentBranchId, Carbon $listStartDate, Carbon $listEndDate)
+    {
+        if ($currentBranchId === null) {
+            return collect();
+        }
+
+        $listQueryEndDate = $listEndDate->copy()->addDay();
+
+        return ShuttleTripBranchCompletion::query()
+            ->with('trip')
+            ->where('branch_id', $currentBranchId)
+            ->whereNotNull('completed_at')
+            ->whereHas('trip', function ($query) use ($listStartDate, $listQueryEndDate) {
+                $query->whereBetween('trip_date', [$listStartDate->toDateString(), $listQueryEndDate->toDateString()]);
+            })
+            ->get()
+            ->filter(fn (ShuttleTripBranchCompletion $completion) => $completion->trip
+                && $this->tripBelongsToOperationDateRange($completion->trip, $listStartDate, $listEndDate))
+            ->keyBy('shuttle_trip_id');
+    }
+
+    private function filterTripsForOperationDateRange($trips, Carbon $startDate, Carbon $endDate)
+    {
+        return collect($trips)
+            ->filter(fn (ShuttleTrip $trip) => $this->tripBelongsToOperationDateRange($trip, $startDate, $endDate))
+            ->values();
+    }
+
+    private function annotateTripsWithOperationDate($trips)
+    {
+        return collect($trips)
+            ->map(function (ShuttleTrip $trip) {
+                $operationDate = $this->operationDateForTrip($trip);
+                $trip->setAttribute('operation_date_for_list', $operationDate->toDateString());
+                $trip->setAttribute('operation_date_display', $operationDate->format('d.m.Y'));
+
+                return $trip;
+            })
+            ->values();
+    }
+
+    private function tripBelongsToOperationDateRange(ShuttleTrip $trip, Carbon $startDate, Carbon $endDate): bool
+    {
+        $operationDate = $this->operationDateForTrip($trip)->toDateString();
+
+        return $operationDate >= $startDate->toDateString()
+            && $operationDate <= $endDate->toDateString();
+    }
+
+    private function operationDateForTrip(ShuttleTrip $trip): Carbon
+    {
+        $tripDate = $trip->trip_date instanceof Carbon
+            ? $trip->trip_date->copy()
+            : Carbon::parse($trip->trip_date);
+
+        $tripDate->startOfDay();
+
+        if ($trip->is_lodging_trip) {
+            $movementTime = $this->normaliseTime($trip->arrival_time)
+                ?: $this->normaliseTime($trip->departure_time);
+
+            return $this->timeBelongsToPreviousOperationDay($movementTime)
+                ? $tripDate->subDay()
+                : $tripDate;
+        }
+
+        return $this->isNightShift($trip->shift)
+            ? $tripDate->subDay()
+            : $tripDate;
+    }
+
+    private function operationDateForShiftDate(string $tripDate, ?string $shift): Carbon
+    {
+        $date = Carbon::parse($tripDate)->startOfDay();
+
+        return $this->isNightShift($shift) ? $date->subDay() : $date;
+    }
+
+    private function actualTripDateForOperationDate(string $operationDate, ?string $shift): Carbon
+    {
+        $date = Carbon::parse($operationDate)->startOfDay();
+
+        return $this->isNightShift($shift) ? $date->addDay() : $date;
+    }
+
+    private function operationDateForLodgingData(string $tripDate, ?string $movementTime): Carbon
+    {
+        $date = Carbon::parse($tripDate)->startOfDay();
+
+        return $this->timeBelongsToPreviousOperationDay($movementTime) ? $date->subDay() : $date;
+    }
+
+    private function timeBelongsToPreviousOperationDay(?string $time): bool
+    {
+        $time = $this->normaliseTime($time);
+
+        return $time !== null && $time < self::OPERATION_DAY_START_TIME;
+    }
+
+    private function isNightShift(?string $shift): bool
+    {
+        return $this->shiftScheduleKey($shift) === 'C';
+    }
+
+    private function shiftScheduleKey(?string $shift): string
+    {
+        $value = strtoupper(trim((string) $shift));
+        $value = str_replace(['Ä°', 'İ', 'ı'], 'I', $value);
+
+        if (str_contains($value, 'LOJMAN')) {
+            return 'LOJMAN';
+        }
+
+        if (str_contains($value, 'ARA')) {
+            return 'ARA';
+        }
+
+        if (str_contains($value, 'IDARI') || str_contains($value, 'DARI')) {
+            return 'IDARI';
+        }
+
+        if (str_starts_with($value, 'A')) {
+            return 'A';
+        }
+
+        if (str_starts_with($value, 'B')) {
+            return 'B';
+        }
+
+        if (str_starts_with($value, 'C')) {
+            return 'C';
+        }
+
+        return 'OTHER';
+    }
+
+    private function shiftStartMinute(?string $shift): int
+    {
+        return match ($this->shiftScheduleKey($shift)) {
+            'A' => 8 * 60,
+            'IDARI' => 9 * 60,
+            'ARA' => 13 * 60,
+            'B' => 16 * 60,
+            'C' => 24 * 60,
+            'LOJMAN' => 25 * 60,
+            default => 99 * 60,
+        };
+    }
+
+    private function filterTripsForCompletion($trips, ?int $currentBranchId, bool $showCompleted, array $completedTripIds)
+    {
+        if ($currentBranchId === null) {
+            return $trips->values();
+        }
+
+        if ($showCompleted) {
+            return $trips
+                ->filter(fn (ShuttleTrip $trip) => in_array((int) $trip->id, $completedTripIds, true))
+                ->values();
+        }
+
+        if ($completedTripIds === []) {
+            return $trips->values();
+        }
+
+        return $trips
+            ->reject(fn (ShuttleTrip $trip) => in_array((int) $trip->id, $completedTripIds, true))
+            ->values();
+    }
+
+    private function tripHasMissingCompletionData(ShuttleTrip $trip, int $branchId): bool
+    {
+        [$arrival, $departure] = $this->tripCompletionCountsForBranch($trip, $branchId);
+
+        if ($trip->is_lodging_trip) {
+            return $arrival <= 0 && $departure <= 0;
+        }
+
+        return $arrival <= 0 || $departure <= 0;
+    }
+
+    private function tripCompletionCountsForBranch(ShuttleTrip $trip, int $branchId): array
+    {
+        $trip->loadMissing('branchMovements');
+
+        if ($trip->branchMovements->isEmpty() && (int) $trip->branch_id === $branchId) {
+            return [(int) $trip->arrival_count, (int) $trip->departure_count];
+        }
+
+        $branchMovements = $trip->branchMovements
+            ->filter(fn ($movement) => (int) $movement->branch_id === $branchId);
+
+        return [
+            (int) $branchMovements
+                ->filter(fn ($movement) => $movement->movement_type === 'arrival')
+                ->sum('headcount'),
+            (int) $branchMovements
+                ->filter(fn ($movement) => $movement->movement_type === 'departure')
+                ->sum('headcount'),
+        ];
+    }
+
     private function summariseTripsForContext($trips, ?int $currentBranchId, array $visibleBranchIds): array
     {
         $incoming = 0;
@@ -727,11 +1005,9 @@ class ShuttleOperationController extends BaseModuleController
             return $trips->values();
         }
 
-        $shiftOrder = array_flip(ShuttleTrip::SHIFTS);
-
-        return $trips->sort(function (ShuttleTrip $first, ShuttleTrip $second) use ($currentBranchId, $shiftOrder) {
-            $firstDate = $first->trip_date?->toDateString() ?? '';
-            $secondDate = $second->trip_date?->toDateString() ?? '';
+        return $trips->sort(function (ShuttleTrip $first, ShuttleTrip $second) use ($currentBranchId) {
+            $firstDate = $this->operationDateForTrip($first)->toDateString();
+            $secondDate = $this->operationDateForTrip($second)->toDateString();
 
             if ($firstDate !== $secondDate) {
                 return strcmp($firstDate, $secondDate);
@@ -744,8 +1020,8 @@ class ShuttleOperationController extends BaseModuleController
                 return (int) $firstComplete <=> (int) $secondComplete;
             }
 
-            $firstShiftOrder = $shiftOrder[$first->shift] ?? 999;
-            $secondShiftOrder = $shiftOrder[$second->shift] ?? 999;
+            $firstShiftOrder = $this->shiftStartMinute($first->shift);
+            $secondShiftOrder = $this->shiftStartMinute($second->shift);
 
             if ($firstShiftOrder !== $secondShiftOrder) {
                 return $firstShiftOrder <=> $secondShiftOrder;

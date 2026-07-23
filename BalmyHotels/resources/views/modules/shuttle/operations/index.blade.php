@@ -4,8 +4,21 @@
 @section('content')
 @php
     $activeBranchId = $currentBranchId ?? ($branches->count() === 1 ? ($branches->first()->id ?? null) : null);
+    $showCompleted = (bool) ($showCompleted ?? false);
+    $listStartDate = $listStartDate ?? $date->copy();
     $listEndDate = $listEndDate ?? $date->copy()->addDay();
     $selectedDateString = $date->toDateString();
+    $completedTripCompletionsForContext = collect($completedTripCompletionsForContext ?? []);
+    $completedTripIdsForContext = collect($completedTripIdsForContext ?? $completedTripCompletionsForContext->keys())
+        ->map(fn ($id) => (int) $id)
+        ->all();
+    $completedToggleParams = ['date' => $date->toDateString()];
+    if ($currentBranchId) {
+        $completedToggleParams['branch_id'] = $currentBranchId;
+    }
+    if (! $showCompleted) {
+        $completedToggleParams['show_completed'] = 1;
+    }
     $oldBranchMovements = collect(old('branch_movements', []));
     $createBranchId = old('branch_id', $activeBranchId);
     $oldInvolvedBranchIds = collect(old('involved_branch_ids', $createBranchId ? [$createBranchId] : []))
@@ -46,7 +59,7 @@
         <div class="col-sm-6 p-md-0">
             <div class="welcome-text">
                 <h4>Servis Operasyonu</h4>
-                <span>{{ $date->format('d.m.Y') }} - Plaka bazli hareket saati / inen / binen takibi</span>
+                <span>{{ $date->format('d.m.Y') }} operasyon gunu - Plaka bazli hareket saati / inen / binen takibi</span>
             </div>
         </div>
         <div class="col-sm-6 p-md-0 justify-content-sm-end mt-2 mt-sm-0 d-flex">
@@ -89,6 +102,9 @@
                     </div>
                     <div class="d-flex align-items-center gap-2 flex-wrap">
                         <form method="GET" action="{{ route('shuttle.operations.index') }}" class="d-flex align-items-center gap-2 flex-wrap" id="filterForm">
+                            @if($showCompleted)
+                                <input type="hidden" name="show_completed" value="1">
+                            @endif
                             <select name="branch_id" class="form-select form-select-sm"
                                     style="min-width:170px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);color:#fff"
                                     onchange="this.form.submit()">
@@ -115,6 +131,12 @@
                                 </button>
                             </div>
                         </form>
+                        <a href="{{ route('shuttle.operations.index', $completedToggleParams) }}"
+                           class="btn btn-sm fw-semibold px-3"
+                           style="background:{{ $showCompleted ? 'rgba(255,255,255,0.1)' : '#fffaf4' }};color:{{ $showCompleted ? '#fff' : '#7a5c3d' }};border:1px solid rgba(255,255,255,0.28);border-radius:7px">
+                            <i class="fas {{ $showCompleted ? 'fa-list-check' : 'fa-eye' }} me-1"></i>
+                            {{ $showCompleted ? 'Acik Seferler' : 'Tamamlananlar' }}
+                        </a>
                         @if(auth()->user()->hasPermission('shuttle_operations', 'create'))
                             <div class="d-flex align-items-center gap-2 flex-wrap">
                                 <button type="button" class="btn btn-sm fw-semibold px-3"
@@ -195,7 +217,7 @@
     <div class="card border-0 shadow-sm" style="border-radius:12px;overflow:hidden">
         <div class="card-header border-0 d-flex align-items-center justify-content-between px-4 py-3"
              style="background:linear-gradient(135deg,#c19b77 0%,#a97d57 100%)">
-            <span class="text-white fw-semibold">{{ $date->format('d.m.Y') }} - {{ $listEndDate->format('d.m.Y') }} Hareket Listesi</span>
+            <span class="text-white fw-semibold">{{ $date->format('d.m.Y') }} - {{ $listEndDate->format('d.m.Y') }} Operasyon Hareket Listesi</span>
             @if($activeBranchId)
                 <span style="background:rgba(255,255,255,0.12);color:#fff;font-size:.75rem;padding:3px 10px;border-radius:20px">
                     {{ optional($branches->firstWhere('id', $activeBranchId))->name ?? 'Secili Otel' }}
@@ -206,7 +228,7 @@
             @if($trips->isEmpty())
                 <div class="text-center py-5 text-muted">
                     <i class="fas fa-route fa-2x mb-3 d-block"></i>
-                    Bu tarih ve ertesi gun icin servis hareketi bulunmuyor.
+                    {{ $showCompleted ? 'Bu operasyon gunleri icin bitirilmis servis hareketi bulunmuyor.' : 'Acik operasyon hareket listesinde servis hareketi bulunmuyor.' }}
                 </div>
             @else
                 <div class="table-responsive">
@@ -230,14 +252,27 @@
                             @foreach($trips as $trip)
                                 @php
                                     $tripDateString = $trip->trip_date->toDateString();
-                                    $isNextDayTrip = $tripDateString !== $selectedDateString;
-                                    $dayGroupTitle = $isNextDayTrip ? 'Ertesi Gun Kayitlari' : 'Secili Gun Hareketleri';
-                                    $dayGroupDescription = $isNextDayTrip
-                                        ? 'Gece vardiyasi veya sarkan kayit kontrolu icin gosteriliyor'
-                                        : 'Gunluk ozet kartlari bu tarihten beslenir';
-                                    $dayGroupStyle = $isNextDayTrip
-                                        ? 'background:#eef6f2;border-top:2px solid #cfe3d8;color:#2e7d52'
-                                        : 'background:#fbf6ef;border-top:2px solid #eadcc9;color:#7a5c3d';
+                                    $operationDateString = $trip->getAttribute('operation_date_for_list') ?: $tripDateString;
+                                    $operationDateDisplay = $trip->getAttribute('operation_date_display') ?: $trip->trip_date->format('d.m.Y');
+                                    $hasDifferentCalendarDate = $operationDateString !== $tripDateString;
+                                    $isPreviousDayTrip = $operationDateString < $selectedDateString;
+                                    $isNextDayTrip = $operationDateString > $selectedDateString;
+                                    if ($isPreviousDayTrip) {
+                                        $dayGroupTitle = 'Dunden Sarkan Acik Seferler';
+                                        $dayGroupDescription = 'Bitirilmedigi icin acik listede tutuluyor';
+                                        $dayGroupStyle = 'background:#fff7ed;border-top:2px solid #fed7aa;color:#9a3412';
+                                        $dayGroupIcon = 'fa-hourglass-half';
+                                    } elseif ($isNextDayTrip) {
+                                        $dayGroupTitle = 'Ertesi Gun Kayitlari';
+                                        $dayGroupDescription = 'Gece vardiyasi veya sarkan kayit kontrolu icin gosteriliyor';
+                                        $dayGroupStyle = 'background:#eef6f2;border-top:2px solid #cfe3d8;color:#2e7d52';
+                                        $dayGroupIcon = 'fa-arrow-right';
+                                    } else {
+                                        $dayGroupTitle = 'Secili Gun Hareketleri';
+                                        $dayGroupDescription = 'Gunluk ozet kartlari bu tarihten beslenir';
+                                        $dayGroupStyle = 'background:#fbf6ef;border-top:2px solid #eadcc9;color:#7a5c3d';
+                                        $dayGroupIcon = 'fa-calendar-day';
+                                    }
                                     $periodMatrix = $trip->branchMovements
                                         ->groupBy(fn ($movement) => $movement->movement_period ?? \App\Models\ShuttleTripBranchMovement::DEFAULT_PERIOD)
                                         ->map(function ($periodItems) {
@@ -269,10 +304,21 @@
                                         : [];
                                     $isSuperAdmin = auth()->user()->isSuperAdmin();
                                     $isLodgingTrip = (bool) $trip->is_lodging_trip;
+                                    $completedTripCompletion = $completedTripCompletionsForContext->get((int) $trip->id);
+                                    $isCompletedForContext = $activeBranchId && in_array((int) $trip->id, $completedTripIdsForContext, true);
+                                    $completedWithMissingData = $isCompletedForContext && (bool) optional($completedTripCompletion)->completed_with_missing_data;
+                                    $activeBranchArrivalTotal = (int) collect($activeBranchPeriodMatrix)->sum(fn ($row) => (int) ($row['arrival'] ?? 0));
+                                    $activeBranchDepartureTotal = (int) collect($activeBranchPeriodMatrix)->sum(fn ($row) => (int) ($row['departure'] ?? 0));
+                                    $hasCompletionMissingData = $activeBranchId && (
+                                        $isLodgingTrip
+                                            ? ($activeBranchArrivalTotal <= 0 && $activeBranchDepartureTotal <= 0)
+                                            : ($activeBranchArrivalTotal <= 0 || $activeBranchDepartureTotal <= 0)
+                                    );
                                     $editContextBranchId = $activeBranchId ?: (int) $trip->branch_id;
                                     $canOwnerEdit = auth()->user()->hasPermission('shuttle_operations', 'edit')
                                         && ($isSuperAdmin || ($activeBranchId && (int) $trip->branch_id === (int) $activeBranchId));
                                     $canBranchProcess = ! $isLodgingTrip && $activeBranchId && auth()->user()->hasPermission('shuttle_operations', 'index');
+                                    $canCompleteTrip = $activeBranchId && ! $isCompletedForContext && auth()->user()->hasPermission('shuttle_operations', 'index');
                                     $branchProcessBranchName = optional($allBranches->firstWhere('id', $activeBranchId))->name ?? '';
                                     $movementRowHasDataForView = function (array $row): bool {
                                         return (int) ($row['arrival'] ?? 0) > 0
@@ -290,9 +336,9 @@
                                                 })
                                         );
                                     $movementGroupStatus = $activeBranchId
-                                        ? ($isLodgingTrip ? 'Lojman Hareketleri' : ($activeBranchMovementComplete ? 'Tamamlanan Hareketler' : 'Bekleyen Hareketler'))
+                                        ? ($isCompletedForContext ? 'Bitirilen Seferler' : ($isLodgingTrip ? 'Lojman Hareketleri' : ($activeBranchMovementComplete ? 'Tamamlanan Hareketler' : 'Bekleyen Hareketler')))
                                         : 'Servis Hareketleri';
-                                    $movementGroupKey = $tripDateString . '|' . ($isLodgingTrip ? 'lodging' : ($activeBranchMovementComplete ? 'done' : 'pending')) . '|' . $trip->shift;
+                                    $movementGroupKey = $operationDateString . '|' . ($isCompletedForContext ? 'closed' : ($isLodgingTrip ? 'lodging' : ($activeBranchMovementComplete ? 'done' : 'pending'))) . '|' . $trip->shift;
                                     $rowBackground = $isLodgingTrip ? '#f1fbf5' : ($activeBranchId ? ($activeBranchMovementComplete ? '#f1fbf5' : '#fff6f3') : '#fff');
                                     $rowHoverBackground = $isLodgingTrip ? '#e8f7ee' : ($activeBranchId ? ($activeBranchMovementComplete ? '#e8f7ee' : '#ffeeea') : '#fff');
                                     $rowBorder = $isLodgingTrip ? '#2e7d52' : ($activeBranchId ? ($activeBranchMovementComplete ? '#2e7d52' : '#d36b55') : '#eadcc9');
@@ -302,29 +348,38 @@
                                     if ($isLodgingTrip) {
                                         $statusBadgeStyle = 'background:#eef8f1;color:#2e7d52;border:1px solid #cfe3d8';
                                     }
+                                    if ($isCompletedForContext) {
+                                        $rowBackground = '#f4f7fb';
+                                        $rowHoverBackground = '#eef2f7';
+                                        $rowBorder = '#64748b';
+                                        $statusBadgeStyle = 'background:#eef2f7;color:#475569;border:1px solid #cbd5e1';
+                                    }
                                     $statusBadgeText = $isLodgingTrip
                                         ? 'Tekli lojman hareketi'
                                         : ($activeBranchMovementComplete ? 'Bu otel tamamlandi' : 'Bu otelde eksik hareket var');
+                                    if ($isCompletedForContext) {
+                                        $statusBadgeText = $completedWithMissingData ? 'Eksikle bitirildi' : 'Sefer bitirildi';
+                                    }
                                     $firstMovementTime = $trip->arrival_time ?: ($isLodgingTrip ? $trip->departure_time : null);
                                     $lastMovementTime = $trip->departure_time ?: ($isLodgingTrip ? $trip->arrival_time : null);
                                 @endphp
 
-                                @if($lastOperationDayGroup !== $tripDateString)
+                                @if($lastOperationDayGroup !== $operationDateString)
                                     <tr>
                                         <td colspan="7" class="py-3 ps-4" style="{{ $dayGroupStyle }}">
                                             <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
                                                 <div class="d-inline-flex align-items-center gap-2 fw-bold" style="font-size:1.05rem">
                                                     <span style="width:34px;height:34px;border-radius:8px;background:#fff;color:inherit;display:inline-flex;align-items:center;justify-content:center;border:1px solid rgba(0,0,0,.06)">
-                                                        <i class="fas {{ $isNextDayTrip ? 'fa-arrow-right' : 'fa-calendar-day' }}"></i>
+                                                        <i class="fas {{ $dayGroupIcon }}"></i>
                                                     </span>
-                                                    {{ $dayGroupTitle }} - {{ $trip->trip_date->format('d.m.Y') }}
+                                                    {{ $dayGroupTitle }} - {{ $operationDateDisplay }}
                                                 </div>
                                                 <span class="small fw-semibold" style="opacity:.78">{{ $dayGroupDescription }}</span>
                                             </div>
                                         </td>
                                     </tr>
                                     @php
-                                        $lastOperationDayGroup = $tripDateString;
+                                        $lastOperationDayGroup = $operationDateString;
                                         $lastMovementGroup = null;
                                     @endphp
                                 @endif
@@ -373,8 +428,11 @@
                                         <div class="mt-2">
                                             <span style="display:inline-flex;align-items:center;gap:6px;background:#fffaf4;color:#7a5c3d;border:1px solid #eadcc9;border-radius:8px;padding:6px 10px;font-size:1rem;font-weight:800">
                                                 <i class="fas fa-calendar-day" style="color:#8f6d4f"></i>
-                                                {{ $trip->trip_date->format('d.m.Y') }}
+                                                Operasyon: {{ $operationDateDisplay }}
                                             </span>
+                                            @if($hasDifferentCalendarDate)
+                                                <div class="small text-muted mt-1">Takvim tarihi: {{ $trip->trip_date->format('d.m.Y') }}</div>
+                                            @endif
                                         </div>
                                     </td>
                                     <td style="min-width:320px">
@@ -470,6 +528,22 @@
                                                     <i class="fas fa-people-arrows me-1"></i> Kendi Otelini Isle
                                                 </button>
                                             @endif
+                                            @if($canCompleteTrip)
+                                                <form action="{{ route('shuttle.operations.complete', $trip) }}" method="POST" class="d-inline"
+                                                      data-missing-message="{{ $isLodgingTrip ? 'Bu lojman seferinde secili otel icin kisi bilgisi gorunmuyor. Yine de seferi bitirip listeden kaldiralim mi?' : 'Bu seferde secili otel icin gelis veya gidis bilgisi eksik gorunuyor. Yine de seferi bitirip listeden kaldiralim mi?' }}"
+                                                      onsubmit="return confirmCompleteTrip(this)">
+                                                    @csrf
+                                                    @method('PATCH')
+                                                    <input type="hidden" name="context_branch_id" value="{{ (int) $activeBranchId }}">
+                                                    <input type="hidden" name="return_date" value="{{ $date->toDateString() }}">
+                                                    <input type="hidden" name="confirm_missing" value="0" data-confirm-missing-input>
+                                                    <input type="hidden" value="{{ $hasCompletionMissingData ? 1 : 0 }}" data-has-missing-data>
+                                                    <button type="submit" class="btn btn-sm fw-semibold"
+                                                            style="background:#7a5c3d;color:#fff;border:1px solid #7a5c3d;font-size:.78rem">
+                                                        <i class="fas fa-check me-1"></i> Seferi Bitir
+                                                    </button>
+                                                </form>
+                                            @endif
                                             @if($canOwnerEdit && auth()->user()->hasPermission('shuttle_operations', 'delete'))
                                                 <form action="{{ route('shuttle.operations.destroy', $trip) }}" method="POST" class="d-inline"
                                                       onsubmit="return confirm('Bu servis hareketini silmek istiyor musunuz?')">
@@ -538,7 +612,7 @@
                                 </select>
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label fw-semibold small">Tarih <span class="text-danger">*</span></label>
+                                <label class="form-label fw-semibold small">Operasyon Tarihi <span class="text-danger">*</span></label>
                                 <input type="date" name="trip_date" value="{{ old('trip_date', $date->toDateString()) }}" class="form-control" required>
                             </div>
 
@@ -669,7 +743,7 @@
                                 </div>
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label fw-semibold small">Tarih <span class="text-danger">*</span></label>
+                                <label class="form-label fw-semibold small">Hareket Tarihi <span class="text-danger">*</span></label>
                                 <input type="date" name="trip_date" value="{{ old('_lodging_trip_form') ? old('trip_date', $date->toDateString()) : $date->toDateString() }}" class="form-control" data-auto-date-picker="1" required>
                             </div>
                             <div class="col-md-6">
@@ -961,6 +1035,32 @@ function openBranchProcessModalFromButton(button) {
             }
         })(),
     });
+}
+
+function confirmCompleteTrip(form) {
+    if (!form) {
+        return false;
+    }
+
+    const hasMissingData = form.querySelector('[data-has-missing-data]')?.value === '1';
+    const confirmMissingInput = form.querySelector('[data-confirm-missing-input]');
+
+    if (!hasMissingData) {
+        if (confirmMissingInput) {
+            confirmMissingInput.value = '0';
+        }
+
+        return true;
+    }
+
+    const message = form.dataset.missingMessage || 'Bu seferde eksik bilgi gorunuyor. Yine de seferi bitirip listeden kaldiralim mi?';
+    const confirmed = window.confirm(message);
+
+    if (confirmed && confirmMissingInput) {
+        confirmMissingInput.value = '1';
+    }
+
+    return confirmed;
 }
 
 document.addEventListener('DOMContentLoaded', () => {
