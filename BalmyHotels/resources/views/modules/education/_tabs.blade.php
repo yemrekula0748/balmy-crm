@@ -36,6 +36,9 @@
                         <span class="badge bg-danger ms-1">{{ $educationLearningPendingCount }}</span>
                     @endif
                 </a>
+                <a href="{{ route('education.leaderboard.index') }}" class="btn btn-sm {{ request()->is('egitim-ve-gelisim/siralama*') ? 'btn-primary' : 'btn-outline-primary' }}">
+                    <i class="fas fa-trophy me-1"></i>Siralama
+                </a>
             @endif
             @if($eduUser->hasPermission('education_courses','index'))
                 <a href="{{ route('education.courses.index') }}" class="btn btn-sm {{ request()->is('egitim-ve-gelisim/icerikler*') ? 'btn-primary' : 'btn-outline-primary' }}">

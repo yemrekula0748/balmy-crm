@@ -46,19 +46,16 @@
                         <label class="form-label">Aciklama</label>
                         <textarea name="description" rows="4" class="form-control" maxlength="5000">{{ old('description', $course->description) }}</textarea>
                     </div>
-                    <div class="col-md-6">
+                    <div class="col-md-8">
                         <label class="form-label">Video {{ $course->exists ? '' : '*' }}</label>
-                        <input type="file" name="video" class="form-control" accept="video/mp4,video/webm,video/quicktime,video/x-msvideo,video/mpeg" {{ $course->exists ? '' : 'required' }}>
+                        <input type="file" name="video" id="educationVideoInput" class="form-control" accept="video/mp4,video/webm,video/quicktime,video/x-msvideo,video/mpeg" {{ $course->exists ? '' : 'required' }}>
+                        <input type="hidden" name="duration_seconds" id="educationDurationSeconds" value="{{ old('duration_seconds', $course->duration_seconds ?? 0) }}">
                         <small class="text-muted">MP4/WebM/MOV/AVI/MPEG. Uygulama tarafinda MB siniri uygulanmaz; sunucu ve disk kapasitesi gecerlidir. {{ $serverUploadLimitText ?? '' }}</small>
                         @error('video')
                             <div class="text-danger small mt-1">{{ $message }}</div>
                         @enderror
                     </div>
-                    <div class="col-md-3">
-                        <label class="form-label">Tahmini Sure (saniye)</label>
-                        <input type="number" name="duration_seconds" class="form-control" min="0" max="86400" value="{{ old('duration_seconds', $course->duration_seconds ?? 0) }}">
-                    </div>
-                    <div class="col-md-3 d-flex align-items-end">
+                    <div class="col-md-4 d-flex align-items-end">
                         <input type="hidden" name="is_active" value="0">
                         <div class="form-check mb-2">
                             <input class="form-check-input" type="checkbox" name="is_active" value="1" id="isActive" @checked(old('is_active', $course->exists ? $course->is_active : true))>
@@ -83,3 +80,40 @@
     </div>
 </div>
 @endsection
+
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    var fileInput = document.getElementById('educationVideoInput');
+    var durationInput = document.getElementById('educationDurationSeconds');
+
+    if (!fileInput || !durationInput) {
+        return;
+    }
+
+    fileInput.addEventListener('change', function () {
+        var file = fileInput.files && fileInput.files[0];
+
+        if (!file) {
+            return;
+        }
+
+        var objectUrl = URL.createObjectURL(file);
+        var video = document.createElement('video');
+
+        video.preload = 'metadata';
+        video.onloadedmetadata = function () {
+            URL.revokeObjectURL(objectUrl);
+
+            if (Number.isFinite(video.duration) && video.duration > 0) {
+                durationInput.value = Math.min(Math.round(video.duration), 86400);
+            }
+        };
+        video.onerror = function () {
+            URL.revokeObjectURL(objectUrl);
+        };
+        video.src = objectUrl;
+    });
+});
+</script>
+@endpush

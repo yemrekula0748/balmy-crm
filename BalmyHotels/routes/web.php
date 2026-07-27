@@ -70,6 +70,7 @@ use App\Http\Controllers\Modules\FrontDeskReservationController;
 use App\Http\Controllers\Modules\EducationAssignmentController;
 use App\Http\Controllers\Modules\EducationCourseController;
 use App\Http\Controllers\Modules\EducationEventController;
+use App\Http\Controllers\Modules\EducationLeaderboardController;
 use App\Http\Controllers\Modules\EducationLearningController;
 use App\Http\Controllers\Modules\EducationQuizController;
 use App\Http\Controllers\Modules\EducationReportController;
@@ -797,6 +798,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/egitimlerim/{assignment}/quiz', [EducationQuizController::class, 'submit'])->name('learning.quiz.submit');
         Route::get('/egitimlerim/{assignment}', [EducationLearningController::class, 'show'])->name('learning.show');
         Route::post('/egitimlerim/{assignment}/ilerleme', [EducationLearningController::class, 'progress'])->name('learning.progress');
+        Route::get('/siralama', [EducationLeaderboardController::class, 'index'])->name('leaderboard.index');
 
         Route::prefix('icerikler')->name('courses.')->group(function () {
             Route::get('/', [EducationCourseController::class, 'index'])->name('index');
