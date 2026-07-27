@@ -49,7 +49,7 @@
                     <div class="col-md-6">
                         <label class="form-label">Video {{ $course->exists ? '' : '*' }}</label>
                         <input type="file" name="video" class="form-control" accept="video/mp4,video/webm,video/quicktime,video/x-msvideo,video/mpeg" {{ $course->exists ? '' : 'required' }}>
-                        <small class="text-muted">MP4/WebM/MOV/AVI/MPEG. Uygulama tarafinda MB siniri uygulanmaz; sunucu ve disk kapasitesi gecerlidir.</small>
+                        <small class="text-muted">MP4/WebM/MOV/AVI/MPEG. Uygulama tarafinda MB siniri uygulanmaz; sunucu ve disk kapasitesi gecerlidir. {{ $serverUploadLimitText ?? '' }}</small>
                         @error('video')
                             <div class="text-danger small mt-1">{{ $message }}</div>
                         @enderror

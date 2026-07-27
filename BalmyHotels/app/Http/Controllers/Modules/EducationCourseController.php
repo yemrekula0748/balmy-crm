@@ -47,6 +47,7 @@ class EducationCourseController extends BaseModuleController
         return view('modules.education.courses.form', [
             'course' => new EducationCourse(),
             'languages' => EducationCourse::LANGUAGES,
+            'serverUploadLimitText' => $this->getServerUploadLimitText(),
         ]);
     }
 
@@ -95,6 +96,7 @@ class EducationCourseController extends BaseModuleController
         return view('modules.education.courses.form', [
             'course' => $course,
             'languages' => EducationCourse::LANGUAGES,
+            'serverUploadLimitText' => $this->getServerUploadLimitText(),
         ]);
     }
 
@@ -144,7 +146,7 @@ class EducationCourseController extends BaseModuleController
                 'mimes:mp4,mov,avi,mpeg,webm',
             ],
         ], [
-            'video.uploaded' => 'Video yuklenemedi. Sunucu dosyayi kabul etmedi; buyuk ihtimalle dosya boyutu limiti asildi.',
+            'video.uploaded' => $this->getVideoUploadErrorMessage(UPLOAD_ERR_INI_SIZE),
             'video.mimes' => 'Video formati desteklenmiyor. Lutfen MP4, MOV, AVI, MPEG veya WebM yukleyin.',
         ], [
             'video' => 'video dosyasi',
@@ -178,6 +180,30 @@ class EducationCourseController extends BaseModuleController
     {
         $videoFile = $request->file('video');
         if ($videoFile) {
+            if (method_exists($videoFile, 'isValid') && ! $videoFile->isValid()) {
+                $errorCode = method_exists($videoFile, 'getError')
+                    ? (int) $videoFile->getError()
+                    : UPLOAD_ERR_INI_SIZE;
+
+                Log::warning('Education course video upload arrived as invalid UploadedFile.', [
+                    'error_code' => $errorCode,
+                    'error_label' => $this->getUploadErrorLabel($errorCode),
+                    'client_original_name' => method_exists($videoFile, 'getClientOriginalName') ? $videoFile->getClientOriginalName() : null,
+                    'client_mime_type' => method_exists($videoFile, 'getClientMimeType') ? $videoFile->getClientMimeType() : null,
+                    'content_length' => $request->server('CONTENT_LENGTH'),
+                    'content_type' => $request->server('CONTENT_TYPE'),
+                    'upload_max_filesize' => ini_get('upload_max_filesize'),
+                    'post_max_size' => ini_get('post_max_size'),
+                    'memory_limit' => ini_get('memory_limit'),
+                    'upload_tmp_dir' => ini_get('upload_tmp_dir') ?: sys_get_temp_dir(),
+                    'tmp_dir_writable' => is_writable(ini_get('upload_tmp_dir') ?: sys_get_temp_dir()),
+                ]);
+
+                throw ValidationException::withMessages([
+                    'video' => $this->getVideoUploadErrorMessage($errorCode),
+                ]);
+            }
+
             return;
         }
 
@@ -231,11 +257,7 @@ class EducationCourseController extends BaseModuleController
 
     private function getVideoUploadErrorMessage(int $errorCode): string
     {
-        $limits = sprintf(
-            'Canli PHP limitleri: upload_max_filesize=%s, post_max_size=%s.',
-            ini_get('upload_max_filesize') ?: '?',
-            ini_get('post_max_size') ?: '?'
-        );
+        $limits = $this->getServerUploadLimitText();
 
         return match ($errorCode) {
             UPLOAD_ERR_INI_SIZE, UPLOAD_ERR_FORM_SIZE => 'Video yuklenemedi: dosya sunucu upload limitini asti. ' . $limits . ' Kod: ' . $errorCode . '.',
@@ -245,6 +267,15 @@ class EducationCourseController extends BaseModuleController
             UPLOAD_ERR_EXTENSION => 'Video yuklenemedi: bir PHP eklentisi yuklemeyi durdurdu. Kod: ' . $errorCode . '.',
             default => 'Video yuklenemedi. ' . $limits . ' Kod: ' . $errorCode . '.',
         };
+    }
+
+    private function getServerUploadLimitText(): string
+    {
+        return sprintf(
+            'Canli PHP limitleri: upload_max_filesize=%s, post_max_size=%s.',
+            ini_get('upload_max_filesize') ?: '?',
+            ini_get('post_max_size') ?: '?'
+        );
     }
 
     private function getUploadErrorLabel(int $errorCode): string
