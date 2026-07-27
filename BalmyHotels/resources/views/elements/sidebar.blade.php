@@ -866,7 +866,7 @@
             @endif
 
             {{-- BİLGİ İŞLEM --}}
-            @if($user->hasPermission('it_computers','index') || $user->hasPermission('it_backup','index') || $user->hasPermission('login_logs','index') || $user->hasPermission('it_agent_inventory','index') || $user->hasPermission('mikrotik','index'))
+            @if($user->hasPermission('it_computers','index') || $user->hasPermission('it_backup','index') || $user->hasPermission('it_signature_generator','index') || $user->hasPermission('login_logs','index') || $user->hasPermission('it_agent_inventory','index') || $user->hasPermission('mikrotik','index'))
             <li @class(['mm-active' => request()->is('bilgi-islem*')])>
                 <a class="has-arrow ai-icon" href="javascript:void()" aria-expanded="false">
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
@@ -892,6 +892,11 @@
                     @if($user->hasPermission('it_backup','index'))
                     <li @class(['mm-active' => request()->is('bilgi-islem/yedekleme*')])>
                         <a href="{{ route('it.backup.index') }}">Veritabanı Yedekleme</a>
+                    </li>
+                    @endif
+                    @if($user->hasPermission('it_signature_generator','index'))
+                    <li @class(['mm-active' => request()->is('bilgi-islem/imza-olusturucu*')])>
+                        <a href="{{ route('it.signature-generator.index') }}">İmza Oluşturucu</a>
                     </li>
                     @endif
                     @if($user->hasPermission('login_logs','index'))

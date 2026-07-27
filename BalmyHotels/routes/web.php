@@ -57,6 +57,7 @@ use App\Http\Controllers\Modules\AuditNonconformityController;
 use App\Http\Controllers\Modules\AuditAnalyticsController;
 use App\Http\Controllers\Modules\ItComputerController;
 use App\Http\Controllers\Modules\ItBackupController;
+use App\Http\Controllers\Modules\ItSignatureGeneratorController;
 use App\Http\Controllers\Modules\MikroTikController;
 use App\Http\Controllers\Modules\LoginLogController;
 use App\Http\Controllers\Modules\MyTaskController;
@@ -937,6 +938,10 @@ Route::middleware('auth')->group(function () {
     |--------------------------------------------------------------------------
     */
     Route::prefix('bilgi-islem')->name('it.')->group(function () {
+        // E-posta imza oluşturucu
+        Route::get('imza-olusturucu', [ItSignatureGeneratorController::class, 'index'])
+            ->name('signature-generator.index');
+
         // Bilgisayarlar (manuel envanter)
         Route::get('bilgisayarlar',               [ItComputerController::class, 'index'])->name('computers.index');
         Route::get('bilgisayarlar/{computer}',    [ItComputerController::class, 'show'])->name('computers.show');
