@@ -10,6 +10,8 @@ use Illuminate\Support\Collection;
 
 class ShuttleTripMergeService
 {
+    private const OPERATION_DAY_START_TIME = '08:00';
+
     public function mergeCollection($trips): Collection
     {
         return collect($trips)
@@ -43,9 +45,9 @@ class ShuttleTripMergeService
 
         $primary->update([
             'route_id' => $route?->id,
-            'arrival_time' => $this->resolveBoundaryTime($periodMatrix, 'arrival_time', 'min'),
+            'arrival_time' => $this->resolveBoundaryTime($periodMatrix, 'arrival_time', 'min', $primary->shift),
             'arrival_count' => $this->sumPeriodMatrix($periodMatrix, 'arrival'),
-            'departure_time' => $this->resolveBoundaryTime($periodMatrix, 'departure_time', 'max'),
+            'departure_time' => $this->resolveBoundaryTime($periodMatrix, 'departure_time', 'max', $primary->shift),
             'departure_count' => $this->sumPeriodMatrix($periodMatrix, 'departure'),
             'arrived_with_different_vehicle' => $group->contains(fn (ShuttleTrip $candidate) => (bool) $candidate->arrived_with_different_vehicle),
             'is_transfer' => $group->contains(fn (ShuttleTrip $candidate) => (bool) $candidate->is_transfer),
@@ -126,8 +128,8 @@ class ShuttleTripMergeService
 
         $primary->arrival_count = $this->sumPeriodMatrix($periodMatrix, 'arrival');
         $primary->departure_count = $this->sumPeriodMatrix($periodMatrix, 'departure');
-        $primary->arrival_time = $this->resolveBoundaryTime($periodMatrix, 'arrival_time', 'min');
-        $primary->departure_time = $this->resolveBoundaryTime($periodMatrix, 'departure_time', 'max');
+        $primary->arrival_time = $this->resolveBoundaryTime($periodMatrix, 'arrival_time', 'min', $primary->shift);
+        $primary->departure_time = $this->resolveBoundaryTime($periodMatrix, 'departure_time', 'max', $primary->shift);
         $primary->arrived_with_different_vehicle = $group->contains(
             fn (ShuttleTrip $candidate) => (bool) $candidate->arrived_with_different_vehicle
         );
@@ -154,8 +156,8 @@ class ShuttleTripMergeService
                 $period = ShuttleTripBranchMovement::DEFAULT_PERIOD;
                 $branchId = (int) $trip->branch_id;
                 $this->primeBranchRow($matrix, $period, $branchId, $trip->branch);
-                $this->applyMovementToRow($matrix[$period][$branchId], 'arrival', (int) $trip->arrival_count, $trip->arrival_time);
-                $this->applyMovementToRow($matrix[$period][$branchId], 'departure', (int) $trip->departure_count, $trip->departure_time);
+                $this->applyMovementToRow($matrix[$period][$branchId], 'arrival', (int) $trip->arrival_count, $trip->arrival_time, $trip->shift);
+                $this->applyMovementToRow($matrix[$period][$branchId], 'departure', (int) $trip->departure_count, $trip->departure_time, $trip->shift);
                 continue;
             }
 
@@ -167,7 +169,8 @@ class ShuttleTripMergeService
                     $matrix[$period][$branchId],
                     $movement->movement_type,
                     (int) $movement->headcount,
-                    $movement->movement_time
+                    $movement->movement_time,
+                    $trip->shift
                 );
             }
         }
@@ -256,19 +259,19 @@ class ShuttleTripMergeService
         }
     }
 
-    private function applyMovementToRow(array &$row, string $movementType, int $count, ?string $time): void
+    private function applyMovementToRow(array &$row, string $movementType, int $count, ?string $time, ?string $shift = null): void
     {
         $time = $this->normaliseTime($time);
 
         if ($movementType === 'arrival') {
             $row['arrival'] = max((int) $row['arrival'], $count);
-            $row['arrival_time'] = $this->pickTime($row['arrival_time'], $time, 'min');
+            $row['arrival_time'] = $this->pickTime($row['arrival_time'], $time, 'min', $shift);
 
             return;
         }
 
         $row['departure'] = max((int) $row['departure'], $count);
-        $row['departure_time'] = $this->pickTime($row['departure_time'], $time, 'max');
+        $row['departure_time'] = $this->pickTime($row['departure_time'], $time, 'max', $shift);
     }
 
     private function sumPeriodMatrix(array $periodMatrix, string $column): int
@@ -278,24 +281,28 @@ class ShuttleTripMergeService
         );
     }
 
-    private function resolveBoundaryTime(array $periodMatrix, string $column, string $mode): ?string
+    private function resolveBoundaryTime(array $periodMatrix, string $column, string $mode, ?string $shift = null): ?string
     {
         $times = collect($periodMatrix)
             ->flatMap(fn (array $branchRows) => collect($branchRows)->pluck($column))
             ->filter()
             ->map(fn (?string $time) => $this->normaliseTime($time))
             ->filter()
-            ->sort()
+            ->map(fn (string $time) => [
+                'time' => $time,
+                'sort' => $this->movementSortMinute($time, $shift) ?? (99 * 60),
+            ])
+            ->sortBy('sort')
             ->values();
 
         if ($times->isEmpty()) {
             return null;
         }
 
-        return $mode === 'min' ? $times->first() : $times->last();
+        return $mode === 'min' ? $times->first()['time'] : $times->last()['time'];
     }
 
-    private function pickTime(?string $current, ?string $candidate, string $mode): ?string
+    private function pickTime(?string $current, ?string $candidate, string $mode, ?string $shift = null): ?string
     {
         $current = $this->normaliseTime($current);
         $candidate = $this->normaliseTime($candidate);
@@ -308,9 +315,12 @@ class ShuttleTripMergeService
             return $candidate;
         }
 
+        $currentOrder = $this->movementSortMinute($current, $shift) ?? (99 * 60);
+        $candidateOrder = $this->movementSortMinute($candidate, $shift) ?? (99 * 60);
+
         return $mode === 'min'
-            ? min($current, $candidate)
-            : max($current, $candidate);
+            ? ($candidateOrder < $currentOrder ? $candidate : $current)
+            : ($candidateOrder > $currentOrder ? $candidate : $current);
     }
 
     private function mergeNoteList(array $notes): ?string
@@ -339,6 +349,73 @@ class ShuttleTripMergeService
         }
 
         return substr(trim($value), 0, 5);
+    }
+
+    private function movementSortMinute(?string $time, ?string $shift): ?int
+    {
+        $minutes = $this->timeToMinutes($time);
+
+        if ($minutes === null) {
+            return null;
+        }
+
+        if (in_array($this->shiftScheduleKey($shift), ['B', 'C'], true) && $this->timeBelongsToPreviousOperationDay($time)) {
+            return $minutes + (24 * 60);
+        }
+
+        return $minutes;
+    }
+
+    private function timeBelongsToPreviousOperationDay(?string $time): bool
+    {
+        $time = $this->normaliseTime($time);
+
+        return $time !== null && $time < self::OPERATION_DAY_START_TIME;
+    }
+
+    private function timeToMinutes(?string $time): ?int
+    {
+        $time = $this->normaliseTime($time);
+
+        if ($time === null || ! str_contains($time, ':')) {
+            return null;
+        }
+
+        [$hour, $minute] = array_map('intval', explode(':', $time, 2));
+
+        return ($hour * 60) + $minute;
+    }
+
+    private function shiftScheduleKey(?string $shift): string
+    {
+        $value = strtoupper(trim((string) $shift));
+        $value = str_replace(['Ã„Â°', 'Ä°', 'Ä±'], 'I', $value);
+
+        if (str_contains($value, 'LOJMAN')) {
+            return 'LOJMAN';
+        }
+
+        if (str_contains($value, 'ARA')) {
+            return 'ARA';
+        }
+
+        if (str_contains($value, 'IDARI') || str_contains($value, 'DARI')) {
+            return 'IDARI';
+        }
+
+        if (str_starts_with($value, 'B')) {
+            return 'B';
+        }
+
+        if (str_starts_with($value, 'C')) {
+            return 'C';
+        }
+
+        if (str_starts_with($value, 'A')) {
+            return 'A';
+        }
+
+        return 'OTHER';
     }
 
     private function orderPeriodMatrix(array $periodMatrix): array
@@ -396,12 +473,13 @@ class ShuttleTripMergeService
         $shiftIndex = array_search($trip->shift, ShuttleTrip::SHIFTS, true);
         $shiftIndex = $shiftIndex === false ? 99 : $shiftIndex;
         $sortTime = $trip->arrival_time ?: ($trip->is_lodging_trip ? $trip->departure_time : null);
+        $sortMinute = $this->movementSortMinute($sortTime, $trip->shift) ?? (99 * 60);
 
         return sprintf(
-            '%s|%02d|%s|%s',
+            '%s|%02d|%04d|%s',
             $tripDate,
             $shiftIndex,
-            $sortTime ?? '99:99',
+            $sortMinute,
             $trip->vehicle->plate ?? ''
         );
     }

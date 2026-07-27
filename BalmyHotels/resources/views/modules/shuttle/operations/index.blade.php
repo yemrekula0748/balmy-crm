@@ -5,6 +5,7 @@
 @php
     $activeBranchId = $currentBranchId ?? ($branches->count() === 1 ? ($branches->first()->id ?? null) : null);
     $showCompleted = (bool) ($showCompleted ?? false);
+    $defaultLodgingDate = $defaultLodgingDate ?? $date;
     $listStartDate = $listStartDate ?? $date->copy();
     $listEndDate = $listEndDate ?? $date->copy()->addDay();
     $selectedDateString = $date->toDateString();
@@ -744,7 +745,7 @@
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label fw-semibold small">Hareket Tarihi <span class="text-danger">*</span></label>
-                                <input type="date" name="trip_date" value="{{ old('_lodging_trip_form') ? old('trip_date', $date->toDateString()) : $date->toDateString() }}" class="form-control" data-auto-date-picker="1" required>
+                                <input type="date" name="trip_date" value="{{ old('_lodging_trip_form') ? old('trip_date', $defaultLodgingDate->toDateString()) : $defaultLodgingDate->toDateString() }}" class="form-control" data-auto-date-picker="1" required>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label fw-semibold small">Hareket Saati <span class="text-danger">*</span></label>

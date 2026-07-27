@@ -38,6 +38,7 @@
         <div class="small" style="color:#6f5b45">
             <strong>Ilk/Ikinci Ugrama</strong> = ayni plakanin ayni vardiyada otelinize 1. veya 2. temas kaydidir; ayri sefer sayilmaz.
             Servis personel getiriyorsa <strong>Inen</strong>, personel goturuyorsa <strong>Binen</strong> alanina yazin.
+            Gece 00:00 sonrasi sarkan B/C vardiya saatleri ayni operasyon gununun devamidir.
         </div>
     </div>
 

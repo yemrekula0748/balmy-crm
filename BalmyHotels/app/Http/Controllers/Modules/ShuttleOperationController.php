@@ -48,10 +48,11 @@ class ShuttleOperationController extends BaseModuleController
             ->orderBy('name')
             ->get();
 
-        $date = $request->date ? Carbon::parse($request->date) : Carbon::today();
+        $date = $request->date ? Carbon::parse($request->date) : $this->currentOperationDate();
         $currentBranchId = $request->branch_id ?? ($branches->count() === 1 ? $branches->first()->id : null);
         $currentBranchId = $currentBranchId ? (int) $currentBranchId : null;
         $showCompleted = $request->boolean('show_completed');
+        $defaultLodgingDate = $this->defaultLodgingDateForOperationDate($date);
 
         $vehicles = ShuttleVehicle::with('routes')
             ->where('is_active', true)
@@ -106,6 +107,7 @@ class ShuttleOperationController extends BaseModuleController
             'allBranches',
             'currentBranchId',
             'date',
+            'defaultLodgingDate',
             'listStartDate',
             'listEndDate',
             'showCompleted',
@@ -637,8 +639,8 @@ class ShuttleOperationController extends BaseModuleController
         $trip->update([
             'arrival_count' => $totalArrival,
             'departure_count' => $totalDeparture,
-            'arrival_time' => $this->resolveBoundaryTime($movementMatrix, 'arrival_time', 'min'),
-            'departure_time' => $this->resolveBoundaryTime($movementMatrix, 'departure_time', 'max'),
+            'arrival_time' => $this->resolveBoundaryTime($movementMatrix, 'arrival_time', 'min', $trip->shift),
+            'departure_time' => $this->resolveBoundaryTime($movementMatrix, 'departure_time', 'max', $trip->shift),
         ]);
 
         $trip->branchMovements()->delete();
@@ -809,6 +811,22 @@ class ShuttleOperationController extends BaseModuleController
         return $this->timeBelongsToPreviousOperationDay($movementTime) ? $date->subDay() : $date;
     }
 
+    private function currentOperationDate(): Carbon
+    {
+        $now = Carbon::now();
+
+        return $this->timeBelongsToPreviousOperationDay($now->format('H:i'))
+            ? $now->copy()->subDay()->startOfDay()
+            : $now->copy()->startOfDay();
+    }
+
+    private function defaultLodgingDateForOperationDate(Carbon $operationDate): Carbon
+    {
+        return $operationDate->isSameDay($this->currentOperationDate())
+            ? Carbon::today()
+            : $operationDate->copy();
+    }
+
     private function timeBelongsToPreviousOperationDay(?string $time): bool
     {
         $time = $this->normaliseTime($time);
@@ -864,6 +882,34 @@ class ShuttleOperationController extends BaseModuleController
             'LOJMAN' => 25 * 60,
             default => 99 * 60,
         };
+    }
+
+    private function movementSortMinute(?string $time, ?string $shift): ?int
+    {
+        $minutes = $this->timeToMinutes($time);
+
+        if ($minutes === null) {
+            return null;
+        }
+
+        if (in_array($this->shiftScheduleKey($shift), ['B', 'C'], true) && $this->timeBelongsToPreviousOperationDay($time)) {
+            return $minutes + (24 * 60);
+        }
+
+        return $minutes;
+    }
+
+    private function timeToMinutes(?string $time): ?int
+    {
+        $time = $this->normaliseTime($time);
+
+        if ($time === null || ! str_contains($time, ':')) {
+            return null;
+        }
+
+        [$hour, $minute] = array_map('intval', explode(':', $time, 2));
+
+        return ($hour * 60) + $minute;
     }
 
     private function filterTripsForCompletion($trips, ?int $currentBranchId, bool $showCompleted, array $completedTripIds)
@@ -1029,9 +1075,11 @@ class ShuttleOperationController extends BaseModuleController
 
             $firstTime = $first->arrival_time ?: $first->departure_time ?: '99:99';
             $secondTime = $second->arrival_time ?: $second->departure_time ?: '99:99';
+            $firstTimeOrder = $this->movementSortMinute($firstTime, $first->shift) ?? (99 * 60);
+            $secondTimeOrder = $this->movementSortMinute($secondTime, $second->shift) ?? (99 * 60);
 
-            if ($firstTime !== $secondTime) {
-                return strcmp($firstTime, $secondTime);
+            if ($firstTimeOrder !== $secondTimeOrder) {
+                return $firstTimeOrder <=> $secondTimeOrder;
             }
 
             return (int) $first->id <=> (int) $second->id;
@@ -1109,21 +1157,25 @@ class ShuttleOperationController extends BaseModuleController
             || ! empty($row['departure_time']);
     }
 
-    private function resolveBoundaryTime(array $movementMatrix, string $key, string $mode): ?string
+    private function resolveBoundaryTime(array $movementMatrix, string $key, string $mode, ?string $shift = null): ?string
     {
         $times = collect($movementMatrix)
             ->flatMap(fn (array $periodRows) => collect($periodRows)->pluck($key))
             ->filter()
             ->map(fn ($time) => $this->normaliseTime($time))
             ->filter()
-            ->sort()
+            ->map(fn (string $time) => [
+                'time' => $time,
+                'sort' => $this->movementSortMinute($time, $shift) ?? (99 * 60),
+            ])
+            ->sortBy('sort')
             ->values();
 
         if ($times->isEmpty()) {
             return null;
         }
 
-        return $mode === 'min' ? $times->first() : $times->last();
+        return $mode === 'min' ? $times->first()['time'] : $times->last()['time'];
     }
 
     private function mergeMovementMatrices(array $baseMatrix, array $overrideMatrix): array
