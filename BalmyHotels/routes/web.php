@@ -805,6 +805,9 @@ Route::middleware('auth')->group(function () {
             Route::get('/', [EducationCourseController::class, 'index'])->name('index');
             Route::get('/yeni', [EducationCourseController::class, 'create'])->name('create');
             Route::post('/', [EducationCourseController::class, 'store'])->name('store');
+            Route::post('/video-yukleme/baslat', [EducationCourseController::class, 'startVideoUpload'])->name('video-upload.start');
+            Route::post('/video-yukleme/parca', [EducationCourseController::class, 'uploadVideoChunk'])->name('video-upload.chunk');
+            Route::delete('/video-yukleme', [EducationCourseController::class, 'cancelVideoUpload'])->name('video-upload.cancel');
             Route::get('/{course}/video', [EducationCourseController::class, 'video'])->name('video');
             Route::get('/{course}/quiz', [EducationQuizController::class, 'edit'])->name('quiz.edit');
             Route::put('/{course}/quiz', [EducationQuizController::class, 'update'])->name('quiz.update');
