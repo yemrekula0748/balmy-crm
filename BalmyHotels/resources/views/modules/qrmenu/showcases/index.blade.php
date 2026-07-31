@@ -47,7 +47,10 @@
                         <span class="badge {{ $showcase->is_active ? 'bg-success' : 'bg-secondary' }}">
                             {{ $showcase->is_active ? 'Aktif' : 'Pasif' }}
                         </span>
-                        <span class="text-muted small">{{ $showcase->items->count() }} menü</span>
+                        <span class="text-muted small">
+                            {{ $showcase->items->whereNotNull('qr_menu_id')->count() }} menü
+                            · {{ $showcase->items->whereNotNull('survey_id')->count() }} anket
+                        </span>
                         <a href="{{ $showcase->publicUrl() }}" target="_blank"
                            class="text-muted small d-flex align-items-center gap-1">
                             <i class="fa fa-external-link-alt" style="font-size:.7rem"></i>

@@ -35,6 +35,13 @@ class MenuShowcase extends Model
                     ->orderByPivot('sort_order');
     }
 
+    public function surveys(): BelongsToMany
+    {
+        return $this->belongsToMany(Survey::class, 'menu_showcase_items', 'showcase_id', 'survey_id')
+                    ->withPivot('label', 'sort_order')
+                    ->orderByPivot('sort_order');
+    }
+
     public function publicUrl(): string
     {
         return route('showcase.show', $this->slug);

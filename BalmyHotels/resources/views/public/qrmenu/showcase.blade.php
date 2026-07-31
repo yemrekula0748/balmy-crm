@@ -159,6 +159,20 @@
             flex: 1;
         }
 
+        .card-type {
+            display: inline-flex;
+            align-items: center;
+            margin-bottom: .55rem;
+            padding: .2rem .55rem;
+            border: 1px solid var(--accent20);
+            border-radius: 999px;
+            color: var(--accent);
+            font-size: .62rem;
+            font-weight: 700;
+            letter-spacing: .08em;
+            text-transform: uppercase;
+        }
+
         .card-arrow {
             display: inline-flex;
             align-items: center;
@@ -213,28 +227,41 @@
     <div class="grid-wrapper">
         @if($showcase->items->isEmpty())
         <div style="text-align:center;color:var(--muted);padding:4rem 0">
-            Bu vitrine henüz menü eklenmemiş.
+            Bu vitrine henüz içerik eklenmemiş.
         </div>
         @else
         <div class="menu-grid">
             @foreach($showcase->items as $item)
             @php
-                $menu  = $item->menu;
-                $label = $item->label ?: ($menu->getTitle('tr') ?? $menu->name);
-                $url   = route('qrmenu.show', $menu->name);
+                $isSurvey = $item->isSurvey();
+                $menu = $item->menu;
+                $survey = $item->survey;
+                $content = $isSurvey ? $survey : $menu;
+            @endphp
+            @continue(!$content)
+            @php
+                $label = $item->label ?: ($isSurvey
+                    ? $survey->getTitle('tr')
+                    : ($menu->getTitle('tr') ?? $menu->name));
+                $url = $isSurvey
+                    ? $survey->publicUrl()
+                    : route('qrmenu.show', $menu->name);
             @endphp
             <a href="{{ $url }}" class="menu-card">
                 {{-- Logo --}}
-                @if($menu->logo)
+                @if($isSurvey)
+                <div class="card-logo-placeholder">📋</div>
+                @elseif($menu->logo)
                 <img src="{{ asset('uploads/'.$menu->logo) }}" alt="" class="card-logo">
                 @else
                 <div class="card-logo-placeholder">🍽</div>
                 @endif
 
+                <div class="card-type">{{ $isSurvey ? 'Anket' : 'Menü' }}</div>
                 <div class="card-title">{{ $label }}</div>
 
                 <div class="card-arrow">
-                    Menüyü Gör
+                    {{ $isSurvey ? 'Ankete Katıl' : 'Menüyü Gör' }}
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
                 </div>
             </a>
@@ -244,7 +271,7 @@
     </div>
 
     <footer class="page-footer">
-        Dijital menü sistemi &mdash; {{ now()->year }}
+        Dijital misafir deneyimi &mdash; {{ now()->year }}
     </footer>
 
 </body>

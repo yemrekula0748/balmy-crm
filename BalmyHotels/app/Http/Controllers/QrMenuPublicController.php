@@ -16,7 +16,7 @@ class QrMenuPublicController extends Controller
     {
         $showcase = MenuShowcase::where('slug', $slug)
             ->where('is_active', true)
-            ->with(['items' => fn($q) => $q->orderBy('sort_order')->with('menu')])
+            ->with(['items' => fn($q) => $q->orderBy('sort_order')->with(['menu', 'survey'])])
             ->firstOrFail();
 
         return view('public.qrmenu.showcase', compact('showcase'));

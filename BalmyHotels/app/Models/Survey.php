@@ -47,7 +47,7 @@ class Survey extends Model
         return $desc[$lang] ?? $desc['tr'] ?? (count($desc) ? array_values($desc)[0] : '') ?: '';
     }
 
-    public function publicUrl(string $lang = null): string
+    public function publicUrl(?string $lang = null): string
     {
         return $lang
             ? route('surveys.public.form', [$this->slug, $lang])
