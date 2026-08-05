@@ -216,13 +216,13 @@ class FaultController extends BaseModuleController
         $user = auth()->user();
         abort_if(!in_array($fault->branch_id, $user->visibleBranchIds()), 403);
 
-        $fault->load(['reporter', 'department', 'branch', 'faultType', 'faultLocation', 'faultArea', 'updates.user']);
+        $fault->load([
+            'reporter', 'department', 'branch', 'faultType', 'faultLocation', 'faultArea',
+            'updates.user.department',
+        ]);
         $page_title = $fault->title;
 
-        $canUpdate = $user->isSuperAdmin()
-            || $user->isBranchManager()
-            || ($user->department_id && $user->department_id === $fault->assigned_department_id)
-            || $fault->reported_by === $user->id;
+        $canUpdate = $this->canUpdateFault($user, $fault);
 
         $users = User::whereIn('branch_id', $user->visibleBranchIds())
                      ->orderBy('name')
@@ -452,31 +452,44 @@ class FaultController extends BaseModuleController
     public function updateStatus(Request $request, Fault $fault)
     {
         $request->validate([
-            'status' => ['required', Rule::in(array_keys(Fault::STATUSES))],
-            'note'   => 'required|string|max:1000',
+            'status'       => ['required', Rule::in(array_keys(Fault::STATUSES))],
+            'note'         => 'required|string|max:1000',
+            'status_image' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:4096',
+        ], [
+            'status_image.image' => 'Geçerli bir görsel dosyası seçmelisiniz.',
+            'status_image.mimes' => 'Görsel JPG, PNG veya WebP formatında olmalıdır.',
+            'status_image.max'   => 'Görsel en fazla 4 MB olabilir.',
         ]);
 
         $user = auth()->user();
-        $canUpdate = $user->isSuperAdmin()
-            || $user->isBranchManager()
-            || ($user->department_id && $user->department_id === $fault->assigned_department_id)
-            || $fault->reported_by === $user->id;
-        abort_if(!$canUpdate, 403);
+        abort_if(!$this->canUpdateFault($user, $fault), 403);
 
         $old = $fault->status;
-        $fault->update([
-            'status'      => $request->status,
-            'resolved_at' => in_array($request->status, ['resolved', 'closed']) && !$fault->resolved_at ? now() : $fault->resolved_at,
-            'closed_at'   => $request->status === 'closed' && !$fault->closed_at ? now() : $fault->closed_at,
-        ]);
+        $imagePath = $this->storeUpdateImage($request, 'status_image');
 
-        FaultUpdate::create([
-            'fault_id'    => $fault->id,
-            'user_id'     => auth()->id(),
-            'note'        => $request->note,
-            'status_from' => $old,
-            'status_to'   => $request->status,
-        ]);
+        try {
+            DB::transaction(function () use ($request, $fault, $old, $imagePath) {
+                $fault->update([
+                    'status'      => $request->status,
+                    'resolved_at' => in_array($request->status, ['resolved', 'closed']) && !$fault->resolved_at ? now() : $fault->resolved_at,
+                    'closed_at'   => $request->status === 'closed' && !$fault->closed_at ? now() : $fault->closed_at,
+                ]);
+
+                FaultUpdate::create([
+                    'fault_id'    => $fault->id,
+                    'user_id'     => auth()->id(),
+                    'note'        => $request->note,
+                    'image_path'  => $imagePath,
+                    'status_from' => $old,
+                    'status_to'   => $request->status,
+                ]);
+            });
+        } catch (\Throwable $e) {
+            if ($imagePath) {
+                Storage::disk('public')->delete($imagePath);
+            }
+            throw $e;
+        }
 
         return back()->with('success', 'Durum güncellendi.');
     }
@@ -486,15 +499,34 @@ class FaultController extends BaseModuleController
      --------------------------------------------------------------- */
     public function addComment(Request $request, Fault $fault)
     {
-        $request->validate(['note' => 'required|string|max:1000']);
-
-        FaultUpdate::create([
-            'fault_id'    => $fault->id,
-            'user_id'     => auth()->id(),
-            'note'        => $request->note,
-            'status_from' => $fault->status,
-            'status_to'   => $fault->status,
+        $request->validate([
+            'note'          => 'required|string|max:1000',
+            'comment_image' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:4096',
+        ], [
+            'comment_image.image' => 'Geçerli bir görsel dosyası seçmelisiniz.',
+            'comment_image.mimes' => 'Görsel JPG, PNG veya WebP formatında olmalıdır.',
+            'comment_image.max'   => 'Görsel en fazla 4 MB olabilir.',
         ]);
+
+        abort_if(!$this->canUpdateFault(auth()->user(), $fault), 403);
+
+        $imagePath = $this->storeUpdateImage($request, 'comment_image');
+
+        try {
+            FaultUpdate::create([
+                'fault_id'    => $fault->id,
+                'user_id'     => auth()->id(),
+                'note'        => $request->note,
+                'image_path'  => $imagePath,
+                'status_from' => $fault->status,
+                'status_to'   => $fault->status,
+            ]);
+        } catch (\Throwable $e) {
+            if ($imagePath) {
+                Storage::disk('public')->delete($imagePath);
+            }
+            throw $e;
+        }
 
         return back()->with('success', 'Yorum eklendi.');
     }
@@ -505,9 +537,51 @@ class FaultController extends BaseModuleController
     public function destroy(Fault $fault)
     {
         abort_if(!auth()->user()->isSuperAdmin(), 403);
-        if ($fault->image_path) Storage::disk('public')->delete($fault->image_path);
+
+        $imagePaths = $fault->updates()
+            ->whereNotNull('image_path')
+            ->pluck('image_path')
+            ->filter()
+            ->values()
+            ->all();
+        if ($fault->image_path) {
+            $imagePaths[] = $fault->image_path;
+        }
+
         $fault->delete();
+        if ($imagePaths) {
+            Storage::disk('public')->delete($imagePaths);
+        }
+
         return redirect()->route('faults.index')->with('success', 'Arıza kaydı silindi.');
+    }
+
+    private function canUpdateFault(User $user, Fault $fault): bool
+    {
+        if (!$user->hasPermission('faults', 'edit')) {
+            return false;
+        }
+
+        if (!in_array((int) $fault->branch_id, array_map('intval', $user->visibleBranchIds()), true)) {
+            return false;
+        }
+
+        return $user->isSuperAdmin()
+            || $user->isBranchManager()
+            || ($user->department_id && (int) $user->department_id === (int) $fault->assigned_department_id)
+            || (int) $fault->reported_by === (int) $user->id;
+    }
+
+    private function storeUpdateImage(Request $request, string $field): ?string
+    {
+        if (!$request->hasFile($field)) {
+            return null;
+        }
+
+        $path = $request->file($field)->store('faults/updates', 'public');
+        throw_if(!$path, \RuntimeException::class, 'Görsel kaydedilemedi.');
+
+        return $path;
     }
 
     /* ---------------------------------------------------------------

@@ -5,6 +5,14 @@
 .fault-card{background:#fff;border-radius:1rem;border:1px solid #e8ecf0;box-shadow:0 1px 8px rgba(15,23,42,.06)}
 .fault-sec-head{display:flex;align-items:center;gap:.75rem;padding:1rem 1.5rem;border-bottom:1px solid #f1f5f9}
 .fault-badge{display:inline-flex;align-items:center;gap:5px;font-size:.72rem;font-weight:700;padding:.3rem .75rem;border-radius:9999px;line-height:1.2}
+.fault-update-image{display:block;margin-top:.65rem;max-width:260px;border-radius:.75rem;overflow:hidden;border:1px solid #e2e8f0;background:#f8fafc}
+.fault-update-image img{display:block;width:100%;max-height:190px;object-fit:cover;transition:transform .2s ease}
+.fault-update-image:hover img{transform:scale(1.02)}
+.fault-image-upload{margin-bottom:.75rem;padding:.75rem;border:1px dashed #cbd5e1;border-radius:.75rem;background:#f8fafc}
+.fault-image-upload .form-control{font-size:.78rem;background:#fff}
+.fault-image-preview{display:none;margin-top:.65rem;align-items:center;gap:.65rem}
+.fault-image-preview.is-visible{display:flex}
+.fault-image-preview img{width:64px;height:64px;object-fit:cover;border-radius:.6rem;border:1px solid #e2e8f0}
 </style>
 @endpush
 
@@ -179,7 +187,14 @@ $isClosed = in_array($fault->status, ['resolved','closed']);
                             </div>
                             <div style="flex:1;min-width:0">
                                 <div style="display:flex;align-items:center;justify-content:space-between;gap:.5rem;margin-bottom:.25rem">
-                                    <span style="font-size:.85rem;font-weight:600;color:#1e293b">{{ $update->user?->name ?? 'Sistem' }}</span>
+                                    <div style="display:flex;align-items:center;gap:.4rem;min-width:0;flex-wrap:wrap">
+                                        <span style="font-size:.85rem;font-weight:600;color:#1e293b">{{ $update->user?->name ?? 'Sistem' }}</span>
+                                        @if($update->user?->department)
+                                        <span style="font-size:.62rem;font-weight:700;padding:.15rem .45rem;border-radius:9999px;background:#eef2ff;color:#4f46e5">
+                                            {{ $update->user->department->name }}
+                                        </span>
+                                        @endif
+                                    </div>
                                     <span style="font-size:.72rem;flex-shrink:0;color:#94a3b8">{{ $update->created_at->format('d.m.Y H:i') }}</span>
                                 </div>
                                 @if($hasChange && $fromMeta && $toMeta)
@@ -190,6 +205,13 @@ $isClosed = in_array($fault->status, ['resolved','closed']);
                                 </div>
                                 @endif
                                 @if($update->note)<p style="font-size:.84rem;margin:0;color:#64748b">{{ $update->note }}</p>@endif
+                                @if($update->image_path)
+                                <a href="{{ asset('uploads/'.$update->image_path) }}" target="_blank" rel="noopener"
+                                   class="fault-update-image" title="Görseli tam boyutta aç">
+                                    <img src="{{ asset('uploads/'.$update->image_path) }}"
+                                         alt="Güncelleme görseli" loading="lazy">
+                                </a>
+                                @endif
                             </div>
                         </div>
                         @empty
@@ -209,7 +231,7 @@ $isClosed = in_array($fault->status, ['resolved','closed']);
             <div class="d-flex flex-column gap-3">
 
                 {{-- Status update / closed badge --}}
-                @if(!$isClosed)
+                @if($canUpdate && !$isClosed)
                 <div class="fault-card overflow-hidden">
                     <div style="background:linear-gradient(135deg,#1e293b,#0f172a);padding:1rem 1.5rem;display:flex;align-items:center;gap:.75rem">
                         <div style="width:36px;height:36px;background:rgba(245,158,11,.2);border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0">
@@ -218,7 +240,8 @@ $isClosed = in_array($fault->status, ['resolved','closed']);
                         <span style="font-size:.875rem;font-weight:600;color:#fff">Durum Güncelle</span>
                     </div>
                     <div style="padding:1.25rem 1.5rem">
-                        <form action="{{ route('faults.updateStatus', $fault) }}" method="POST" id="statusUpdateForm">
+                        <form action="{{ route('faults.updateStatus', $fault) }}" method="POST"
+                              enctype="multipart/form-data" id="statusUpdateForm">
                             @csrf
                             <label style="display:block;font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#94a3b8;margin-bottom:.5rem">Yeni Durum Seç</label>
                             <div style="display:grid;grid-template-columns:1fr 1fr;gap:.5rem;margin-bottom:1rem">
@@ -241,6 +264,22 @@ $isClosed = in_array($fault->status, ['resolved','closed']);
                                       style="width:100%;border:1px solid #e2e8f0;border-radius:.75rem;padding:.6rem .75rem;font-size:.85rem;outline:none;resize:none;margin-bottom:.75rem;box-sizing:border-box"
                                       placeholder="Durum değişikliği hakkında not...">{{ old('note') }}</textarea>
                             @error('note')<p style="font-size:.75rem;margin-bottom:.5rem;color:#ef4444">{{ $message }}</p>@enderror
+                            <div class="fault-image-upload">
+                                <label for="statusImage" style="display:block;font-size:.72rem;font-weight:700;color:#475569;margin-bottom:.4rem">
+                                    <i class="fas fa-camera me-1" style="color:#f59e0b"></i> Görsel Ekle
+                                    <span style="font-weight:400;color:#94a3b8">(isteğe bağlı)</span>
+                                </label>
+                                <input type="file" name="status_image" id="statusImage"
+                                       class="form-control @error('status_image') is-invalid @enderror"
+                                       accept="image/jpeg,image/png,image/webp"
+                                       data-fault-image-input data-preview-target="statusImagePreview">
+                                <div style="font-size:.68rem;color:#94a3b8;margin-top:.3rem">JPG, PNG veya WebP · En fazla 4 MB</div>
+                                @error('status_image')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                                <div class="fault-image-preview" id="statusImagePreview">
+                                    <img src="" alt="Seçilen görsel önizlemesi">
+                                    <span style="font-size:.72rem;color:#64748b">Seçilen görsel güncelleme geçmişinde gösterilecek.</span>
+                                </div>
+                            </div>
                             <button type="submit"
                                     style="width:100%;background:linear-gradient(135deg,#f59e0b,#d97706);border:none;padding:.65rem;border-radius:.75rem;font-weight:700;font-size:.875rem;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:.4rem">
                                 <i class="fas fa-check" style="font-size:.75rem"></i> Durumu Güncelle
@@ -248,7 +287,7 @@ $isClosed = in_array($fault->status, ['resolved','closed']);
                         </form>
                     </div>
                 </div>
-                @else
+                @elseif($isClosed)
                 <div class="fault-card">
                     <div style="padding:2rem 1.5rem;text-align:center">
                         <div style="width:60px;height:60px;border-radius:50%;background:{{ $sm['stripe'] }}18;display:flex;align-items:center;justify-content:center;margin:0 auto 1rem">
@@ -265,6 +304,7 @@ $isClosed = in_array($fault->status, ['resolved','closed']);
                 @endif
 
                 {{-- Comment --}}
+                @if($canUpdate)
                 <div class="fault-card">
                     <div class="fault-sec-head">
                         <div style="width:36px;height:36px;background:#f0f9ff;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0">
@@ -273,11 +313,27 @@ $isClosed = in_array($fault->status, ['resolved','closed']);
                         <span style="font-weight:600;font-size:.875rem;color:#1e293b">Yorum / Not Ekle</span>
                     </div>
                     <div style="padding:1rem 1.5rem">
-                        <form action="{{ route('faults.addComment', $fault) }}" method="POST">
+                        <form action="{{ route('faults.addComment', $fault) }}" method="POST" enctype="multipart/form-data">
                             @csrf
                             <textarea name="note" rows="3"
-                                      style="width:100%;border:1px solid #e2e8f0;border-radius:.75rem;padding:.6rem .75rem;font-size:.85rem;outline:none;resize:none;margin-bottom:.75rem;box-sizing:border-box"
-                                      placeholder="Arıza hakkında notunuzu yazın..."></textarea>
+                                       style="width:100%;border:1px solid #e2e8f0;border-radius:.75rem;padding:.6rem .75rem;font-size:.85rem;outline:none;resize:none;margin-bottom:.75rem;box-sizing:border-box"
+                                       placeholder="Arıza hakkında notunuzu yazın..."></textarea>
+                            <div class="fault-image-upload">
+                                <label for="commentImage" style="display:block;font-size:.72rem;font-weight:700;color:#475569;margin-bottom:.4rem">
+                                    <i class="fas fa-camera me-1" style="color:#0284c7"></i> Görsel Ekle
+                                    <span style="font-weight:400;color:#94a3b8">(isteğe bağlı)</span>
+                                </label>
+                                <input type="file" name="comment_image" id="commentImage"
+                                       class="form-control @error('comment_image') is-invalid @enderror"
+                                       accept="image/jpeg,image/png,image/webp"
+                                       data-fault-image-input data-preview-target="commentImagePreview">
+                                <div style="font-size:.68rem;color:#94a3b8;margin-top:.3rem">JPG, PNG veya WebP · En fazla 4 MB</div>
+                                @error('comment_image')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                                <div class="fault-image-preview" id="commentImagePreview">
+                                    <img src="" alt="Seçilen görsel önizlemesi">
+                                    <span style="font-size:.72rem;color:#64748b">Seçilen görsel güncelleme geçmişinde gösterilecek.</span>
+                                </div>
+                            </div>
                             <button type="submit"
                                     style="width:100%;background:#0284c7;border:none;padding:.65rem;border-radius:.75rem;font-weight:700;font-size:.875rem;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:.4rem">
                                 <i class="fas fa-paper-plane" style="font-size:.75rem"></i> Yorum Ekle
@@ -285,6 +341,7 @@ $isClosed = in_array($fault->status, ['resolved','closed']);
                         </form>
                     </div>
                 </div>
+                @endif
 
                 {{-- Summary --}}
                 <div class="fault-card overflow-hidden">
@@ -333,6 +390,27 @@ $isClosed = in_array($fault->status, ['resolved','closed']);
 @push('scripts')
 <script src="{{ asset('vendor/sweetalert2/dist/sweetalert2.min.js') }}"></script>
 <script>
+document.querySelectorAll('[data-fault-image-input]').forEach(function(input) {
+    input.addEventListener('change', function() {
+        const preview = document.getElementById(this.dataset.previewTarget);
+        const image = preview?.querySelector('img');
+        const file = this.files?.[0];
+
+        if (!preview || !image) return;
+        if (!file) {
+            image.removeAttribute('src');
+            preview.classList.remove('is-visible');
+            return;
+        }
+
+        if (image.dataset.objectUrl) URL.revokeObjectURL(image.dataset.objectUrl);
+        const objectUrl = URL.createObjectURL(file);
+        image.src = objectUrl;
+        image.dataset.objectUrl = objectUrl;
+        preview.classList.add('is-visible');
+    });
+});
+
 document.getElementById('deleteBtn')?.addEventListener('click', function () {
     Swal.fire({
         title: 'Arızayı sil?',
@@ -420,4 +498,3 @@ document.addEventListener('DOMContentLoaded', function () {
 </script>
 @endpush
 @endsection
-
