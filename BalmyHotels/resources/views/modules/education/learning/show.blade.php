@@ -40,8 +40,10 @@
                     <video
                         id="educationVideo"
                         controls
-                        controlsList="nodownload noplaybackrate"
+                        controlsList="nodownload noplaybackrate noremoteplayback"
                         disablePictureInPicture
+                        disableRemotePlayback
+                        playsinline
                         preload="metadata"
                         style="width:100%;max-height:520px;border-radius:8px;background:#111"
                     >
@@ -118,6 +120,13 @@ document.addEventListener('DOMContentLoaded', function () {
     let maxWatched = {{ (int) $assignment->max_watched_seconds }};
     let lastPingAt = 0;
     let isProgrammaticSeek = false;
+    let isRestoringAudio = false;
+    let lastAudibleVolume = video.volume > 0 ? video.volume : 1;
+
+    video.disablePictureInPicture = true;
+    video.disableRemotePlayback = true;
+    video.defaultMuted = false;
+    video.muted = false;
 
     function isWindowActive() {
         return document.visibilityState === 'visible' && document.hasFocus();
@@ -134,13 +143,50 @@ document.addEventListener('DOMContentLoaded', function () {
             return;
         }
 
-        const allowed = maxWatched + 8;
+        const allowed = maxWatched + (video.seeking ? 0.05 : 1.5);
         if (video.currentTime > allowed) {
             isProgrammaticSeek = true;
-            video.currentTime = allowed;
+            video.currentTime = Math.max(0, maxWatched);
             setTimeout(() => {
                 isProgrammaticSeek = false;
+            }, 250);
+        }
+    }
+
+    function keepAudioEnabled() {
+        if (isRestoringAudio) {
+            return;
+        }
+
+        if (video.muted || video.volume <= 0) {
+            isRestoringAudio = true;
+            video.muted = false;
+            video.volume = Math.max(lastAudibleVolume, 0.25);
+            setTimeout(() => {
+                isRestoringAudio = false;
             }, 0);
+            return;
+        }
+
+        lastAudibleVolume = video.volume;
+    }
+
+    function keepNormalPlaybackRate() {
+        if (video.playbackRate !== 1) {
+            video.playbackRate = 1;
+        }
+    }
+
+    function closePictureInPicture() {
+        if (document.pictureInPictureElement === video && document.exitPictureInPicture) {
+            document.exitPictureInPicture().catch(() => {});
+        }
+
+        if (
+            typeof video.webkitSetPresentationMode === 'function'
+            && video.webkitPresentationMode === 'picture-in-picture'
+        ) {
+            video.webkitSetPresentationMode('inline');
         }
     }
 
@@ -196,8 +242,17 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     video.addEventListener('timeupdate', function () {
-        if (!video.seeking && isWindowActive() && !video.paused && !video.ended) {
-            maxWatched = Math.max(maxWatched, Math.floor(video.currentTime));
+        limitForwardSeek();
+
+        if (
+            !isProgrammaticSeek
+            && !video.seeking
+            && video.currentTime <= (maxWatched + 1.5)
+            && isWindowActive()
+            && !video.paused
+            && !video.ended
+        ) {
+            maxWatched = Math.max(maxWatched, video.currentTime);
         }
 
         sendProgress(false);
@@ -206,8 +261,22 @@ document.addEventListener('DOMContentLoaded', function () {
     video.addEventListener('pause', () => sendProgress(true));
     video.addEventListener('ended', () => sendProgress(true));
     video.addEventListener('seeking', limitForwardSeek);
+    video.addEventListener('volumechange', keepAudioEnabled);
+    video.addEventListener('ratechange', keepNormalPlaybackRate);
+    video.addEventListener('enterpictureinpicture', closePictureInPicture);
+    video.addEventListener('webkitpresentationmodechanged', closePictureInPicture);
+    video.addEventListener('keydown', function (event) {
+        if (
+            ['ArrowRight', 'End', 'PageDown', 'l', 'L'].includes(event.key)
+            || /^[1-9]$/.test(event.key)
+        ) {
+            event.preventDefault();
+            event.stopPropagation();
+        }
+    });
     document.addEventListener('visibilitychange', pauseIfInactive);
     window.addEventListener('blur', pauseIfInactive);
+    window.addEventListener('pagehide', pauseIfInactive);
     window.addEventListener('beforeunload', () => sendProgress(true));
 });
 </script>

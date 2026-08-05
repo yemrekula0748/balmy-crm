@@ -119,13 +119,13 @@ class EducationLearningController extends BaseModuleController
             $allowedJumpSeconds = 20;
             $canAcceptEnded = $isEnded
                 && $currentTime >= ($duration - 2)
-                && $currentMax >= (int) floor($duration * 0.75);
+                && $currentMax >= (int) floor($duration * 0.95);
 
             $newMax = $canAcceptEnded
                 ? $duration
                 : ($currentTime <= ($currentMax + $allowedJumpSeconds)
                     ? max($currentMax, $currentTime)
-                    : $currentMax + $allowedJumpSeconds);
+                    : $currentMax);
             $newMax = min($newMax, $duration);
 
             $progress = min(100, round($newMax / $duration * 100, 2));
