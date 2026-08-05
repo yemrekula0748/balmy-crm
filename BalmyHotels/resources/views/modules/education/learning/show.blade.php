@@ -39,16 +39,26 @@
                 <div class="card-body">
                     <video
                         id="educationVideo"
-                        controls
                         controlsList="nodownload noplaybackrate noremoteplayback"
                         disablePictureInPicture
                         disableRemotePlayback
                         playsinline
+                        tabindex="-1"
                         preload="metadata"
-                        style="width:100%;max-height:520px;border-radius:8px;background:#111"
+                        style="width:100%;max-height:520px;border-radius:8px;background:#111;cursor:pointer"
                     >
                         <source src="{{ route('education.learning.video', $assignment) }}">
                     </video>
+                    <div class="d-flex align-items-center gap-2 mt-2">
+                        <button type="button" class="btn btn-primary btn-sm" id="educationPlayPause">
+                            <i class="fas fa-play me-1" id="educationPlayPauseIcon"></i>
+                            <span id="educationPlayPauseLabel">Oynat</span>
+                        </button>
+                        <div class="progress flex-grow-1" style="height:8px;pointer-events:none" aria-hidden="true">
+                            <div class="progress-bar" id="educationPlaybackBar" style="width:0%"></div>
+                        </div>
+                        <span class="small text-muted text-nowrap" id="educationPlaybackTime">00:00 / 00:00</span>
+                    </div>
                     <div class="alert alert-light border mt-3 mb-0 small">
                         Ilerleme yalnizca bu pencere aktifken ve video oynarken kaydedilir.
                     </div>
@@ -115,11 +125,15 @@ document.addEventListener('DOMContentLoaded', function () {
     const progressBar = document.getElementById('progressBar');
     const progressPercent = document.getElementById('progressPercent');
     const quizStartLink = document.getElementById('quizStartLink');
+    const playPauseButton = document.getElementById('educationPlayPause');
+    const playPauseIcon = document.getElementById('educationPlayPauseIcon');
+    const playPauseLabel = document.getElementById('educationPlayPauseLabel');
+    const playbackBar = document.getElementById('educationPlaybackBar');
+    const playbackTime = document.getElementById('educationPlaybackTime');
     const progressUrl = @json(route('education.learning.progress', $assignment));
     const csrf = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
     let maxWatched = {{ (int) $assignment->max_watched_seconds }};
     let lastPingAt = 0;
-    let isProgrammaticSeek = false;
     let isRestoringAudio = false;
     let lastAudibleVolume = video.volume > 0 ? video.volume : 1;
 
@@ -139,18 +153,43 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function limitForwardSeek() {
-        if (isProgrammaticSeek) {
+        const allowed = maxWatched + (video.seeking ? 0.05 : 1.5);
+        if (video.currentTime > allowed) {
+            video.currentTime = Math.max(0, maxWatched);
+            return true;
+        }
+
+        return false;
+    }
+
+    function formatTime(value) {
+        const seconds = Number.isFinite(value) ? Math.max(0, Math.floor(value)) : 0;
+        const minutes = Math.floor(seconds / 60);
+        const remainingSeconds = String(seconds % 60).padStart(2, '0');
+
+        return String(minutes).padStart(2, '0') + ':' + remainingSeconds;
+    }
+
+    function syncPlayerUi() {
+        const isPlaying = !video.paused && !video.ended;
+        const duration = Number.isFinite(video.duration) ? video.duration : 0;
+        const percent = duration > 0 ? Math.min(100, video.currentTime / duration * 100) : 0;
+
+        playPauseIcon.classList.toggle('fa-play', !isPlaying);
+        playPauseIcon.classList.toggle('fa-pause', isPlaying);
+        playPauseLabel.textContent = isPlaying ? 'Duraklat' : 'Oynat';
+        playbackBar.style.width = percent + '%';
+        playbackTime.textContent = formatTime(video.currentTime) + ' / ' + formatTime(duration);
+    }
+
+    function togglePlayback() {
+        if (video.paused || video.ended) {
+            keepAudioEnabled();
+            video.play().catch(() => {});
             return;
         }
 
-        const allowed = maxWatched + (video.seeking ? 0.05 : 1.5);
-        if (video.currentTime > allowed) {
-            isProgrammaticSeek = true;
-            video.currentTime = Math.max(0, maxWatched);
-            setTimeout(() => {
-                isProgrammaticSeek = false;
-            }, 250);
-        }
+        video.pause();
     }
 
     function keepAudioEnabled() {
@@ -242,10 +281,10 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     video.addEventListener('timeupdate', function () {
-        limitForwardSeek();
+        const wasClamped = limitForwardSeek();
 
         if (
-            !isProgrammaticSeek
+            !wasClamped
             && !video.seeking
             && video.currentTime <= (maxWatched + 1.5)
             && isWindowActive()
@@ -255,16 +294,29 @@ document.addEventListener('DOMContentLoaded', function () {
             maxWatched = Math.max(maxWatched, video.currentTime);
         }
 
+        syncPlayerUi();
         sendProgress(false);
     });
-    video.addEventListener('play', pauseIfInactive);
-    video.addEventListener('pause', () => sendProgress(true));
-    video.addEventListener('ended', () => sendProgress(true));
+    video.addEventListener('loadedmetadata', syncPlayerUi);
+    video.addEventListener('play', function () {
+        pauseIfInactive();
+        syncPlayerUi();
+    });
+    video.addEventListener('pause', function () {
+        syncPlayerUi();
+        sendProgress(true);
+    });
+    video.addEventListener('ended', function () {
+        syncPlayerUi();
+        sendProgress(true);
+    });
     video.addEventListener('seeking', limitForwardSeek);
     video.addEventListener('volumechange', keepAudioEnabled);
     video.addEventListener('ratechange', keepNormalPlaybackRate);
     video.addEventListener('enterpictureinpicture', closePictureInPicture);
     video.addEventListener('webkitpresentationmodechanged', closePictureInPicture);
+    video.addEventListener('click', togglePlayback);
+    video.addEventListener('contextmenu', (event) => event.preventDefault());
     video.addEventListener('keydown', function (event) {
         if (
             ['ArrowRight', 'End', 'PageDown', 'l', 'L'].includes(event.key)
@@ -274,6 +326,7 @@ document.addEventListener('DOMContentLoaded', function () {
             event.stopPropagation();
         }
     });
+    playPauseButton.addEventListener('click', togglePlayback);
     document.addEventListener('visibilitychange', pauseIfInactive);
     window.addEventListener('blur', pauseIfInactive);
     window.addEventListener('pagehide', pauseIfInactive);
