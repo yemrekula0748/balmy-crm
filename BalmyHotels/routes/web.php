@@ -58,6 +58,7 @@ use App\Http\Controllers\Modules\AuditAnalyticsController;
 use App\Http\Controllers\Modules\ItComputerController;
 use App\Http\Controllers\Modules\ItBackupController;
 use App\Http\Controllers\Modules\ItSignatureGeneratorController;
+use App\Http\Controllers\Modules\ItPhishingCampaignController;
 use App\Http\Controllers\Modules\MikroTikController;
 use App\Http\Controllers\Modules\LoginLogController;
 use App\Http\Controllers\Modules\MyTaskController;
@@ -80,6 +81,7 @@ use App\Http\Controllers\Modules\EventTrackingController;
 use App\Http\Controllers\Modules\EventShowReportController;
 use App\Http\Controllers\Modules\PdksController;
 use App\Http\Controllers\AssetPublicController;
+use App\Http\Controllers\PhishingSimulationPublicController;
 
 /*
 |--------------------------------------------------------------------------
@@ -93,9 +95,44 @@ Route::middleware('guest')->group(function () {
 
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout')->middleware('auth');
 
+/*
+|--------------------------------------------------------------------------
+| Güvenlik farkındalık simülasyonu — Public kişisel bağlantılar
+|--------------------------------------------------------------------------
+| Form alanlarının adı yoktur; sunucu kullanıcı adı veya parola kabul etmez.
+*/
+Route::get('/gmaail-giris/{token}', [PhishingSimulationPublicController::class, 'show'])
+    ->where('token', '[A-Za-z0-9]{64}')
+    ->name('phishing-simulation.show');
+Route::post('/gmaail-giris/{token}/acildi', [PhishingSimulationPublicController::class, 'opened'])
+    ->where('token', '[A-Za-z0-9]{64}')
+    ->middleware('throttle:30,1')
+    ->name('phishing-simulation.opened');
+Route::post('/gmaail-giris/{token}/deneme', [PhishingSimulationPublicController::class, 'attempt'])
+    ->where('token', '[A-Za-z0-9]{64}')
+    ->middleware('throttle:10,1')
+    ->name('phishing-simulation.attempt');
+// Daha önce kopyalanmış bağlantılar bozulmasın; yeni sayfa bundan sonra gmaail-giris yolunu üretir.
+Route::get('/kampanya-giris/{token}', [PhishingSimulationPublicController::class, 'legacyRedirect'])
+    ->where('token', '[A-Za-z0-9]{64}');
+Route::post('/kampanya-giris/{token}/acildi', [PhishingSimulationPublicController::class, 'opened'])
+    ->where('token', '[A-Za-z0-9]{64}')
+    ->middleware('throttle:30,1');
+Route::post('/kampanya-giris/{token}/deneme', [PhishingSimulationPublicController::class, 'attempt'])
+    ->where('token', '[A-Za-z0-9]{64}')
+    ->middleware('throttle:10,1');
+Route::get('/guvenlik-farkindalik/{token}', [PhishingSimulationPublicController::class, 'legacyRedirect'])
+    ->where('token', '[A-Za-z0-9]{64}');
+Route::post('/guvenlik-farkindalik/{token}/acildi', [PhishingSimulationPublicController::class, 'opened'])
+    ->where('token', '[A-Za-z0-9]{64}')
+    ->middleware('throttle:30,1');
+Route::post('/guvenlik-farkindalik/{token}/deneme', [PhishingSimulationPublicController::class, 'attempt'])
+    ->where('token', '[A-Za-z0-9]{64}')
+    ->middleware('throttle:10,1');
+
 // Profil
 use App\Http\Controllers\ProfileController;
-Route::middleware('auth')->group(function () {
+Route::middleware(['auth', 'active.user'])->group(function () {
     Route::get('/profil',  [ProfileController::class, 'index'])->name('profile.index');
     Route::post('/profil', [ProfileController::class, 'update'])->name('profile.update');
 
@@ -165,7 +202,7 @@ Route::get('/personel-anketi/{slug}/tesekkurler',[StaffSurveyPublicController::c
 | Korumalı Route'lar (auth zorunlu)
 |--------------------------------------------------------------------------
 */
-Route::middleware('auth')->group(function () {
+Route::middleware(['auth', 'active.user'])->group(function () {
 
     Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/index', [DashboardController::class, 'index']);
@@ -292,6 +329,8 @@ Route::middleware('auth')->group(function () {
     | Kullanıcı / Çalışan Modülü
     |--------------------------------------------------------------------------
     */
+    Route::post('kullanicilar/elektra-senkronize', [UserController::class, 'syncElektra'])
+        ->name('users.elektra-sync');
     Route::resource('kullanicilar', UserController::class)
         ->names('users')
         ->parameters(['kullanicilar' => 'user']);
@@ -523,6 +562,7 @@ Route::middleware('auth')->group(function () {
     Route::prefix('yemek-isimlikler')->name('food-labels.')->group(function () {
         Route::get('/',                     [FoodLabelController::class, 'index'])->name('index');
         Route::get('/export',               [FoodLabelController::class, 'export'])->name('export');
+        Route::get('/tum-veriler-excel',    [FoodLabelController::class, 'exportAll'])->name('export-all');
         Route::post('/json-import',         [FoodLabelController::class, 'importJson'])->name('json-import');
         Route::get('/ekle',                 [FoodLabelController::class, 'create'])->name('create');
         Route::post('/ekle',                [FoodLabelController::class, 'store'])->name('store');
@@ -811,6 +851,7 @@ Route::middleware('auth')->group(function () {
             Route::get('/{course}/video', [EducationCourseController::class, 'video'])->name('video');
             Route::get('/{course}/quiz', [EducationQuizController::class, 'edit'])->name('quiz.edit');
             Route::put('/{course}/quiz', [EducationQuizController::class, 'update'])->name('quiz.update');
+            Route::get('/{course}/katilim-formu/{assignment}', [EducationCourseController::class, 'attendanceForm'])->name('attendance-form');
             Route::get('/{course}', [EducationCourseController::class, 'show'])->name('show');
             Route::get('/{course}/duzenle', [EducationCourseController::class, 'edit'])->name('edit');
             Route::put('/{course}', [EducationCourseController::class, 'update'])->name('update');
@@ -834,6 +875,7 @@ Route::middleware('auth')->group(function () {
             Route::delete('/{event}', [EducationEventController::class, 'destroy'])->name('destroy');
         });
 
+        Route::get('/raporlar/disa-aktar', [EducationReportController::class, 'export'])->name('reports.export');
         Route::get('/raporlar', [EducationReportController::class, 'index'])->name('reports.index');
     });
 
@@ -941,6 +983,19 @@ Route::middleware('auth')->group(function () {
     |--------------------------------------------------------------------------
     */
     Route::prefix('bilgi-islem')->name('it.')->group(function () {
+        // Güvenli oltalama farkındalık testleri
+        Route::get('oltalama-testleri', [ItPhishingCampaignController::class, 'index'])->name('phishing.index');
+        Route::get('oltalama-testleri/olustur', [ItPhishingCampaignController::class, 'create'])->name('phishing.create');
+        Route::post('oltalama-testleri', [ItPhishingCampaignController::class, 'store'])->name('phishing.store');
+        Route::post('oltalama-testleri/{campaign}/hedefler', [ItPhishingCampaignController::class, 'addTargets'])->name('phishing.targets.add');
+        Route::delete('oltalama-testleri/{campaign}/hedef/{target}', [ItPhishingCampaignController::class, 'removeTarget'])->name('phishing.targets.remove');
+        Route::post('oltalama-testleri/{campaign}/duyarlilik-formu/word', [ItPhishingCampaignController::class, 'downloadReportWord'])->name('phishing.report.word');
+        Route::get('oltalama-testleri/{campaign}/duyarlilik-formu', [ItPhishingCampaignController::class, 'report'])->name('phishing.report');
+        Route::get('oltalama-testleri/{campaign}/disa-aktar', [ItPhishingCampaignController::class, 'export'])->name('phishing.export');
+        Route::get('oltalama-testleri/{campaign}/hedef/{target}/outlook-taslagi', [ItPhishingCampaignController::class, 'downloadDraft'])->name('phishing.draft');
+        Route::patch('oltalama-testleri/{campaign}/durum', [ItPhishingCampaignController::class, 'updateStatus'])->name('phishing.status');
+        Route::get('oltalama-testleri/{campaign}', [ItPhishingCampaignController::class, 'show'])->name('phishing.show');
+
         // E-posta imza oluşturucu
         Route::get('imza-olusturucu', [ItSignatureGeneratorController::class, 'index'])
             ->name('signature-generator.index');

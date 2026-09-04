@@ -22,6 +22,8 @@
 /* ── Stat chips ─────────────────────────────────────────────── */
 .stat-chips { display:flex;gap:12px;flex-wrap:wrap;margin-bottom:22px; }
 .stat-chip { background:#fff;border-radius:12px;padding:14px 20px;box-shadow:0 2px 8px rgba(0,0,0,.06);border:1px solid rgba(0,0,0,.05);display:flex;align-items:center;gap:12px;flex:1;min-width:140px; }
+.stat-chip-link { color:inherit;text-decoration:none;transition:transform .15s,box-shadow .15s; }
+.stat-chip-link:hover { color:inherit;transform:translateY(-1px);box-shadow:0 4px 12px rgba(0,0,0,.09); }
 .stat-chip .sc-icon { width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0; }
 .stat-chip .sc-num  { font-size:1.45rem;font-weight:700;line-height:1; }
 .stat-chip .sc-lbl  { font-size:.78rem;color:#6b7280;margin-top:2px; }
@@ -29,6 +31,8 @@
 .filter-card { background:#fff;border-radius:14px;padding:16px 20px;box-shadow:0 2px 8px rgba(0,0,0,.06);border:1px solid rgba(0,0,0,.05);margin-bottom:20px; }
 .filter-card .form-control,.filter-card .form-select { border:1.5px solid #e5e7eb;border-radius:9px;font-size:.83rem;color:#1f2937;padding:8px 12px;height:auto;transition:border-color .2s,box-shadow .2s;background:#fff; }
 .filter-card .form-control:focus,.filter-card .form-select:focus { border-color:#4361ee;box-shadow:0 0 0 3px rgba(67,97,238,.15);outline:none; }
+.filter-actions { min-height:40px; }
+.elektra-verified-note { color:#b45309;font-size:.68rem;line-height:1.25;margin-top:4px; }
 /* ── Users card ─────────────────────────────────────────────── */
 .users-card { background:#fff;border-radius:16px;box-shadow:0 2px 10px rgba(0,0,0,.07);border:1px solid rgba(0,0,0,.05);overflow:hidden; }
 .users-card thead tr { background:#f8f9fb; }
@@ -49,6 +53,9 @@
 .act-btn-delete:hover { background:#dc3545;color:#fff; }
 .btn-add { background:linear-gradient(135deg,#4361ee,#3a0ca3);color:#fff;border:none;border-radius:9px;padding:9px 18px;font-size:.84rem;font-weight:600;display:inline-flex;align-items:center;gap:6px;box-shadow:0 3px 10px rgba(67,97,238,.35);transition:opacity .15s;text-decoration:none; }
 .btn-add:hover { opacity:.88;color:#fff; }
+.btn-sync { background:linear-gradient(135deg,#059669,#047857);color:#fff;border:none;border-radius:9px;padding:9px 16px;font-size:.84rem;font-weight:600;display:inline-flex;align-items:center;gap:6px;box-shadow:0 3px 10px rgba(5,150,105,.28);transition:opacity .15s;white-space:nowrap; }
+.btn-sync:hover { opacity:.88;color:#fff; }
+.btn-sync:disabled { opacity:.65;cursor:wait; }
 .empty-state { padding:56px 24px;text-align:center;color:#9ca3af; }
 .empty-state .es-icon { font-size:2.5rem;margin-bottom:12px;opacity:.25;display:block; }
 .desktop-users-table { display:block; }
@@ -92,8 +99,11 @@
         border-top: 1px solid #f3f4f6;
         padding: 16px 18px 18px;
         justify-content: stretch;
+        flex-direction: column;
     }
-    .page-hero-actions .btn-add {
+    .page-hero-actions .btn-add,
+    .page-hero-actions form,
+    .page-hero-actions .btn-sync {
         width: 100%;
         justify-content: center;
     }
@@ -103,14 +113,14 @@
     .filter-card form .col-md-3 {
         width: 100%;
     }
-    .filter-card form .col-md-3.d-flex {
+    .filter-card form .filter-actions {
         flex-wrap: wrap;
     }
-    .filter-card form .col-md-3.d-flex .btn {
+    .filter-card form .filter-actions .btn {
         flex: 1 1 calc(50% - 4px);
         justify-content: center;
     }
-    .filter-card form .col-md-3.d-flex span {
+    .filter-card form .filter-actions span {
         width: 100%;
         margin-left: 0 !important;
         margin-top: 4px;
@@ -151,6 +161,12 @@
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
     @endif
+    @if(session('warning'))
+        <div class="alert alert-warning alert-dismissible fade show border-0 shadow-sm rounded-3 mb-3">
+            <i class="fas fa-exclamation-triangle me-2"></i>{{ session('warning') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    @endif
 
     {{-- Hero --}}
     <div class="page-hero">
@@ -161,6 +177,14 @@
             <p>Sistemdeki kullanıcıları, rollerini ve şube bağlantılarını yönetin</p>
         </div>
         <div class="page-hero-actions">
+            @if(auth()->user()->hasPermission('users', 'edit'))
+                <form method="POST" action="{{ route('users.elektra-sync') }}" data-elektra-sync>
+                    @csrf
+                    <button type="submit" class="btn-sync">
+                        <i class="fas fa-sync-alt"></i>Elektra'yı Senkronize Et
+                    </button>
+                </form>
+            @endif
             <a href="{{ route('users.create') }}" class="btn-add">
                 <i class="fas fa-plus"></i>Yeni Kullanıcı
             </a>
@@ -172,28 +196,35 @@
         <div class="stat-chip">
             <div class="sc-icon" style="background:rgba(67,97,238,.12);color:#4361ee"><i class="fas fa-users"></i></div>
             <div>
-                <div class="sc-num">{{ \App\Models\User::count() }}</div>
+                <div class="sc-num">{{ $userStats['total'] }}</div>
                 <div class="sc-lbl">Toplam</div>
             </div>
         </div>
         <div class="stat-chip">
             <div class="sc-icon" style="background:rgba(16,185,129,.12);color:#059669"><i class="fas fa-check-circle"></i></div>
             <div>
-                <div class="sc-num" style="color:#059669">{{ \App\Models\User::where('is_active',true)->count() }}</div>
+                <div class="sc-num" style="color:#059669">{{ $userStats['active'] }}</div>
                 <div class="sc-lbl">Aktif</div>
             </div>
         </div>
         <div class="stat-chip">
             <div class="sc-icon" style="background:rgba(156,163,175,.12);color:#9ca3af"><i class="fas fa-user-slash"></i></div>
             <div>
-                <div class="sc-num" style="color:#9ca3af">{{ \App\Models\User::where('is_active',false)->count() }}</div>
+                <div class="sc-num" style="color:#9ca3af">{{ $userStats['inactive'] }}</div>
                 <div class="sc-lbl">Pasif</div>
             </div>
         </div>
+        <a href="{{ route('users.index', ['status' => 'elektra_inactive']) }}" class="stat-chip stat-chip-link" title="Elektra'da pasif olduğu teyit edilen hesapları göster">
+            <div class="sc-icon" style="background:rgba(245,158,11,.12);color:#d97706"><i class="fas fa-user-check"></i></div>
+            <div>
+                <div class="sc-num" style="color:#d97706">{{ $userStats['elektra_inactive'] }}</div>
+                <div class="sc-lbl">Elektra teyitli pasif</div>
+            </div>
+        </a>
         <div class="stat-chip">
             <div class="sc-icon" style="background:rgba(193,155,119,.12);color:#c19b77"><i class="fas fa-building"></i></div>
             <div>
-                <div class="sc-num" style="color:#c19b77">{{ \App\Models\Branch::count() }}</div>
+                <div class="sc-num" style="color:#c19b77">{{ $userStats['branches'] }}</div>
                 <div class="sc-lbl">Şube</div>
             </div>
         </div>
@@ -202,7 +233,7 @@
     {{-- Filter --}}
     <div class="filter-card">
         <form method="GET" action="{{ route('users.index') }}" class="row g-2 align-items-end">
-            <div class="col-md-3">
+            <div class="col-lg-2 col-md-6">
                 <label class="form-label mb-1" style="font-size:.78rem;font-weight:600;color:#6b7280">
                     <i class="fas fa-building me-1"></i>Şube
                 </label>
@@ -213,7 +244,7 @@
                     @endforeach
                 </select>
             </div>
-            <div class="col-md-3">
+            <div class="col-lg-2 col-md-6">
                 <label class="form-label mb-1" style="font-size:.78rem;font-weight:600;color:#6b7280">
                     <i class="fas fa-shield-alt me-1"></i>Rol
                 </label>
@@ -224,19 +255,30 @@
                     @endforeach
                 </select>
             </div>
-            <div class="col-md-3">
+            <div class="col-lg-3 col-md-6">
+                <label class="form-label mb-1" style="font-size:.78rem;font-weight:600;color:#6b7280">
+                    <i class="fas fa-user-check me-1"></i>Hesap durumu
+                </label>
+                <select name="status" class="form-select">
+                    <option value="">— Tüm Durumlar —</option>
+                    <option value="active" @selected($status === 'active')>Aktif</option>
+                    <option value="inactive" @selected($status === 'inactive')>Tüm pasif hesaplar ({{ $userStats['inactive'] }})</option>
+                    <option value="elektra_inactive" @selected($status === 'elektra_inactive')>Elektra teyitli pasif ({{ $userStats['elektra_inactive'] }})</option>
+                </select>
+            </div>
+            <div class="col-lg-3 col-md-6">
                 <label class="form-label mb-1" style="font-size:.78rem;font-weight:600;color:#6b7280">
                     <i class="fas fa-search me-1"></i>Arama
                 </label>
                 <input type="text" name="search" class="form-control"
                     value="{{ request('search') }}" placeholder="İsim veya e-posta…">
             </div>
-            <div class="col-md-3 d-flex gap-2 align-items-end">
+            <div class="col-lg-2 col-md-12 d-flex gap-2 align-items-end filter-actions">
                 <button type="submit" class="btn btn-sm"
                     style="background:#4361ee;color:#fff;border-radius:9px;padding:9px 18px;font-size:.83rem;font-weight:600;border:none">
                     <i class="fas fa-search me-1"></i>Ara
                 </button>
-                @if(request()->hasAny(['branch_id','role','search']))
+                @if(request()->hasAny(['branch_id','role','status','search']))
                     <a href="{{ route('users.index') }}" class="btn btn-sm btn-outline-secondary" style="border-radius:9px;padding:9px 14px">
                         <i class="fas fa-times"></i>
                     </a>
@@ -245,6 +287,17 @@
                     {{ $users->total() }} sonuç
                 </span>
             </div>
+            @if($status === 'elektra_inactive')
+                <div class="col-12">
+                    <div class="alert alert-warning py-2 px-3 mb-0 mt-1" style="font-size:.78rem;border-radius:9px">
+                        <i class="fas fa-check-double me-1"></i>
+                        Bu liste, son başarılı Elektra senkronizasyonunda pasif olduğu doğrulanan hesapları gösterir.
+                        @if($elektraLastVerifiedAt)
+                            Son teyit: <strong>{{ $elektraLastVerifiedAt->format('d.m.Y H:i') }}</strong>.
+                        @endif
+                    </div>
+                </div>
+            @endif
         </form>
     </div>
 
@@ -272,6 +325,10 @@
                             ->take(2)->implode('');
                         $avatarColors = ['#4361ee','#10b981','#f59e0b','#ef4444','#8b5cf6','#06b6d4','#c19b77'];
                         $avatarColor  = $avatarColors[abs(crc32($u->name)) % count($avatarColors)];
+                        $elektraEmployee = $u->elektraPdksEmployee;
+                        $isElektraVerifiedInactive = ! $u->is_active
+                            && $elektraEmployee
+                            && ! $elektraEmployee->is_active;
                     @endphp
                     <tr>
                         <td>
@@ -285,6 +342,9 @@
                                 </div>
                                 <div>
                                     <div style="font-weight:700;color:#1f2937;font-size:.88rem;line-height:1.2">{{ $u->name }}</div>
+                                    @if($u->elektra_sicil_id)
+                                        <span style="font-size:.67rem;background:rgba(5,150,105,.1);color:#047857;padding:1px 6px;border-radius:4px;font-weight:700">Elektra</span>
+                                    @endif
                                     @if($u->id === auth()->id())
                                         <span style="font-size:.67rem;background:rgba(67,97,238,.1);color:#4361ee;padding:1px 6px;border-radius:4px;font-weight:700">Sen</span>
                                     @endif
@@ -293,7 +353,9 @@
                         </td>
                         <td>
                             @if($u->title)<div style="font-size:.82rem;font-weight:600;color:#374151">{{ $u->title }}</div>@endif
-                            <div style="font-size:.78rem;color:#9ca3af">{{ $u->email }}</div>
+                            <div style="font-size:.78rem;color:#9ca3af">
+                                {{ str_ends_with($u->email, '@users.balmy.invalid') ? 'TC + telefon ile giriş' : $u->email }}
+                            </div>
                         </td>
                         <td>
                             @foreach($u->userRoles as $ur)
@@ -312,6 +374,18 @@
                                 <span style="display:inline-flex;align-items:center;gap:4px;font-size:.77rem;font-weight:700;color:#059669;background:rgba(16,185,129,.1);padding:3px 9px;border-radius:6px">
                                     <i class="fas fa-check-circle"></i>Aktif
                                 </span>
+                            @elseif($isElektraVerifiedInactive)
+                                <span style="display:inline-flex;align-items:center;gap:4px;font-size:.75rem;font-weight:700;color:#b45309;background:rgba(245,158,11,.12);padding:3px 9px;border-radius:6px">
+                                    <i class="fas fa-user-check"></i>Elektra teyitli pasif
+                                </span>
+                                <div class="elektra-verified-note">
+                                    @if($elektraEmployee->ended_at)
+                                        İşten çıkış: {{ $elektraEmployee->ended_at->format('d.m.Y') }}<br>
+                                    @endif
+                                    @if($elektraEmployee->last_synced_at)
+                                        Teyit: {{ $elektraEmployee->last_synced_at->format('d.m.Y H:i') }}
+                                    @endif
+                                </div>
                             @else
                                 <span style="display:inline-flex;align-items:center;gap:4px;font-size:.77rem;font-weight:700;color:#9ca3af;background:rgba(156,163,175,.1);padding:3px 9px;border-radius:6px">
                                     <i class="fas fa-times-circle"></i>Pasif
@@ -358,6 +432,10 @@
                         ->take(2)->implode('');
                     $avatarColors = ['#4361ee','#10b981','#f59e0b','#ef4444','#8b5cf6','#06b6d4','#c19b77'];
                     $avatarColor  = $avatarColors[abs(crc32($u->name)) % count($avatarColors)];
+                    $elektraEmployee = $u->elektraPdksEmployee;
+                    $isElektraVerifiedInactive = ! $u->is_active
+                        && $elektraEmployee
+                        && ! $elektraEmployee->is_active;
                 @endphp
                 <div class="mobile-user-card">
                     <div class="d-flex align-items-start gap-3">
@@ -372,6 +450,9 @@
                             <div class="d-flex justify-content-between gap-2 align-items-start">
                                 <div>
                                     <div style="font-weight:700;color:#1f2937;font-size:.95rem;line-height:1.2">{{ $u->name }}</div>
+                                    @if($u->elektra_sicil_id)
+                                        <span style="font-size:.67rem;background:rgba(5,150,105,.1);color:#047857;padding:1px 6px;border-radius:4px;font-weight:700">Elektra</span>
+                                    @endif
                                     @if($u->title)
                                         <div class="mobile-user-meta" style="margin-top:2px">{{ $u->title }}</div>
                                     @endif
@@ -380,16 +461,32 @@
                                     <span style="display:inline-flex;align-items:center;gap:4px;font-size:.72rem;font-weight:700;color:#059669;background:rgba(16,185,129,.1);padding:4px 8px;border-radius:999px">
                                         <i class="fas fa-check-circle"></i>Aktif
                                     </span>
+                                @elseif($isElektraVerifiedInactive)
+                                    <span style="display:inline-flex;align-items:center;gap:4px;font-size:.7rem;font-weight:700;color:#b45309;background:rgba(245,158,11,.12);padding:4px 8px;border-radius:999px;text-align:center">
+                                        <i class="fas fa-user-check"></i>Elektra teyitli pasif
+                                    </span>
                                 @else
                                     <span style="display:inline-flex;align-items:center;gap:4px;font-size:.72rem;font-weight:700;color:#9ca3af;background:rgba(156,163,175,.1);padding:4px 8px;border-radius:999px">
                                         <i class="fas fa-times-circle"></i>Pasif
                                     </span>
                                 @endif
                             </div>
-                            <div class="mobile-user-meta">{{ $u->email }}</div>
+                            <div class="mobile-user-meta">
+                                {{ str_ends_with($u->email, '@users.balmy.invalid') ? 'TC + telefon ile giriş' : $u->email }}
+                            </div>
                             <div class="mobile-user-meta">
                                 {{ optional($u->branch)->name ?? 'Şube yok' }} · {{ optional($u->department)->name ?? 'Departman yok' }}
                             </div>
+                            @if($isElektraVerifiedInactive)
+                                <div class="elektra-verified-note">
+                                    @if($elektraEmployee->ended_at)
+                                        İşten çıkış: {{ $elektraEmployee->ended_at->format('d.m.Y') }} ·
+                                    @endif
+                                    @if($elektraEmployee->last_synced_at)
+                                        Teyit: {{ $elektraEmployee->last_synced_at->format('d.m.Y H:i') }}
+                                    @endif
+                                </div>
+                            @endif
                             <div class="mt-2">
                                 @foreach($u->userRoles as $ur)
                                     @php $roleObj = $roles->firstWhere('name', $ur->role_name); @endphp
@@ -449,6 +546,29 @@ document.querySelectorAll('[data-user-del]').forEach(form => {
             confirmButtonText: '<i class="fas fa-trash me-1"></i>Evet, Sil',
             cancelButtonText: 'İptal',
         }).then(r => { if (r.isConfirmed) this.submit(); });
+    });
+});
+
+document.querySelectorAll('[data-elektra-sync]').forEach(form => {
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        Swal.fire({
+            title: 'Elektra kullanıcıları senkronize edilsin mi?',
+            html: 'Foresta aktif personeli çekilecek, <b>ogrenen</b> rolü atanacak ve işten ayrılan bağlı hesaplar pasife alınacak.',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#059669',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: '<i class="fas fa-sync-alt me-1"></i>Senkronize Et',
+            cancelButtonText: 'İptal',
+        }).then(result => {
+            if (!result.isConfirmed) return;
+
+            const button = this.querySelector('button');
+            button.disabled = true;
+            button.innerHTML = '<i class="fas fa-spinner fa-spin"></i>Senkronize ediliyor...';
+            this.submit();
+        });
     });
 });
 </script>

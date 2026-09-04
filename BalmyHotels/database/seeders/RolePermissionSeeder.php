@@ -36,6 +36,8 @@ class RolePermissionSeeder extends Seeder
         }
         // Kullanıcı yönetiminden silme yetkisi yok
         $branchManagerPerms['users']['delete'] = 0;
+        // Çalışan bazlı güvenlik testleri yalnızca açıkça yetki verilen Bilgi İşlem yöneticilerinde olmalı.
+        $branchManagerPerms['it_phishing_tests'] = ['index'=>0,'show'=>0,'create'=>0,'edit'=>0,'delete'=>0];
 
         $this->savePerms('branch_manager', $branchManagerPerms);
 

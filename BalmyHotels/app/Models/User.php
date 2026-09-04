@@ -26,16 +26,62 @@ class User extends Authenticatable
         'name', 'email', 'password',
         'branch_id', 'department_id', 'role',
         'phone', 'avatar', 'title', 'is_active', 'fault_notify',
+        'account_source', 'elektra_tenant_id', 'elektra_company_id',
+        'elektra_sicil_id', 'identity_no_hash', 'phone_normalized',
+        'elektra_synced_at',
     ];
 
-    protected $hidden = ['password', 'remember_token'];
+    protected $hidden = ['password', 'remember_token', 'identity_no_hash'];
 
     protected $casts = [
         'email_verified_at' => 'datetime',
         'password'          => 'hashed',
         'is_active'         => 'boolean',
         'fault_notify'      => 'boolean',
+        'elektra_synced_at' => 'datetime',
     ];
+
+    public static function normalizeIdentityNumber(?string $value): ?string
+    {
+        $digits = preg_replace('/\D+/', '', (string) $value);
+
+        return strlen($digits) === 11 ? $digits : null;
+    }
+
+    /** Telefonu ülke koduyla birlikte yalnızca rakamlardan oluşan 90XXXXXXXXXX biçimine getirir. */
+    public static function normalizeTurkishPhone(?string $value): ?string
+    {
+        $digits = preg_replace('/\D+/', '', (string) $value);
+
+        if (strlen($digits) < 10) {
+            return null;
+        }
+
+        $localNumber = substr($digits, -10);
+
+        if (!preg_match('/^[2-5]\d{9}$/', $localNumber)) {
+            return null;
+        }
+
+        return '90' . $localNumber;
+    }
+
+    public static function identityHash(string $identityNumber): string
+    {
+        $appKey = (string) config('app.key');
+
+        if (str_starts_with($appKey, 'base64:')) {
+            $decodedKey = base64_decode(substr($appKey, 7), true);
+            $appKey = $decodedKey !== false ? $decodedKey : $appKey;
+        }
+
+        return hash_hmac('sha256', $identityNumber, $appKey);
+    }
+
+    public static function normalizePersonName(?string $name): string
+    {
+        return Str::squish(Str::upper(Str::ascii((string) $name)));
+    }
 
     // --- İlişkiler ---
     public function branch()
@@ -51,6 +97,12 @@ class User extends Authenticatable
     public function pdksEmployee()
     {
         return $this->hasOne(PdksEmployee::class);
+    }
+
+    public function elektraPdksEmployee()
+    {
+        return $this->hasOne(PdksEmployee::class)
+            ->where('source', PdksEmployee::SOURCE_ELEKTRA_FORESTA);
     }
 
     /** Pivot: kullanıcıya atanmış tüm roller */

@@ -88,6 +88,15 @@
                                     @if($canSeeParticipationData && auth()->user()->hasPermission('education_events','edit'))
                                         <a href="{{ route('education.events.edit', $event) }}" class="btn btn-sm btn-outline-warning"><i class="fas fa-edit"></i></a>
                                     @endif
+                                    @if($event->canBeDeletedBy(auth()->user()))
+                                        <form method="POST" action="{{ route('education.events.destroy', $event) }}" class="d-inline" onsubmit="return confirm('Bu yuz yuze egitimi ve tum katilim cevaplarini kalici olarak silmek istiyor musunuz?')">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button class="btn btn-sm btn-outline-danger" type="submit" title="Egitimi Sil" aria-label="Egitimi Sil">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </form>
+                                    @endif
                                 </td>
                             </tr>
                         @empty

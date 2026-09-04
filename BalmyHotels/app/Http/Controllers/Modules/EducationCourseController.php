@@ -2,10 +2,12 @@
 
 namespace App\Http\Controllers\Modules;
 
+use App\Models\EducationAssignment;
 use App\Models\EducationCourse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
@@ -24,7 +26,7 @@ class EducationCourseController extends BaseModuleController
         $this->requirePermission(
             'education_courses',
             ['index'],
-            ['show', 'video'],
+            ['show', 'video', 'attendanceForm'],
             ['create', 'store'],
             ['edit', 'update'],
             ['destroy']
@@ -228,6 +230,7 @@ class EducationCourseController extends BaseModuleController
         unset($data['video'], $data['video_upload_token']);
 
         try {
+            $data['duration_seconds'] = $this->detectStoredVideoDuration($video['path']);
             EducationCourse::create($data);
         } catch (\Throwable $exception) {
             Storage::disk('public')->delete($video['path']);
@@ -248,6 +251,58 @@ class EducationCourseController extends BaseModuleController
         ]);
 
         return view('modules.education.courses.show', compact('course'));
+    }
+
+    /** Tamamlanan eğitim için kişi bazlı, düzenlenebilir katılım formu. */
+    public function attendanceForm(EducationCourse $course, EducationAssignment $assignment)
+    {
+        abort_unless((int) $assignment->education_course_id === (int) $course->id, 404);
+
+        $user = Auth::user();
+        $canGenerate = $user->isSuperAdmin()
+            || $user->isBranchManager()
+            || (int) $course->trainer_id === (int) $user->id;
+        abort_unless($canGenerate, 403);
+
+        $course->loadMissing(['trainer', 'quizQuestions']);
+        $assignment->loadMissing([
+            'learner.branch',
+            'learner.department',
+            'latestQuizAttempt',
+            'passedQuizAttempt',
+            'quizAttempts',
+        ]);
+        $assignment->setRelation('course', $course);
+
+        // Form yalnızca sistem kayıtlarına göre gerçekten tamamlanan eğitim için çıkar.
+        abort_unless($assignment->training_approved, 403, 'Eğitim tamamlanmadan katılım formu oluşturulamaz.');
+
+        $quizAttempt = $assignment->passedQuizAttempt ?: $assignment->latestQuizAttempt;
+        $quizPercent = $quizAttempt && $quizAttempt->total_questions > 0
+            ? round($quizAttempt->correct_answers / $quizAttempt->total_questions * 100, 1)
+            : null;
+        $completedAt = $assignment->completed_at
+            ?: $quizAttempt?->submitted_at
+            ?: $assignment->last_watched_at;
+
+        $topicDefaults = collect(preg_split('/\r\n|\r|\n|[;•]+/u', (string) $course->description))
+            ->map(fn ($topic) => trim(preg_replace('/^\s*\d+[.)-]?\s*/u', '', $topic)))
+            ->filter()
+            ->take(5)
+            ->values();
+        if ($topicDefaults->count() === 1 && mb_strlen($topicDefaults->first()) > 100) {
+            $topicDefaults = collect([$course->title]);
+        }
+
+        return view('modules.education.courses.attendance_form', [
+            'course' => $course,
+            'assignment' => $assignment,
+            'quizAttempt' => $quizAttempt,
+            'quizPercent' => $quizPercent,
+            'completedAt' => $completedAt,
+            'topicDefaults' => $topicDefaults,
+            'documentNumber' => sprintf('EĞT-%05d-%06d', $course->id, $assignment->id),
+        ]);
     }
 
     public function video(EducationCourse $course)
@@ -283,11 +338,25 @@ class EducationCourseController extends BaseModuleController
             $replacementVideo = $this->storeIncomingVideo($request);
             $data['video_path'] = $replacementVideo['path'];
             $data['video_original_name'] = $replacementVideo['original_name'];
+        } else {
+            $data['duration_seconds'] = (int) $course->duration_seconds;
         }
         unset($data['video'], $data['video_upload_token']);
 
         try {
-            $course->update($data);
+            if ($replacementVideo) {
+                $data['duration_seconds'] = $this->detectStoredVideoDuration($replacementVideo['path']);
+            }
+
+            DB::transaction(function () use ($course, $data, $replacementVideo): void {
+                $course->update($data);
+
+                if ($replacementVideo) {
+                    $course->assignments()->update([
+                        'duration_seconds' => $data['duration_seconds'],
+                    ]);
+                }
+            });
         } catch (\Throwable $exception) {
             if ($replacementVideo) {
                 Storage::disk('public')->delete($replacementVideo['path']);
@@ -304,11 +373,20 @@ class EducationCourseController extends BaseModuleController
 
     public function destroy(EducationCourse $course)
     {
-        if ($course->video_path) {
-            Storage::disk('public')->delete($course->video_path);
-        }
+        abort_unless($course->canBeDeletedBy(Auth::user()), 403);
 
-        $course->delete();
+        $videoPath = $course->video_path;
+
+        DB::transaction(function () use ($course): void {
+            $course->delete();
+        });
+
+        if ($videoPath && ! Storage::disk('public')->delete($videoPath)) {
+            Log::warning('Deleted education course video could not be removed from storage.', [
+                'course_id' => $course->id,
+                'video_path' => $videoPath,
+            ]);
+        }
 
         return redirect()->route('education.courses.index')->with('success', 'Egitim icerigi silindi.');
     }
@@ -372,6 +450,45 @@ class EducationCourseController extends BaseModuleController
             'path' => $storedPath,
             'original_name' => $video->getClientOriginalName(),
         ];
+    }
+
+    private function detectStoredVideoDuration(string $path): int
+    {
+        $disk = Storage::disk('public');
+
+        if (! $disk->exists($path)) {
+            throw ValidationException::withMessages([
+                'video' => 'Video dosyasi sure analizi icin bulunamadi. Lutfen videoyu yeniden yukleyin.',
+            ]);
+        }
+
+        try {
+            $mediaInfo = (new \getID3())->analyze($disk->path($path));
+            $duration = (float) ($mediaInfo['playtime_seconds'] ?? 0);
+        } catch (\Throwable $exception) {
+            Log::warning('Education video duration analysis failed.', [
+                'video_path' => $path,
+                'exception' => $exception->getMessage(),
+            ]);
+
+            throw ValidationException::withMessages([
+                'video' => 'Video suresi sunucuda okunamadi. Lutfen gecerli bir video dosyasi yukleyin.',
+            ]);
+        }
+
+        if (! is_finite($duration) || $duration <= 0 || $duration > 86400) {
+            Log::warning('Education video returned an invalid duration.', [
+                'video_path' => $path,
+                'duration' => $duration,
+                'analysis_errors' => $mediaInfo['error'] ?? [],
+            ]);
+
+            throw ValidationException::withMessages([
+                'video' => 'Video suresi sunucuda dogrulanamadi. Lutfen videoyu yeniden olusturup yukleyin.',
+            ]);
+        }
+
+        return max(1, (int) round($duration));
     }
 
     private function storeChunkedVideo(string $token): array

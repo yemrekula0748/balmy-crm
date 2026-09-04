@@ -37,27 +37,30 @@
         <div class="col-lg-8">
             <div class="card border-0 shadow-sm" style="border-radius:8px">
                 <div class="card-body">
-                    <video
-                        id="educationVideo"
-                        controlsList="nodownload noplaybackrate noremoteplayback"
-                        disablePictureInPicture
-                        disableRemotePlayback
-                        playsinline
-                        tabindex="-1"
-                        preload="metadata"
-                        style="width:100%;max-height:520px;border-radius:8px;background:#111;cursor:pointer"
-                    >
-                        <source src="{{ route('education.learning.video', $assignment) }}">
-                    </video>
-                    <div class="d-flex align-items-center gap-2 mt-2">
-                        <button type="button" class="btn btn-primary btn-sm" id="educationPlayPause">
-                            <i class="fas fa-play me-1" id="educationPlayPauseIcon"></i>
-                            <span id="educationPlayPauseLabel">Oynat</span>
-                        </button>
-                        <div class="progress flex-grow-1" style="height:8px;pointer-events:none" aria-hidden="true">
-                            <div class="progress-bar" id="educationPlaybackBar" style="width:0%"></div>
+                    <div>
+                        <video
+                            id="educationVideo"
+                            controlsList="nodownload noplaybackrate noremoteplayback"
+                            disablePictureInPicture
+                            disableRemotePlayback
+                            playsinline
+                            webkit-playsinline="true"
+                            tabindex="-1"
+                            preload="metadata"
+                            style="width:100%;max-height:520px;border-radius:8px;background:#111;cursor:pointer"
+                        >
+                            <source src="{{ route('education.learning.video', $assignment) }}">
+                        </video>
+                        <div class="education-player-controls d-flex align-items-center gap-2 mt-2">
+                            <button type="button" class="btn btn-primary btn-sm" id="educationPlayPause">
+                                <i class="fas fa-play me-1" id="educationPlayPauseIcon"></i>
+                                <span id="educationPlayPauseLabel">Oynat</span>
+                            </button>
+                            <div class="progress flex-grow-1" style="height:8px;pointer-events:none" aria-hidden="true">
+                                <div class="progress-bar" id="educationPlaybackBar" style="width:0%"></div>
+                            </div>
+                            <span class="small text-muted text-nowrap" id="educationPlaybackTime">00:00 / 00:00</span>
                         </div>
-                        <span class="small text-muted text-nowrap" id="educationPlaybackTime">00:00 / 00:00</span>
                     </div>
                     <div class="alert alert-light border mt-3 mb-0 small">
                         Ilerleme yalnizca bu pencere aktifken ve video oynarken kaydedilir.
@@ -316,6 +319,10 @@ document.addEventListener('DOMContentLoaded', function () {
     video.addEventListener('enterpictureinpicture', closePictureInPicture);
     video.addEventListener('webkitpresentationmodechanged', closePictureInPicture);
     video.addEventListener('click', togglePlayback);
+    video.addEventListener('dblclick', function (event) {
+        event.preventDefault();
+        event.stopPropagation();
+    });
     video.addEventListener('contextmenu', (event) => event.preventDefault());
     video.addEventListener('keydown', function (event) {
         if (

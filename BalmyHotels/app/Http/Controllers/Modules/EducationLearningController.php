@@ -24,26 +24,53 @@ class EducationLearningController extends BaseModuleController
 
     public function index(Request $request)
     {
-        $status = $request->get('status');
+        $allowedStatuses = [
+            EducationAssignment::STATUS_NOT_STARTED,
+            EducationAssignment::STATUS_IN_PROGRESS,
+            EducationAssignment::STATUS_COMPLETED,
+        ];
+        $status = in_array($request->get('status'), $allowedStatuses, true)
+            ? $request->get('status')
+            : null;
+        $search = mb_substr(trim((string) $request->get('search', '')), 0, 100);
         $currentWeekStart = Carbon::now()->startOfWeek()->toDateString();
 
-        $assignments = EducationAssignment::with([
+        $baseAssignmentsQuery = EducationAssignment::query()
+            ->where('user_id', Auth::id())
+            ->whereHas('course', fn ($query) => $query->where('is_active', true));
+
+        $summaryAssignments = (clone $baseAssignmentsQuery)
+            ->get(['status', 'progress_percent']);
+
+        $assignmentSummary = [
+            'total' => $summaryAssignments->count(),
+            'not_started' => $summaryAssignments->where('status', EducationAssignment::STATUS_NOT_STARTED)->count(),
+            'in_progress' => $summaryAssignments->where('status', EducationAssignment::STATUS_IN_PROGRESS)->count(),
+            'completed' => $summaryAssignments->where('status', EducationAssignment::STATUS_COMPLETED)->count(),
+            'average_progress' => round((float) $summaryAssignments->avg('progress_percent'), 1),
+        ];
+
+        $assignments = (clone $baseAssignmentsQuery)
+            ->with([
                 'course.trainer',
                 'course.quizQuestions',
                 'assigner',
                 'latestQuizAttempt',
                 'passedQuizAttempt',
             ])
-            ->where('user_id', Auth::id())
-            ->whereHas('course', fn ($query) => $query->where('is_active', true))
             ->when($status, fn ($query) => $query->where('status', $status))
+            ->when($search !== '', function ($query) use ($search) {
+                $searchTerm = '%' . addcslashes($search, '%_\\') . '%';
+
+                $query->whereHas('course', fn ($courseQuery) => $courseQuery->where('title', 'like', $searchTerm));
+            })
             ->orderByRaw("CASE WHEN assigned_week_start = ? THEN 0 ELSE 1 END", [$currentWeekStart])
             ->orderByDesc('assigned_week_start')
             ->latest()
             ->paginate(12)
             ->withQueryString();
 
-        $weeklyNotificationCount = EducationAssignment::where('user_id', Auth::id())
+        $weeklyNotificationCount = (clone $baseAssignmentsQuery)
             ->where('assigned_week_start', $currentWeekStart)
             ->where(function ($assignmentQuery) {
                 $assignmentQuery
@@ -60,7 +87,9 @@ class EducationLearningController extends BaseModuleController
         return view('modules.education.learning.index', [
             'assignments' => $assignments,
             'status' => $status,
+            'search' => $search,
             'weeklyNotificationCount' => $weeklyNotificationCount,
+            'assignmentSummary' => $assignmentSummary,
         ]);
     }
 
@@ -108,18 +137,28 @@ class EducationLearningController extends BaseModuleController
             'is_ended' => 'nullable|boolean',
         ]);
 
-        $duration = max((int) floor($data['duration']), (int) $assignment->duration_seconds, 1);
+        $assignment->loadMissing('course');
+        $verifiedCourseDuration = (int) ($assignment->course?->duration_seconds ?? 0);
+        $reportedDuration = max((int) round((float) $data['duration']), 1);
+        $duration = $verifiedCourseDuration > 0
+            ? $verifiedCourseDuration
+            : max((int) $assignment->duration_seconds, $reportedDuration, 1);
         $currentTime = (int) floor($data['current_time']);
         $currentMax = (int) $assignment->max_watched_seconds;
         $isVisible = $request->boolean('is_visible');
         $isPlaying = $request->boolean('is_playing');
         $isEnded = $request->boolean('is_ended');
+        $minimumTrackedForCompletion = max(
+            (int) floor($duration * 0.80),
+            $duration - 12,
+            1
+        );
+        $canAcceptEnded = $isEnded
+            && $currentTime >= ($duration - 2)
+            && $currentMax >= $minimumTrackedForCompletion;
 
-        if ($isVisible && ($isPlaying || $isEnded)) {
+        if (($isVisible && $isPlaying) || $canAcceptEnded) {
             $allowedJumpSeconds = 20;
-            $canAcceptEnded = $isEnded
-                && $currentTime >= ($duration - 2)
-                && $currentMax >= (int) floor($duration * 0.95);
 
             $newMax = $canAcceptEnded
                 ? $duration

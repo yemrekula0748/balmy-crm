@@ -44,12 +44,14 @@ class MobileUserController extends Controller
             'email' => ['required', 'email', 'max:255', 'unique:users,email'],
             'password' => ['required', 'string', 'min:6'],
             'phone' => ['nullable', 'string', 'max:50'],
+            'title' => ['nullable', 'string', 'max:100'],
             'role' => ['nullable', 'string', 'max:50'],
             'branch_id' => ['nullable', 'exists:branches,id'],
             'department_id' => ['nullable', 'exists:departments,id'],
         ]);
 
         $data['password'] = Hash::make($data['password']);
+        $data['phone_normalized'] = User::normalizeTurkishPhone($data['phone'] ?? null);
         $user = User::create($data);
         $this->syncPrimaryRole($user, $data['role'] ?? null);
 
@@ -65,6 +67,7 @@ class MobileUserController extends Controller
             'email' => ['sometimes', 'required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($user->id)],
             'password' => ['sometimes', 'nullable', 'string', 'min:6'],
             'phone' => ['sometimes', 'nullable', 'string', 'max:50'],
+            'title' => ['sometimes', 'nullable', 'string', 'max:100'],
             'role' => ['sometimes', 'nullable', 'string', 'max:50'],
             'branch_id' => ['sometimes', 'nullable', 'exists:branches,id'],
             'department_id' => ['sometimes', 'nullable', 'exists:departments,id'],
@@ -77,6 +80,10 @@ class MobileUserController extends Controller
             } else {
                 unset($data['password']);
             }
+        }
+
+        if (array_key_exists('phone', $data)) {
+            $data['phone_normalized'] = User::normalizeTurkishPhone($data['phone']);
         }
 
         $user->update($data);
@@ -102,6 +109,7 @@ class MobileUserController extends Controller
             'name' => $user->name,
             'email' => $user->email,
             'phone' => $user->phone,
+            'title' => $user->title,
             'role' => $user->role,
             'branch_id' => $user->branch_id,
             'branch' => $user->branch ? ['name' => $user->branch->name] : null,
@@ -109,6 +117,7 @@ class MobileUserController extends Controller
             'department' => $user->department ? ['name' => $user->department->name] : null,
             'profile_photo' => $user->avatar ? asset('storage/' . ltrim($user->avatar, '/')) : null,
             'is_active' => (bool) $user->is_active,
+            'is_elektra_user' => $user->elektra_sicil_id !== null,
             'created_at' => optional($user->created_at)->toISOString(),
         ];
     }

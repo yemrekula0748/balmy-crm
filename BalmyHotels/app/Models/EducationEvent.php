@@ -41,4 +41,15 @@ class EducationEvent extends Model
     {
         return EducationCourse::LANGUAGES[$this->language] ?? strtoupper((string) $this->language);
     }
+
+    public function canBeDeletedBy(User $user): bool
+    {
+        if (! $user->hasPermission('education_events', 'delete')) {
+            return false;
+        }
+
+        return $user->isSuperAdmin()
+            || $user->isBranchManager()
+            || (int) $this->trainer_id === (int) $user->id;
+    }
 }

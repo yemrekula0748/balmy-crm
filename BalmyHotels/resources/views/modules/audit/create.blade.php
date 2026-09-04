@@ -335,10 +335,10 @@
             <div class="col-12">
                 <label class="form-label">
                     Fotoğraf
-                    <span class="text-muted fw-normal ms-1" style="font-size:.72rem;">(opsiyonel)</span>
+                    <span class="text-muted fw-normal ms-1" style="font-size:.72rem;">(kamera veya galeri, opsiyonel)</span>
                 </label>
                 <input type="file" name="ITEM_PLACEHOLDER[photo]" class="form-control photo-input"
-                       accept="image/*" capture="environment">
+                       accept="image/*">
                 <div class="photo-preview mt-2" style="display:none;">
                     <img src="" alt="Önizleme" class="preview-img"
                          style="max-height:150px;border-radius:8px;border:1px solid #e8d5c4;object-fit:cover;">

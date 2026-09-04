@@ -87,11 +87,11 @@
                                         <a href="{{ route('education.courses.edit', $course) }}" class="btn btn-sm btn-outline-warning"><i class="fas fa-edit"></i></a>
                                         <a href="{{ route('education.courses.quiz.edit', $course) }}" class="btn btn-sm btn-outline-info" title="Quiz Sorulari"><i class="fas fa-question-circle"></i></a>
                                     @endif
-                                    @if(auth()->user()->hasPermission('education_courses','delete'))
-                                        <form method="POST" action="{{ route('education.courses.destroy', $course) }}" class="d-inline" onsubmit="return confirm('Bu egitimi silmek istiyor musunuz?')">
+                                    @if($course->canBeDeletedBy(auth()->user()))
+                                        <form method="POST" action="{{ route('education.courses.destroy', $course) }}" class="d-inline" onsubmit="return confirm('Bu egitimi, atamalarini ve quiz kayitlarini kalici olarak silmek istiyor musunuz?')">
                                             @csrf
                                             @method('DELETE')
-                                            <button class="btn btn-sm btn-outline-danger" type="submit"><i class="fas fa-trash"></i></button>
+                                            <button class="btn btn-sm btn-outline-danger" type="submit" title="Egitimi Sil" aria-label="Egitimi Sil"><i class="fas fa-trash"></i></button>
                                         </form>
                                     @endif
                                 </td>

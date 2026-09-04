@@ -124,15 +124,25 @@ class ElektraPdksService
             $value = Arr::get($payload, $path);
 
             if (is_array($value) && array_is_list($value)) {
-                return $value;
+                return $this->flattenRowList($value);
             }
         }
 
         if (array_is_list($payload)) {
-            return $payload;
+            return $this->flattenRowList($payload);
         }
 
         return [];
+    }
+
+    /** Elektra bazı tenantlarda kayıtları ResultSets.0 içinde bir kez daha diziye sarıyor. */
+    private function flattenRowList(array $rows): array
+    {
+        while (count($rows) === 1 && isset($rows[0]) && is_array($rows[0]) && array_is_list($rows[0])) {
+            $rows = $rows[0];
+        }
+
+        return $rows;
     }
 
     private function mapEmployee(array $row, int $branchId, array $params): array
@@ -180,6 +190,22 @@ class ElektraPdksService
 
         if ($name === '' || !$branchId) {
             return null;
+        }
+
+        $normalisedName = User::normalizePersonName($name);
+        foreach ((array) config('services.elektra_pdks.foresta.department_aliases', []) as $alias => $canonical) {
+            if (User::normalizePersonName($alias) === $normalisedName) {
+                $name = trim((string) $canonical);
+                break;
+            }
+        }
+
+        $department = Department::where('branch_id', $branchId)
+            ->get()
+            ->first(fn (Department $item) => User::normalizePersonName($item->name) === User::normalizePersonName($name));
+
+        if ($department) {
+            return $department;
         }
 
         return Department::firstOrCreate(

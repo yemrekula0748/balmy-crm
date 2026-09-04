@@ -67,5 +67,6 @@ class Kernel extends HttpKernel
         'perm'      => \App\Http\Middleware\CheckPermission::class,
         'fault.detail' => \App\Http\Middleware\CheckFaultDetailAccess::class,
         'agent.key' => \App\Http\Middleware\AgentKeyMiddleware::class,
+        'active.user' => \App\Http\Middleware\EnsureActiveUser::class,
     ];
 }

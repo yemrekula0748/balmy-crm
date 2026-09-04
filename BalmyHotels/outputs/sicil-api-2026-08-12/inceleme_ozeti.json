@@ -1,0 +1,471 @@
+{
+    "generated_at":  "2026-08-12T09:46:37+03:00",
+    "endpoint":  "https://3013.hoteladvisor.net",
+    "function":  "FN_API_SICIL_LISTE",
+    "requested_tenant_ids":  [
+                                 32904,
+                                 30570
+                             ],
+    "tenant_test":  {
+                        "all_tested_ids_returned_identical_payload":  true,
+                        "tested_ids":  [
+                                           32904,
+                                           30570,
+                                           2429
+                                       ],
+                        "effective_scope_note":  "Authorization anahtari kapsami belirliyor; TENANTID sonucu ayirmadi."
+                    },
+    "company":  {
+                    "firm_id":  3617,
+                    "firm_name":  "ANİA TUR.YAT.A.Ş."
+                },
+    "counts":  {
+                   "all":  1206,
+                   "calisiyor_filter_1":  388,
+                   "calisiyor_filter_0":  818,
+                   "unique_sicil_ids":  1206,
+                   "filter_overlap":  0,
+                   "filter_union":  1206,
+                   "all_rows_aktif_true":  1049,
+                   "all_rows_aktif_false":  157
+               },
+    "branch_separation":  {
+                              "possible":  false,
+                              "reason":  "Yanitta otel/sube kimligi yok. GRUP ve BIRIM alanlarinin tamami bos; tek FIRMAID donuyor."
+                          },
+    "field_count":  55,
+    "fields":  [
+                   {
+                       "field":  "SICILID",
+                       "non_empty":  1206,
+                       "empty":  0,
+                       "coverage_percent":  100
+                   },
+                   {
+                       "field":  "ADISOYADI",
+                       "non_empty":  1206,
+                       "empty":  0,
+                       "coverage_percent":  100
+                   },
+                   {
+                       "field":  "AD",
+                       "non_empty":  1206,
+                       "empty":  0,
+                       "coverage_percent":  100
+                   },
+                   {
+                       "field":  "SOYAD",
+                       "non_empty":  1206,
+                       "empty":  0,
+                       "coverage_percent":  100
+                   },
+                   {
+                       "field":  "TCKNO",
+                       "non_empty":  1206,
+                       "empty":  0,
+                       "coverage_percent":  100
+                   },
+                   {
+                       "field":  "SICILNO",
+                       "non_empty":  1206,
+                       "empty":  0,
+                       "coverage_percent":  100
+                   },
+                   {
+                       "field":  "CINSIYETI",
+                       "non_empty":  1206,
+                       "empty":  0,
+                       "coverage_percent":  100
+                   },
+                   {
+                       "field":  "ISEGIRIS",
+                       "non_empty":  1206,
+                       "empty":  0,
+                       "coverage_percent":  100
+                   },
+                   {
+                       "field":  "CIKIS",
+                       "non_empty":  819,
+                       "empty":  387,
+                       "coverage_percent":  67.91
+                   },
+                   {
+                       "field":  "DOGUMTARIHI",
+                       "non_empty":  1206,
+                       "empty":  0,
+                       "coverage_percent":  100
+                   },
+                   {
+                       "field":  "PDKSKARTNO",
+                       "non_empty":  0,
+                       "empty":  1206,
+                       "coverage_percent":  0
+                   },
+                   {
+                       "field":  "GSM",
+                       "non_empty":  1117,
+                       "empty":  89,
+                       "coverage_percent":  92.62
+                   },
+                   {
+                       "field":  "TEL",
+                       "non_empty":  949,
+                       "empty":  257,
+                       "coverage_percent":  78.69
+                   },
+                   {
+                       "field":  "EMAIL",
+                       "non_empty":  2,
+                       "empty":  1204,
+                       "coverage_percent":  0.17
+                   },
+                   {
+                       "field":  "EMAIL2",
+                       "non_empty":  0,
+                       "empty":  1206,
+                       "coverage_percent":  0
+                   },
+                   {
+                       "field":  "DEP",
+                       "non_empty":  1206,
+                       "empty":  0,
+                       "coverage_percent":  100
+                   },
+                   {
+                       "field":  "UNVAN",
+                       "non_empty":  1206,
+                       "empty":  0,
+                       "coverage_percent":  100
+                   },
+                   {
+                       "field":  "GOREV",
+                       "non_empty":  1206,
+                       "empty":  0,
+                       "coverage_percent":  100
+                   },
+                   {
+                       "field":  "BORDROTIPI",
+                       "non_empty":  1206,
+                       "empty":  0,
+                       "coverage_percent":  100
+                   },
+                   {
+                       "field":  "LOJMAN",
+                       "non_empty":  1,
+                       "empty":  1205,
+                       "coverage_percent":  0.08
+                   },
+                   {
+                       "field":  "KANGRUBU",
+                       "non_empty":  795,
+                       "empty":  411,
+                       "coverage_percent":  65.92
+                   },
+                   {
+                       "field":  "FIRMA",
+                       "non_empty":  1206,
+                       "empty":  0,
+                       "coverage_percent":  100
+                   },
+                   {
+                       "field":  "DEPKODU",
+                       "non_empty":  1206,
+                       "empty":  0,
+                       "coverage_percent":  100
+                   },
+                   {
+                       "field":  "DEPARTMANID",
+                       "non_empty":  1206,
+                       "empty":  0,
+                       "coverage_percent":  100
+                   },
+                   {
+                       "field":  "UNVANID",
+                       "non_empty":  1206,
+                       "empty":  0,
+                       "coverage_percent":  100
+                   },
+                   {
+                       "field":  "FIRMAID",
+                       "non_empty":  1206,
+                       "empty":  0,
+                       "coverage_percent":  100
+                   },
+                   {
+                       "field":  "GRUBAGIRIS",
+                       "non_empty":  1153,
+                       "empty":  53,
+                       "coverage_percent":  95.61
+                   },
+                   {
+                       "field":  "MEDENIHALI",
+                       "non_empty":  1174,
+                       "empty":  32,
+                       "coverage_percent":  97.35
+                   },
+                   {
+                       "field":  "HAKEDILENIZIN",
+                       "non_empty":  619,
+                       "empty":  587,
+                       "coverage_percent":  51.33
+                   },
+                   {
+                       "field":  "KULLANILANIZIN",
+                       "non_empty":  619,
+                       "empty":  587,
+                       "coverage_percent":  51.33
+                   },
+                   {
+                       "field":  "KALANIZIN",
+                       "non_empty":  619,
+                       "empty":  587,
+                       "coverage_percent":  51.33
+                   },
+                   {
+                       "field":  "EKKOD1",
+                       "non_empty":  1,
+                       "empty":  1205,
+                       "coverage_percent":  0.08
+                   },
+                   {
+                       "field":  "CZAMANI",
+                       "non_empty":  1204,
+                       "empty":  2,
+                       "coverage_percent":  99.83
+                   },
+                   {
+                       "field":  "AKTIF",
+                       "non_empty":  1206,
+                       "empty":  0,
+                       "coverage_percent":  100
+                   },
+                   {
+                       "field":  "GRUP",
+                       "non_empty":  0,
+                       "empty":  1206,
+                       "coverage_percent":  0
+                   },
+                   {
+                       "field":  "UYRUK",
+                       "non_empty":  1202,
+                       "empty":  4,
+                       "coverage_percent":  99.67
+                   },
+                   {
+                       "field":  "BIRIM",
+                       "non_empty":  0,
+                       "empty":  1206,
+                       "coverage_percent":  0
+                   },
+                   {
+                       "field":  "OGRENIMDURUM",
+                       "non_empty":  1206,
+                       "empty":  0,
+                       "coverage_percent":  100
+                   },
+                   {
+                       "field":  "CALISMAZAMANI",
+                       "non_empty":  1204,
+                       "empty":  2,
+                       "coverage_percent":  99.83
+                   },
+                   {
+                       "field":  "MESLEKKODU",
+                       "non_empty":  1206,
+                       "empty":  0,
+                       "coverage_percent":  100
+                   },
+                   {
+                       "field":  "MESLEKADI",
+                       "non_empty":  1206,
+                       "empty":  0,
+                       "coverage_percent":  100
+                   },
+                   {
+                       "field":  "ISKURISGUCUDURUMU",
+                       "non_empty":  1186,
+                       "empty":  20,
+                       "coverage_percent":  98.34
+                   },
+                   {
+                       "field":  "TABIIOLDUGUKANUN",
+                       "non_empty":  1206,
+                       "empty":  0,
+                       "coverage_percent":  100
+                   },
+                   {
+                       "field":  "ISTENCIKISKODU",
+                       "non_empty":  819,
+                       "empty":  387,
+                       "coverage_percent":  67.91
+                   },
+                   {
+                       "field":  "OGRENIMACIKLAMA",
+                       "non_empty":  0,
+                       "empty":  1206,
+                       "coverage_percent":  0
+                   },
+                   {
+                       "field":  "OKUL",
+                       "non_empty":  50,
+                       "empty":  1156,
+                       "coverage_percent":  4.15
+                   },
+                   {
+                       "field":  "OKULMEZUNIYET",
+                       "non_empty":  49,
+                       "empty":  1157,
+                       "coverage_percent":  4.06
+                   },
+                   {
+                       "field":  "USTUNVAN",
+                       "non_empty":  1083,
+                       "empty":  123,
+                       "coverage_percent":  89.8
+                   },
+                   {
+                       "field":  "USTUNVANID",
+                       "non_empty":  1083,
+                       "empty":  123,
+                       "coverage_percent":  89.8
+                   },
+                   {
+                       "field":  "USTSICILID1",
+                       "non_empty":  0,
+                       "empty":  1206,
+                       "coverage_percent":  0
+                   },
+                   {
+                       "field":  "USTSICIL1ADI",
+                       "non_empty":  0,
+                       "empty":  1206,
+                       "coverage_percent":  0
+                   },
+                   {
+                       "field":  "USTSICIL1SOYADI",
+                       "non_empty":  0,
+                       "empty":  1206,
+                       "coverage_percent":  0
+                   },
+                   {
+                       "field":  "USTSICILID2",
+                       "non_empty":  0,
+                       "empty":  1206,
+                       "coverage_percent":  0
+                   },
+                   {
+                       "field":  "USTSICIL2ADI",
+                       "non_empty":  0,
+                       "empty":  1206,
+                       "coverage_percent":  0
+                   },
+                   {
+                       "field":  "USTSICIL2SOYADI",
+                       "non_empty":  0,
+                       "empty":  1206,
+                       "coverage_percent":  0
+                   }
+               ],
+    "departments":  [
+                        {
+                            "department_id":  "10702",
+                            "department_name":  "MUTFAK",
+                            "records":  260
+                        },
+                        {
+                            "department_id":  "10698",
+                            "department_name":  "KAT HİZMETLERİ",
+                            "records":  237
+                        },
+                        {
+                            "department_id":  "10700",
+                            "department_name":  "F\u0026B RESTAURANT",
+                            "records":  142
+                        },
+                        {
+                            "department_id":  "10703",
+                            "department_name":  "BULAŞIKHANE",
+                            "records":  88
+                        },
+                        {
+                            "department_id":  "10701",
+                            "department_name":  "F\u0026B BAR",
+                            "records":  86
+                        },
+                        {
+                            "department_id":  "10692",
+                            "department_name":  "İDARİ İŞLER",
+                            "records":  82
+                        },
+                        {
+                            "department_id":  "10694",
+                            "department_name":  "TEKNİK SERVİS",
+                            "records":  78
+                        },
+                        {
+                            "department_id":  "10690",
+                            "department_name":  "GENEL MÜDÜRLÜK",
+                            "records":  75
+                        },
+                        {
+                            "department_id":  "10704",
+                            "department_name":  "KONSEPT \u0026 ANİMASYON",
+                            "records":  34
+                        },
+                        {
+                            "department_id":  "10697",
+                            "department_name":  "ÖNBÜRO",
+                            "records":  28
+                        },
+                        {
+                            "department_id":  "10693",
+                            "department_name":  "MUHASEBE",
+                            "records":  26
+                        },
+                        {
+                            "department_id":  "10699",
+                            "department_name":  "ÇAMAŞIRHANE",
+                            "records":  17
+                        },
+                        {
+                            "department_id":  "10691",
+                            "department_name":  "İNSAN KAYNAKLARI",
+                            "records":  15
+                        },
+                        {
+                            "department_id":  "10706",
+                            "department_name":  "SPA",
+                            "records":  13
+                        },
+                        {
+                            "department_id":  "10695",
+                            "department_name":  "BAHÇE",
+                            "records":  10
+                        },
+                        {
+                            "department_id":  "10696",
+                            "department_name":  "SATIŞ \u0026 PAZARLAMA",
+                            "records":  9
+                        },
+                        {
+                            "department_id":  "10705",
+                            "department_name":  "FITNESS",
+                            "records":  3
+                        },
+                        {
+                            "department_id":  "12845",
+                            "department_name":  "MARKET",
+                            "records":  2
+                        },
+                        {
+                            "department_id":  "12008",
+                            "department_name":  "SATIN ALMA",
+                            "records":  1
+                        }
+                    ],
+    "warnings":  [
+                     "Dosyalar TC kimlik, doğum tarihi ve iletişim bilgileri gibi kişisel veri içerir.",
+                     "Çalışma durumu için CALISIYOR filtresi ile AKTIF alanı aynı sonucu vermiyor; entegrasyonda CALISIYOR filtre kümeleri esas alınmalı.",
+                     "32904 ve 30570 bu projede HotelAdvisor otel kimlikleridir; Sicil API yanıtında şube ayrımı sağlamadı."
+                 ]
+}

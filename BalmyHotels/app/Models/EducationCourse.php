@@ -65,4 +65,15 @@ class EducationCourse extends Model
 
         return $this->quizQuestions()->exists();
     }
+
+    public function canBeDeletedBy(User $user): bool
+    {
+        if (! $user->hasPermission('education_courses', 'delete')) {
+            return false;
+        }
+
+        return $user->isSuperAdmin()
+            || $user->isBranchManager()
+            || (int) $this->trainer_id === (int) $user->id;
+    }
 }

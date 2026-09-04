@@ -5,10 +5,15 @@ namespace App\Http\Controllers\Modules;
 use App\Http\Controllers\Controller;
 use App\Models\Branch;
 use App\Models\Department;
+use App\Models\PdksEmployee;
 use App\Models\User;
 use App\Models\Role;
+use App\Services\ElektraUserSyncService;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use RuntimeException;
+use Throwable;
 
 class UserController extends BaseModuleController
 {
@@ -19,7 +24,7 @@ class UserController extends BaseModuleController
             ['index'],
             ['show'],
             ['create', 'store'],
-            ['edit', 'update'],
+            ['edit', 'update', 'syncElektra'],
             ['destroy']
         );
     }
@@ -40,13 +45,26 @@ class UserController extends BaseModuleController
 
     public function index(Request $request)
     {
-        $query = User::with(['branch', 'department', 'userRoles'])->orderBy('name');
+        $status = (string) $request->get('status', '');
+        if (! in_array($status, ['', 'active', 'inactive', 'elektra_inactive'], true)) {
+            $status = '';
+        }
+
+        $query = User::with([
+            'branch',
+            'department',
+            'userRoles',
+            'elektraPdksEmployee:id,user_id,external_employee_id,is_active,ended_at,last_synced_at',
+        ])->orderBy('name');
 
         if ($request->filled('branch_id')) {
             $query->where('branch_id', $request->branch_id);
         }
         if ($request->filled('role')) {
-            $query->where('role', $request->role);
+            $query->where(function ($roleQuery) use ($request) {
+                $roleQuery->where('role', $request->role)
+                    ->orWhereHas('userRoles', fn ($userRoleQuery) => $userRoleQuery->where('role_name', $request->role));
+            });
         }
         if ($request->filled('search')) {
             $query->where(function ($q) use ($request) {
@@ -55,12 +73,48 @@ class UserController extends BaseModuleController
             });
         }
 
+        if ($status === 'active') {
+            $query->where('is_active', true);
+        } elseif ($status === 'inactive') {
+            $query->where('is_active', false);
+        } elseif ($status === 'elektra_inactive') {
+            $query->where('is_active', false)
+                ->whereHas('elektraPdksEmployee', fn ($employeeQuery) => $employeeQuery->where('is_active', false));
+        }
+
         $users    = $query->paginate(20)->withQueryString();
         $branches = Branch::orderBy('name')->get();
         $roles    = $this->getRoles();
         $page_title = 'Çalışanlar';
 
-        return view('modules.users.index', compact('users', 'branches', 'roles', 'page_title'));
+        $elektraVerifiedInactiveQuery = User::query()
+            ->where('is_active', false)
+            ->whereHas('elektraPdksEmployee', fn ($employeeQuery) => $employeeQuery->where('is_active', false));
+
+        $userStats = [
+            'total' => User::count(),
+            'active' => User::where('is_active', true)->count(),
+            'inactive' => User::where('is_active', false)->count(),
+            'elektra_inactive' => (clone $elektraVerifiedInactiveQuery)->count(),
+            'branches' => Branch::count(),
+        ];
+
+        $elektraLastVerifiedAt = PdksEmployee::query()
+            ->where('source', PdksEmployee::SOURCE_ELEKTRA_FORESTA)
+            ->max('last_synced_at');
+        $elektraLastVerifiedAt = $elektraLastVerifiedAt
+            ? Carbon::parse($elektraLastVerifiedAt)
+            : null;
+
+        return view('modules.users.index', compact(
+            'users',
+            'branches',
+            'roles',
+            'page_title',
+            'status',
+            'userStats',
+            'elektraLastVerifiedAt'
+        ));
     }
 
     public function create()
@@ -99,6 +153,7 @@ class UserController extends BaseModuleController
             'branch_id'     => $request->branch_id,
             'department_id' => $request->department_id,
             'phone'         => $request->phone,
+            'phone_normalized' => User::normalizeTurkishPhone($request->phone),
             'title'         => $request->title,
             'is_active'     => true,
         ]);
@@ -145,6 +200,7 @@ class UserController extends BaseModuleController
         $primaryRole   = in_array('super_admin', $selectedRoles) ? 'super_admin' : $selectedRoles[0];
 
         $data = $request->only(['name', 'email', 'branch_id', 'department_id', 'phone', 'title']);
+        $data['phone_normalized'] = User::normalizeTurkishPhone($request->phone);
         $data['role']        = $primaryRole;
         $data['is_active']   = $request->boolean('is_active');
         $data['fault_notify'] = $request->boolean('fault_notify');
@@ -173,5 +229,49 @@ class UserController extends BaseModuleController
         $user->delete();
 
         return redirect()->route('users.index')->with('success', 'Çalışan silindi.');
+    }
+
+    public function syncElektra(ElektraUserSyncService $syncService)
+    {
+        try {
+            $result = $syncService->syncForesta();
+        } catch (Throwable $exception) {
+            report($exception);
+
+            $reason = $exception instanceof RuntimeException
+                ? $exception->getMessage()
+                : 'Beklenmeyen bir bağlantı veya veritabanı hatası oluştu.';
+
+            return redirect()->route('users.index')
+                ->with('error', 'Elektra senkronizasyonu tamamlanamadı: ' . $reason);
+        }
+
+        $message = sprintf(
+            'Elektra senkronizasyonu tamamlandı: %d aktif sicil, %d yeni üye, %d güncellenen, %d eşleştirilen mevcut hesap, %d yeniden aktif, %d pasife alınan.',
+            $result['total'],
+            $result['created'],
+            $result['updated'],
+            $result['adopted'],
+            $result['reactivated'],
+            $result['deactivated']
+        );
+
+        $redirect = redirect()->route('users.index')->with('success', $message);
+
+        if ($result['conflicts'] > 0 || $result['login_unavailable'] > 0) {
+            $warning = sprintf(
+                '%d kayıt güvenli eşleşme yapılamadığı için atlandı; %d üyede TC veya geçerli telefon eksik olduğundan personel girişi kullanılamıyor.',
+                $result['conflicts'],
+                $result['login_unavailable']
+            );
+
+            if ($result['conflict_names'] !== []) {
+                $warning .= ' Kontrol edilmesi gerekenler: ' . implode(', ', $result['conflict_names']) . '.';
+            }
+
+            $redirect->with('warning', $warning);
+        }
+
+        return $redirect;
     }
 }

@@ -14,7 +14,7 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
+Route::middleware(['auth:sanctum', 'active.user'])->get('/user', function (Request $request) {
     return $request->user();
 });
 
@@ -39,15 +39,15 @@ use App\Http\Controllers\Api\Mobile\MobileRoleController;
 use App\Http\Controllers\Api\Mobile\MobileUserController;
 
 Route::prefix('auth')->group(function () {
-    Route::post('login', [MobileAuthController::class, 'login']);
+    Route::post('login', [MobileAuthController::class, 'login'])->middleware('throttle:10,1');
 
-    Route::middleware('auth:sanctum')->group(function () {
+    Route::middleware(['auth:sanctum', 'active.user'])->group(function () {
         Route::get('me', [MobileAuthController::class, 'me']);
         Route::post('logout', [MobileAuthController::class, 'logout']);
     });
 });
 
-Route::middleware('auth:sanctum')->group(function () {
+Route::middleware(['auth:sanctum', 'active.user'])->group(function () {
     Route::apiResource('users', MobileUserController::class);
     Route::get('door-logs', [MobileDoorLogController::class, 'index']);
     Route::get('guest-logs', [MobileGuestLogController::class, 'index']);

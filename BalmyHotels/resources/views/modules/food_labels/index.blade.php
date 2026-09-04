@@ -83,6 +83,13 @@
                class="btn btn-sm btn-outline-success">
                 <i class="fas fa-file-excel me-1"></i>Excel'e Aktar
             </a>
+            @if(auth()->user()->isSuperAdmin())
+            <a href="{{ route('food-labels.export-all') }}"
+               class="btn btn-sm btn-success"
+               title="Tüm şubelerdeki bütün yemek isimliklerini, ham JSON alanlarıyla birlikte indirir">
+                <i class="fas fa-database me-1"></i>Tüm Verileri Excel
+            </a>
+            @endif
             <button type="button" class="btn btn-sm btn-outline-info" data-bs-toggle="modal" data-bs-target="#jsonImportModal">
                 <i class="fas fa-file-code me-1"></i>JSON Yemek Ekle
             </button>

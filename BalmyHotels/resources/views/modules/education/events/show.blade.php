@@ -109,9 +109,20 @@
             <div class="card border-0 shadow-sm" style="border-radius:8px">
                 <div class="card-header bg-white border-0 d-flex justify-content-between align-items-center">
                     <h5 class="mb-0">Katilim Listesi</h5>
-                    @if(auth()->user()->hasPermission('education_events','edit'))
-                        <a href="{{ route('education.events.edit', $event) }}" class="btn btn-sm btn-outline-warning">Duzenle</a>
-                    @endif
+                    <div class="d-flex gap-2">
+                        @if(auth()->user()->hasPermission('education_events','edit'))
+                            <a href="{{ route('education.events.edit', $event) }}" class="btn btn-sm btn-outline-warning">Duzenle</a>
+                        @endif
+                        @if($event->canBeDeletedBy(auth()->user()))
+                            <form method="POST" action="{{ route('education.events.destroy', $event) }}" onsubmit="return confirm('Bu yuz yuze egitimi ve tum katilim cevaplarini kalici olarak silmek istiyor musunuz?')">
+                                @csrf
+                                @method('DELETE')
+                                <button class="btn btn-sm btn-outline-danger" type="submit">
+                                    <i class="fas fa-trash me-1"></i>Egitimi Sil
+                                </button>
+                            </form>
+                        @endif
+                    </div>
                 </div>
                 <div class="card-body p-0">
                     <div class="table-responsive">

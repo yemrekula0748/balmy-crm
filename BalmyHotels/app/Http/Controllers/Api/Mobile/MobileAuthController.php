@@ -14,15 +14,40 @@ class MobileAuthController extends Controller
 {
     public function login(Request $request): JsonResponse
     {
-        $credentials = $request->validate([
-            'email' => ['required', 'email'],
-            'password' => ['required', 'string'],
-        ]);
+        $loginType = $request->input('login_type');
+        if (!in_array($loginType, ['personnel', 'email'], true)) {
+            $loginType = $request->filled('identity_no') ? 'personnel' : 'email';
+        }
 
-        $user = User::with('branch')->where('email', $credentials['email'])->first();
+        if ($loginType === 'personnel') {
+            $credentials = $request->validate([
+                'identity_no' => ['required', 'string', 'max:30'],
+                'phone' => ['required', 'string', 'max:30'],
+            ]);
 
-        if (! $user || ! Hash::check($credentials['password'], $user->password)) {
-            return response()->json(['message' => 'E-posta veya sifre hatali.'], 401);
+            $identityNumber = User::normalizeIdentityNumber($credentials['identity_no']);
+            $phone = User::normalizeTurkishPhone($credentials['phone']);
+            $user = $identityNumber
+                ? User::with(['branch', 'department'])
+                    ->where('identity_no_hash', User::identityHash($identityNumber))
+                    ->first()
+                : null;
+
+            if (!$phone || !$user || !$user->phone_normalized
+                || !hash_equals((string) $user->phone_normalized, $phone)) {
+                return response()->json(['message' => 'TC kimlik numarasi veya telefon numarasi hatali.'], 401);
+            }
+        } else {
+            $credentials = $request->validate([
+                'email' => ['required', 'email'],
+                'password' => ['required', 'string'],
+            ]);
+
+            $user = User::with(['branch', 'department'])->where('email', $credentials['email'])->first();
+
+            if (!$user || !Hash::check($credentials['password'], $user->password)) {
+                return response()->json(['message' => 'E-posta veya sifre hatali.'], 401);
+            }
         }
 
         if (! $user->is_active) {
@@ -49,7 +74,7 @@ class MobileAuthController extends Controller
 
     private function authPayload(User $user, ?string $token = null): array
     {
-        $user->loadMissing('branch');
+        $user->loadMissing(['branch', 'department']);
 
         $roles = $this->roleNames($user);
         $payload = [
@@ -57,8 +82,12 @@ class MobileAuthController extends Controller
                 'id' => $user->id,
                 'name' => $user->name,
                 'email' => $user->email,
+                'phone' => $user->phone,
+                'title' => $user->title,
                 'branch_id' => $user->branch_id,
                 'branch_name' => $user->branch?->name,
+                'department_id' => $user->department_id,
+                'department_name' => $user->department?->name,
             ],
             'is_super_admin' => in_array('super_admin', $roles, true),
             'roles' => $roles,

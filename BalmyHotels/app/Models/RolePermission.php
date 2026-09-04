@@ -135,6 +135,7 @@ class RolePermission extends Model
             'it_agent_inventory' => 'Ajan Envanter (Windows Agent)',
             'it_backup'          => 'Veritabanı Yedekleme',
             'it_signature_generator' => 'E-posta İmza Oluşturucu',
+            'it_phishing_tests'  => 'Oltalama Farkındalık Testleri',
             'login_logs'         => 'Giriş Logları',
             'mikrotik'           => 'MikroTik Dashboard',
         ],

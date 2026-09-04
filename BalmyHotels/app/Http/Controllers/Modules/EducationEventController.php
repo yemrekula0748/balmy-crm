@@ -8,6 +8,7 @@ use App\Models\EducationEventResponse;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 
 class EducationEventController extends BaseModuleController
@@ -129,7 +130,11 @@ class EducationEventController extends BaseModuleController
 
     public function destroy(EducationEvent $event)
     {
-        $event->delete();
+        abort_unless($event->canBeDeletedBy(Auth::user()), 403);
+
+        DB::transaction(function () use ($event): void {
+            $event->delete();
+        });
 
         return redirect()->route('education.events.index')->with('success', 'Yuz yuze egitim duyurusu silindi.');
     }

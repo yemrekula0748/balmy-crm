@@ -14,6 +14,12 @@
 
     @include('modules.education._tabs')
 
+    @php
+        $canGenerateAttendanceForm = auth()->user()->isSuperAdmin()
+            || auth()->user()->isBranchManager()
+            || (int) $course->trainer_id === (int) auth()->id();
+    @endphp
+
     @if(session('success'))
         <div class="alert alert-success alert-dismissible fade show">
             {{ session('success') }}
@@ -56,6 +62,15 @@
                             <i class="fas fa-question-circle me-1"></i>Quiz Sorulari
                         </a>
                     @endif
+                    @if($course->canBeDeletedBy(auth()->user()))
+                        <form method="POST" action="{{ route('education.courses.destroy', $course) }}" class="mt-2" onsubmit="return confirm('Bu egitimi, atamalarini ve quiz kayitlarini kalici olarak silmek istiyor musunuz?')">
+                            @csrf
+                            @method('DELETE')
+                            <button class="btn btn-outline-danger w-100" type="submit">
+                                <i class="fas fa-trash me-1"></i>Egitimi Sil
+                            </button>
+                        </form>
+                    @endif
                 </div>
             </div>
         </div>
@@ -73,6 +88,7 @@
                             <th class="text-center">Quiz</th>
                             <th class="text-center">Son Deneme</th>
                             <th class="text-center">Onay</th>
+                            <th class="text-center">Katılım Formu</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -111,9 +127,19 @@
                                         {{ $assignment->training_approved ? 'Onayli' : 'Bekliyor' }}
                                     </span>
                                 </td>
+                                <td class="text-center">
+                                    @if($canGenerateAttendanceForm && $assignment->training_approved)
+                                        <a href="{{ route('education.courses.attendance-form', [$course, $assignment]) }}"
+                                           class="btn btn-sm btn-outline-primary" target="_blank" rel="noopener">
+                                            <i class="fas fa-file-signature me-1"></i>Formu Çıkar
+                                        </a>
+                                    @else
+                                        <span class="text-muted">-</span>
+                                    @endif
+                                </td>
                             </tr>
                         @empty
-                            <tr><td colspan="5" class="text-center text-muted py-4">Bu egitim henuz kimseye atanmamis.</td></tr>
+                            <tr><td colspan="6" class="text-center text-muted py-4">Bu egitim henuz kimseye atanmamis.</td></tr>
                         @endforelse
                     </tbody>
                 </table>
